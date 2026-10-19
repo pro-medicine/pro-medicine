@@ -1,54 +1,34 @@
 # 모든 텍스트 파일의 줄바꿈 자동 정규화
 * text=auto
 # Java, SQL, React 소스 및 설정 파일 줄바꿈 처리
-*
-.java text
-*
-.sql text
-*
-.yml text
-*
-.yaml text
-*
-.xml text
-*
-*
-*
-*
-*
-*
-.js text
-.jsx text
-.json text
-.css text
-.html text
-.md text
+*.java text
+*.sql text
+*.yml text
+*.yaml text
+*.xml text
+*.js text
+*.jsx text
+*.json text
+*.css text
+*.html text
+*.md text
+
 # Linux/Container 쉘 스크립트 및 Maven Wrapper는 Windows에서도 항상 LF 유지 (필수)
-*
-.sh text eol=lf
+*.sh text eol=lf
 mvnw text eol=lf
 gradlew text eol=lf
+
 # Windows 배치 스크립트는 항상 CRLF 유지
-*
-.bat text eol=crlf
-*
-.cmd text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 # 이미지, 폰트, 압축 아카이브는 줄바꿈 변환에서 제외 (바이너리 손상 방지)
-*
-*
-*
-*
-*
-*
-*
-*
-*
-.png binary
-.jpg binary
-.jpeg binary
-.gif binary
-.ico binary
-.woff binary
-.woff2 binary
-.ttf binary
-.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.jar binary
