@@ -5,12 +5,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-.DS
-Store
-_
-*
-.
-_
+.DS_Store
+._*
 .Spotlight-V100
 .Trashes
 # ===================================================================
@@ -35,10 +31,8 @@ backend/.factorypath
 backend/.metadata/
 # IntelliJ IDEA 메타데이터 (팀원 중 혼용 사용 시 대비)
 backend/.idea/
-backend/*
-.iml
-backend/*
-.iws
+backend/*.iml
+backend/*.iws
 backend/out/
 # NetBeans 메타데이터
 backend/nbproject/private/
@@ -46,11 +40,9 @@ backend/nbbuild/
 backend/dist/
 backend/nbdist/
 # 백엔드 로그 및 덤프 파일
-backend/*
-.log
+backend/*.log
 backend/logs/
-backend/*
-.hprof
+backend/*.hprof
 # 민감 정보 포함 설정 파일 (로컬 DB 암호, JWT 시크릿 키 등)
 backend/src/main/resources/application.yml
 backend/src/main/resources/application-secret.yml
@@ -59,9 +51,7 @@ backend/src/main/resources/application-local.yml
 # 3. Front-end: React / Vite / Node.js
 # ===================================================================
 # npm / yarn / pnpm 의존성 패키지 디렉토리
-frontend/node
-modules/
-_
+frontend/node_modules/
 frontend/.pnp
 frontend/.pnp.js
 # Vite 프로덕션 빌드 번들링 산출물
@@ -89,6 +79,5 @@ frontend/.vite/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-*
-.code-workspace
+*.code-workspace
 .history/
