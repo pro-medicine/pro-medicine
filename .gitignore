@@ -1,0 +1,94 @@
+# ===================================================================
+# 1. OS Generated Files (운영체제 임시/캐시 파일)
+# ===================================================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS
+Store
+_
+*
+.
+_
+.Spotlight-V100
+.Trashes
+# ===================================================================
+# 2. Back-end: Java / Spring Boot / Build Tools
+# ===================================================================
+# Maven 컴파일 및 패키징 결과물
+backend/target/
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+# Gradle 빌드 산출물 (Gradle 적용 시)
+backend/.gradle/
+backend/build/
+# Eclipse IDE 메타데이터 및 로컬 프로젝트 설정
+backend/.project
+backend/.classpath
+backend/.settings/
+backend/bin/
+backend/.factorypath
+backend/.metadata/
+# IntelliJ IDEA 메타데이터 (팀원 중 혼용 사용 시 대비)
+backend/.idea/
+backend/*
+.iml
+backend/*
+.iws
+backend/out/
+# NetBeans 메타데이터
+backend/nbproject/private/
+backend/nbbuild/
+backend/dist/
+backend/nbdist/
+# 백엔드 로그 및 덤프 파일
+backend/*
+.log
+backend/logs/
+backend/*
+.hprof
+# 민감 정보 포함 설정 파일 (로컬 DB 암호, JWT 시크릿 키 등)
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-secret.yml
+backend/src/main/resources/application-local.yml
+# ===================================================================
+# 3. Front-end: React / Vite / Node.js
+# ===================================================================
+# npm / yarn / pnpm 의존성 패키지 디렉토리
+frontend/node
+modules/
+_
+frontend/.pnp
+frontend/.pnp.js
+# Vite 프로덕션 빌드 번들링 산출물
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+# Node 실행 및 디버깅 로그
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+# 환경 변수 및 로컬 민감 파일
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+# Vite 캐시 디렉토리
+frontend/.vite/
+# ===================================================================
+# 4. General Editors & Tools (IDE 공통 설정)
+# ===================================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*
+.code-workspace
+.history/
