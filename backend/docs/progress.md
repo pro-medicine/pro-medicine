@@ -1,5 +1,57 @@
 # AI 영양제 추천 진행 기록
 
+## 밤새 실행 요약 (2026-10-21)
+
+**실제 Claude API는 한 번도 호출하지 않았다** (예산 0달러). 품질·비용의 실제 수치는 전부 "실제 측정 대기"이고, 명령은 `perf/TODO-live-runs.md`에 STEP 순서로 있다. 최종 정리: [perf/SUMMARY.md](perf/SUMMARY.md).
+
+### 1. 완료한 STEP과 커밋 (브랜치 `feat/recommendation-pipeline`, push 안 함)
+
+| STEP | 커밋 | 비고 |
+| --- | --- | --- |
+| 프롬프트 | 1acb00a [DOCS] AI 추천 작업 프롬프트 추가 | |
+| 02 설문 API | ed5c6ee | 테스트 19개, 선택지 N+1 제거 (SQL 20 → 7) |
+| 03 LLM 연결 + V0 | c1dd2a2 | WireMock으로 HTTP 형식 검증, 실제 3회 호출 대기 |
+| 04 측정 인프라·평가셋 | 108ffb4 | 평가셋 32케이스(검토 전), evalRun, Fake 러너 검증 |
+| 05 V1 | 0ab6f63 | tool_choice 강제 대신 auto + strict (Opus 5.5 제약) |
+| 06 V2 | 550ced1 | 기준표 6행만 (나머지 TODO) |
+| 07 V3·V4 | faf9288 | 규칙 27개 각각 테스트 |
+| 08 V6·V7·V8 | 51270f8 | in-JVM 부하로 캐시 효과 실측 (k6 대체) |
+| 09 V9 | 784dc61 | 3구조 × 3시나리오 in-JVM 3회. STEP 10 코드 일부가 같이 들어감 |
+| 10 V10 | c854b33 | 장애 주입 8시나리오 in-JVM |
+| 11 최종 정리 | 이 요약과 같은 커밋 | SUMMARY.md 80개 수치 results.csv 대조 일치, 차트 3개 |
+
+모든 STEP에서 `./gradlew test` 통과 후 커밋했다.
+
+### 2. 막힌 STEP과 이유
+
+- 막혀서 멈춘 STEP은 없다. 다만 아래는 환경 때문에 **대체 방식**으로 했다
+  - 실제 API 측정 전부 (STEP 03~08 품질·비용·토큰): 예산 0달러 → Fake로 러너·파이프라인 동작만 확인, 실제 측정 대기
+  - k6 부하 테스트 (STEP 08~10): k6 미설치 → 스크립트만 만들고, 대신 실제 Tomcat + WireMock(3초) in-JVM 부하 테스트로 측정
+  - rate limit 확인 (STEP 09): 콘솔 접근 불가 → 워커 수 기본 4, 측정은 20
+  - 스레드 수 측정 (STEP 09): 같은 JVM 측정 방식 문제로 실패, 비교에 쓰지 않음
+- Redis: Docker로 `redis:7-alpine`을 잠깐 띄워 Redis 캐시·큐 실연결 테스트를 통과시킨 뒤 컨테이너를 내렸다 (기본값은 메모리라 Redis 없이도 앱·테스트가 돈다)
+
+### 3. 팀과 협의할 것
+
+| 대상 | 내용 |
+| --- | --- |
+| 채원 (화면) | 설문 API 명세 `docs/api/survey-api.md`, 추천 API 명세 `docs/api/recommendation-api.md` (200/202 + 폴링, items/excludedItems, warnings, fallback notice) |
+| 팀 전체 | 추가 라이브러리: H2(testRuntimeOnly), WireMock 3.13.2(testImplementation), spring-boot-starter-actuator + micrometer-registry-prometheus, spring-boot-starter-data-redis, resilience4j-spring-boot3 2.4.0 |
+| 팀 전체 | 스키마 변경 SQL (`docs/sql/`, 목록 `docs/schema-changes.md`): llm_call_logs, ingredient_standards, recommendation_rules 새 테이블 / ai_recommendation_items 컬럼 8개 / ai_recommendations 컬럼 4개 + 시드 SQL |
+| 응진 (알림) | `notifications.dedup_key` 유니크 제약 제안 `docs/sql/STEP09_proposal_notification_dedup.sql` (적용 안 함) |
+| 주연 (user) | `User.agreeSensitiveConsent()` 메서드 추가, user 도메인에 새 클래스(UserConsentController/Service) 추가 |
+| 팀 전체 | `ErrorCode.INVALID_INPUT`이 502로 되어 있음, `GlobalExceptionHandler`가 파싱 오류를 500으로 처리, `spring.jpa.open-in-view`(LLM 대기 중 커넥션 점유 가능), 루트 README는 건드리지 않고 `backend/README.md`를 새로 만듦 |
+
+### 4. 아침에 할 일
+
+1. **평가셋 검토**: `backend/src/test/resources/eval/cases.json` 확인 후 `meta.reviewed`를 `true`로. 특히 `meta.goalMayInclude`(원하는 효과 → 성분)는 출처가 없다
+2. **`reference/domain-rules.md` 2번 표의 TODO 수치 입력** (2025 한국인 영양소 섭취기준 원문) → `docs/sql/STEP06_seed_ingredient_standards.sql`과 테스트 픽스처 `src/test/resources/sql/seed-ingredient-standards.sql`에 행 추가
+3. **실제 API 실행**: `ANTHROPIC_API_KEY` 설정 후 `backend/docs/perf/TODO-live-runs.md`의 명령을 STEP 순서대로 (먼저 confirm 없이 예상 비용 확인). 사용할 모델도 결정 (기본 claude-opus-5-5)
+4. Anthropic Console에서 rate limit 확인 → `recommendation.worker.concurrency`, `llm.resilience.bulkhead-max-concurrent` 조정
+5. (선택) k6 설치 후 WireMock 부하 테스트 (TODO 08-4, 09-1, 10-1)
+
+---
+
 프롬프트: `backend/docs/supplement-recommendation/` (STEP 01은 팀 PR #11로 대체). 실행 규칙: `RUN_OVERNIGHT.md`.
 
 ## 확인한 것
@@ -72,7 +124,7 @@
 
 ## 막힌 것
 
-- 없음
+- 없음 (대체 방식으로 진행한 항목은 맨 위 "밤새 실행 요약" 2번)
 
 ## STEP 02 - 설문 API (2026-10-21)
 - 한 일:
@@ -149,3 +201,9 @@
 - 측정 결과 요약: [STEP10-report.md](perf/STEP10-report.md). flaky 성공률 V9-queue 0.80 → V10 1.00(폴백 제외 0.98, 재시도 호출 +45), outage 0.50 → 1.00(폴백 55%, 서킷 OPEN 2.3초, 복구 후 7.2초에 CLOSED), slow p95 40.6초 → 45.6초(악화). RULE_ONLY 평가 recall 1.0은 설계상 당연(같은 규칙으로 정의된 평가셋)
 - 결정한 것 / 미룬 것: 타임아웃·재시도 값은 실제 지연 측정 후 조정
 - 다음 STEP 전에 사용자가 할 일: 없음
+
+## STEP 11 - 최종 정리 (2026-10-21)
+- 한 일: `docs/perf/SUMMARY.md`(results.csv 출처 표시), `docs/perf/verify-summary.js`(대조 스크립트), `docs/perf/charts/make-charts.js` + SVG 차트 3개(STEP 08 캐시, STEP 09 알림 몰림, STEP 10 장애 성공률), `backend/README.md`(실행·평가·부하 테스트 방법). 루트 README는 팀 공통 파일이라 손대지 않았다
+- **대조 결과**: `node docs/perf/verify-summary.js` → 대조한 수치 80개, 불일치 0 (일부러 값을 바꿨을 때 불일치 1로 잡히는 것도 확인). results.csv에 없는 수치(STEP 02, 단계 시간, 서킷 시간 등)는 각 STEPxx-report.md 링크로 출처를 달았다
+- STEP 09 리포트에 3회차 결과 추가 (vt 에러율 0.147로 악화, 스레드 수 측정 실패 기록)
+- 다음에 사용자가 할 일: 위 "아침에 할 일"
