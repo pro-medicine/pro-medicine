@@ -5,6 +5,7 @@ import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.infra.llm.LlmCallException;
 import lombok.RequiredArgsConstructor;
@@ -23,21 +24,25 @@ public class RecommendationService {
     private final PipelineRegistry pipelineRegistry;
     private final RecommendationStore store;
     private final RecommendationProperties properties;
+    private final StageTimer stageTimer;
 
     public RecommendationResponse create(Long responseId) {
         if (responseId == null) {
             throw new BusinessException(ErrorCode.RECOMMENDATION_INVALID_REQUEST);
         }
-        RecommendationInput input = assembler.assemble(responseId);
-        RecommendationResult result;
-        try {
-            result = pipelineRegistry.get(properties.getPipelineVersion()).run(input);
-        } catch (LlmCallException e) {
-            // 원문 대신 실패 종류만 남긴다
-            log.warn("LLM call failed: kind={}, status={}, responseId={}", e.getKind(), e.getHttpStatus(), responseId);
-            throw new BusinessException(ErrorCode.RECOMMENDATION_LLM_FAILED);
-        }
-        return store.save(responseId, result);
+        String version = properties.getPipelineVersion();
+        return stageTimer.recordTotal(version, () -> {
+            RecommendationInput input = stageTimer.record("assemble", version, () -> assembler.assemble(responseId));
+            RecommendationResult result;
+            try {
+                result = pipelineRegistry.get(version).run(input);
+            } catch (LlmCallException e) {
+                // 원문 대신 실패 종류만 남긴다
+                log.warn("LLM call failed: kind={}, status={}, responseId={}", e.getKind(), e.getHttpStatus(), responseId);
+                throw new BusinessException(ErrorCode.RECOMMENDATION_LLM_FAILED);
+            }
+            return store.save(responseId, result);
+        });
     }
 
     public RecommendationResponse get(Long recommendationId) {

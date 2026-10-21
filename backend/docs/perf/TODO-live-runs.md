@@ -25,3 +25,15 @@
 SELECT pipeline_version, model, latency_ms, input_tokens, output_tokens, outcome
 FROM llm_call_logs ORDER BY llm_call_log_id DESC LIMIT 3;
 ```
+
+## STEP 04 - V0 기준선
+
+먼저 평가셋(`src/test/resources/eval/cases.json`)을 검토하고 `meta.reviewed`를 `true`로 바꾼 뒤 실행하는 것을 권장한다.
+
+| # | 명령 | 예상 호출 수 | 확인할 것 |
+| --- | --- | ---: | --- |
+| 04-0 | `./gradlew evalRun -PpipelineVersion=V0` | 0 | 예상 호출 수·비용 출력만 |
+| 04-1 | `./gradlew evalRun -PpipelineVersion=V0 -Pconfirm=true` | 32 | results.csv `04,V0` 줄 |
+| 04-2 | `./gradlew evalRun -PpipelineVersion=V0 -Pmode=repro -Pconfirm=true` | 50 | results.csv `04,V0-repro` 줄 |
+
+결과 상세: `docs/perf/runs/{eval_run_id}.json` (케이스별 추천 성분·용량·실패 유형)

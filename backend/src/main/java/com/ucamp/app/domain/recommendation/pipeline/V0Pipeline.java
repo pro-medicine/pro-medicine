@@ -66,38 +66,41 @@ public class V0Pipeline implements RecommendationPipeline {
                 .promptVersion(PROMPT_VERSION)
                 .model(response.model())
                 .llmCallLogIds(response.callLogId() == null ? List.of() : List.of(response.callLogId()));
-        if (parsed == null) {
+        if (parsed.failure() != null) {
             llmCallLogService.markOutcome(response.callLogId(), LlmCallLog.PARSE_FAIL);
-            return result.parseSuccess(false).items(List.of()).failureReason("PARSE_FAIL").build();
+            return result.parseSuccess(false).items(List.of()).failureReason(parsed.failure()).build();
         }
         return result.parseSuccess(true).items(parsed.items()).summary(parsed.summary()).build();
     }
 
-    private record Parsed(List<RecommendationItem> items, String summary) {
+    // 실패 유형(본문 대신 리포트에 남김): NO_JSON_OBJECT, INVALID_JSON, MISSING_RECOMMENDATIONS, EMPTY_NAME
+    private record Parsed(List<RecommendationItem> items, String summary, String failure) {
+        static Parsed fail(String failure) {
+            return new Parsed(List.of(), null, failure);
+        }
     }
 
-    // 파싱 실패면 null
     private Parsed parse(String text) {
         if (text == null) {
-            return null;
+            return Parsed.fail("NO_JSON_OBJECT");
         }
         int start = text.indexOf('{');
         int end = text.lastIndexOf('}');
         if (start < 0 || end <= start) {
-            return null;
+            return Parsed.fail("NO_JSON_OBJECT");
         }
         try {
             JsonNode root = objectMapper.readTree(text.substring(start, end + 1));
             JsonNode recs = root.get("recommendations");
             if (recs == null || !recs.isArray()) {
-                return null;
+                return Parsed.fail("MISSING_RECOMMENDATIONS");
             }
             List<RecommendationItem> items = new ArrayList<>();
             int order = 1;
             for (JsonNode r : recs) {
                 String name = r.path("name").asText("").strip();
                 if (name.isEmpty()) {
-                    return null;
+                    return Parsed.fail("EMPTY_NAME");
                 }
                 items.add(RecommendationItem.builder()
                         .ingredient(name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name)
@@ -107,9 +110,9 @@ public class V0Pipeline implements RecommendationPipeline {
                         .unit(r.path("unit").isTextual() ? r.path("unit").asText() : null)
                         .build());
             }
-            return new Parsed(items, root.path("summary").asText(null));
+            return new Parsed(items, root.path("summary").asText(null), null);
         } catch (IOException e) {
-            return null;
+            return Parsed.fail("INVALID_JSON");
         }
     }
 

@@ -14,6 +14,7 @@ import com.ucamp.app.support.TestUsers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -34,6 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // 설문 제출 → 입력 조립 → 추천 생성(Fake LLM) → 조회
+// 테스트는 기본으로 메트릭 내보내기를 끄므로 prometheus 확인을 위해 켠다
+@AutoConfigureObservability(tracing = false)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -75,6 +78,20 @@ class RecommendationApiTest {
                 .andExpect(jsonPath("$.data.responseId").value(responseId))
                 .andExpect(jsonPath("$.data.items.length()").value(1));
         assertThat(logRepository.findByResponseIdOrderByLlmCallLogIdAsc(responseId)).hasSize(1);
+    }
+
+    @Test
+    void 단계별_지연이_prometheus에_노출된다() throws Exception {
+        long responseId = submit(null, List.of(choice(Q_GENDER, GENDER_M)));
+        mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"responseId\":" + responseId + "}")).andExpect(status().isOk());
+
+        String metrics = mockMvc.perform(get("/actuator/prometheus").accept(MediaType.TEXT_PLAIN)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(metrics).contains("recommendation_stage_seconds")
+                .contains("stage=\"assemble\"").contains("stage=\"llm\"").contains("stage=\"parse\"")
+                .contains("recommendation_total_seconds");
     }
 
     @Test

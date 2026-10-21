@@ -31,6 +31,12 @@
 - (STEP 03) `llm_call_logs`는 바깥 트랜잭션이 롤백돼도 남도록 REQUIRES_NEW로 저장. `response_id`에 FK는 걸지 않음(기록용).
 - (STEP 03) 추천 저장은 LLM 호출과 분리(`RecommendationStore`)해서 LLM 대기 중 DB 트랜잭션을 잡지 않는다.
 
+- (STEP 04) Actuator + `micrometer-registry-prometheus` implementation 추가 (Spring Boot BOM 버전). 이유: 단계별 지연 Timer와 /actuator/prometheus.
+- (STEP 04) 노출 설정은 application.yml 대신 `resources/config/recommendation-defaults.properties`(@PropertySource, 우선순위가 application.yml보다 낮음)에 두었다.
+- (STEP 04) 평가 러너는 별도 sourceSet 대신 `@Tag("eval")` 테스트 + `evalRun` Gradle 태스크로 분리. 실제 API(`-Pllm=anthropic`, 기본)만 `-Pconfirm=true`를 요구하고, Fake 모드는 비용이 없어 confirm 없이 실행된다.
+- (STEP 04) Fake 실행은 두 종류: `fake`(정답, 러너 검증), `fake-noisy`(시드 고정 오답, 규칙 검증 동작 확인). results.csv label에 fake가 붙고 note에 "실제 측정값 아님"을 적는다.
+- (STEP 04) 지표 해석: precision은 합산, dose_error 분모는 추천된 항목만, reproducibility는 첫 결과 포함 (STEP04-report.md "지표 계산에서 정한 것").
+
 ## 막힌 것
 
 - 없음
@@ -61,3 +67,16 @@
   - 비회원도 자기 responseId로 추천을 만들 수 있다. 남의 responseId로 호출하는 가로채기 방지는 범위 밖 (로그인 연동 시 응답 소유자 확인 필요)
   - 재시도·서킷 브레이커는 STEP 10
 - 다음 STEP 전에 사용자가 할 일: (실제 측정을 원하면) API 키 설정 후 TODO-live-runs.md 03번
+
+## STEP 04 - 측정 인프라 + 평가셋 + V0 기준선 (2026-10-21)
+- 한 일:
+  - `StageTimer`(Micrometer): `recommendation.stage` {assemble, llm, parse}, `recommendation.total`, `/actuator/prometheus` 노출 확인 테스트
+  - 평가셋 32케이스 `eval/cases.json` (규칙 1개 12, 여러 개 10, 없음 5, 비회원 5, 재현성 10 고정), 별칭 표 `eval/ingredient-aliases.json`
+  - 평가 러너 `eval/EvalRunner` + `./gradlew evalRun` (예상 호출 수·비용 출력, `-Pconfirm=true`, `-Pllm=fake|fake-noisy`, `-Pmode=repro`), 결과 `docs/perf/results.csv`(헤더 생성) + `docs/perf/runs/*.json`
+  - V0 파싱 실패 유형 기록(NO_JSON_OBJECT 등, 본문 저장 없음)
+  - 테스트: EvalMetricsTest 9, EvalRunnerTest 4, prometheus 노출 1
+- 측정 결과 요약: [STEP04-report.md](perf/STEP04-report.md). V0 실제 기준선은 **실제 측정 대기**. Fake 러너 검증 4줄(results.csv 2~5행): 정답 Fake recall 1.0 / violation 0.0, 오답 Fake에서 지표 하락 확인
+- 결정한 것 / 미룬 것: 효과(Q-GOAL) → mayInclude 매핑은 출처가 없어 검토 대상으로 표시
+- 다음 STEP 전에 사용자가 할 일:
+  - **평가셋 검토 요청**: `backend/src/test/resources/eval/cases.json`을 검토하고 맞으면 `meta.reviewed`를 `true`로 바꿔 주세요. 특히 `meta.goalMayInclude`(원하는 효과 → 성분)는 근거 출처가 없습니다.
+  - 실제 기준선: TODO-live-runs.md 04-1, 04-2
