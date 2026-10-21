@@ -7,6 +7,7 @@ import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +26,7 @@ class V0PipelineTest {
     @Autowired
     LlmCallLogRepository logRepository;
 
+    @BeforeEach
     @AfterEach
     void reset() {
         fake.reset();

@@ -1,0 +1,35 @@
+{
+  "structure" : "V9-queue",
+  "scenario" : "steady",
+  "conditions" : "in-JVM (k6 대체), Tomcat threads.max=50, Hikari 10, H2, WireMock 3000ms, V4 pipeline, queue workers=20, client timeout 30s",
+  "requests" : 300,
+  "arrivalWindowMs" : 29900,
+  "elapsedSeconds" : 50.3827384,
+  "ok" : 300,
+  "errorRate" : 0.0,
+  "tps" : 5.954420294074369,
+  "acceptLatency" : {
+    "n" : 300,
+    "p50_ms" : 11.415,
+    "p95_ms" : 137.156,
+    "p99_ms" : 490.003,
+    "max_ms" : 1315.337,
+    "mean_ms" : 42.647
+  },
+  "completeLatency" : {
+    "n" : 300,
+    "p50_ms" : 11846.391,
+    "p95_ms" : 19850.025,
+    "p99_ms" : 20252.281,
+    "max_ms" : 20598.828,
+    "mean_ms" : 11751.236
+  },
+  "maxThreads" : 436,
+  "peakThreads" : 437,
+  "maxServerPlatformThreads" : 70,
+  "cpuPercentMax" : 55.288,
+  "cpuPercentAvg" : 37.039,
+  "heapUsedMaxMb" : 171,
+  "llmConcurrentMax" : 20,
+  "llmCalls" : 300
+}

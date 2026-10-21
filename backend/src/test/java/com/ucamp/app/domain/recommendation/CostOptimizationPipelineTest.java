@@ -53,6 +53,7 @@ class CostOptimizationPipelineTest {
 
     @BeforeEach
     void setUp() {
+        fake.reset();
         cache.clear();
         fake.answerWith(new FakeAnswer(List.of(new FakeAnswer.Item("VITAMIN_C", null, "흡연", null, null),
                 new FakeAnswer.Item("BETA_CAROTENE", null, "x", null, null)), "요약"));

@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000500",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/messages"
+  },
+  "response": {
+    "status": 500,
+    "fixedDelayMilliseconds": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "type": "error",
+      "error": {
+        "type": "api_error",
+        "message": "injected 500"
+      }
+    }
+  }
+}

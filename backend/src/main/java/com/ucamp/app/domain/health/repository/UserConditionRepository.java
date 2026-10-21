@@ -11,6 +11,9 @@ import java.util.List;
 public interface UserConditionRepository extends JpaRepository<UserCondition, Long> {
     List<UserCondition> findByUser_IdOrderByUserConditionIdAsc(Long userId);
 
+    @Query("select max(c.createdAt) from UserCondition c where c.user.id = :userId")
+    java.time.LocalDateTime findLastCreatedAt(@Param("userId") Long userId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = false)
     @Query("delete from UserCondition c where c.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);

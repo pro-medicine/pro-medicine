@@ -57,6 +57,14 @@
 - (STEP 08) 테스트에서 LLM 클라이언트를 WireMock으로 바꿀 때 운영 코드(API 키는 환경변수만)를 건드리지 않으려고 테스트 전용 BeanPostProcessor로 교체한다.
 - (STEP 08) **최종 서비스 설정(잠정)**: `recommendation.pipeline-version` 기본값은 아직 V0 그대로 두었다 (팀 공통 기본값을 실측 없이 바꾸지 않음). 실측 전 근거로는 V6(V4 + 결과 캐시)가 품질 변화 없이 LLM 호출을 줄여 1순위 후보다. V7·V8 채택은 실제 토큰·품질 측정(TODO 08-1~3) 후 결정.
 
+- (STEP 09) 큐는 Redis List(LPUSH/BRPOP) + 메모리 구현. 기본은 메모리(`recommendation.queue.store=memory`). 작업 상태 원본은 DB라 워커 시작 시 PENDING 행을 다시 넣는다.
+- (STEP 09) 동기/큐는 `recommendation.api-mode=sync|queue`로 고르고 기본은 sync(기존 동작). 응답 코드 DONE=200, 그 외 202.
+- (STEP 09) 워커 동시 처리 수 기본값 4. **rate limit은 실제 API를 쓰지 않아 콘솔에서 확인하지 못했다** → 사용자가 확인 후 조정 (TODO 09-0). 측정은 20으로 했다.
+- (STEP 09) 알림 일괄 발송은 `domain/recommendation/perf/NotificationSpikeSimulator`(dedup·분산·Sender 인터페이스)로만 만들고 notifications 테이블에는 쓰지 않았다. 유니크 제약은 제안 SQL만.
+- (STEP 09) 재사용 판단의 "변경 시각"은 health_profiles.updated_at, user_conditions.created_at, user_medications.updated_at 중 최댓값. 행 삭제만 있는 변경은 못 잡는다 (지금은 설문 제출 때만 삭제됨).
+- (STEP 09) in-JVM 부하 테스트에서 같은 JVM의 다른 컨텍스트·WireMock 스레드가 스레드 수에 섞이는 문제를 발견해 포트로 거르도록 고쳤다 (2회차 결과까지는 스레드 수 비교 불가).
+- (STEP 09 커밋) STEP 10 장애 대응 코드 일부(ResilientLlmClient, RuleOnlyPipeline 등)가 같은 파일을 고쳐 함께 커밋됐다. STEP 10 커밋에서 측정·문서를 마무리한다.
+
 ## 막힌 것
 
 - 없음
@@ -124,3 +132,9 @@
 - 측정 결과 요약: [STEP08-report.md](perf/STEP08-report.md). 실제 API **실제 측정 대기**. Fake V6 2회차 LLM 호출 0·적중률 1.0, V8 라우팅 작은 모델 13/32. 부하(WireMock 3초, 2,000건): LLM 호출 2,000 → 809, TPS 15.20 → 28.23, p50 3,086 → 45ms, p95 3,611 → 4,464ms(악화)
 - 결정한 것 / 미룬 것: 캐시 스탬피드(single-flight), V6 p95 원인, V7 실제 캐시 적용 여부
 - 다음 STEP 전에 사용자가 할 일: Anthropic Console에서 rate limit 확인 (STEP 09 워커 동시 처리 수 설정용)
+
+## STEP 09 - 처리 구조 개선 + 알림 몰림 (2026-10-21)
+- 한 일: 큐 모드(`RecommendationQueue` 메모리/Redis List, `RecommendationWorker`, 202 접수·GET 상태·멱등), ai_recommendations 상태 컬럼 4개, `GET /api/v1/users/me/recommendations/latest`(재사용), `NotificationSpikeSimulator`(dedup·분산), 알림 dedup 유니크 제안 SQL, k6 `spike.js`, in-JVM 구조 비교 부하 테스트, 추천 API 명세 `docs/api/recommendation-api.md`. 테스트: QueueModeTest 3, NotificationAndReuseTest 5(Redis 큐 실연결 포함)
+- 측정 결과 요약: [STEP09-report.md](perf/STEP09-report.md). spike-burst(10초 600건, WireMock 3초): 에러율 sync 0.053~0.232 / vt 0.002 / queue 0.0, LLM 동시 호출 최대 sync 50 / vt 256~413 / queue 20, queue 완료 p95 89~102초. 발송 분산(60초)이면 sync·vt 모두 실패 0. 알림 진입 재사용으로 LLM 호출 70% 감소(프로필 변경 30% 가정)
+- 결정한 것 / 미룬 것: 위 "결정한 것" STEP 09 항목. 스레드 수 재측정, OSIV 영향 확인
+- 다음 STEP 전에 사용자가 할 일: rate limit 확인(TODO 09-0)

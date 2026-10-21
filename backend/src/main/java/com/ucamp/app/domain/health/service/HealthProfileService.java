@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,6 +44,21 @@ public class HealthProfileService {
         }
         return new HealthProfileSnapshot(true, HealthProfileSnapshot.valuesOf(profile), profile.getUpdatedAt(),
                 conditions, medications);
+    }
+
+    /**
+     * 프로필 · 질환 · 복용 약 중 가장 최근 변경 시각 (없으면 null). 알림 진입 시 추천 재사용 판단용.
+     * 행 삭제만 있었던 변경은 남는 시각이 없어 잡지 못한다 (지금은 삭제가 설문 제출 때만 일어나 새 추천이 만들어짐).
+     */
+    public LocalDateTime lastChangedAt(Long userId) {
+        LocalDateTime latest = healthProfileRepository.findById(userId).map(HealthProfile::getUpdatedAt).orElse(null);
+        for (LocalDateTime t : new LocalDateTime[]{
+                userConditionRepository.findLastCreatedAt(userId), userMedicationRepository.findLastUpdatedAt(userId)}) {
+            if (t != null && (latest == null || t.isAfter(latest))) {
+                latest = t;
+            }
+        }
+        return latest;
     }
 
     /**

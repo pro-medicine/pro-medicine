@@ -8,6 +8,7 @@ import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +35,7 @@ class V1PipelineTest {
     private static final String INVALID = """
             {"recommendations":[{"ingredient":"VITAMIN_E","reason":"x","priority":1,"amount":null,"unit":null}],"summary":"s"}""";
 
+    @BeforeEach
     @AfterEach
     void reset() {
         fake.reset();

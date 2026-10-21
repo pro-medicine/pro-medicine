@@ -11,3 +11,5 @@ Flyway를 쓰지 않는다. 엔티티에 반영하면 로컬 DB는 `ddl-auto: up
 | 06 | ai_recommendation_items (컬럼 추가) | recommended_amount, current_intake, intake_status, unit, dose_note | 계산한 용량과 근거 저장 | AI 추천 결과 조회 | `docs/sql/STEP06_ingredient_standards.sql` |
 | 07 | recommendation_rules (새 테이블) | rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active | 안전 판단을 규칙 테이블로 처리 | AI 추천 | `docs/sql/STEP07_recommendation_rules.sql`, 시드 `STEP07_seed_recommendation_rules.sql` |
 | 07 | ai_recommendation_items (컬럼 추가) | excluded, applied_rule_ids, warnings | 제외된 성분도 저장해 LLM 원래 출력 보존, 경고 표시 | AI 추천 결과 조회 | `docs/sql/STEP07_recommendation_rules.sql` |
+| 09 | ai_recommendations (컬럼 추가) | status(DEFAULT DONE), started_at, finished_at, error_code | 비동기(큐) 처리 상태 | AI 추천 생성·조회 | `docs/sql/STEP09_ai_recommendations_status.sql` |
+| 09 | notifications (제안만, 미적용) | dedup_key UNIQUE | 같은 날 같은 알림 중복 생성 방지 | 알림 (응진 담당) | `docs/sql/STEP09_proposal_notification_dedup.sql` |

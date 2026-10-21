@@ -79,3 +79,10 @@ Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)�
 | 08-4 | k6 (WireMock, 비용 없음): `perf/k6/cache-load.js` 머리말의 준비 순서대로 V4, V6 서버에 각각 실행 | 0 (WireMock) | TPS, p95, WireMock 호출 수 |
 
 k6 설치: `winget install k6 --source winget`. 08-4는 실제 API를 쓰지 않는다 (k6가 없어서 밤새 실행에서는 in-JVM 대체 측정만 했다).
+
+## STEP 09 - 처리 구조 · 알림 몰림
+
+| # | 명령 | 예상 호출 수 | 확인할 것 |
+| --- | --- | ---: | --- |
+| 09-0 | Anthropic Console에서 계정 rate limit(분당 요청·토큰) 확인 → `recommendation.worker.concurrency`, `llm.resilience.bulkhead-max-concurrent` 조정 | 0 | progress "결정한 것"에 값 기록 |
+| 09-1 | k6 (WireMock, 비용 없음): `perf/k6/spike.js` 머리말 순서대로 sync / vt / queue 서버 × steady / spike-burst / spike-spread | 0 | TPS, p95, 에러율, complete_ms |

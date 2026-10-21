@@ -1,0 +1,23 @@
+{
+  "scenarioName": "flaky",
+  "requiredScenarioState": "S7",
+  "newScenarioState": "S8",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/messages"
+  },
+  "response": {
+    "status": 500,
+    "fixedDelayMilliseconds": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "type": "error",
+      "error": {
+        "type": "api_error",
+        "message": "injected 500"
+      }
+    }
+  }
+}

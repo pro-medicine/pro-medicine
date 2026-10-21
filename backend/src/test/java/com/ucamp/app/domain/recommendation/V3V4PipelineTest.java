@@ -35,6 +35,7 @@ class V3V4PipelineTest {
 
     @BeforeEach
     void answer() {
+        fake.reset();
         // LLM이 금지 성분(베타카로틴, 칼륨)을 섞어서 답한 상황
         fake.answerWith(new FakeAnswer(List.of(
                 new FakeAnswer.Item("VITAMIN_C", null, "흡연", null, null),

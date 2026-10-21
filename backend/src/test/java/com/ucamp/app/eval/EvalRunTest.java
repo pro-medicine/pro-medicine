@@ -93,6 +93,11 @@ class EvalRunTest {
                 version, repro ? "repro" : "full", mode, llmProperties.getModel(), cases.size(), repeats,
                 file.meta().reviewed());
 
+        // 규칙 기반 폴백(RULE_ONLY)은 LLM을 부르지 않으므로 비용·confirm 없이 실제 측정한다
+        boolean llmFree = "RULE_ONLY".equals(version);
+        if (llmFree) {
+            mode = EvalRunner.LlmMode.FAKE;
+        }
         if (mode == EvalRunner.LlmMode.ANTHROPIC) {
             int maxCalls = "V0".equals(version) ? runs : runs * 2;
             EvalCost.Price price = EvalCost.price(llmProperties.getModel());
@@ -111,12 +116,12 @@ class EvalRunTest {
         // V6 결과 캐시처럼 같은 평가셋을 연속으로 돌려야 하는 경우 -Ppasses=2 (같은 JVM이라 캐시가 유지된다)
         int passes = Integer.parseInt(System.getProperty("eval.passes", "1"));
         for (int pass = 1; pass <= passes; pass++) {
-            runPass(version, repro, caseLimit, repeats, mode, file, cases, passes > 1 ? pass : 0);
+            runPass(version, repro, caseLimit, repeats, mode, file, cases, passes > 1 ? pass : 0, llmFree);
         }
     }
 
     private void runPass(String version, boolean repro, int caseLimit, int repeats, EvalRunner.LlmMode mode,
-                         EvalCaseFile file, List<EvalCase> cases, int pass) throws Exception {
+                         EvalCaseFile file, List<EvalCase> cases, int pass, boolean llmFree) throws Exception {
         String passSuffix = pass > 0 ? "-pass" + pass : "";
         String evalRunId = version + "-" + (repro ? "repro-" : "") + mode.name().toLowerCase().replace('_', '-')
                 + passSuffix + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
@@ -129,10 +134,10 @@ class EvalRunTest {
                 new EvalRunner.Config(version, repro, caseLimit, repeats, mode, evalRunId), cases);
 
         String label = version + (repro ? "-repro" : "")
-                + (mode == EvalRunner.LlmMode.FAKE ? "-fake" : mode == EvalRunner.LlmMode.FAKE_NOISY ? "-fake-noisy" : "")
+                + (llmFree ? "" : mode == EvalRunner.LlmMode.FAKE ? "-fake" : mode == EvalRunner.LlmMode.FAKE_NOISY ? "-fake-noisy" : "")
                 + passSuffix
                 + (System.getProperty("eval.label") == null ? "" : "-" + System.getProperty("eval.label"));
-        String note = buildNote(file, summary, System.getProperty("eval.note"));
+        String note = buildNote(file, summary, llmFree ? "LLM 미사용(규칙 기반 폴백) - 실제 측정값" : System.getProperty("eval.note"), llmFree);
         String step = System.getProperty("eval.step", stepOf(version));
         EvalRunner.appendCsv(CSV, EvalRunner.csvRow(step, label, summary, note));
         Map<String, Object> extra = new LinkedHashMap<>();
@@ -184,7 +189,7 @@ class EvalRunTest {
         return m;
     }
 
-    private static String buildNote(EvalCaseFile file, EvalRunner.Summary s, String extra) {
+    private static String buildNote(EvalCaseFile file, EvalRunner.Summary s, String extra, boolean llmFree) {
         StringBuilder sb = new StringBuilder("evalRunId=").append(s.config().evalRunId())
                 .append("; reviewed=").append(file.meta().reviewed())
                 .append("; dose_n=").append(s.metrics().doseN())
@@ -201,7 +206,7 @@ class EvalRunTest {
         if (s.llmErrors() > 0) {
             sb.append("; llm_errors=").append(s.llmErrors());
         }
-        if (s.config().llmMode() != EvalRunner.LlmMode.ANTHROPIC) {
+        if (!llmFree && s.config().llmMode() != EvalRunner.LlmMode.ANTHROPIC) {
             sb.append("; FAKE LLM - 러너 검증용, 실제 측정값 아님 (토큰은 글자 수 추정치)");
         }
         if (extra != null && !extra.isBlank()) {

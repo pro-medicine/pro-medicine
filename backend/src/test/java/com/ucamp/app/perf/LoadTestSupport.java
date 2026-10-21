@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.ucamp.app.infra.llm.AnthropicLlmClient;
+import com.ucamp.app.infra.llm.LlmClient;
+import com.ucamp.app.infra.llm.LlmRequest;
+import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmProperties;
-import com.ucamp.app.infra.llm.LoggingLlmClient;
-import com.ucamp.app.infra.llm.log.LlmCallLogService;
+import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.support.PerfStats;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -25,6 +27,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -70,25 +73,67 @@ public final class LoadTestSupport {
     }
 
     /**
-     * llmClient 빈을 "실제 Anthropic HTTP 클라이언트 + WireMock 주소 + 가짜 API 키"로 바꾼다 (테스트 전용).
+     * 원본 LLM 클라이언트(fakeLlmClient 빈)를 "실제 Anthropic HTTP 클라이언트 + WireMock 주소 + 가짜 API 키"로 바꾼다 (테스트 전용).
+     * llm.provider는 기본값(fake) 그대로 두므로 LlmConfig가 그 위에 LoggingLlmClient(·ResilientLlmClient)를 그대로 씌운다.
      * API 키를 환경변수로만 읽는 운영 코드를 바꾸지 않으려고 빈 후처리로 교체한다.
      */
     @TestConfiguration
     public static class WireMockLlmConfig {
         @Bean
         public static BeanPostProcessor wireMockLlmClientReplacer(ObjectProvider<LlmProperties> properties,
-                                                                  ObjectProvider<ObjectMapper> objectMapper,
-                                                                  ObjectProvider<LlmCallLogService> logService) {
+                                                                  ObjectProvider<ObjectMapper> objectMapper) {
             return new BeanPostProcessor() {
                 @Override
                 public Object postProcessAfterInitialization(Object bean, String beanName) {
-                    if ("llmClient".equals(beanName)) {
-                        return new LoggingLlmClient(new AnthropicLlmClient(properties.getObject(),
-                                objectMapper.getObject(), () -> "dummy-key"), logService.getObject());
+                    if ("fakeLlmClient".equals(beanName)) {
+                        LlmClient http = new AnthropicLlmClient(properties.getObject(), objectMapper.getObject(),
+                                () -> "dummy-key");
+                        return new WireMockBackedLlmClient(objectMapper.getObject(), new CountingLlmClient(http));
                     }
                     return bean;
                 }
             };
+        }
+    }
+
+    /** FakeLlmClient 자리에 들어가 실제로는 WireMock으로 HTTP 호출을 보낸다 */
+    static final class WireMockBackedLlmClient extends FakeLlmClient {
+        private final LlmClient delegate;
+
+        WireMockBackedLlmClient(ObjectMapper objectMapper, LlmClient delegate) {
+            super(objectMapper);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public LlmResponse call(LlmRequest request) {
+            return delegate.call(request);
+        }
+    }
+
+    /** LLM 동시 호출 수 측정용 데코레이터 (테스트 전용) */
+    public static final class CountingLlmClient implements LlmClient {
+        public static final AtomicInteger IN_FLIGHT = new AtomicInteger();
+        public static final AtomicInteger MAX = new AtomicInteger();
+        private final LlmClient delegate;
+
+        CountingLlmClient(LlmClient delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public LlmResponse call(LlmRequest request) {
+            int now = IN_FLIGHT.incrementAndGet();
+            MAX.accumulateAndGet(now, Math::max);
+            try {
+                return delegate.call(request);
+            } finally {
+                IN_FLIGHT.decrementAndGet();
+            }
+        }
+
+        public static void resetMax() {
+            MAX.set(IN_FLIGHT.get());
         }
     }
 

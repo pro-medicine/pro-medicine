@@ -49,7 +49,6 @@ class CacheLoadPerfTest {
     }
 
     static void props(DynamicPropertyRegistry r, String version) {
-        r.add("llm.provider", () -> "anthropic");
         r.add("llm.anthropic.base-url", () -> "http://localhost:" + WIREMOCK.port());
         r.add("recommendation.pipeline-version", () -> version);
     }

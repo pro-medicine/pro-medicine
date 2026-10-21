@@ -7,6 +7,7 @@ import com.ucamp.app.domain.recommendation.pipeline.V2Pipeline;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.FakeLlmClient.FakeAnswer;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +25,7 @@ class V2PipelineTest {
     @Autowired
     FakeLlmClient fake;
 
+    @BeforeEach
     @AfterEach
     void reset() {
         fake.reset();

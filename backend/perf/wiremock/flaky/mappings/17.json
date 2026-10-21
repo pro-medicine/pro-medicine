@@ -1,0 +1,24 @@
+{
+  "scenarioName": "flaky",
+  "requiredScenarioState": "S17",
+  "newScenarioState": "S18",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/messages"
+  },
+  "response": {
+    "status": 429,
+    "fixedDelayMilliseconds": 100,
+    "headers": {
+      "Content-Type": "application/json",
+      "retry-after": "1"
+    },
+    "jsonBody": {
+      "type": "error",
+      "error": {
+        "type": "rate_limit_error",
+        "message": "injected 429"
+      }
+    }
+  }
+}

@@ -14,11 +14,13 @@ import com.ucamp.app.domain.survey.service.SurveyQueryService;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 // 추천 결과 저장·조회. LLM 호출 중에는 DB 트랜잭션을 잡지 않도록 저장만 따로 둔다
 @Service
@@ -27,36 +29,109 @@ public class RecommendationStore {
     private static final int MAX_NAME_LENGTH = 150;
     private static final int MAX_MODEL_LENGTH = 60;
     private static final int MAX_UNIT_LENGTH = 10;
+    private static final List<String> ACTIVE_OR_DONE =
+            List.of(AiRecommendation.PENDING, AiRecommendation.PROCESSING, AiRecommendation.DONE);
 
     private final AiRecommendationRepository recommendationRepository;
     private final AiRecommendationItemRepository itemRepository;
     private final SurveyQueryService surveyQueryService;
     private final ObjectMapper objectMapper;
 
+    /** 동기 API: 결과를 바로 DONE으로 저장 */
     @Transactional
     public RecommendationResponse save(Long responseId, RecommendationResult result) {
         SurveyResponse response = surveyQueryService.getResponse(responseId);
-        String model = result.model() == null ? null
-                : result.model().length() > MAX_MODEL_LENGTH ? result.model().substring(0, MAX_MODEL_LENGTH) : result.model();
         AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
                 .response(response)
                 .summary(result.summary())
-                .modelName(model)
+                .modelName(truncate(result.model(), MAX_MODEL_LENGTH))
+                .status(AiRecommendation.DONE)
                 .build());
+        List<AiRecommendationItem> items = saveItems(rec, result);
+        return RecommendationResponse.of(rec, items, objectMapper);
+    }
+
+    /** 비동기 API: 같은 응답의 진행 중·완료 작업 (멱등) */
+    @Transactional(readOnly = true)
+    public Optional<RecommendationResponse> findActiveOrDone(Long responseId) {
+        return recommendationRepository
+                .findFirstByResponse_ResponseIdAndStatusInOrderByRecommendationIdDesc(responseId, ACTIVE_OR_DONE)
+                .map(this::toResponse);
+    }
+
+    /** 비동기 API: PENDING 행 생성 */
+    @Transactional
+    public RecommendationResponse createPending(Long responseId) {
+        SurveyResponse response = surveyQueryService.getResponse(responseId);
+        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
+                .response(response)
+                .status(AiRecommendation.PENDING)
+                .build());
+        return RecommendationResponse.of(rec, List.of(), objectMapper);
+    }
+
+    /** 워커: PENDING → PROCESSING. 이미 다른 워커가 가져갔거나 끝난 작업이면 empty */
+    @Transactional
+    public Optional<Long> markProcessing(Long recommendationId) {
+        return recommendationRepository.findById(recommendationId)
+                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()))
+                .map(r -> {
+                    r.markProcessing();
+                    return r.getResponse().getResponseId();
+                });
+    }
+
+    /** 워커: 결과 저장 후 DONE */
+    @Transactional
+    public void complete(Long recommendationId, RecommendationResult result) {
+        AiRecommendation rec = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
+        saveItems(rec, result);
+        rec.markDone(result.summary(), truncate(result.model(), MAX_MODEL_LENGTH));
+    }
+
+    @Transactional
+    public void fail(Long recommendationId, String errorCode) {
+        recommendationRepository.findById(recommendationId).ifPresent(r -> r.markFailed(truncate(errorCode, 30)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> pendingIds() {
+        return recommendationRepository.findByStatusOrderByRecommendationIdAsc(AiRecommendation.PENDING).stream()
+                .map(AiRecommendation::getRecommendationId).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<RecommendationResponse> latestDoneForUser(Long userId) {
+        return recommendationRepository.findLatestDoneByUserId(userId, PageRequest.of(0, 1)).stream()
+                .findFirst().map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public RecommendationResponse get(Long recommendationId) {
+        return toResponse(recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND)));
+    }
+
+    private RecommendationResponse toResponse(AiRecommendation rec) {
+        return RecommendationResponse.of(rec,
+                itemRepository.findByRecommendation_RecommendationIdOrderBySortOrderAscRecommendationItemIdAsc(
+                        rec.getRecommendationId()),
+                objectMapper);
+    }
+
+    private List<AiRecommendationItem> saveItems(AiRecommendation rec, RecommendationResult result) {
         List<AiRecommendationItem> items = new ArrayList<>();
         for (RecommendationItem item : result.itemsOrEmpty()) {
-            String name = item.ingredient().length() > MAX_NAME_LENGTH
-                    ? item.ingredient().substring(0, MAX_NAME_LENGTH) : item.ingredient();
             items.add(AiRecommendationItem.builder()
                     .recommendation(rec)
-                    .ingredientName(name)
+                    .ingredientName(truncate(item.ingredient(), MAX_NAME_LENGTH))
                     .reason(item.reason())
                     .sortOrder(item.sortOrder())
                     .recommendedAmount(item.amount())
                     .currentIntake(item.currentIntake())
                     .intakeStatus(item.intakeStatus())
-                    .unit(item.unit() == null || item.unit().length() <= MAX_UNIT_LENGTH ? item.unit()
-                            : item.unit().substring(0, MAX_UNIT_LENGTH))
+                    .unit(truncate(item.unit(), MAX_UNIT_LENGTH))
                     .doseNote(item.doseNote())
                     .excluded(item.excluded())
                     .appliedRuleIds(item.appliedRuleIdsOrEmpty().isEmpty() ? null
@@ -65,7 +140,7 @@ public class RecommendationStore {
                     .build());
         }
         itemRepository.saveAll(items);
-        return RecommendationResponse.of(rec, items, objectMapper);
+        return items;
     }
 
     private String toJson(List<String> values) {
@@ -76,12 +151,7 @@ public class RecommendationStore {
         }
     }
 
-    @Transactional(readOnly = true)
-    public RecommendationResponse get(Long recommendationId) {
-        AiRecommendation rec = recommendationRepository.findById(recommendationId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
-        return RecommendationResponse.of(rec,
-                itemRepository.findByRecommendation_RecommendationIdOrderBySortOrderAscRecommendationItemIdAsc(recommendationId),
-                objectMapper);
+    private static String truncate(String s, int max) {
+        return s == null || s.length() <= max ? s : s.substring(0, max);
     }
 }

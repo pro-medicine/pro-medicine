@@ -12,6 +12,9 @@ public interface UserMedicationRepository extends JpaRepository<UserMedication, 
     @Query("select m from UserMedication m left join fetch m.drug where m.user.id = :userId order by m.userMedicationId")
     List<UserMedication> findWithDrugByUserId(@Param("userId") Long userId);
 
+    @Query("select max(m.updatedAt) from UserMedication m where m.user.id = :userId")
+    java.time.LocalDateTime findLastUpdatedAt(@Param("userId") Long userId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = false)
     @Query("delete from UserMedication m where m.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
