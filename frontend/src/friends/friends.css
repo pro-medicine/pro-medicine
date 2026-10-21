@@ -1,0 +1,216 @@
+.search-box {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: #9a9c94;
+  display: flex;
+  gap: 10px;
+  margin: 8px 0 20px;
+  padding: 0 16px;
+}
+
+.search-box:focus-within {
+  border-color: var(--yellow-deep);
+  box-shadow: 0 0 0 3px var(--yellow-soft);
+}
+
+.search-box input {
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  outline: 0;
+  padding: 15px 0;
+  width: 100%;
+}
+
+.search-box input::placeholder {
+  color: #b1b2ab;
+}
+
+.friends-highlight {
+  align-items: center;
+  background: var(--yellow-pale);
+  border: 1px solid #f2e8b8;
+  border-radius: 22px;
+  display: flex;
+  justify-content: space-between;
+  padding: 27px 30px;
+}
+
+.friends-highlight h2 {
+  font-size: 20px;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.friends-highlight p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 7px 0 0;
+}
+
+.stacked-avatars {
+  display: flex;
+  padding-left: 15px;
+}
+
+.avatar {
+  align-items: center;
+  background: #dce8e0;
+  border: 3px solid white;
+  border-radius: 50%;
+  color: #4e6355;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  height: 43px;
+  justify-content: center;
+  margin-left: -13px;
+  width: 43px;
+}
+
+.avatar.sky {
+  background: #d5e7ee;
+  color: #55717d;
+}
+
+.avatar.peach {
+  background: #f1dbcd;
+  color: #8d6651;
+}
+
+.avatar.mint {
+  background: #d6e9df;
+  color: #527463;
+}
+
+.avatar.lilac {
+  background: #e5dcec;
+  color: #776284;
+}
+
+.avatar.yellow {
+  background: var(--yellow);
+  color: #68591c;
+}
+
+.avatar.more {
+  background: white;
+  color: #90855a;
+}
+
+.add-friend-button {
+  align-items: center;
+  background: var(--yellow-soft);
+  border: 1px solid #efdfa0;
+  border-radius: 9px;
+  color: #776520;
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.friend-list {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.friend-row {
+  align-items: center;
+  background: white;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 15px;
+  grid-template-columns: auto 1fr auto auto;
+  padding: 19px 22px;
+  text-align: left;
+  transition: 150ms ease;
+  width: 100%;
+}
+
+.friend-row:last-child {
+  border-bottom: 0;
+}
+
+.friend-row:hover {
+  background: #fffdf4;
+}
+
+.avatar.large {
+  border: 0;
+  height: 50px;
+  margin: 0;
+  width: 50px;
+}
+
+.friend-copy > span:first-child {
+  align-items: baseline;
+  display: flex;
+  gap: 7px;
+}
+
+.friend-copy strong {
+  font-size: 14px;
+}
+
+.friend-copy small {
+  color: #a0a199;
+  font-size: 9px;
+}
+
+.friend-status {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 10px;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.friend-status i {
+  background: #e7c94f;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.friend-status i.complete {
+  background: #75a382;
+}
+
+.friend-meta {
+  min-width: 84px;
+  text-align: right;
+}
+
+.friend-meta span,
+.friend-meta small {
+  display: block;
+}
+
+.friend-meta span {
+  color: #8c7b36;
+  font-size: 10px;
+}
+
+.friend-meta span b {
+  font-size: 16px;
+}
+
+.friend-meta small {
+  color: #a0a199;
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+.friend-row > .icon {
+  color: #aaaca5;
+}
+
