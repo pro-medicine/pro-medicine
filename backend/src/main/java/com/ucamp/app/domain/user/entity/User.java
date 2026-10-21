@@ -17,52 +17,63 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+// users 테이블에는 created_at, updated_at만 있어서 Timestamped를 상속하지 않음
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "users")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long userId;
+    private Long id;
 
-    @Column(name = "email", nullable = false, length = 255)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(nullable = false)
     private String passwordHash;
 
-    @Column(name = "nickname", nullable = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String nickname;
 
-    @Column(name = "share_intake_status", nullable = false)
-    private Boolean shareIntakeStatus;
+    @Column(nullable = false)
+    private boolean shareIntakeStatus;
 
     @Column(name = "sensitive_consent", nullable = false)
-    private Boolean sensitiveConsent;
+    private boolean sensitiveConsent;
 
     @Column(name = "sensitive_consent_at")
     private LocalDateTime sensitiveConsentAt;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     @Builder
-    public User(String email, String passwordHash, String nickname, Boolean shareIntakeStatus,
-                Boolean sensitiveConsent, LocalDateTime sensitiveConsentAt) {
+    private User(String email, String passwordHash, String nickname) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.nickname = nickname;
-        this.shareIntakeStatus = shareIntakeStatus != null ? shareIntakeStatus : false;
-        this.sensitiveConsent = sensitiveConsent != null ? sensitiveConsent : false;
-        this.sensitiveConsentAt = sensitiveConsentAt;
+        this.shareIntakeStatus = false;
+        this.sensitiveConsent = false;
+    }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void changeShareIntakeStatus(boolean shareIntakeStatus) {
+        this.shareIntakeStatus = shareIntakeStatus;
     }
 }
