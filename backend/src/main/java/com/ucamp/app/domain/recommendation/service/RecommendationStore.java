@@ -1,5 +1,7 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
@@ -29,6 +31,7 @@ public class RecommendationStore {
     private final AiRecommendationRepository recommendationRepository;
     private final AiRecommendationItemRepository itemRepository;
     private final SurveyQueryService surveyQueryService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public RecommendationResponse save(Long responseId, RecommendationResult result) {
@@ -55,10 +58,22 @@ public class RecommendationStore {
                     .unit(item.unit() == null || item.unit().length() <= MAX_UNIT_LENGTH ? item.unit()
                             : item.unit().substring(0, MAX_UNIT_LENGTH))
                     .doseNote(item.doseNote())
+                    .excluded(item.excluded())
+                    .appliedRuleIds(item.appliedRuleIdsOrEmpty().isEmpty() ? null
+                            : String.join(",", item.appliedRuleIdsOrEmpty()))
+                    .warnings(item.warningsOrEmpty().isEmpty() ? null : toJson(item.warningsOrEmpty()))
                     .build());
         }
         itemRepository.saveAll(items);
-        return RecommendationResponse.of(rec, items);
+        return RecommendationResponse.of(rec, items, objectMapper);
+    }
+
+    private String toJson(List<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +81,7 @@ public class RecommendationStore {
         AiRecommendation rec = recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
         return RecommendationResponse.of(rec,
-                itemRepository.findByRecommendation_RecommendationIdOrderBySortOrderAscRecommendationItemIdAsc(recommendationId));
+                itemRepository.findByRecommendation_RecommendationIdOrderBySortOrderAscRecommendationItemIdAsc(recommendationId),
+                objectMapper);
     }
 }

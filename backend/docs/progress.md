@@ -46,6 +46,10 @@
 - (STEP 06) 기준값 캐시 `StandardsCache`는 ApplicationReadyEvent에서 읽고, 비어 있으면 첫 사용 시 읽는다. `dataVersion()`(행 해시)을 STEP 08 결과 캐시 키에 쓴다.
 - (STEP 06) 평가 러너에 over_limit 계산(`DoseService.exceedsUpperLimit`)과 단계별 Timer 값(`runs/*.json`의 stageTimings)을 추가.
 
+- (STEP 07) INGREDIENT 규칙 조건 = 현재 섭취 성분(조건 코드로 포함) + 추천 성분 중 제외되지 않은 것. EXCLUDE를 먼저 적용한 뒤 나머지 규칙을 적용한다. 제외된 성분에도 이유 메시지를 warnings로 남긴다.
+- (STEP 07) V3는 V2 프롬프트(v2.1)를 그대로 쓰고, V4는 금지 목록을 사용자 메시지 뒤에 붙인다(STEP 08 캐싱 대비). V4가 V3를 상속해 타입 주입이 모호하므로 파이프라인은 `PipelineRegistry`로 꺼낸다.
+- (STEP 07) API 응답을 `items`(최종) / `excludedItems`(제외 + 이유)로 나눴다. 프론트 연동은 `docs/api/recommendation-api.md` 참고 (STEP 09에서 작성).
+
 ## 막힌 것
 
 - 없음
@@ -101,3 +105,9 @@
 - 측정 결과 요약: [STEP06-report.md](perf/STEP06-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy 기준 dose_error V1 0.3571 → V2 0.0, calc 단계 평균 0.3~0.6ms
 - 결정한 것 / 미룬 것: 위 "결정한 것" STEP 06 항목. 나머지 성분 기준값은 TODO
 - 다음 STEP 전에 사용자가 할 일: `reference/domain-rules.md` 2번 TODO 수치 입력 후 `docs/sql/STEP06_seed_ingredient_standards.sql`과 테스트 픽스처에 행 추가
+
+## STEP 07 - V3 · V4 규칙 검증 (2026-10-21)
+- 한 일: `recommendation_rules` 엔티티·시드 27행, 추천 항목 컬럼 3개(excluded, applied_rule_ids, warnings), `ConditionCodeResolver` 전체 매핑, `RuleEngine`(순수), `RuleService`(캐시 + Counter `recommendation.rule.hit`), `V3Pipeline`(rule_post), `V4Pipeline`(rule_pre, prompts/v4, v4.1). 테스트: RuleEngineTest(규칙 27개 × 적용/미적용 + 겹침·INGREDIENT·비회원), ConditionCodeResolverTest 5, V3V4PipelineTest 2
+- 측정 결과 요약: [STEP07-report.md](perf/STEP07-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy 재현성 기준 violation V2 0.26 → V3 0.0, raw V3 0.26 → V4 0.0(가정 기반), rule 단계 평균 1ms 미만
+- 결정한 것 / 미룬 것: 위 "결정한 것" STEP 07 항목
+- 다음 STEP 전에 사용자가 할 일: (선택) 규칙·문구 약사 검토

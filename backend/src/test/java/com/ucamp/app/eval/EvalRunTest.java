@@ -129,12 +129,14 @@ class EvalRunTest {
         extra.put("step", step);
         extra.put("evalSetReviewed", file.meta().reviewed());
         extra.put("stageTimings", stageTimings(version));
+        extra.put("ruleHits", ruleHits());
         Path json = EvalRunner.writeRunJson(RUNS, summary, extra, objectMapper);
         System.out.printf("[EVAL] label=%s metrics=%s%n", label, summary.metrics());
         System.out.printf("[EVAL] llmCalls=%d repair=%d errors=%d failures=%s byModel=%s recallByDifficulty=%s%n",
                 summary.llmCalls(), summary.repairCalls(), summary.llmErrors(), summary.failureReasons(),
                 summary.callsByModel(), summary.recallByDifficulty());
         System.out.println("[EVAL] stages=" + extra.get("stageTimings"));
+        System.out.println("[EVAL] ruleHits=" + extra.get("ruleHits"));
         System.out.println("[EVAL] saved " + CSV + " and " + json);
     }
 
@@ -152,6 +154,15 @@ class EvalRunTest {
             out.put(t.getId().getTag("stage"), m);
         }
         return out;
+    }
+
+    // 규칙 적중 횟수 (phase:rule_id → 횟수, 많은 순). 같은 JVM에서 한 버전만 돌리므로 이번 실행 값이다
+    private Map<String, Long> ruleHits() {
+        Map<String, Long> hits = new LinkedHashMap<>();
+        meterRegistry.find("recommendation.rule.hit").counters().stream()
+                .sorted((a, b) -> Double.compare(b.count(), a.count()))
+                .forEach(c -> hits.put(c.getId().getTag("phase") + ":" + c.getId().getTag("rule_id"), (long) c.count()));
+        return hits;
     }
 
     private static String buildNote(EvalCaseFile file, EvalRunner.Summary s, String extra) {

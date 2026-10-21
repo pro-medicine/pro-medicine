@@ -1,0 +1,932 @@
+{
+  "evalRunId" : "V4-repro-fake-20261021-192243",
+  "createdAt" : "2026-10-21T19:22:44.4049965",
+  "label" : "V4-repro-fake",
+  "step" : "07",
+  "evalSetReviewed" : false,
+  "stageTimings" : {
+    "calc" : {
+      "count" : 50,
+      "mean_ms" : 0.40942,
+      "max_ms" : 7.0554,
+      "p50_ms" : 0.241664,
+      "p95_ms" : 0.454656,
+      "p99_ms" : 7.073792
+    },
+    "llm" : {
+      "count" : 50,
+      "mean_ms" : 8.49282,
+      "max_ms" : 199.5115,
+      "p50_ms" : 3.93216,
+      "p95_ms" : 10.878976,
+      "p99_ms" : 201.19552
+    },
+    "parse" : {
+      "count" : 50,
+      "mean_ms" : 0.153118,
+      "max_ms" : 2.7325,
+      "p50_ms" : 0.105984,
+      "p95_ms" : 0.196096,
+      "p99_ms" : 2.752
+    },
+    "rule_post" : {
+      "count" : 50,
+      "mean_ms" : 0.298582,
+      "max_ms" : 4.5254,
+      "p50_ms" : 0.192512,
+      "p95_ms" : 0.7168,
+      "p99_ms" : 4.714496
+    },
+    "rule_pre" : {
+      "count" : 50,
+      "mean_ms" : 0.226246,
+      "max_ms" : 1.4633,
+      "p50_ms" : 0.14336,
+      "p95_ms" : 0.38912,
+      "p99_ms" : 1.503232
+    }
+  },
+  "ruleHits" : {
+    "post:R-01" : 15,
+    "pre:R-02" : 15,
+    "pre:R-G2" : 10,
+    "pre:R-G1" : 10,
+    "pre:R-G4" : 10,
+    "pre:R-G3" : 10,
+    "post:R-07" : 10,
+    "post:R-23" : 5,
+    "post:R-21" : 5,
+    "pre:R-13" : 5,
+    "post:R-04" : 5,
+    "post:R-03" : 5,
+    "post:R-06" : 5,
+    "post:R-05" : 5
+  },
+  "config" : {
+    "pipelineVersion" : "V4",
+    "repro" : true,
+    "caseLimit" : 0,
+    "repeats" : 5,
+    "llmMode" : "FAKE",
+    "evalRunId" : "V4-repro-fake-20261021-192243"
+  },
+  "summary" : {
+    "avgInputTokens" : "499.3",
+    "llmP95Ms" : "0.0",
+    "avgOutputTokens" : "50.0",
+    "llmCalls" : 50,
+    "repairCalls" : 0,
+    "callsByModel" : {
+      "claude-opus-5-5-fake" : 50
+    },
+    "avgCacheReadTokens" : "0.0",
+    "model" : "claude-opus-5-5-fake",
+    "avgCacheCreationTokens" : "0.0",
+    "metrics" : {
+      "recall" : 1.0,
+      "precision" : 1.0,
+      "violationRate" : 0.0,
+      "rawViolationRate" : 0.0,
+      "overLimitRate" : 0.0,
+      "overLimitN" : 20,
+      "doseErrorRate" : 0.0,
+      "doseN" : 35,
+      "reproducibilitySet" : 1.0,
+      "reproducibilityDose" : 1.0,
+      "parseFailRate" : 0.0,
+      "runs" : 50,
+      "recallCases" : 30,
+      "recommendedTotal" : 65
+    },
+    "cacheHitRate" : "null",
+    "failureReasons" : { },
+    "llmErrors" : 0,
+    "costPerReqUsd" : "null",
+    "recallByRoutedModel" : { },
+    "e2eP95Ms" : "12.9839",
+    "cases" : 10,
+    "recallByDifficulty" : {
+      "EASY" : 1.0,
+      "HARD" : 1.0,
+      "NORMAL" : 1.0
+    },
+    "llmP50Ms" : "0.0",
+    "repeats" : 5
+  },
+  "runs" : [ {
+    "caseId" : "E-001",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "125 mg"
+    },
+    "e2eMs" : 319.357,
+    "llmCallLogIds" : [ 1 ]
+  }, {
+    "caseId" : "E-001",
+    "repeat" : 1,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "125 mg"
+    },
+    "e2eMs" : 10.817,
+    "llmCallLogIds" : [ 2 ]
+  }, {
+    "caseId" : "E-001",
+    "repeat" : 2,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "125 mg"
+    },
+    "e2eMs" : 8.527,
+    "llmCallLogIds" : [ 3 ]
+  }, {
+    "caseId" : "E-001",
+    "repeat" : 3,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "125 mg"
+    },
+    "e2eMs" : 10.775,
+    "llmCallLogIds" : [ 4 ]
+  }, {
+    "caseId" : "E-001",
+    "repeat" : 4,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "125 mg"
+    },
+    "e2eMs" : 7.015,
+    "llmCallLogIds" : [ 5 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 6.478,
+    "llmCallLogIds" : [ 6 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 1,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 6.187,
+    "llmCallLogIds" : [ 7 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 2,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 8.204,
+    "llmCallLogIds" : [ 8 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 3,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 5.502,
+    "llmCallLogIds" : [ 9 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 4,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 6.508,
+    "llmCallLogIds" : [ 10 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 6.492,
+    "llmCallLogIds" : [ 11 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 1,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.676,
+    "llmCallLogIds" : [ 12 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 2,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 6.081,
+    "llmCallLogIds" : [ 13 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 3,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.676,
+    "llmCallLogIds" : [ 14 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 4,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.28,
+    "llmCallLogIds" : [ 15 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg"
+    },
+    "e2eMs" : 9.4,
+    "llmCallLogIds" : [ 16 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 1,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg"
+    },
+    "e2eMs" : 6.411,
+    "llmCallLogIds" : [ 17 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 2,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg"
+    },
+    "e2eMs" : 8.754,
+    "llmCallLogIds" : [ 18 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 3,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg"
+    },
+    "e2eMs" : 10.171,
+    "llmCallLogIds" : [ 19 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 4,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg"
+    },
+    "e2eMs" : 13.594,
+    "llmCallLogIds" : [ 20 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "rawCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "110 mg",
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 6.284,
+    "llmCallLogIds" : [ 21 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 1,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "rawCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "110 mg",
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 5.583,
+    "llmCallLogIds" : [ 22 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 2,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "rawCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "110 mg",
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 5.557,
+    "llmCallLogIds" : [ 23 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 3,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "rawCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "110 mg",
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 4.792,
+    "llmCallLogIds" : [ 24 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 4,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "rawCodes" : [ "VITAMIN_C", "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "110 mg",
+      "FOLATE" : "400 mcg DFE"
+    },
+    "e2eMs" : 5.459,
+    "llmCallLogIds" : [ 25 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "IRON", "CALCIUM" ],
+    "rawCodes" : [ "IRON", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "IRON" : "0 mg"
+    },
+    "e2eMs" : 5.754,
+    "llmCallLogIds" : [ 26 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 1,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "IRON", "CALCIUM" ],
+    "rawCodes" : [ "IRON", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "IRON" : "0 mg"
+    },
+    "e2eMs" : 6.311,
+    "llmCallLogIds" : [ 27 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 2,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "IRON", "CALCIUM" ],
+    "rawCodes" : [ "IRON", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "IRON" : "0 mg"
+    },
+    "e2eMs" : 5.91,
+    "llmCallLogIds" : [ 28 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 3,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "IRON", "CALCIUM" ],
+    "rawCodes" : [ "IRON", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "IRON" : "0 mg"
+    },
+    "e2eMs" : 5.868,
+    "llmCallLogIds" : [ 29 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 4,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "IRON", "CALCIUM" ],
+    "rawCodes" : [ "IRON", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "IRON" : "0 mg"
+    },
+    "e2eMs" : 8.303,
+    "llmCallLogIds" : [ 30 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.271,
+    "llmCallLogIds" : [ 31 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 1,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 7.807,
+    "llmCallLogIds" : [ 32 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 2,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 7.919,
+    "llmCallLogIds" : [ 33 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 3,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 4.354,
+    "llmCallLogIds" : [ 34 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 4,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.591,
+    "llmCallLogIds" : [ 35 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "45 mg"
+    },
+    "e2eMs" : 7.91,
+    "llmCallLogIds" : [ 36 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 1,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "45 mg"
+    },
+    "e2eMs" : 6.137,
+    "llmCallLogIds" : [ 37 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 2,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "45 mg"
+    },
+    "e2eMs" : 6.115,
+    "llmCallLogIds" : [ 38 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 3,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "45 mg"
+    },
+    "e2eMs" : 4.218,
+    "llmCallLogIds" : [ 39 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 4,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "45 mg"
+    },
+    "e2eMs" : 4.688,
+    "llmCallLogIds" : [ 40 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.421,
+    "llmCallLogIds" : [ 41 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 1,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 6.443,
+    "llmCallLogIds" : [ 42 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 2,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 12.984,
+    "llmCallLogIds" : [ 43 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 3,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 4.516,
+    "llmCallLogIds" : [ 44 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 4,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 3.832,
+    "llmCallLogIds" : [ 45 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 4.844,
+    "llmCallLogIds" : [ 46 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 1,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 4.241,
+    "llmCallLogIds" : [ 47 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 2,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 4.646,
+    "llmCallLogIds" : [ 48 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 3,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.159,
+    "llmCallLogIds" : [ 49 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 4,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 5.954,
+    "llmCallLogIds" : [ 50 ]
+  } ]
+}

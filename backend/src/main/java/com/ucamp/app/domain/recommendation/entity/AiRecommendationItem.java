@@ -56,10 +56,21 @@ public class AiRecommendationItem {
     @Column(name = "dose_note", length = 200)
     private String doseNote;
 
+    // STEP 07 추가: 규칙 검증 결과. 제외된 성분도 남겨 LLM 원래 출력을 보존한다
+    @Column(name = "excluded", nullable = false)
+    private boolean excluded;
+
+    @Column(name = "applied_rule_ids", length = 200)
+    private String appliedRuleIds;
+
+    @Column(name = "warnings", columnDefinition = "TEXT")
+    private String warnings;
+
     @Builder
     public AiRecommendationItem(AiRecommendation recommendation, String ingredientName, String reason,
                                 Integer sortOrder, BigDecimal recommendedAmount, BigDecimal currentIntake,
-                                String intakeStatus, String unit, String doseNote) {
+                                String intakeStatus, String unit, String doseNote, boolean excluded,
+                                String appliedRuleIds, String warnings) {
         this.recommendation = recommendation;
         this.ingredientName = ingredientName;
         this.reason = reason;
@@ -69,5 +80,8 @@ public class AiRecommendationItem {
         this.intakeStatus = intakeStatus;
         this.unit = unit;
         this.doseNote = doseNote;
+        this.excluded = excluded;
+        this.appliedRuleIds = appliedRuleIds;
+        this.warnings = warnings;
     }
 }
