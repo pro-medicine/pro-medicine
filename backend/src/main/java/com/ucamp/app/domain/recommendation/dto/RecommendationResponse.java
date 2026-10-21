@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,9 +18,12 @@ public record RecommendationResponse(
         List<Item> items
 ) {
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Item(String ingredient, String reason, int sortOrder) {
+    public record Item(String ingredient, String reason, int sortOrder, BigDecimal amount, String unit,
+                       BigDecimal currentIntake, String intakeStatus, String doseNote) {
         public static Item from(AiRecommendationItem item) {
-            return new Item(item.getIngredientName(), item.getReason(), item.getSortOrder());
+            return new Item(item.getIngredientName(), item.getReason(), item.getSortOrder(),
+                    item.getRecommendedAmount(), item.getUnit(), item.getCurrentIntake(), item.getIntakeStatus(),
+                    item.getDoseNote());
         }
     }
 

@@ -8,6 +8,10 @@ import com.ucamp.app.eval.EvalCaseFile.EvalCase;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
+import com.ucamp.app.global.metrics.StageTimer;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.distribution.ValueAtPercentile;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,6 +60,8 @@ class EvalRunTest {
     LlmProperties llmProperties;
     @Autowired
     ApplicationContext context;
+    @Autowired
+    MeterRegistry meterRegistry;
 
     @DynamicPropertySource
     static void llmProvider(DynamicPropertyRegistry registry) {
@@ -121,12 +128,30 @@ class EvalRunTest {
         extra.put("label", label);
         extra.put("step", step);
         extra.put("evalSetReviewed", file.meta().reviewed());
+        extra.put("stageTimings", stageTimings(version));
         Path json = EvalRunner.writeRunJson(RUNS, summary, extra, objectMapper);
         System.out.printf("[EVAL] label=%s metrics=%s%n", label, summary.metrics());
         System.out.printf("[EVAL] llmCalls=%d repair=%d errors=%d failures=%s byModel=%s recallByDifficulty=%s%n",
                 summary.llmCalls(), summary.repairCalls(), summary.llmErrors(), summary.failureReasons(),
                 summary.callsByModel(), summary.recallByDifficulty());
+        System.out.println("[EVAL] stages=" + extra.get("stageTimings"));
         System.out.println("[EVAL] saved " + CSV + " and " + json);
+    }
+
+    // 이번 실행에서 기록된 단계별 Timer (ms). 같은 JVM에서 한 버전만 돌리므로 그 버전 값이다
+    private Map<String, Map<String, Object>> stageTimings(String version) {
+        Map<String, Map<String, Object>> out = new java.util.TreeMap<>();
+        for (Timer t : meterRegistry.find(StageTimer.STAGE_METRIC).tag("pipeline_version", version).timers()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("count", t.count());
+            m.put("mean_ms", t.mean(TimeUnit.MILLISECONDS));
+            m.put("max_ms", t.max(TimeUnit.MILLISECONDS));
+            for (ValueAtPercentile v : t.takeSnapshot().percentileValues()) {
+                m.put("p" + Math.round(v.percentile() * 100) + "_ms", v.value(TimeUnit.MILLISECONDS));
+            }
+            out.put(t.getId().getTag("stage"), m);
+        }
+        return out;
     }
 
     private static String buildNote(EvalCaseFile file, EvalRunner.Summary s, String extra) {

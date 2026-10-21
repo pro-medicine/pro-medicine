@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
+import com.ucamp.app.domain.recommendation.dose.DoseService;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmClient;
 import com.ucamp.app.infra.llm.LlmProperties;
@@ -20,4 +21,5 @@ public class PipelineDeps {
     private final InputFormatter inputFormatter;
     private final RecommendationOutputValidator validator;
     private final StageTimer stageTimer;
+    private final DoseService doseService;
 }

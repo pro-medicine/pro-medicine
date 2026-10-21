@@ -1,5 +1,6 @@
 package com.ucamp.app.eval;
 
+import com.ucamp.app.domain.recommendation.dose.DoseService;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
 import org.springframework.context.ApplicationContext;
 
@@ -15,7 +16,8 @@ final class EvalHooks {
     }
 
     static EvalRunner.OverLimitChecker overLimitChecker(ApplicationContext context) {
-        return null;
+        DoseService doseService = context.getBean(DoseService.class);
+        return doseService::exceedsUpperLimit;
     }
 
     static Function<RecommendationInput, String> routedModel(ApplicationContext context, String version) {

@@ -24,6 +24,7 @@ import java.util.List;
 public class RecommendationStore {
     private static final int MAX_NAME_LENGTH = 150;
     private static final int MAX_MODEL_LENGTH = 60;
+    private static final int MAX_UNIT_LENGTH = 10;
 
     private final AiRecommendationRepository recommendationRepository;
     private final AiRecommendationItemRepository itemRepository;
@@ -48,6 +49,12 @@ public class RecommendationStore {
                     .ingredientName(name)
                     .reason(item.reason())
                     .sortOrder(item.sortOrder())
+                    .recommendedAmount(item.amount())
+                    .currentIntake(item.currentIntake())
+                    .intakeStatus(item.intakeStatus())
+                    .unit(item.unit() == null || item.unit().length() <= MAX_UNIT_LENGTH ? item.unit()
+                            : item.unit().substring(0, MAX_UNIT_LENGTH))
+                    .doseNote(item.doseNote())
                     .build());
         }
         itemRepository.saveAll(items);

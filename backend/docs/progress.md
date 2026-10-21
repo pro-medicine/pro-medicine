@@ -41,6 +41,11 @@
 - (STEP 05) 재요청은 이전 대화(assistant tool_use) 없이 원래 사용자 메시지 + 실패 이유를 붙인 단일 메시지로 보낸다 (구조 단순화). 재요청도 실패하면 재요청 로그 행을 PARSE_FAIL로 바꾼다.
 - (STEP 05) V1~V8은 `StructuredPipeline` 하나에 버전별 Options·훅(extraUserText, postProcess, chooseModel, promptCache)을 두고, 버전마다 작은 클래스(V1Pipeline …)를 빈으로 둔다.
 
+- (STEP 06) 현재 섭취량이 없는 성분은 UNKNOWN + 권장량 전체(프롬프트대로). 단위가 다르면 변환 없이 UNKNOWN. 같은 성분 여러 항목은 합산. 나이를 모르면(출생 연도 없음) 나이 제한이 없는 행만 쓴다 → 현재 시드는 모두 19+라 용량 없음.
+- (STEP 06) 철분 행은 권장량(8mg)은 있고 상한이 TODO라 upper_limit NULL로 넣었다 ("TODO인 값은 행을 만들지 않는다"를 칸 단위로 적용).
+- (STEP 06) 기준값 캐시 `StandardsCache`는 ApplicationReadyEvent에서 읽고, 비어 있으면 첫 사용 시 읽는다. `dataVersion()`(행 해시)을 STEP 08 결과 캐시 키에 쓴다.
+- (STEP 06) 평가 러너에 over_limit 계산(`DoseService.exceedsUpperLimit`)과 단계별 Timer 값(`runs/*.json`의 stageTimings)을 추가.
+
 ## 막힌 것
 
 - 없음
@@ -90,3 +95,9 @@
 - 측정 결과 요약: [STEP05-report.md](perf/STEP05-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy에서 V0 parse_fail 0.2 → V1 0.0 (재요청 10/50회, 메커니즘 확인용)
 - 결정한 것 / 미룬 것: tool_choice 강제 대신 auto (위 "결정한 것")
 - 다음 STEP 전에 사용자가 할 일: `reference/domain-rules.md` 2번 표의 TODO 수치 입력 (STEP 06 기준표 시드). 안 채우면 해당 성분은 용량 없이 추천된다
+
+## STEP 06 - V2 용량 계산 분리 (2026-10-21)
+- 한 일: `ingredient_standards` 엔티티·시드(domain-rules.md 출처 6행), `ai_recommendation_items` 용량 컬럼 5개, `DoseCalculator`(순수), `StandardsCache`, `DoseService`, `ConditionCodeResolver`(SMOKING_CURRENT만), `V2Pipeline`(prompts/v2, v2.1, calc Timer), 추천 API 응답에 용량 필드. 테스트: DoseCalculatorTest 10(TEST ONLY 값: standards/test-only-standards.json), V2PipelineTest 1
+- 측정 결과 요약: [STEP06-report.md](perf/STEP06-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy 기준 dose_error V1 0.3571 → V2 0.0, calc 단계 평균 0.3~0.6ms
+- 결정한 것 / 미룬 것: 위 "결정한 것" STEP 06 항목. 나머지 성분 기준값은 TODO
+- 다음 STEP 전에 사용자가 할 일: `reference/domain-rules.md` 2번 TODO 수치 입력 후 `docs/sql/STEP06_seed_ingredient_standards.sql`과 테스트 픽스처에 행 추가

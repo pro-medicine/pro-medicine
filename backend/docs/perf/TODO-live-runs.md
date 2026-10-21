@@ -46,3 +46,12 @@ FROM llm_call_logs ORDER BY llm_call_log_id DESC LIMIT 3;
 | 05-2 | `./gradlew evalRun -PpipelineVersion=V1 -Pmode=repro -Pconfirm=true` | 50 ~ 100 | reproducibility_set / dose |
 
 Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)이다. 다른 모델로 강제 비교를 하려면 `--llm.anthropic.force-tool-choice=true`.
+
+## STEP 06 - V2 용량 계산 분리
+
+로컬 서버로 확인하려면 먼저 `docs/sql/STEP06_seed_ingredient_standards.sql` 실행 (평가 러너는 H2 테스트 픽스처를 쓰므로 필요 없음).
+
+| # | 명령 | 예상 호출 수 | 확인할 것 |
+| --- | --- | ---: | --- |
+| 06-1 | `./gradlew evalRun -PpipelineVersion=V2 -Pconfirm=true` | 32 ~ 64 | dose_error_rate, over_limit_rate, avg_output_tokens (V1 대비) |
+| 06-2 | `./gradlew evalRun -PpipelineVersion=V2 -Pmode=repro -Pconfirm=true` | 50 ~ 100 | reproducibility_dose |

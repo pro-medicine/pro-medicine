@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -38,12 +40,34 @@ public class AiRecommendationItem {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
+    // STEP 06 추가: 기준표로 계산한 하루 추가 섭취량
+    @Column(name = "recommended_amount", precision = 10, scale = 2)
+    private BigDecimal recommendedAmount;
+
+    @Column(name = "current_intake", precision = 10, scale = 2)
+    private BigDecimal currentIntake;
+
+    @Column(name = "intake_status", length = 10)
+    private String intakeStatus;
+
+    @Column(name = "unit", length = 10)
+    private String unit;
+
+    @Column(name = "dose_note", length = 200)
+    private String doseNote;
+
     @Builder
     public AiRecommendationItem(AiRecommendation recommendation, String ingredientName, String reason,
-                                Integer sortOrder) {
+                                Integer sortOrder, BigDecimal recommendedAmount, BigDecimal currentIntake,
+                                String intakeStatus, String unit, String doseNote) {
         this.recommendation = recommendation;
         this.ingredientName = ingredientName;
         this.reason = reason;
         this.sortOrder = sortOrder != null ? sortOrder : 1;
+        this.recommendedAmount = recommendedAmount;
+        this.currentIntake = currentIntake;
+        this.intakeStatus = intakeStatus;
+        this.unit = unit;
+        this.doseNote = doseNote;
     }
 }

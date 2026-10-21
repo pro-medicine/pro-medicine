@@ -28,3 +28,4 @@ spring:
       data-locations:
         - classpath:sql/seed-survey-v1.sql
         - classpath:sql/seed-drugs.sql
+        - classpath:sql/seed-ingredient-standards.sql

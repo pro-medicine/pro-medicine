@@ -7,3 +7,5 @@ Flyway를 쓰지 않는다. 엔티티에 반영하면 로컬 DB는 `ddl-auto: up
 | --- | --- | --- | --- | --- | --- |
 | 02 | (변경 없음) | - | 설문 v1·약물 시드만 추가 | 설문 | `docs/sql/STEP02_seed_survey_v1.sql`, `docs/sql/STEP02_seed_drugs.sql` |
 | 03 | llm_call_logs (새 테이블) | llm_call_log_id, response_id, eval_run_id, pipeline_version, call_tag, model, prompt_version, input/output/cache_read/cache_creation_tokens, latency_ms, attempt_no, outcome, http_status, created_at | 모든 LLM 호출의 비용·지연 원본 기록 | AI 추천 (다른 기능 영향 없음) | `docs/sql/STEP03_llm_call_logs.sql` |
+| 06 | ingredient_standards (새 테이블) | standard_id, ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id | 용량을 LLM 대신 기준표로 계산 | AI 추천 | `docs/sql/STEP06_ingredient_standards.sql`, 시드 `STEP06_seed_ingredient_standards.sql` |
+| 06 | ai_recommendation_items (컬럼 추가) | recommended_amount, current_intake, intake_status, unit, dose_note | 계산한 용량과 근거 저장 | AI 추천 결과 조회 | `docs/sql/STEP06_ingredient_standards.sql` |
