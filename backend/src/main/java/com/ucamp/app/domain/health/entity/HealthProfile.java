@@ -19,6 +19,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -26,6 +27,10 @@ import java.time.LocalDateTime;
 @Table(name = "health_profiles")
 @EntityListeners(AuditingEntityListener.class)
 public class HealthProfile {
+
+    // 설문 문항의 profile_key로 쓸 수 있는 컬럼명
+    public static final Set<String> PROFILE_KEYS = Set.of(
+            "gender", "birth_year", "smoking", "drinking", "caffeine", "diet_type", "sun_exposure", "height", "weight");
 
     @Id
     @Column(name = "user_id")
@@ -80,5 +85,41 @@ public class HealthProfile {
         this.caffeine = caffeine;
         this.dietType = dietType;
         this.sunExposure = sunExposure;
+    }
+
+    public static HealthProfile create(User user) {
+        return HealthProfile.builder().user(user).build();
+    }
+
+    // 설문 답을 profile_key 컬럼에 반영한다. 선택형은 value_code, 숫자형은 value_number를 저장
+    public void applySurveyValue(String profileKey, String valueCode, BigDecimal valueNumber) {
+        switch (profileKey) {
+            case "gender" -> this.gender = valueCode;
+            case "smoking" -> this.smoking = valueCode;
+            case "drinking" -> this.drinking = valueCode;
+            case "caffeine" -> this.caffeine = valueCode;
+            case "diet_type" -> this.dietType = valueCode;
+            case "sun_exposure" -> this.sunExposure = valueCode;
+            case "birth_year" -> this.birthYear = valueNumber == null ? null : valueNumber.intValue();
+            case "height" -> this.height = valueNumber;
+            case "weight" -> this.weight = valueNumber;
+            default -> throw new IllegalArgumentException("unknown profile key: " + profileKey);
+        }
+    }
+
+    // 설문 미리 채우기용. 선택형 컬럼은 value_code 문자열, 숫자형 컬럼은 BigDecimal
+    public Object getSurveyValue(String profileKey) {
+        return switch (profileKey) {
+            case "gender" -> gender;
+            case "smoking" -> smoking;
+            case "drinking" -> drinking;
+            case "caffeine" -> caffeine;
+            case "diet_type" -> dietType;
+            case "sun_exposure" -> sunExposure;
+            case "birth_year" -> birthYear == null ? null : BigDecimal.valueOf(birthYear);
+            case "height" -> height;
+            case "weight" -> weight;
+            default -> null;
+        };
     }
 }

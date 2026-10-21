@@ -28,9 +28,26 @@ dependencies {
 //	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	// 테스트 전용 DB (MySQL 모드). 실제 MySQL 없이 테스트를 돌리기 위해 사용
+	testRuntimeOnly 'com.h2database:h2'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		// 실제 API(live), 성능 측정(perf), 평가 실행(eval)은 기본 테스트에서 제외
+		excludeTags 'live', 'perf', 'eval'
+	}
+}
+
+// 성능 측정 테스트: ./gradlew perfTest
+tasks.register('perfTest', Test) {
+	description = '로컬 성능 측정 테스트 (H2, MockMvc)'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform { includeTags 'perf' }
+	systemProperty 'perf.label', findProperty('perfLabel') ?: 'run'
+	testLogging { showStandardStreams = true }
+	outputs.upToDateWhen { false }
 }
