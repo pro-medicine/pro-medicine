@@ -23,6 +23,13 @@
 - 성분 코드 enum `IngredientCode`는 `domain/health/entity`에 두었다 (설문 검증과 추천이 같이 씀).
 - `Q-SUPPLEMENTS`의 단위는 성분 기준 단위와 달라도 받는다 (STEP 06에서 단위가 다르면 `intake_status = UNKNOWN`으로 처리하기 때문).
 - 출생 연도는 1900~올해 정수만 받는다 (프롬프트에 없는 검증이지만 프로필 오염 방지용 최소 검증).
+- (STEP 03) WireMock `org.wiremock:wiremock-standalone:3.13.2` testImplementation 추가. 이유: 실제 API 없이 Anthropic HTTP 형식·오류·타임아웃 테스트, 이후 장애 주입.
+- (STEP 03) 기본 모델 `claude-opus-5-5`, 작은 모델 `claude-haiku-5-5` (Anthropic 문서 기본 권장·현재 세대). 단가는 공식 가격표에서 2026-10-21 확인 → `perf/pricing.md`. 최종 모델은 사용자가 결정.
+- (STEP 03) 공식 문서상 Opus 5.5·Sonnet 5.5는 강제 `tool_choice`와 `temperature`를 거부한다. 클라이언트는 temperature null이면 보내지 않고, 도구 강제는 `llm.anthropic.force-tool-choice`(기본 false)로 둔다.
+- (STEP 03) 설정 기본값(`llm.provider=fake`)은 `@ConfigurationProperties` 기본값으로 두고, 메인 application.yml은 건드리지 않았다. 실제 API용 `application-local-llm.yml`을 새로 추가.
+- (STEP 03) V0 파싱은 응답 텍스트의 첫 `{`~마지막 `}`를 Jackson으로 읽는다 ("응답 텍스트에서 JSON을 파싱"을 이렇게 해석). 코드펜스(```json)만 붙은 응답은 성공으로 본다.
+- (STEP 03) `llm_call_logs`는 바깥 트랜잭션이 롤백돼도 남도록 REQUIRES_NEW로 저장. `response_id`에 FK는 걸지 않음(기록용).
+- (STEP 03) 추천 저장은 LLM 호출과 분리(`RecommendationStore`)해서 LLM 대기 중 DB 트랜잭션을 잡지 않는다.
 
 ## 막힌 것
 
@@ -41,3 +48,16 @@
   - 제출(회원) SQL 28개는 행별 INSERT라 남겨둠 (IDENTITY 키라 배치 불가)
   - 비회원 응답의 가입 후 연결은 범위 밖
 - 다음 STEP 전에 사용자가 할 일: 없음 (실제 API 예산 0원이라 STEP 03 수동 호출은 `perf/TODO-live-runs.md`로 넘긴다)
+
+## STEP 03 - LLM 연결 + V0 (2026-10-21)
+- 한 일:
+  - `infra/llm`: LlmClient / AnthropicLlmClient(RestClient) / FakeLlmClient / LoggingLlmClient, `llm_call_logs` 테이블
+  - 추천 파이프라인 구조(`RecommendationPipeline`, `RecommendationInput`, `RecommendationResult`, `PipelineRegistry`), `V0Pipeline`(prompts/v0, v0.1), `RecommendationInputAssembler`
+  - `POST /api/v1/recommendations`, `GET /api/v1/recommendations/{id}`, 설정 `recommendation.pipeline-version`(기본 V0)
+  - `./gradlew liveTest`(실제 API, @Tag("live")) 분리
+  - 테스트: AnthropicLlmClientTest(WireMock 6), LoggingLlmClientTest 3, V0PipelineTest 3, RecommendationApiTest 4 (입력 조립 회원/비회원 포함)
+- 측정 결과 요약: [STEP03-report.md](perf/STEP03-report.md) — 실제 API 3회 호출은 **실제 측정 대기**([TODO-live-runs.md](perf/TODO-live-runs.md) 03-1, 03-2). 단가는 [pricing.md](perf/pricing.md)
+- 결정한 것 / 미룬 것:
+  - 비회원도 자기 responseId로 추천을 만들 수 있다. 남의 responseId로 호출하는 가로채기 방지는 범위 밖 (로그인 연동 시 응답 소유자 확인 필요)
+  - 재시도·서킷 브레이커는 STEP 10
+- 다음 STEP 전에 사용자가 할 일: (실제 측정을 원하면) API 키 설정 후 TODO-live-runs.md 03번

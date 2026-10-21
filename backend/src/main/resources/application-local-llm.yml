@@ -1,0 +1,8 @@
+# 실제 Claude API를 쓰는 프로필. 실행: --spring.profiles.active=local-llm
+# API 키는 여기에 쓰지 않는다. 환경변수 ANTHROPIC_API_KEY로만 읽는다.
+llm:
+  provider: anthropic
+  model: claude-opus-5-5
+  small-model: claude-haiku-5-5
+  timeout-ms: 30000
+  max-tokens: 8000

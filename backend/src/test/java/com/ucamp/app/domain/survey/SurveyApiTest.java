@@ -27,10 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.SurveyAnswers.choice;
+import static com.ucamp.app.support.SurveyAnswers.number;
+import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -327,21 +329,6 @@ class SurveyApiTest {
     private long submitOk(Long userId, List<Map<String, Object>> answers) throws Exception {
         String body = submit(userId, answers).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("data").get("responseId").asLong();
-    }
-
-    static Map<String, Object> choice(long questionId, Long... optionIds) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("questionId", questionId);
-        m.put("optionIds", List.of(optionIds));
-        return m;
-    }
-
-    static Map<String, Object> number(long questionId, Number value) {
-        return Map.of("questionId", questionId, "valueNumber", value);
-    }
-
-    static Map<String, Object> text(long questionId, String value) {
-        return Map.of("questionId", questionId, "valueText", value);
     }
 
     private static List<String> codes(JsonNode data) {

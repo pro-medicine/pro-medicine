@@ -26,9 +26,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ucamp.app.domain.survey.SurveyApiTest.choice;
-import static com.ucamp.app.domain.survey.SurveyApiTest.number;
-import static com.ucamp.app.domain.survey.SurveyApiTest.text;
+import static com.ucamp.app.support.SurveyAnswers.choice;
+import static com.ucamp.app.support.SurveyAnswers.number;
+import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

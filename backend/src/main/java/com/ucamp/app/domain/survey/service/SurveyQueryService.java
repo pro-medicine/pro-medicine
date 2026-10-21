@@ -155,6 +155,12 @@ public class SurveyQueryService {
         }
     }
 
+    // 추천 결과 저장 시 FK 연결용
+    public SurveyResponse getResponse(Long responseId) {
+        return surveyResponseRepository.findById(responseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SURVEY_RESPONSE_NOT_FOUND));
+    }
+
     // 제출된 응답 한 건을 문항 code 기준으로 읽는다 (추천 입력 조립용)
     public SurveyResponseDetail getResponseDetail(Long responseId) {
         SurveyResponse response = surveyResponseRepository.findById(responseId)

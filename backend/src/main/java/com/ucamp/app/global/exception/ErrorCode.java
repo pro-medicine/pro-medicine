@@ -19,7 +19,13 @@ public enum ErrorCode {
     SURVEY_INVALID_ANSWER(HttpStatus.BAD_REQUEST, "S002", "설문 답변이 올바르지 않습니다."),
     SURVEY_SENSITIVE_GUEST(HttpStatus.BAD_REQUEST, "S003", "비회원은 민감 문항에 답할 수 없습니다."),
     SURVEY_SENSITIVE_CONSENT_REQUIRED(HttpStatus.FORBIDDEN, "S004", "민감정보 수집 동의가 필요합니다."),
-    SURVEY_RESPONSE_NOT_FOUND(HttpStatus.NOT_FOUND, "S005", "설문 응답을 찾을 수 없습니다.");
+    SURVEY_RESPONSE_NOT_FOUND(HttpStatus.NOT_FOUND, "S005", "설문 응답을 찾을 수 없습니다."),
+
+    // RECOMMENDATION
+    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "추천 결과를 찾을 수 없습니다."),
+    RECOMMENDATION_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "R002", "추천 요청이 올바르지 않습니다."),
+    RECOMMENDATION_LLM_FAILED(HttpStatus.BAD_GATEWAY, "R003", "AI 추천을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    RECOMMENDATION_UNKNOWN_PIPELINE(HttpStatus.INTERNAL_SERVER_ERROR, "R004", "설정된 추천 파이프라인 버전이 없습니다.");
 
     private final HttpStatus status;
     private final String code;

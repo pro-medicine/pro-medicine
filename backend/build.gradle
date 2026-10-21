@@ -30,6 +30,8 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	// 테스트 전용 DB (MySQL 모드). 실제 MySQL 없이 테스트를 돌리기 위해 사용
 	testRuntimeOnly 'com.h2database:h2'
+	// LLM HTTP 클라이언트 테스트·장애 주입용 가짜 서버 (부하 테스트용 standalone 실행은 docs/perf 문서 참고)
+	testImplementation 'org.wiremock:wiremock-standalone:3.13.2'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
@@ -38,6 +40,17 @@ tasks.named('test') {
 		// 실제 API(live), 성능 측정(perf), 평가 실행(eval)은 기본 테스트에서 제외
 		excludeTags 'live', 'perf', 'eval'
 	}
+}
+
+// 실제 Claude API 테스트: ./gradlew liveTest (ANTHROPIC_API_KEY 필요, 비용 발생)
+tasks.register('liveTest', Test) {
+	description = '실제 Claude API 호출 테스트 (비용 발생)'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform { includeTags 'live' }
+	testLogging { showStandardStreams = true }
+	outputs.upToDateWhen { false }
 }
 
 // 성능 측정 테스트: ./gradlew perfTest
