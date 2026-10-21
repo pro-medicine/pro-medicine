@@ -68,3 +68,14 @@ Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)�
 | 07-4 | `./gradlew evalRun -PpipelineVersion=V4 -Pmode=repro -Pconfirm=true` | 50 ~ 100 | |
 
 규칙별 적중 횟수: `docs/perf/runs/{eval_run_id}.json`의 `ruleHits`
+
+## STEP 08 - 비용 최적화
+
+| # | 명령 | 예상 호출 수 | 확인할 것 |
+| --- | --- | ---: | --- |
+| 08-1 | `./gradlew evalRun -PpipelineVersion=V6 -Ppasses=2 -Pconfirm=true` | 32 ~ 64 (2회차는 0) | pass1/pass2 두 줄, cache_hit_rate, cost_per_req_usd |
+| 08-2 | `./gradlew evalRun -PpipelineVersion=V7 -Pconfirm=true` | 32 ~ 64 | avg_cache_read_tokens, note의 avg_cache_creation_tokens (0이면 고정 부분이 최소 길이 미만) |
+| 08-3 | `./gradlew evalRun -PpipelineVersion=V8 -Pconfirm=true` | 32 ~ 64 (작은 모델 13케이스) | note의 calls_by_model, recall_by_routed_model, cost_per_req_usd |
+| 08-4 | k6 (WireMock, 비용 없음): `perf/k6/cache-load.js` 머리말의 준비 순서대로 V4, V6 서버에 각각 실행 | 0 (WireMock) | TPS, p95, WireMock 호출 수 |
+
+k6 설치: `winget install k6 --source winget`. 08-4는 실제 API를 쓰지 않는다 (k6가 없어서 밤새 실행에서는 in-JVM 대체 측정만 했다).

@@ -108,8 +108,18 @@ class EvalRunTest {
             }
         }
 
+        // V6 결과 캐시처럼 같은 평가셋을 연속으로 돌려야 하는 경우 -Ppasses=2 (같은 JVM이라 캐시가 유지된다)
+        int passes = Integer.parseInt(System.getProperty("eval.passes", "1"));
+        for (int pass = 1; pass <= passes; pass++) {
+            runPass(version, repro, caseLimit, repeats, mode, file, cases, passes > 1 ? pass : 0);
+        }
+    }
+
+    private void runPass(String version, boolean repro, int caseLimit, int repeats, EvalRunner.LlmMode mode,
+                         EvalCaseFile file, List<EvalCase> cases, int pass) throws Exception {
+        String passSuffix = pass > 0 ? "-pass" + pass : "";
         String evalRunId = version + "-" + (repro ? "repro-" : "") + mode.name().toLowerCase().replace('_', '-')
-                + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+                + passSuffix + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         Map<String, Drug> drugs = drugRepository.findAll().stream()
                 .collect(Collectors.toMap(Drug::getDrugId, Function.identity()));
         EvalRunner runner = new EvalRunner(pipelineRegistry, drugs, fakeLlmClient, logRepository,
@@ -120,6 +130,7 @@ class EvalRunTest {
 
         String label = version + (repro ? "-repro" : "")
                 + (mode == EvalRunner.LlmMode.FAKE ? "-fake" : mode == EvalRunner.LlmMode.FAKE_NOISY ? "-fake-noisy" : "")
+                + passSuffix
                 + (System.getProperty("eval.label") == null ? "" : "-" + System.getProperty("eval.label"));
         String note = buildNote(file, summary, System.getProperty("eval.note"));
         String step = System.getProperty("eval.step", stepOf(version));
@@ -130,6 +141,7 @@ class EvalRunTest {
         extra.put("evalSetReviewed", file.meta().reviewed());
         extra.put("stageTimings", stageTimings(version));
         extra.put("ruleHits", ruleHits());
+        extra.put("cacheCounters", cacheCounters());
         Path json = EvalRunner.writeRunJson(RUNS, summary, extra, objectMapper);
         System.out.printf("[EVAL] label=%s metrics=%s%n", label, summary.metrics());
         System.out.printf("[EVAL] llmCalls=%d repair=%d errors=%d failures=%s byModel=%s recallByDifficulty=%s%n",
@@ -165,11 +177,27 @@ class EvalRunTest {
         return hits;
     }
 
+    private Map<String, Double> cacheCounters() {
+        Map<String, Double> m = new LinkedHashMap<>();
+        meterRegistry.find("recommendation.cache").counters()
+                .forEach(c -> m.put(c.getId().getTag("result"), c.count()));
+        return m;
+    }
+
     private static String buildNote(EvalCaseFile file, EvalRunner.Summary s, String extra) {
         StringBuilder sb = new StringBuilder("evalRunId=").append(s.config().evalRunId())
                 .append("; reviewed=").append(file.meta().reviewed())
                 .append("; dose_n=").append(s.metrics().doseN())
                 .append("; repair_calls=").append(s.repairCalls());
+        if (!s.callsByModel().isEmpty() && s.callsByModel().size() > 1) {
+            sb.append("; calls_by_model=").append(s.callsByModel());
+        }
+        if (!s.recallByModelGroup().isEmpty()) {
+            sb.append("; recall_by_routed_model=").append(s.recallByModelGroup());
+        }
+        if (s.avgCacheCreationTokens() != null && s.avgCacheCreationTokens() > 0) {
+            sb.append("; avg_cache_creation_tokens=").append(Math.round(s.avgCacheCreationTokens()));
+        }
         if (s.llmErrors() > 0) {
             sb.append("; llm_errors=").append(s.llmErrors());
         }

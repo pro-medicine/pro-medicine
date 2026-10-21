@@ -1,6 +1,7 @@
 package com.ucamp.app.eval;
 
 import com.ucamp.app.domain.recommendation.dose.DoseService;
+import com.ucamp.app.domain.recommendation.pipeline.ModelRouter;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
 import org.springframework.context.ApplicationContext;
 
@@ -21,6 +22,10 @@ final class EvalHooks {
     }
 
     static Function<RecommendationInput, String> routedModel(ApplicationContext context, String version) {
-        return null;
+        if (!"V8".equals(version)) {
+            return null;
+        }
+        ModelRouter router = context.getBean(ModelRouter.class);
+        return router::route;
     }
 }

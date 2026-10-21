@@ -1,5 +1,7 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
+import com.ucamp.app.domain.recommendation.cache.CacheKeyFactory;
+import com.ucamp.app.domain.recommendation.cache.ResultCacheService;
 import com.ucamp.app.domain.recommendation.dose.DoseService;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
 import com.ucamp.app.global.metrics.StageTimer;
@@ -24,4 +26,6 @@ public class PipelineDeps {
     private final StageTimer stageTimer;
     private final DoseService doseService;
     private final RuleService ruleService;
+    private final ResultCacheService resultCacheService;
+    private final CacheKeyFactory cacheKeyFactory;
 }

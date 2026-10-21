@@ -18,9 +18,14 @@ import java.util.function.Function;
  * - 응답은 responder로 바꿀 수 있다. 기본은 비타민 D 하나를 추천하는 고정 답
  * - tool 정의가 있으면 tool_use 입력으로, 없으면 V0 형식 JSON 텍스트로 답한다
  * - 토큰 사용량은 실제 값이 아니라 글자 수로 계산한 고정 추정치(3글자 ≈ 1토큰)다. 비용 비교에 쓰지 않는다
+ * - cacheControl 요청은 API의 프롬프트 캐싱 규칙을 흉내 낸다: 고정 부분(tool 정의 + 시스템)이 최소 길이(추정 512토큰) 이상이면
+ *   모델별 첫 요청은 cache_creation, 같은 고정 부분의 다음 요청은 cache_read로 센다 (만료 없음)
  */
 public class FakeLlmClient implements LlmClient {
     public static final String FAKE_MODEL_SUFFIX = "-fake";
+    /** Opus 5.5 / Sonnet 5.5 / Haiku 5.5의 최소 캐시 길이 (Anthropic 문서) */
+    static final int MIN_CACHEABLE_TOKENS = 512;
+    private final java.util.Set<String> cachedPrefixes = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private final ObjectMapper objectMapper;
     private final AtomicReference<Function<LlmRequest, LlmResponse>> responder = new AtomicReference<>();
@@ -48,6 +53,7 @@ public class FakeLlmClient implements LlmClient {
 
     public void reset() {
         requests.clear();
+        cachedPrefixes.clear();
         answerWith(new FakeAnswer(List.of(new FakeAnswer.Item("VITAMIN_D", "비타민 D",
                 "가짜 응답: 햇빛 노출이 적은 경우를 가정", BigDecimal.TEN, "mcg")), "가짜 응답입니다"));
     }
@@ -75,12 +81,25 @@ public class FakeLlmClient implements LlmClient {
     }
 
     private LlmResponse.LlmResponseBuilder base(LlmRequest request, String outputText) {
-        int inputChars = (request.system() == null ? 0 : request.system().length())
-                + request.messages().stream().mapToInt(m -> m.text().length()).sum()
-                + request.toolsOrEmpty().stream().mapToInt(t -> String.valueOf(t.inputSchema()).length()).sum();
+        String prefix = (request.system() == null ? "" : request.system())
+                + request.toolsOrEmpty().stream().map(t -> String.valueOf(t.inputSchema())).reduce("", String::concat);
+        int prefixTokens = prefix.length() / 3;
+        int messageTokens = request.messages().stream().mapToInt(m -> m.text().length()).sum() / 3;
+        int cacheRead = 0;
+        int cacheCreation = 0;
+        int input = prefixTokens + messageTokens;
+        if (request.cacheControl() && prefixTokens >= MIN_CACHEABLE_TOKENS) {
+            String key = request.model() + "|" + prefix.hashCode();
+            if (cachedPrefixes.add(key)) {
+                cacheCreation = prefixTokens;
+            } else {
+                cacheRead = prefixTokens;
+            }
+            input = messageTokens;
+        }
         return LlmResponse.builder()
                 .text(outputText)
-                .usage(new LlmUsage(Math.max(1, inputChars / 3), Math.max(1, outputText.length() / 3 + 50), 0, 0))
+                .usage(new LlmUsage(Math.max(1, input), Math.max(1, outputText.length() / 3 + 50), cacheRead, cacheCreation))
                 .latencyMs(0)
                 .model((request.model() == null ? "unknown" : request.model()) + FAKE_MODEL_SUFFIX)
                 .requestId("fake-" + System.nanoTime());

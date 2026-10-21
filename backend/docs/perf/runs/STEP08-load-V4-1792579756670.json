@@ -1,0 +1,17 @@
+{
+  "label" : "V4-load",
+  "conditions" : "in-JVM load test (k6 미설치로 대체), embedded Tomcat, H2, WireMock 고정 지연 3000ms, 2000 requests, 50 closed-model users, warmup 50 (unused profiles)",
+  "durationSeconds" : 131.6100221,
+  "tps" : 15.196411094592468,
+  "errorRate" : 0.0,
+  "llmCalls" : 2000,
+  "distinctProfiles" : 710,
+  "recommendLatency" : {
+    "n" : 2000,
+    "p50_ms" : 3085.959,
+    "p95_ms" : 3611.436,
+    "p99_ms" : 4381.874,
+    "max_ms" : 5052.608,
+    "mean_ms" : 3176.009
+  }
+}

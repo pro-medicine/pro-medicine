@@ -59,6 +59,10 @@ public class RuleService {
         return result.items();
     }
 
+    public int countApplicable(RecommendationInput input) {
+        return engine().countApplicable(conditionCodeResolver.resolve(input), input.isGuest());
+    }
+
     public RuleEngine engine() {
         return current().engine();
     }

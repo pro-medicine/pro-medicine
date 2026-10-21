@@ -2,6 +2,7 @@ package com.ucamp.app.domain.recommendation.pipeline;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ucamp.app.domain.health.entity.IngredientCode;
+import com.ucamp.app.domain.recommendation.cache.CachedLlmOutput;
 import com.ucamp.app.infra.llm.LlmMessage;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
@@ -13,6 +14,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -46,8 +48,46 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
         return options;
     }
 
+    /** LLM 단계 결과: 후처리 전 항목, 요약, 모델, 호출 로그 ID */
+    private record LlmPart(boolean parseSuccess, List<RecommendationItem> items, String summary, String model,
+                           List<Long> logIds, String failureReason) {
+    }
+
     @Override
     public RecommendationResult run(RecommendationInput input) {
+        String version = options.version();
+        String model = chooseModel(input);
+        boolean cacheEnabled = resultCache();
+        String cacheKey = cacheEnabled
+                ? deps.getCacheKeyFactory().key(input, version, options.promptVersion(), model) : null;
+
+        LlmPart part = null;
+        boolean cacheHit = false;
+        if (cacheEnabled) {
+            Optional<CachedLlmOutput> cached = deps.getStageTimer().record("cache", version,
+                    () -> deps.getResultCacheService().get(cacheKey));
+            if (cached.isPresent()) {
+                part = fromCache(cached.get());
+                cacheHit = true;
+            }
+        }
+        if (part == null) {
+            part = callLlm(input, model);
+            if (cacheEnabled && part.parseSuccess()) {
+                deps.getResultCacheService().put(cacheKey, toCache(part));
+            }
+        }
+        RecommendationResult.RecommendationResultBuilder result = RecommendationResult.builder()
+                .pipelineVersion(version).promptVersion(options.promptVersion()).model(part.model())
+                .llmCallLogIds(part.logIds()).cacheHit(cacheHit);
+        if (!part.parseSuccess()) {
+            return result.parseSuccess(false).items(List.of()).failureReason(part.failureReason()).build();
+        }
+        List<RecommendationItem> processed = postProcess(input, part.items());
+        return result.parseSuccess(true).items(processed).summary(part.summary()).build();
+    }
+
+    private LlmPart callLlm(RecommendationInput input, String model) {
         String version = options.version();
         String system = deps.getPromptTemplates().render(options.promptDir() + "/system.txt",
                 Map.of("ingredients", ingredientList()));
@@ -57,7 +97,6 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
         if (extra != null && !extra.isBlank()) {
             user = user + "\n\n" + extra;
         }
-        String model = chooseModel(input);
 
         List<Long> logIds = new ArrayList<>();
         LlmResponse first = call(input, system, user, model, LlmRequest.TAG_RECOMMEND);
@@ -75,20 +114,27 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
                     () -> deps.getValidator().validate(repair.toolInput(), options.llmDose()));
             if (!repairErrors.isEmpty()) {
                 deps.getLlmCallLogService().markOutcome(repair.callLogId(), LlmCallLog.PARSE_FAIL);
-                return RecommendationResult.builder()
-                        .pipelineVersion(version).promptVersion(options.promptVersion()).model(repair.model())
-                        .parseSuccess(false).items(List.of()).llmCallLogIds(logIds)
-                        .failureReason("VALIDATION_FAIL_AFTER_REPAIR").build();
+                return new LlmPart(false, List.of(), null, repair.model(), logIds, "VALIDATION_FAIL_AFTER_REPAIR");
             }
             used = repair;
         }
+        return new LlmPart(true, toItems(used.toolInput()), used.toolInput().path("summary").asText(null),
+                used.model(), logIds, null);
+    }
 
-        List<RecommendationItem> items = toItems(used.toolInput());
-        List<RecommendationItem> processed = postProcess(input, items);
-        return RecommendationResult.builder()
-                .pipelineVersion(version).promptVersion(options.promptVersion()).model(used.model())
-                .parseSuccess(true).items(processed).summary(used.toolInput().path("summary").asText(null))
-                .llmCallLogIds(logIds).build();
+    private static LlmPart fromCache(CachedLlmOutput cached) {
+        List<RecommendationItem> items = cached.items().stream()
+                .map(i -> RecommendationItem.builder().ingredient(i.ingredient()).reason(i.reason())
+                        .sortOrder(i.priority()).build())
+                .sorted(Comparator.comparingInt(RecommendationItem::sortOrder))
+                .toList();
+        return new LlmPart(true, items, cached.summary(), cached.model(), List.of(), null);
+    }
+
+    private static CachedLlmOutput toCache(LlmPart part) {
+        return new CachedLlmOutput(part.items().stream()
+                .map(i -> new CachedLlmOutput.Item(i.ingredient(), i.reason(), i.sortOrder())).toList(),
+                part.summary(), part.model());
     }
 
     private LlmResponse call(RecommendationInput input, String system, String user, String model, String tag) {
@@ -151,6 +197,11 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
     /** 사용할 모델 (V8: 라우팅) */
     protected String chooseModel(RecommendationInput input) {
         return deps.getLlmProperties().getModel();
+    }
+
+    /** LLM 출력 결과 캐시 사용 여부 (V6) */
+    protected boolean resultCache() {
+        return false;
     }
 
     /** 프롬프트 캐싱 지점 표시 여부 (V7) */

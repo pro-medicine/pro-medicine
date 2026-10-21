@@ -99,6 +99,11 @@ public final class RuleEngine {
         return conditions.contains(r.conditionCode());
     }
 
+    /** 입력 조건만으로 걸리는 규칙 수 (대상 성분 추천 여부와 무관). V8 모델 라우팅의 복잡도 기준 */
+    public int countApplicable(Set<String> conditions, boolean guest) {
+        return (int) rules.stream().filter(r -> applies(r, conditions, Set.of(), guest)).count();
+    }
+
     public List<Rule> rules() {
         return rules;
     }

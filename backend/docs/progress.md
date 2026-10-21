@@ -50,6 +50,13 @@
 - (STEP 07) V3는 V2 프롬프트(v2.1)를 그대로 쓰고, V4는 금지 목록을 사용자 메시지 뒤에 붙인다(STEP 08 캐싱 대비). V4가 V3를 상속해 타입 주입이 모호하므로 파이프라인은 `PipelineRegistry`로 꺼낸다.
 - (STEP 07) API 응답을 `items`(최종) / `excludedItems`(제외 + 이유)로 나눴다. 프론트 연동은 `docs/api/recommendation-api.md` 참고 (STEP 09에서 작성).
 
+- (STEP 08) `spring-boot-starter-data-redis` implementation 추가 (Boot BOM 버전). 이유: V6 결과 캐시 저장소. 기본값은 메모리(`recommendation.cache.store=memory`)라 Redis 없이도 앱·테스트가 돈다. Redis 헬스체크와 Redis 저장소 스캔은 defaults properties에서 끔.
+- (STEP 08) 결과 캐시 키에 현재 섭취는 성분 코드만 넣고 함량은 뺐다 (용량은 매번 다시 계산하므로). 민감 입력도 캐시한다 (키는 해시, 값은 성분·이유·요약) — 이유 문장에 질환명이 들어갈 수 있어 팀 정책 확인 필요.
+- (STEP 08) 평가 러너에 `-Ppasses=2`(같은 JVM에서 연속 실행) 추가. V6 1회차/2회차를 두 줄로 기록.
+- (STEP 08) k6 미설치라 k6 스크립트(`perf/k6/`)만 만들고, 대신 in-JVM 부하 테스트(실제 Tomcat + WireMock 3초, `perfTest`)로 V4·V6를 측정했다. results.csv label에 `load-wiremock`과 note에 "k6 대체"를 적었다.
+- (STEP 08) 테스트에서 LLM 클라이언트를 WireMock으로 바꿀 때 운영 코드(API 키는 환경변수만)를 건드리지 않으려고 테스트 전용 BeanPostProcessor로 교체한다.
+- (STEP 08) **최종 서비스 설정(잠정)**: `recommendation.pipeline-version` 기본값은 아직 V0 그대로 두었다 (팀 공통 기본값을 실측 없이 바꾸지 않음). 실측 전 근거로는 V6(V4 + 결과 캐시)가 품질 변화 없이 LLM 호출을 줄여 1순위 후보다. V7·V8 채택은 실제 토큰·품질 측정(TODO 08-1~3) 후 결정.
+
 ## 막힌 것
 
 - 없음
@@ -111,3 +118,9 @@
 - 측정 결과 요약: [STEP07-report.md](perf/STEP07-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy 재현성 기준 violation V2 0.26 → V3 0.0, raw V3 0.26 → V4 0.0(가정 기반), rule 단계 평균 1ms 미만
 - 결정한 것 / 미룬 것: 위 "결정한 것" STEP 07 항목
 - 다음 STEP 전에 사용자가 할 일: (선택) 규칙·문구 약사 검토
+
+## STEP 08 - 비용 최적화 (2026-10-21)
+- 한 일: V6(결과 캐시: `CacheKeyFactory`, `ResultCacheService`, 메모리/Redis 저장소), V7(cache_control), V8(`ModelRouter`), StructuredPipeline에 캐시 흐름, Fake에 프롬프트 캐싱 흉내, k6 스크립트·요청 세트 생성기·WireMock 매핑(`perf/`), in-JVM 부하 테스트. 테스트: CostOptimizationPipelineTest 6, ResultCacheStoreTest 3(Redis 실연결 포함)
+- 측정 결과 요약: [STEP08-report.md](perf/STEP08-report.md). 실제 API **실제 측정 대기**. Fake V6 2회차 LLM 호출 0·적중률 1.0, V8 라우팅 작은 모델 13/32. 부하(WireMock 3초, 2,000건): LLM 호출 2,000 → 809, TPS 15.20 → 28.23, p50 3,086 → 45ms, p95 3,611 → 4,464ms(악화)
+- 결정한 것 / 미룬 것: 캐시 스탬피드(single-flight), V6 p95 원인, V7 실제 캐시 적용 여부
+- 다음 STEP 전에 사용자가 할 일: Anthropic Console에서 rate limit 확인 (STEP 09 워커 동시 처리 수 설정용)

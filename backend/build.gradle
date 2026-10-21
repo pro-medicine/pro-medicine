@@ -23,6 +23,8 @@ dependencies {
 	// 추천 단계별 지연 측정 (STEP 04): /actuator/prometheus
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
+	// 추천 결과 캐시 (STEP 08). recommendation.cache.store=redis 일 때만 사용, 기본은 메모리
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -53,7 +55,7 @@ tasks.register('evalRun', Test) {
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform { includeTags 'eval' }
-	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'routing'].each { key ->
+	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'passes'].each { key ->
 		if (project.hasProperty(key)) {
 			systemProperty "eval.${key}", project.property(key)
 		}
