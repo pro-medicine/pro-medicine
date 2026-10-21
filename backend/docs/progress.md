@@ -37,6 +37,10 @@
 - (STEP 04) Fake 실행은 두 종류: `fake`(정답, 러너 검증), `fake-noisy`(시드 고정 오답, 규칙 검증 동작 확인). results.csv label에 fake가 붙고 note에 "실제 측정값 아님"을 적는다.
 - (STEP 04) 지표 해석: precision은 합산, dose_error 분모는 추천된 항목만, reproducibility는 첫 결과 포함 (STEP04-report.md "지표 계산에서 정한 것").
 
+- (STEP 05) V1은 `tool_choice` 강제 대신 auto + strict 도구 + 프롬프트 지시 + "도구 미호출도 검증 실패로 재요청"으로 구현 (Opus 5.5/Sonnet 5.5가 강제 tool_choice를 400으로 거부). 강제가 되는 모델은 `llm.anthropic.force-tool-choice=true`.
+- (STEP 05) 재요청은 이전 대화(assistant tool_use) 없이 원래 사용자 메시지 + 실패 이유를 붙인 단일 메시지로 보낸다 (구조 단순화). 재요청도 실패하면 재요청 로그 행을 PARSE_FAIL로 바꾼다.
+- (STEP 05) V1~V8은 `StructuredPipeline` 하나에 버전별 Options·훅(extraUserText, postProcess, chooseModel, promptCache)을 두고, 버전마다 작은 클래스(V1Pipeline …)를 빈으로 둔다.
+
 ## 막힌 것
 
 - 없음
@@ -80,3 +84,9 @@
 - 다음 STEP 전에 사용자가 할 일:
   - **평가셋 검토 요청**: `backend/src/test/resources/eval/cases.json`을 검토하고 맞으면 `meta.reviewed`를 `true`로 바꿔 주세요. 특히 `meta.goalMayInclude`(원하는 효과 → 성분)는 근거 출처가 없습니다.
   - 실제 기준선: TODO-live-runs.md 04-1, 04-2
+
+## STEP 05 - V1 출력 형식 강제 (2026-10-21)
+- 한 일: `V1Pipeline`(StructuredPipeline), `RecommendationToolSchema`(strict, 성분 enum, amount·unit nullable), `RecommendationOutputValidator`, 1회 재요청(RECOMMEND_REPAIR), 첫 호출 검증 실패 VALIDATION_FAIL 기록, prompts/v1 (v1.1). 테스트: 검증기 6, V1 파이프라인 4(정상, 재요청 성공, 재요청 실패, 도구 미호출)
+- 측정 결과 요약: [STEP05-report.md](perf/STEP05-report.md). 실제 API는 **실제 측정 대기**. Fake-noisy에서 V0 parse_fail 0.2 → V1 0.0 (재요청 10/50회, 메커니즘 확인용)
+- 결정한 것 / 미룬 것: tool_choice 강제 대신 auto (위 "결정한 것")
+- 다음 STEP 전에 사용자가 할 일: `reference/domain-rules.md` 2번 표의 TODO 수치 입력 (STEP 06 기준표 시드). 안 채우면 해당 성분은 용량 없이 추천된다

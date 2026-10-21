@@ -37,3 +37,12 @@ FROM llm_call_logs ORDER BY llm_call_log_id DESC LIMIT 3;
 | 04-2 | `./gradlew evalRun -PpipelineVersion=V0 -Pmode=repro -Pconfirm=true` | 50 | results.csv `04,V0-repro` 줄 |
 
 결과 상세: `docs/perf/runs/{eval_run_id}.json` (케이스별 추천 성분·용량·실패 유형)
+
+## STEP 05 - V1 출력 형식 강제
+
+| # | 명령 | 예상 호출 수 | 확인할 것 |
+| --- | --- | ---: | --- |
+| 05-1 | `./gradlew evalRun -PpipelineVersion=V1 -Pconfirm=true` | 32 ~ 64 (재요청 포함) | parse_fail_rate, note의 repair_calls, avg_input_tokens (V0 대비) |
+| 05-2 | `./gradlew evalRun -PpipelineVersion=V1 -Pmode=repro -Pconfirm=true` | 50 ~ 100 | reproducibility_set / dose |
+
+Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)이다. 다른 모델로 강제 비교를 하려면 `--llm.anthropic.force-tool-choice=true`.
