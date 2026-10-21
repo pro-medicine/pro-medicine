@@ -42,6 +42,12 @@ public class User {
     @Column(nullable = false)
     private boolean shareIntakeStatus;
 
+    @Column(name = "sensitive_consent", nullable = false)
+    private boolean sensitiveConsent;
+
+    @Column(name = "sensitive_consent_at")
+    private LocalDateTime sensitiveConsentAt;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -56,6 +62,7 @@ public class User {
         this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.shareIntakeStatus = false;
+        this.sensitiveConsent = false;
     }
 
     public void changeNickname(String nickname) {
