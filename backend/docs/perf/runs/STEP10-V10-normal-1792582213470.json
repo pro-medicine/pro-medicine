@@ -1,0 +1,26 @@
+{
+  "structure" : "V10",
+  "scenario" : "normal",
+  "conditions" : "in-JVM (k6 대체), queue mode, workers=20, H2, WireMock normal, V4 pipeline, LLM timeout 15s + retry(3)/circuit/bulkhead/fallback",
+  "requests" : 200,
+  "elapsedSeconds" : 33.9865475,
+  "successRateWithFallback" : 1.0,
+  "successRateWithoutFallback" : 1.0,
+  "fallbackRate" : 0.0,
+  "failedOrTimedOut" : 0,
+  "completeLatency" : {
+    "n" : 200,
+    "p50_ms" : 3625.921,
+    "p95_ms" : 4141.917,
+    "p99_ms" : 4186.699,
+    "max_ms" : 4321.69,
+    "mean_ms" : 3678.212
+  },
+  "llmCalls" : 200,
+  "retryCalls" : 0,
+  "http429" : 0,
+  "queueBacklogMax" : 6,
+  "circuitOpenAfterMs" : null,
+  "circuitClosedAfterOutageEndMs" : null,
+  "firstNormalResultAfterOutageEndMs" : null
+}

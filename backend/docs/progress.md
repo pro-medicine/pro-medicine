@@ -65,6 +65,11 @@
 - (STEP 09) in-JVM 부하 테스트에서 같은 JVM의 다른 컨텍스트·WireMock 스레드가 스레드 수에 섞이는 문제를 발견해 포트로 거르도록 고쳤다 (2회차 결과까지는 스레드 수 비교 불가).
 - (STEP 09 커밋) STEP 10 장애 대응 코드 일부(ResilientLlmClient, RuleOnlyPipeline 등)가 같은 파일을 고쳐 함께 커밋됐다. STEP 10 커밋에서 측정·문서를 마무리한다.
 
+- (STEP 10) `io.github.resilience4j:resilience4j-spring-boot3:2.4.0` implementation 추가 (2026-03 릴리스). 이유: 재시도·서킷 브레이커·Bulkhead. 설정은 application.yml이 아니라 `llm.resilience.*`(LlmProperties 기본값)으로 코드에서 조립. `llm.resilience.enabled` 기본 false.
+- (STEP 10) 서킷 OPEN·재시도 소진·Bulkhead 가득 참을 `LlmUnavailableException` 하나로 바꿔 서비스에서 폴백 (프롬프트의 CallNotPermittedException 직접 처리와 같은 의미).
+- (STEP 10) 장애 주입은 WireMock 상태 순환 시나리오로 비율을 정확히 맞췄다 (확률 응답 기능이 없어서). outage 복구는 테스트에서 500 매핑을 지워서 만든다.
+- (STEP 10) 측정 결과 slow 시나리오에서 15초 타임아웃이 20초 느린 응답을 실패·재시도로 바꿔 p95가 나빠졌다 → 타임아웃은 실제 API 지연을 잰 뒤 정한다 (TODO 10-0).
+
 ## 막힌 것
 
 - 없음
@@ -138,3 +143,9 @@
 - 측정 결과 요약: [STEP09-report.md](perf/STEP09-report.md). spike-burst(10초 600건, WireMock 3초): 에러율 sync 0.053~0.232 / vt 0.002 / queue 0.0, LLM 동시 호출 최대 sync 50 / vt 256~413 / queue 20, queue 완료 p95 89~102초. 발송 분산(60초)이면 sync·vt 모두 실패 0. 알림 진입 재사용으로 LLM 호출 70% 감소(프로필 변경 30% 가정)
 - 결정한 것 / 미룬 것: 위 "결정한 것" STEP 09 항목. 스레드 수 재측정, OSIV 영향 확인
 - 다음 STEP 전에 사용자가 할 일: rate limit 확인(TODO 09-0)
+
+## STEP 10 - 장애 대응 (2026-10-21)
+- 한 일: `ResilientLlmClient`(Retry → CircuitBreaker → Bulkhead, attempt_no 기록, 429 retry-after), `LlmUnavailableException`, `RuleOnlyPipeline`(규칙 기반 폴백, model_name RULE_ONLY, fallback·notice 응답 필드), Counter(circuit.transition, fallback), WireMock 장애 매핑 생성기(slow·flaky·outage), in-JVM 장애 주입 부하 테스트. 테스트: ResilientLlmClientTest 5(재시도 대상/비대상, 서킷 전이, 4xx 미집계, 소진), FallbackTest 3
+- 측정 결과 요약: [STEP10-report.md](perf/STEP10-report.md). flaky 성공률 V9-queue 0.80 → V10 1.00(폴백 제외 0.98, 재시도 호출 +45), outage 0.50 → 1.00(폴백 55%, 서킷 OPEN 2.3초, 복구 후 7.2초에 CLOSED), slow p95 40.6초 → 45.6초(악화). RULE_ONLY 평가 recall 1.0은 설계상 당연(같은 규칙으로 정의된 평가셋)
+- 결정한 것 / 미룬 것: 타임아웃·재시도 값은 실제 지연 측정 후 조정
+- 다음 STEP 전에 사용자가 할 일: 없음
