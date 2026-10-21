@@ -1,0 +1,94 @@
+// 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
+import { useEffect, useState } from "react";
+import { getHome, updateIntake } from "./homeApi";
+import HomeHeader from "./HomeHeader";
+import PromiseCard from "./PromiseCard";
+import TodaySupplements from "./TodaySupplements";
+import RecommendBanner from "./RecommendBanner";
+import "./home.css";
+
+/**
+ * props (App.jsx에서 전달)
+ * - userId: 로그인 사용자 id
+ * - onOpenNotifications: 종 버튼 클릭 시 알림 패널 열기
+ */
+export default function HomePage({ userId = 1, onOpenNotifications }) {
+    const [home, setHome] = useState(null); // 홈 데이터
+    const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
+    const [error, setError] = useState(""); // 저장 실패 메시지
+
+    // 1) 화면이 처음 열릴 때 GET /home 호출
+    useEffect(() => {
+        getHome(userId).then(({ data, isSample }) => {
+            setHome(data);
+            setIsSample(isSample);
+        });
+    }, [userId]);
+
+    // 2) 데이터 오기 전에는 로딩 화면
+    if (!home) {
+        return <div className="home-page home-loading">불러오는 중...</div>;
+    }
+
+    // 3) 진행률 계산 (state로 저장하지 않고 매번 계산)
+    const supplements = home.supplements ?? [];
+    const total = supplements.length;
+    const done = supplements.filter((s) => s.taken).length;
+    const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
+    // 특정 영양제의 taken 값만 바꾸기
+    const setTaken = (id, taken) => {
+        setHome((prev) => ({
+            ...prev,
+            supplements: prev.supplements.map((s) =>
+                s.id === id ? { ...s, taken } : s
+            ),
+        }));
+    };
+
+    // 4) 복용 체크: 화면 먼저 바꾸고 → 서버 저장 실패하면 되돌리기
+    const handleToggle = async (id) => {
+        const next = !supplements.find((s) => s.id === id).taken;
+        setTaken(id, next);
+        setError("");
+
+        if (isSample) return; // 예시 데이터일 때는 서버 저장 안 함
+
+        try {
+            await updateIntake(id, next);
+        } catch (e) {
+            setTaken(id, !next);
+            setError("복용 체크를 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+        }
+    };
+
+    return (
+        <div className="home-page">
+            <div className="home-inner">
+                <HomeHeader
+                    userName={home.userName}
+                    date={home.today}
+                    hasUnread={home.hasUnreadNotifications}
+                    onBellClick={onOpenNotifications}
+                />
+
+                {isSample && (
+                    <p className="home-sample-notice">예시 데이터로 표시 중입니다</p>
+                )}
+
+                <PromiseCard percent={percent} remain={total - done} total={total} />
+
+                <TodaySupplements
+                    supplements={supplements}
+                    done={done}
+                    total={total}
+                    onToggle={handleToggle}
+                />
+                {error && <p className="home-error">{error}</p>}
+
+                {/* TODO: 추천 설문 모달 만들면 연결 */}
+                <RecommendBanner onClick={() => console.log("추천 모달 준비 중")} />
+            </div>
+        </div>
+    );
+}
