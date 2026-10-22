@@ -1,9 +1,10 @@
-package com.ucamp.app.domain.follow.service;
+package com.ucamp.app.domain.friend.service;
 
-import com.ucamp.app.domain.follow.dto.FollowResponse;
-import com.ucamp.app.domain.follow.entity.Follow;
-import com.ucamp.app.domain.follow.enums.FollowStatus;
-import com.ucamp.app.domain.follow.repository.FollowRepository;
+import com.ucamp.app.domain.friend.dto.FollowResponse;
+import com.ucamp.app.domain.friend.entity.Follow;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
+import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
@@ -25,7 +26,9 @@ public class FollowService {
 
     @Transactional
     public FollowResponse request(Long followerId, String nickname) {
-        Long followingId = findUserIdByNickname(nickname);
+        Long followingId = userRepository.findByNickname(nickname.strip())
+                .map(User::getId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         if (followerId.equals(followingId)) {
             throw new BusinessException(ErrorCode.INVALID_FOLLOW);
@@ -85,15 +88,6 @@ public class FollowService {
         }
         // TODO: 데이터 조회 시 deletedAt Null 만 하도록 수정
         follow.markDeleted(userId);
-    }
-
-    // TODO: User 생기면 교체 필요
-    private Long findUserIdByNickname(String nickname) {
-        try {
-            return Long.parseLong(nickname);
-        } catch (NumberFormatException e) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
     }
 
     private Follow getFollow(Long followId) {

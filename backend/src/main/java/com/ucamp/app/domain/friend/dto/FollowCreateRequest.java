@@ -1,4 +1,4 @@
-package com.ucamp.app.domain.follow.dto;
+package com.ucamp.app.domain.friend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

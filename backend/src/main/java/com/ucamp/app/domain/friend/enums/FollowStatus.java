@@ -1,4 +1,4 @@
-package com.ucamp.app.domain.follow.enums;
+package com.ucamp.app.domain.friend.enums;
 
 public enum FollowStatus {
     PENDING,
