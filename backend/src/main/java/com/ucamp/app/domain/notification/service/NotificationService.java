@@ -55,11 +55,10 @@ public class NotificationService {
      * @return 새로 저장했으면 true, 이미 있어서 건너뛰었으면 false
      */
     @Transactional
-    public boolean create(Long receiverId, NotificationType type, String title,
-                          Long actorUserId, Long scheduleId, LocalDateTime scheduledAt, String dedupKey) {
-        int inserted = notificationRepository.insertIfAbsent(
+    public void create(Long receiverId, NotificationType type, String title,
+                       Long actorUserId, Long scheduleId, LocalDateTime scheduledAt, String dedupKey) {
+        notificationRepository.insertIfAbsent(
                 receiverId, scheduleId, actorUserId, type.name(), title, scheduledAt, dedupKey);
-        return inserted == 1;
     }
 
     private List<NotificationType> typesOf(NotificationCategory category) {
@@ -68,3 +67,4 @@ public class NotificationService {
                 .toList();
     }
 }
+

@@ -33,7 +33,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int markAllRead(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
     // 알림 저장. 같은 dedup_key가 이미 있으면 아무것도 하지 않음 (중복 방지)
-    // 반환값: 1 = 새로 저장됨, 0 = 이미 있던 알림이라 건너뜀
+    // 주의: Connector/J 기본 설정(useAffectedRows=false)에서는 중복이어도 1이 반환되므로
+    //       반환값으로 저장 여부를 판단하지 말 것
     @Modifying
     @Query(value = """
             INSERT INTO notifications
