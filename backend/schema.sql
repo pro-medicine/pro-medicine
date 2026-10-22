@@ -120,12 +120,13 @@ CREATE TABLE `guardian_settings` (
 );
 
 CREATE TABLE `follows` (
-                           `follow_id`   BIGINT   NOT NULL,
+                           `follow_id`   BIGINT   NOT NULL AUTO_INCREMENT,
                            `follower_id`   BIGINT   NOT NULL,
                            `following_id`   BIGINT   NOT NULL,
                            `status`   VARCHAR(10)   NOT NULL   DEFAULT 'PENDING',
-                           `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
-);
+                           `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                           PRIMARY KEY (`follow_id`)
+                       );
 
 CREATE TABLE `disposal_locations` (
                                       `disposal_location_id`   BIGINT   NOT NULL,
@@ -253,10 +254,6 @@ ALTER TABLE `notifications` ADD CONSTRAINT `PK_NOTIFICATIONS` PRIMARY KEY (
 
 ALTER TABLE `guardian_settings` ADD CONSTRAINT `PK_GUARDIAN_SETTINGS` PRIMARY KEY (
                                                                                    `guardian_setting_id`
-    );
-
-ALTER TABLE `follows` ADD CONSTRAINT `PK_FOLLOWS` PRIMARY KEY (
-                                                               `follow_id`
     );
 
 ALTER TABLE `disposal_locations` ADD CONSTRAINT `PK_DISPOSAL_LOCATIONS` PRIMARY KEY (

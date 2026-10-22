@@ -83,6 +83,7 @@ public class FollowService {
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+        // TODO: 데이터 조회 시 deletedAt Null 만 하도록 수정
         follow.markDeleted(userId);
     }
 
