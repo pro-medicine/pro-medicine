@@ -2,6 +2,10 @@ import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
 // 개인 PC 주소를 코드에 넣지 않기 위해 환경변수 사용
 // 로컬: frontend/.env.local 에 VITE_API_BASE_URL=http://localhost:8080
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+// 팀 예시 데이터 기준일(2026-10-21) 확인용. 비워두면 서버가 오늘 날짜 사용
+const HOME_DATE = import.meta.env.VITE_HOME_DATE;
+// DB에 색상 컬럼이 없어서 화면에서 순서대로 지정
+const COLORS = ["#d6b44c", "#6f99a1", "#a68fb8"];
 
 // 공통 fetch 함수: 실패하면 에러를 던진다
 async function request(path, options) {
@@ -13,21 +17,27 @@ async function request(path, options) {
     return res.status === 204 ? null : res.json();
 }
 
-/** H-1 GET /home : 홈 화면 데이터 */
+/** GET /home : 홈 화면 데이터 */
 export async function getHome(userId) {
     try {
-        return { data: await request(`/home?userId=${userId}`), isSample: false };
+        const dateQuery = HOME_DATE ? `&date=${HOME_DATE}` : "";
+        const data = await request(`/home?userId=${userId}${dateQuery}`);
+        data.supplements = (data.supplements ?? []).map((s, i) => ({
+            ...s,
+            color: s.color ?? COLORS[i % COLORS.length],
+        }));
+        return { data, isSample: false };
     } catch (e) {
         console.warn("[home] /home 호출 실패 → 예시 데이터 사용", e);
         return { data: SAMPLE_HOME, isSample: true };
     }
 }
 
-/** 복용 체크 저장 (경로는 백엔드 구현 시 확정) */
-export async function updateIntake(supplementId, taken) {
-    return request(`/home/intake/${supplementId}`, {
+/** PATCH /home/intake/{scheduleId} : 복용 체크 저장 */
+export async function updateIntake(userId, scheduleId, taken) {
+    return request(`/home/intake/${scheduleId}?userId=${userId}`, {
         method: "PATCH",
-        body: JSON.stringify({ taken }),
+        body: JSON.stringify({ taken, date: HOME_DATE }),
     });
 }
 

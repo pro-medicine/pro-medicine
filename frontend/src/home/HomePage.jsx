@@ -55,7 +55,7 @@ export default function HomePage({ userId = 1, onOpenNotifications }) {
         if (isSample) return; // 예시 데이터일 때는 서버 저장 안 함
 
         try {
-            await updateIntake(id, next);
+            await updateIntake(userId, id, next);
         } catch (e) {
             setTaken(id, !next);
             setError("복용 체크를 저장하지 못했어요. 잠시 후 다시 시도해주세요.");

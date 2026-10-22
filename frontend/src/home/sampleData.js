@@ -2,7 +2,7 @@
 // 백엔드 연결 전 화면 확인용, API 실패 시 대체용으로만 사용한다.
 
 export const SAMPLE_HOME = {
-    userName: "민지",
+    userName: "SAMPLE DATA",
     today: "2026-10-25",
     hasUnreadNotifications: true,
     supplements: [
