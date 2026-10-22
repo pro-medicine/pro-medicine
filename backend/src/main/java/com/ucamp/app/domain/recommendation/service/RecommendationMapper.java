@@ -10,6 +10,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,6 +18,7 @@ import java.util.List;
  * 추천 엔티티 ↔ 저장 형식 ↔ 응답 DTO 변환을 한 곳에 둔다.
  * - applied_rule_ids: 콤마로 이은 문자열, warnings: JSON 배열 문자열. 비어 있으면 null
  * - model_name이 RULE_ONLY면 규칙 기반 폴백 결과 (fallback = true + 안내 문구)
+ * - 숫자(용량·현재 섭취량)는 일반 표기로 맞춘다: 계산 직후(1E+2)와 DB에서 읽은 값(100.00)이 같은 100으로 나가도록
  */
 @Component
 @RequiredArgsConstructor
@@ -43,8 +45,17 @@ public class RecommendationMapper {
 
     private RecommendationResponse.Item toItem(AiRecommendationItem item) {
         return new RecommendationResponse.Item(item.getIngredientName(), item.getReason(), item.getSortOrder(),
-                item.getRecommendedAmount(), item.getUnit(), item.getCurrentIntake(), item.getIntakeStatus(),
+                plain(item.getRecommendedAmount()), item.getUnit(), plain(item.getCurrentIntake()), item.getIntakeStatus(),
                 item.getDoseNote(), decodeWarnings(item.getWarnings()), decodeRuleIds(item.getAppliedRuleIds()));
+    }
+
+    // 끝자리 0을 지우고 지수 표기(1E+2)가 되지 않게 소수 자릿수를 0 이상으로 둔다
+    private static BigDecimal plain(BigDecimal value) {
+        if (value == null) {
+            return null;
+        }
+        BigDecimal stripped = value.stripTrailingZeros();
+        return stripped.scale() < 0 ? stripped.setScale(0) : stripped;
     }
 
     private static List<String> decodeRuleIds(String value) {
