@@ -1,7 +1,7 @@
-package com.ucamp.app.domain.follow.dto;
+package com.ucamp.app.domain.friend.dto;
 
-import com.ucamp.app.domain.follow.entity.Follow;
-import com.ucamp.app.domain.follow.enums.FollowStatus;
+import com.ucamp.app.domain.friend.entity.Follow;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
 
 public record FollowResponse(
         Long followId,

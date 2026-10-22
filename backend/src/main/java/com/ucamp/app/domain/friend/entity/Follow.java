@@ -1,6 +1,6 @@
-package com.ucamp.app.domain.follow.entity;
+package com.ucamp.app.domain.friend.entity;
 
-import com.ucamp.app.domain.follow.enums.FollowStatus;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.global.common.Timestamped;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;

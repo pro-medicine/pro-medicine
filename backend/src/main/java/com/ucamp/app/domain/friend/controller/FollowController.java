@@ -1,10 +1,10 @@
-package com.ucamp.app.domain.follow.controller;
+package com.ucamp.app.domain.friend.controller;
 
-import com.ucamp.app.domain.follow.dto.FollowCreateRequest;
-import com.ucamp.app.domain.follow.dto.FollowRespondRequest;
-import com.ucamp.app.domain.follow.dto.FollowResponse;
-import com.ucamp.app.domain.follow.enums.FollowStatus;
-import com.ucamp.app.domain.follow.service.FollowService;
+import com.ucamp.app.domain.friend.dto.FollowCreateRequest;
+import com.ucamp.app.domain.friend.dto.FollowRespondRequest;
+import com.ucamp.app.domain.friend.dto.FollowResponse;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
+import com.ucamp.app.domain.friend.service.FollowService;
 import com.ucamp.app.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,4 +55,7 @@ public class FollowController {
         followService.cancel(userId, followId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+
+
 }

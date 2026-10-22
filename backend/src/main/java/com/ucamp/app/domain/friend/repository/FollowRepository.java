@@ -1,7 +1,7 @@
-package com.ucamp.app.domain.follow.repository;
+package com.ucamp.app.domain.friend.repository;
 
-import com.ucamp.app.domain.follow.entity.Follow;
-import com.ucamp.app.domain.follow.enums.FollowStatus;
+import com.ucamp.app.domain.friend.entity.Follow;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,4 +18,6 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     List<Follow> findByFollowerIdAndStatusOrderByFollowIdDesc(Long followerId, FollowStatus status);
 
     boolean existsByFollowerIdAndFollowingId(Long followerId, Long followingId);
+
+    boolean existsByFollowerIdAndFollowingIdAndStatus(Long userId, Long friendUserId, FollowStatus followStatus);
 }
