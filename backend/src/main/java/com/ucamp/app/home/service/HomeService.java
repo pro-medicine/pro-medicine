@@ -1,7 +1,7 @@
 package com.ucamp.app.home.service;
 
 import com.ucamp.app.home.dto.HomeResponse;
-import com.ucamp.app.home.dto.HomeSupplementDto;
+import com.ucamp.app.home.dto.HomeSupplementResponse;
 import com.ucamp.app.home.repository.HomeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,10 +25,10 @@ public class HomeService {
         }
 
         // DB 결과(1/0) → 화면용 DTO(true/false)
-        List<HomeSupplementDto> supplements = homeRepository.findTodaySupplements(userId, date)
+        List<HomeSupplementResponse> supplements = homeRepository.findTodaySupplements(userId, date)
                 .stream()
                 .map(row -> {
-                    HomeSupplementDto dto = new HomeSupplementDto();
+                    HomeSupplementResponse dto = new HomeSupplementResponse();
                     dto.setId(row.getId());
                     dto.setTiming(row.getTiming());
                     dto.setName(row.getName());

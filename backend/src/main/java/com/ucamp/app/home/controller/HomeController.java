@@ -1,7 +1,7 @@
 package com.ucamp.app.home.controller;
 
 import com.ucamp.app.home.dto.HomeResponse;
-import com.ucamp.app.home.dto.IntakeRequest;
+import com.ucamp.app.home.dto.HomeIntakeRequest;
 import com.ucamp.app.home.service.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,7 +32,7 @@ public class HomeController {
     public ResponseEntity<Void> updateIntake(
             @PathVariable Long scheduleId,
             @RequestParam Long userId,
-            @RequestBody IntakeRequest req
+            @RequestBody HomeIntakeRequest req
     ) {
         homeService.updateIntake(userId, scheduleId, orToday(req.getDate()), req.isTaken());
         return ResponseEntity.noContent().build();   // 204

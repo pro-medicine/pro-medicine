@@ -10,5 +10,5 @@ public class HomeResponse {
     private String userName;
     private String today;                   // 조회 기준 날짜 (기본: 오늘, 형식 "yyyy-MM-dd")
     private Boolean hasUnreadNotifications;
-    private List<HomeSupplementDto> supplements;
+    private List<HomeSupplementResponse> supplements;
 }
