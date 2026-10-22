@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -15,14 +16,15 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 로컬 MySQL의 schema.sql 예시 데이터를 기준으로 테스트한다. (실행 전 schema.sql 실행 필요)
- * 예시 데이터에 복용 기록이 없는 2026-10-23을 기준일로 사용한다.
- * - 김민지(user 1): 일정 2(점심 12:30)
- * - 김서준(user 2): 일정 4, 5, 6(아침 08:30)
+ * 테스트 데이터는 sql/intake-reminder-fixture.sql에서 넣는다. (schema.sql 예시 데이터에 의존하지 않음)
+ * - 사용자 9001: 점심 12:30 일정 1개, 저녁 23:59 일정 1개
+ * - 사용자 9002: 아침 08:30 일정 3개
+ * 테이블 구조는 로컬 DB에 schema.sql로 만들어져 있어야 한다.
  * 각 테스트는 @Transactional로 끝나면 롤백되므로 DB 데이터는 바뀌지 않는다.
  */
 @SpringBootTest
 @Transactional
+@Sql("/sql/intake-reminder-fixture.sql")
 class IntakeReminderServiceTest {
 
     private static final LocalDate OCT_23 = LocalDate.of(2026, 10, 23);
@@ -38,12 +40,12 @@ class IntakeReminderServiceTest {
     void createsReminder() {
         intakeReminderService.sendReminders(LocalDateTime.of(OCT_23, LocalTime.of(12, 31)));
 
-        List<Object[]> rows = findByDedupKey("INTAKE:1:2026-10-23:12:30");
+        List<Object[]> rows = findByDedupKey("INTAKE:9001:2026-10-23:12:30");
         assertThat(rows).hasSize(1);
         Object[] row = rows.get(0);
         assertThat(row[0]).isEqualTo("INTAKE_REMINDER");
         assertThat(row[1]).isEqualTo("점심 영양제 1개를 드실 시간이에요");
-        assertThat(((Number) row[2]).longValue()).isEqualTo(1L);
+        assertThat(((Number) row[2]).longValue()).isEqualTo(9001L);
     }
 
     @Test
@@ -51,7 +53,7 @@ class IntakeReminderServiceTest {
     void groupsSchedulesAtSameTime() {
         intakeReminderService.sendReminders(LocalDateTime.of(OCT_23, LocalTime.of(8, 31)));
 
-        List<Object[]> rows = findByDedupKey("INTAKE:2:2026-10-23:08:30");
+        List<Object[]> rows = findByDedupKey("INTAKE:9002:2026-10-23:08:30");
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0)[1]).isEqualTo("아침 영양제 3개를 드실 시간이에요");
     }
@@ -65,7 +67,7 @@ class IntakeReminderServiceTest {
         intakeReminderService.sendReminders(now);
         intakeReminderService.sendReminders(now.plusMinutes(1));
 
-        assertThat(findByDedupKey("INTAKE:1:2026-10-23:12:30")).hasSize(1);
+        assertThat(findByDedupKey("INTAKE:9001:2026-10-23:12:30")).hasSize(1);
     }
 
     @Test
@@ -74,19 +76,24 @@ class IntakeReminderServiceTest {
         em.createNativeQuery("""
                 INSERT INTO intake_records
                     (intake_record_id, schedule_id, intake_date, status, completed_at, is_shared)
-                VALUES (9999, 2, '2026-10-23', 'TAKEN', '2026-10-23 12:20:00', false)
+                VALUES (99001, 9001, '2026-10-23', 'TAKEN', '2026-10-23 12:20:00', false)
                 """).executeUpdate();
 
         intakeReminderService.sendReminders(LocalDateTime.of(OCT_23, LocalTime.of(12, 31)));
 
-        assertThat(findByDedupKey("INTAKE:1:2026-10-23:12:30")).isEmpty();
+        assertThat(findByDedupKey("INTAKE:9001:2026-10-23:12:30")).isEmpty();
     }
 
     @Test
-    @DisplayName("조회 시작 시각은 5분 전이며, 자정 직후에는 00:00부터 조회한다")
-    void rangeStart() {
-        assertThat(IntakeReminderService.rangeStart(LocalTime.of(12, 31))).isEqualTo(LocalTime.of(12, 26));
-        assertThat(IntakeReminderService.rangeStart(LocalTime.of(0, 2))).isEqualTo(LocalTime.MIDNIGHT);
+    @DisplayName("조회 범위가 자정을 넘으면 전날 일정도 전날 날짜로 알림이 생성된다")
+    void createsPreviousDayReminderAfterMidnight() {
+        // 10/24 00:02 실행 → 조회 범위는 10/23 23:57 ~ 10/24 00:02
+        intakeReminderService.sendReminders(LocalDateTime.of(2026, 10, 24, 0, 2));
+
+        List<Object[]> rows = findByDedupKey("INTAKE:9001:2026-10-23:23:59");
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)[1]).isEqualTo("저녁 영양제 1개를 드실 시간이에요");
+        assertThat(findByDedupKey("INTAKE:9001:2026-10-24:23:59")).isEmpty();
     }
 
     @Test

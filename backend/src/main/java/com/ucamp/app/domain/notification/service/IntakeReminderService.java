@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ public class IntakeReminderService {
     static final int LOOKBACK_MINUTES = 5;
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final LocalTime END_OF_DAY = LocalTime.of(23, 59, 59);
 
     private final IntakeScheduleRepository intakeScheduleRepository;
     private final NotificationService notificationService;
@@ -42,16 +44,32 @@ public class IntakeReminderService {
      */
     public void sendReminders(LocalDateTime now) {
         LocalDate today = now.toLocalDate();
-        LocalTime to = now.toLocalTime();
-        LocalTime from = rangeStart(to);
+        LocalTime to = now.toLocalTime().truncatedTo(ChronoUnit.SECONDS);
+        LocalTime from = to.minusMinutes(LOOKBACK_MINUTES);
 
-        List<IntakeSchedule> targets = intakeScheduleRepository.findReminderTargets(today, from, to);
+        if (from.isAfter(to)) {
+            // 조회 범위가 자정을 넘는 경우 (예: 00:02 → 전날 23:57 ~ 오늘 00:02)
+            // 전날 남은 범위는 전날 날짜로 따로 조회해야 전날 일정의 알림을 놓치지 않는다.
+            createReminders(today.minusDays(1), from, END_OF_DAY);
+            createReminders(today, LocalTime.MIDNIGHT, to);
+        } else {
+            createReminders(today, from, to);
+        }
+    }
 
+    /**
+     * date 날짜의 from ~ to 시각에 해당하는 일정을 찾아 알림을 만든다.
+     * 알림 날짜, scheduled_at, dedup_key는 모두 일정의 날짜(date)를 기준으로 한다.
+     */
+    private void createReminders(LocalDate date, LocalTime from, LocalTime to) {
+        List<IntakeSchedule> targets = intakeScheduleRepository.findReminderTargets(date, from, to);
+
+        // dedup_key가 분 단위이므로 묶을 때도 분 단위로 맞춘다 (초가 다른 일정이 같은 키로 버려지지 않도록)
         Map<ReminderKey, List<IntakeSchedule>> groups = targets.stream()
                 .collect(Collectors.groupingBy(
                         schedule -> new ReminderKey(
                                 schedule.getUserProduct().getUser().getId(),
-                                schedule.getRemindAt()),
+                                schedule.getRemindAt().truncatedTo(ChronoUnit.MINUTES)),
                         LinkedHashMap::new,
                         Collectors.toList()));
 
@@ -63,24 +81,16 @@ public class IntakeReminderService {
                         title(schedules),
                         null,   // 알림을 일으킨 다른 사용자 없음
                         null,   // 여러 일정을 묶으므로 특정 일정 id를 넣지 않음
-                        LocalDateTime.of(today, key.remindAt()),
-                        dedupKey(key.userId(), today, key.remindAt()));
+                        LocalDateTime.of(date, key.remindAt()),
+                        dedupKey(key.userId(), date, key.remindAt()));
             } catch (Exception e) {
-                log.error("복용 알림 생성 실패 userId={}, remindAt={}", key.userId(), key.remindAt(), e);
+                log.error("복용 알림 생성 실패 userId={}, date={}, remindAt={}", key.userId(), date, key.remindAt(), e);
             }
         });
 
         if (!groups.isEmpty()) {
-            log.info("복용 알림 처리 {}건 (기준 {} {}~{})", groups.size(), today, from, to);
+            log.info("복용 알림 처리 {}건 (기준 {} {}~{})", groups.size(), date, from, to);
         }
-    }
-
-    /**
-     * 조회 시작 시각. 자정 직후(예: 00:02)에는 전날로 넘어가지 않도록 00:00부터 조회한다.
-     */
-    static LocalTime rangeStart(LocalTime to) {
-        LocalTime from = to.minusMinutes(LOOKBACK_MINUTES);
-        return from.isAfter(to) ? LocalTime.MIDNIGHT : from;
     }
 
     /**
