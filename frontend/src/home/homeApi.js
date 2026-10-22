@@ -21,7 +21,7 @@ async function request(path, options) {
 export async function getHome(userId) {
     try {
         const dateQuery = HOME_DATE ? `&date=${HOME_DATE}` : "";
-        const data = await request(`/home?userId=${userId}${dateQuery}`);
+        const data = await request(`/api/home?userId=${userId}${dateQuery}`);
         data.supplements = (data.supplements ?? []).map((s, i) => ({
             ...s,
             color: s.color ?? COLORS[i % COLORS.length],
@@ -35,7 +35,7 @@ export async function getHome(userId) {
 
 /** PATCH /home/intake/{scheduleId} : 복용 체크 저장 */
 export async function updateIntake(userId, scheduleId, taken) {
-    return request(`/home/intake/${scheduleId}?userId=${userId}`, {
+    return request(`/api/home/intake/${scheduleId}?userId=${userId}`, {
         method: "PATCH",
         body: JSON.stringify({ taken, date: HOME_DATE }),
     });
@@ -44,7 +44,7 @@ export async function updateIntake(userId, scheduleId, taken) {
 /** 맞춤 추천 요청 — 요청/응답 형식은 영준(AI)과 협의 필요 */
 export async function getRecommendation(answers) {
     try {
-        return await request("/home/recommend", {
+        return await request("/api/home/recommend", {
             method: "POST",
             body: JSON.stringify(answers),
         });

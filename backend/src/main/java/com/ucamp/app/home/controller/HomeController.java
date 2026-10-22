@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 @RestController
-@RequestMapping("/home")
+@RequestMapping("/api/home")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")  // 로컬 확인용. 팀 공통 CORS 설정이 생기면 삭제
 public class HomeController {
