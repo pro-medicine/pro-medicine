@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * submit_recommendation 도구 입력 검증 (V1부터). 실패 이유는 재요청 메시지에 그대로 붙인다.
+ * 구조화 출력(submit_recommendation 스키마) 검증 (V1부터). 실패 이유는 재요청 메시지에 그대로 붙인다.
  * 스키마 위반, 알 수 없는 성분 코드, 중복 성분, priority 불연속(1부터 연속이 아님)을 잡는다.
  */
 @Component
@@ -46,38 +46,9 @@ public class RecommendationOutputValidator {
                 errors.add(at + "가 객체가 아니다");
                 continue;
             }
-            JsonNode ingredient = r.get("ingredient");
-            if (ingredient == null || !ingredient.isString()) {
-                errors.add(at + ".ingredient가 없다");
-            } else if (IngredientCode.find(ingredient.asString()).isEmpty()) {
-                errors.add(at + ".ingredient '" + ingredient.asString() + "'는 허용된 성분 코드가 아니다");
-            } else if (!seen.add(ingredient.asString())) {
-                errors.add(at + ".ingredient '" + ingredient.asString() + "'가 중복됐다");
-            }
-            JsonNode reason = r.get("reason");
-            if (reason == null || !reason.isString() || reason.asString().isBlank()) {
-                errors.add(at + ".reason이 없다");
-            }
-            JsonNode priority = r.get("priority");
-            if (priority == null || !priority.canConvertToInt() || !priority.isIntegralNumber()) {
-                errors.add(at + ".priority(정수)가 없다");
-            } else if (!priorities.add(priority.asInt())) {
-                errors.add(at + ".priority " + priority.asInt() + "가 중복됐다");
-            }
+            validateItem(r, at, seen, priorities, errors);
             if (withDose) {
-                JsonNode amount = r.get("amount");
-                JsonNode unit = r.get("unit");
-                if (amount != null && !amount.isNull() && (!amount.isNumber() || amount.decimalValue().signum() < 0)) {
-                    errors.add(at + ".amount는 0 이상 숫자 또는 null이어야 한다");
-                }
-                if (unit != null && !unit.isNull() && !unit.isString()) {
-                    errors.add(at + ".unit은 문자열 또는 null이어야 한다");
-                }
-                boolean hasAmount = amount != null && !amount.isNull();
-                boolean hasUnit = unit != null && !unit.isNull();
-                if (hasAmount != hasUnit) {
-                    errors.add(at + ".amount와 unit은 함께 있거나 함께 null이어야 한다");
-                }
+                validateDose(r, at, errors);
             }
         }
         int expected = 1;
@@ -89,5 +60,43 @@ public class RecommendationOutputValidator {
             expected++;
         }
         return errors;
+    }
+
+    private static void validateItem(JsonNode r, String at, Set<String> seen, Set<Integer> priorities, List<String> errors) {
+        JsonNode ingredient = r.get("ingredient");
+        if (ingredient == null || !ingredient.isString()) {
+            errors.add(at + ".ingredient가 없다");
+        } else if (IngredientCode.find(ingredient.asString()).isEmpty()) {
+            errors.add(at + ".ingredient '" + ingredient.asString() + "'는 허용된 성분 코드가 아니다");
+        } else if (!seen.add(ingredient.asString())) {
+            errors.add(at + ".ingredient '" + ingredient.asString() + "'가 중복됐다");
+        }
+        JsonNode reason = r.get("reason");
+        if (reason == null || !reason.isString() || reason.asString().isBlank()) {
+            errors.add(at + ".reason이 없다");
+        }
+        JsonNode priority = r.get("priority");
+        if (priority == null || !priority.canConvertToInt() || !priority.isIntegralNumber()) {
+            errors.add(at + ".priority(정수)가 없다");
+        } else if (!priorities.add(priority.asInt())) {
+            errors.add(at + ".priority " + priority.asInt() + "가 중복됐다");
+        }
+    }
+
+    // V1만: LLM이 채운 용량 형식
+    private static void validateDose(JsonNode r, String at, List<String> errors) {
+        JsonNode amount = r.get("amount");
+        JsonNode unit = r.get("unit");
+        if (amount != null && !amount.isNull() && (!amount.isNumber() || amount.decimalValue().signum() < 0)) {
+            errors.add(at + ".amount는 0 이상 숫자 또는 null이어야 한다");
+        }
+        if (unit != null && !unit.isNull() && !unit.isString()) {
+            errors.add(at + ".unit은 문자열 또는 null이어야 한다");
+        }
+        boolean hasAmount = amount != null && !amount.isNull();
+        boolean hasUnit = unit != null && !unit.isNull();
+        if (hasAmount != hasUnit) {
+            errors.add(at + ".amount와 unit은 함께 있거나 함께 null이어야 한다");
+        }
     }
 }

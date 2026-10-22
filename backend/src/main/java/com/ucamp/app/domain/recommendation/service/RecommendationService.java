@@ -89,7 +89,7 @@ public class RecommendationService {
     }
 
     private RecommendationResult runPipeline(Long responseId, String version) {
-        RecommendationInput input = stageTimer.record("assemble", version, () -> assembler.assemble(responseId));
+        RecommendationInput input = stageTimer.record(StageTimer.ASSEMBLE, version, () -> assembler.assemble(responseId));
         try {
             return pipelineRegistry.get(version).run(input);
         } catch (LlmUnavailableException e) {

@@ -6,7 +6,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 
 // src/main/resources/prompts/{버전}/ 아래 템플릿 파일을 읽어 캐시한다. {{key}}를 값으로 바꾼다
@@ -31,5 +33,10 @@ public class PromptTemplates {
             text = text.replace("{{" + e.getKey() + "}}", e.getValue());
         }
         return text;
+    }
+
+    /** 프롬프트에 넣는 "- 항목" 목록 (한 줄에 하나) */
+    public static String bulletList(Collection<String> lines) {
+        return lines.stream().map(l -> "- " + l).collect(Collectors.joining("\n"));
     }
 }

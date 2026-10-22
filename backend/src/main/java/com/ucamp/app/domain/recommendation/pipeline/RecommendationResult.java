@@ -24,6 +24,13 @@ public record RecommendationResult(
         boolean cacheHit,
         String failureReason
 ) {
+    /** 재요청까지 해도 LLM 출력을 해석하지 못한 결과 (빈 항목) */
+    public static RecommendationResult parseFailure(String pipelineVersion, String promptVersion, String model,
+                                                    List<Long> llmCallLogIds, String failureReason) {
+        return builder().pipelineVersion(pipelineVersion).promptVersion(promptVersion).model(model)
+                .llmCallLogIds(llmCallLogIds).parseSuccess(false).items(List.of()).failureReason(failureReason).build();
+    }
+
     public List<RecommendationItem> itemsOrEmpty() {
         return items == null ? List.of() : items;
     }

@@ -1,10 +1,7 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmClient;
-import com.ucamp.app.infra.llm.LlmMessage;
 import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
@@ -12,8 +9,10 @@ import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.Map;
 
 /**
  * V0: 의도적으로 가장 단순한 방식. 이후 모든 개선의 Before라 지우지 않는다.
- * 프롬프트에 "JSON으로 답해라"만 있고 tool use · 스키마 강제 · 재시도 · 기준표 · 규칙 검증이 전부 없다.
+ * 프롬프트에 "JSON으로 답해라"만 있고 구조화 출력 · 스키마 강제 · 재시도 · 기준표 · 규칙 검증이 전부 없다.
  * 응답 텍스트의 첫 '{'부터 마지막 '}'까지를 Jackson으로 파싱하고, 실패하면 재시도 없이 빈 결과(PARSE_FAIL).
  */
 @Component
@@ -46,31 +45,23 @@ public class V0Pipeline implements RecommendationPipeline {
 
     @Override
     public RecommendationResult run(RecommendationInput input) {
-        LlmRequest request = LlmRequest.builder()
-                .model(llmProperties.getModel())
-                .system(promptTemplates.load("v0/system.txt"))
-                .messages(List.of(LlmMessage.user(
-                        promptTemplates.render("v0/user.txt", Map.of("input", inputFormatter.format(input))))))
-                .maxTokens(llmProperties.getMaxTokens())
-                .callTag(LlmRequest.TAG_RECOMMEND)
-                .pipelineVersion(VERSION)
-                .promptVersion(PROMPT_VERSION)
-                .responseId(input.responseId())
-                .evalRunId(input.evalRunId())
-                .build();
-        LlmResponse response = stageTimer.record("llm", VERSION, () -> llmClient.call(request));
+        String user = promptTemplates.render("v0/user.txt", Map.of("input", inputFormatter.format(input)));
+        LlmRequest request = PipelineRequests.recommend(input, VERSION, PROMPT_VERSION, llmProperties.getModel(),
+                promptTemplates.load("v0/system.txt"), user, llmProperties.getMaxTokens(), LlmRequest.TAG_RECOMMEND).build();
+        LlmResponse response = stageTimer.record(StageTimer.LLM, VERSION, () -> llmClient.call(request));
 
-        Parsed parsed = stageTimer.record("parse", VERSION, () -> parse(response.text()));
-        RecommendationResult.RecommendationResultBuilder result = RecommendationResult.builder()
+        Parsed parsed = stageTimer.record(StageTimer.PARSE, VERSION, () -> parse(response.text()));
+        List<Long> logIds = response.callLogId() == null ? List.of() : List.of(response.callLogId());
+        if (parsed.failure() != null) {
+            llmCallLogService.markOutcome(response.callLogId(), LlmCallLog.PARSE_FAIL);
+            return RecommendationResult.parseFailure(VERSION, PROMPT_VERSION, response.model(), logIds, parsed.failure());
+        }
+        return RecommendationResult.builder()
                 .pipelineVersion(VERSION)
                 .promptVersion(PROMPT_VERSION)
                 .model(response.model())
-                .llmCallLogIds(response.callLogId() == null ? List.of() : List.of(response.callLogId()));
-        if (parsed.failure() != null) {
-            llmCallLogService.markOutcome(response.callLogId(), LlmCallLog.PARSE_FAIL);
-            return result.parseSuccess(false).items(List.of()).failureReason(parsed.failure()).build();
-        }
-        return result.parseSuccess(true).items(parsed.items()).summary(parsed.summary()).build();
+                .llmCallLogIds(logIds)
+                .parseSuccess(true).items(parsed.items()).summary(parsed.summary()).build();
     }
 
     // 실패 유형(본문 대신 리포트에 남김): NO_JSON_OBJECT, INVALID_JSON, MISSING_RECOMMENDATIONS, EMPTY_NAME
@@ -106,7 +97,7 @@ public class V0Pipeline implements RecommendationPipeline {
                         .ingredient(name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name)
                         .reason(r.path("reason").asString(null))
                         .sortOrder(order++)
-                        .amount(r.path("amount").isNumber() ? r.path("amount").decimalValue() : decimalOrNull(r.path("amount")))
+                        .amount(amount(r.path("amount")))
                         .unit(r.path("unit").isString() ? r.path("unit").asString() : null)
                         .build());
             }
@@ -116,8 +107,12 @@ public class V0Pipeline implements RecommendationPipeline {
         }
     }
 
-    private static BigDecimal decimalOrNull(JsonNode node) {
-        if (node == null || !node.isString()) {
+    // 숫자 또는 숫자 문자열 ("10")만 받는다
+    private static BigDecimal amount(JsonNode node) {
+        if (node.isNumber()) {
+            return node.decimalValue();
+        }
+        if (!node.isString()) {
             return null;
         }
         try {

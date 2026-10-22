@@ -2,7 +2,6 @@ package com.ucamp.app.domain.recommendation.pipeline;
 
 import com.ucamp.app.domain.recommendation.cache.CacheKeyFactory;
 import com.ucamp.app.domain.recommendation.cache.ResultCacheService;
-import com.ucamp.app.domain.recommendation.dose.DoseService;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmClient;
@@ -24,8 +23,9 @@ public class PipelineDeps {
     private final InputFormatter inputFormatter;
     private final RecommendationOutputValidator validator;
     private final StageTimer stageTimer;
-    private final DoseService doseService;
+    private final PostProcessSteps postProcessSteps;
     private final RuleService ruleService;
+    private final ModelRouter modelRouter;
     private final ResultCacheService resultCacheService;
     private final CacheKeyFactory cacheKeyFactory;
 }

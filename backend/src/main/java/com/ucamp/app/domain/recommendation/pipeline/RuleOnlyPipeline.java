@@ -1,10 +1,8 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
-import com.ucamp.app.domain.recommendation.dose.DoseService;
 import com.ucamp.app.domain.recommendation.rule.ConditionCodeResolver;
 import com.ucamp.app.domain.recommendation.rule.Rule;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
-import com.ucamp.app.global.metrics.StageTimer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,8 +27,7 @@ public class RuleOnlyPipeline implements RecommendationPipeline {
 
     private final RuleService ruleService;
     private final ConditionCodeResolver conditionCodeResolver;
-    private final DoseService doseService;
-    private final StageTimer stageTimer;
+    private final PostProcessSteps postProcessSteps;
 
     @Override
     public String version() {
@@ -56,9 +53,8 @@ public class RuleOnlyPipeline implements RecommendationPipeline {
                     .sortOrder(order++)
                     .build());
         }
-        List<RecommendationItem> dosed = stageTimer.record("calc", VERSION, () -> doseService.applyDoses(input, items));
-        List<RecommendationItem> checked = stageTimer.record("rule_post", VERSION,
-                () -> ruleService.applyPost(input, dosed));
+        List<RecommendationItem> checked = postProcessSteps.applyRules(VERSION, input,
+                postProcessSteps.applyDoses(VERSION, input, items));
         return RecommendationResult.builder()
                 .pipelineVersion(VERSION)
                 .promptVersion("-")

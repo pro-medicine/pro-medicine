@@ -7,15 +7,9 @@ import org.springframework.stereotype.Component;
  * 용량 계산과 규칙 검증은 캐시 적중이어도 매번 다시 한다. 프롬프트 캐싱은 끈다 (효과를 따로 재기 위해).
  */
 @Component
-public class V6Pipeline extends V4Pipeline {
-    public static final String VERSION = "V6";
-
+public class V6Pipeline extends StructuredPipeline {
     public V6Pipeline(PipelineDeps deps) {
-        super(deps, new Options(VERSION, "v4", "v4.1", false));
-    }
-
-    @Override
-    protected boolean resultCache() {
-        return true;
+        super(deps, new Options("V6", Prompt.V4,
+                Feature.DOSE_CALC, Feature.RULE_POST, Feature.BANNED_LIST, Feature.RESULT_CACHE));
     }
 }

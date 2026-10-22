@@ -7,18 +7,9 @@ import org.springframework.stereotype.Component;
  * 라우팅 결과는 llm_call_logs.model로 확인할 수 있다.
  */
 @Component
-public class V8Pipeline extends V7Pipeline {
-    public static final String VERSION = "V8";
-
-    private final ModelRouter modelRouter;
-
-    public V8Pipeline(PipelineDeps deps, ModelRouter modelRouter) {
-        super(deps, new Options(VERSION, "v4", "v4.1", false));
-        this.modelRouter = modelRouter;
-    }
-
-    @Override
-    protected String chooseModel(RecommendationInput input) {
-        return modelRouter.route(input);
+public class V8Pipeline extends StructuredPipeline {
+    public V8Pipeline(PipelineDeps deps) {
+        super(deps, new Options("V8", Prompt.V4,
+                Feature.DOSE_CALC, Feature.RULE_POST, Feature.BANNED_LIST, Feature.PROMPT_CACHE, Feature.MODEL_ROUTING));
     }
 }

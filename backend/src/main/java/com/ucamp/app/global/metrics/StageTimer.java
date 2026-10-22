@@ -19,6 +19,14 @@ public class StageTimer {
     public static final String STAGE_METRIC = "recommendation.stage";
     public static final String TOTAL_METRIC = "recommendation.total";
 
+    public static final String ASSEMBLE = "assemble";
+    public static final String CACHE = "cache";
+    public static final String RULE_PRE = "rule_pre";
+    public static final String LLM = "llm";
+    public static final String PARSE = "parse";
+    public static final String CALC = "calc";
+    public static final String RULE_POST = "rule_post";
+
     private final MeterRegistry meterRegistry;
 
     public <T> T record(String stage, String pipelineVersion, Supplier<T> work) {
