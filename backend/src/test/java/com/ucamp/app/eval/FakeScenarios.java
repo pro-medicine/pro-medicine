@@ -46,7 +46,7 @@ public final class FakeScenarios {
                                                          ObjectMapper objectMapper, long seed) {
         return request -> {
             Random random = new Random(seed * 31 + (LlmRequest.TAG_RECOMMEND_REPAIR.equals(request.callTag()) ? 7 : 0));
-            boolean toolMode = !request.toolsOrEmpty().isEmpty();
+            boolean toolMode = request.outputSchema() != null;
             boolean repair = LlmRequest.TAG_RECOMMEND_REPAIR.equals(request.callTag());
             // 형식 오류: V0는 JSON이 아닌 문장, tool use는 모르는 성분 코드 (재요청에는 정상 응답)
             if (!repair && random.nextDouble() < 0.15) {
@@ -58,7 +58,7 @@ public final class FakeScenarios {
                 item.put("ingredient", "VITAMIN_E");
                 item.put("reason", "가짜 오류");
                 item.put("priority", 1);
-                return fake.toolResponse(request, request.toolsOrEmpty().get(0).name(), bad);
+                return fake.structuredResponse(request, bad);
             }
             Set<String> codes = new LinkedHashSet<>(oracle(c, aliases).items().stream()
                     .map(FakeAnswer.Item::code).toList());

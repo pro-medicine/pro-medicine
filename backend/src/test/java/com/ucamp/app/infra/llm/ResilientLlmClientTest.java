@@ -34,7 +34,7 @@ class ResilientLlmClientTest {
     }
 
     private static ResilientLlmClient client(LlmClient delegate, LlmProperties.Resilience r) {
-        return LlmConfig.resilient(delegate, r, CircuitBreakerRegistry.ofDefaults(), RetryRegistry.ofDefaults(),
+        return ResilientLlmClient.create(delegate, r, CircuitBreakerRegistry.ofDefaults(), RetryRegistry.ofDefaults(),
                 BulkheadRegistry.ofDefaults(), new SimpleMeterRegistry());
     }
 

@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * V8 모델 라우팅. 기준은 단순하게 시작한다 (STEP 08):
+ * V8 모델 라우팅. 기준은 단순하게 시작한다:
  * - 복잡(기본 모델): 복용 약 1개 이상, 또는 질환 1개 이상, 또는 입력에 걸리는 규칙 3개 이상
  * - 그 외: 작은 모델 (llm.small-model)
  */

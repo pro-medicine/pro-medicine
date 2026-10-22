@@ -1,7 +1,6 @@
 package com.ucamp.app.infra.llm;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -29,9 +28,9 @@ import java.util.Map;
  * LlmClient의 실제 구현: Spring AI ChatModel(설정한 회사의 모델)로 호출한다.
  * - 연결(API 키·주소·타임아웃·재시도 횟수)은 Spring AI가 spring.ai.* 설정으로 만든 ChatModel의 기본 옵션을 그대로 쓴다
  * - 요청마다 모델·출력 토큰·구조화 출력 스키마만 정한다. 회사마다 다른 부분은 ChatProviderSupport가 맡는다
- * - 출력 형식 강제: LlmRequest의 도구 정의(JSON 스키마)를 구조화 출력(outputSchema)으로 보내고, 응답 JSON을 toolInput에 넣는다.
- *   파이프라인(StructuredPipeline)은 그대로 toolInput을 검증·재요청한다
- * - 재시도는 여기서 하지 않는다 (spring.ai.openai.max-retries=0). 재시도·서킷 브레이커는 ResilientLlmClient(STEP 10)
+ * - 출력 형식 강제: LlmRequest의 출력 스키마를 구조화 출력(outputSchema)으로 보내고, 응답 JSON을 output에 넣는다.
+ *   파이프라인(StructuredPipeline)이 output을 검증·재요청한다
+ * - 재시도는 여기서 하지 않는다 (spring.ai.openai.max-retries=0). 재시도·서킷 브레이커는 ResilientLlmClient
  */
 @Slf4j
 public class SpringAiLlmClient implements LlmClient {
@@ -53,13 +52,13 @@ public class SpringAiLlmClient implements LlmClient {
         Prompt prompt = new Prompt(messages(request), options(request));
         long start = System.nanoTime();
         try {
-            LlmResponse result = parse(chatModel.call(prompt), elapsedMs(start), request);
+            LlmResponse result = parse(chatModel.call(prompt), LlmTiming.elapsedMs(start), request);
             writeBody(request, result);
             return result;
         } catch (LlmCallException e) {
             throw e;
         } catch (RuntimeException e) {
-            long latency = elapsedMs(start);
+            long latency = LlmTiming.elapsedMs(start);
             LlmCallException translated = provider.translate(e, latency);
             throw translated != null ? translated
                     : new LlmCallException(LlmCallException.Kind.NETWORK, null, null, latency, String.valueOf(e.getMessage()), e);
@@ -72,7 +71,7 @@ public class SpringAiLlmClient implements LlmClient {
             messages.add(new SystemMessage(request.system()));
         }
         for (LlmMessage m : request.messages()) {
-            messages.add("assistant".equals(m.role()) ? new AssistantMessage(m.text()) : new UserMessage(m.text()));
+            messages.add(new UserMessage(m.text()));
         }
         return messages;
     }
@@ -82,50 +81,38 @@ public class SpringAiLlmClient implements LlmClient {
         ChatOptions.Builder<?> b = chatModel.getOptions().mutate()
                 .model(request.model() != null ? request.model() : properties.getModel());
         provider.maxOutputTokens(b, request.maxTokens() > 0 ? request.maxTokens() : properties.getMaxTokens());
-        if (request.temperature() != null) {
-            b.temperature(request.temperature());
-        }
-        LlmTool tool = schemaTool(request);
-        if (tool != null) {
-            String schema = objectMapper.writeValueAsString(tool.inputSchema());
+        LlmOutputSchema outputSchema = request.outputSchema();
+        if (outputSchema != null) {
+            String schema = objectMapper.writeValueAsString(outputSchema.schema());
             if (b instanceof StructuredOutputChatOptions.Builder<?> structured) {
                 structured.outputSchema(schema);
             }
-            provider.structuredOutput(b, schema, tool.strict());
+            provider.structuredOutput(b, schema, outputSchema.strict());
         }
-        if (request.cacheControl()) {
+        if (request.promptCache()) {
+            // 같은 파이프라인·프롬프트 버전 = 같은 고정 부분
             provider.promptCache(b, request.pipelineVersion() + ":" + request.promptVersion());
         }
         return b.build();
     }
 
-    // 구조화 출력은 스키마 하나만 받는다: toolName과 같은 도구, 없으면 첫 도구
-    private static LlmTool schemaTool(LlmRequest request) {
-        List<LlmTool> tools = request.toolsOrEmpty();
-        if (tools.isEmpty()) {
-            return null;
-        }
-        return tools.stream().filter(t -> t.name().equals(request.toolName())).findFirst().orElse(tools.get(0));
-    }
-
     LlmResponse parse(ChatResponse response, long latencyMs, LlmRequest request) {
         Generation generation = response.getResult();
         String text = generation == null || generation.getOutput().getText() == null ? "" : generation.getOutput().getText();
-        LlmTool tool = schemaTool(request);
-        JsonNode toolInput = null;
-        if (tool != null && !text.isBlank()) {
+        boolean structured = request.outputSchema() != null;
+        JsonNode output = null;
+        if (structured && !text.isBlank()) {
             try {
-                toolInput = objectMapper.readTree(text);
+                output = objectMapper.readTree(text);
             } catch (JacksonException e) {
-                // 형식이 깨진 응답은 toolInput 없이 넘겨 파이프라인의 재요청(repair)이 처리한다
+                // 형식이 깨진 응답은 output 없이 넘겨 파이프라인의 재요청(repair)이 처리한다
                 log.debug("structured output parse failed: {}", e.getOriginalMessage());
             }
         }
         ChatResponseMetadata meta = response.getMetadata();
         return LlmResponse.builder()
-                .text(tool != null ? "" : text)
-                .toolName(toolInput != null ? tool.name() : null)
-                .toolInput(toolInput)
+                .text(structured ? "" : text)
+                .output(output)
                 .stopReason(generation == null ? null : generation.getMetadata().getFinishReason())
                 .usage(usage(meta.getUsage(), provider.inputTokensIncludeCache()))
                 .latencyMs(latencyMs)
@@ -162,16 +149,12 @@ public class SpringAiLlmClient implements LlmClient {
             body.put("system", request.system());
             body.put("messages", request.messages());
             body.put("text", response.text());
-            body.put("toolInput", response.toolInput());
+            body.put("output", response.output());
             String name = System.currentTimeMillis() + "-" + request.pipelineVersion() + "-"
                     + (response.requestId() == null ? "no-id" : response.requestId()) + ".json";
             Files.writeString(dir.resolve(name), objectMapper.writeValueAsString(body));
         } catch (IOException | JacksonException e) {
             log.warn("llm body write failed: {}", e.getMessage());
         }
-    }
-
-    private static long elapsedMs(long startNanos) {
-        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 }

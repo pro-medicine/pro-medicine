@@ -17,7 +17,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-// 모든 LLM 호출 기록 (STEP 03 추가). 비용·지연 측정의 원본 데이터. 프롬프트·응답 본문은 저장하지 않는다
+// 모든 LLM 호출 기록. 비용·지연 측정의 원본 데이터. 프롬프트·응답 본문은 저장하지 않는다
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -30,6 +30,7 @@ public class LlmCallLog {
     public static final String VALIDATION_FAIL = "VALIDATION_FAIL";
     public static final String TIMEOUT = "TIMEOUT";
     public static final String HTTP_ERROR = "HTTP_ERROR";
+    public static final int MODEL_LENGTH = 60;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,7 +50,7 @@ public class LlmCallLog {
     @Column(name = "call_tag", nullable = false, length = 30)
     private String callTag;
 
-    @Column(name = "model", nullable = false, length = 60)
+    @Column(name = "model", nullable = false, length = MODEL_LENGTH)
     private String model;
 
     @Column(name = "prompt_version", nullable = false, length = 20)

@@ -10,6 +10,7 @@ import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.FakeLlmClient.FakeAnswer;
+import com.ucamp.app.infra.llm.LlmOutputSchema;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
@@ -161,7 +162,7 @@ class PipelineGoldenTest {
     }
 
     private LlmResponse invalid(LlmRequest req) {
-        if (req.toolsOrEmpty().isEmpty()) {
+        if (req.outputSchema() == null) {
             return fake.textResponse(req, "JSON 없이 답합니다");
         }
         return fake.render(req, new FakeAnswer(List.of(new FakeAnswer.Item("UNKNOWN_CODE", null, "?", null, null)), "x"));
@@ -173,22 +174,24 @@ class PipelineGoldenTest {
         m.put("system", r.system());
         m.put("messages", r.messages().stream().map(x -> Map.of("role", x.role(), "text", x.text())).toList());
         m.put("maxTokens", r.maxTokens());
-        m.put("temperature", r.temperature());
-        m.put("schemas", r.toolsOrEmpty().stream().map(t -> {
-            Map<String, Object> schema = new LinkedHashMap<>();
-            schema.put("name", t.name());
-            schema.put("strict", t.strict());
-            schema.put("schema", t.inputSchema());
-            return schema;
-        }).toList());
-        m.put("schemaName", r.toolName());
-        m.put("promptCache", r.cacheControl());
+        m.put("temperature", null); // 보내지 않는다 (필드 삭제 전 골든과 같은 모양 유지)
+        m.put("schemas", r.outputSchema() == null ? List.of() : List.of(schema(r.outputSchema())));
+        m.put("schemaName", r.outputSchema() == null ? null : r.outputSchema().name());
+        m.put("promptCache", r.promptCache());
         m.put("callTag", r.callTag());
         m.put("pipelineVersion", r.pipelineVersion());
         m.put("promptVersion", r.promptVersion());
         m.put("responseId", r.responseId());
         m.put("evalRunId", r.evalRunId());
         m.put("attemptNo", r.attemptNo());
+        return m;
+    }
+
+    private static Map<String, Object> schema(LlmOutputSchema s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", s.name());
+        m.put("strict", s.strict());
+        m.put("schema", s.schema());
         return m;
     }
 

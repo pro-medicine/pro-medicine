@@ -54,7 +54,7 @@ class V0PipelineTest {
         assertThat(log.getOutcome()).isEqualTo(LlmCallLog.SUCCESS);
         // 프롬프트에 정규화 입력이 문장으로 들어간다
         assertThat(fake.requests().get(0).messages().get(0).text()).contains("흡연: 하루 반 갑 이하");
-        assertThat(fake.requests().get(0).toolsOrEmpty()).isEmpty();
+        assertThat(fake.requests().get(0).outputSchema()).isNull();
     }
 
     @Test

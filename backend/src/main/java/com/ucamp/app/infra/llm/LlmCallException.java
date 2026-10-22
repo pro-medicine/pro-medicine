@@ -35,7 +35,7 @@ public class LlmCallException extends RuntimeException {
         return new LlmCallException(kind, httpStatus, retryAfterSeconds, latencyMs, id, getMessage(), getCause());
     }
 
-    // 재시도해도 되는 실패: 429, 5xx, 타임아웃, 네트워크 오류 (STEP 10)
+    // 재시도해도 되는 실패: 429, 5xx, 타임아웃, 네트워크 오류
     public boolean isRetryable() {
         if (kind == Kind.TIMEOUT || kind == Kind.NETWORK) {
             return true;

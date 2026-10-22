@@ -10,9 +10,9 @@ import java.util.List;
  *
  * @param ingredient     V0는 LLM이 준 이름 원문, V1부터는 성분 코드
  * @param amount         하루 추가 섭취량 (V0·V1은 LLM 값, V2부터 기준표 계산). 없으면 null
- * @param currentIntake  계산에 쓴 현재 섭취량 (STEP 06)
- * @param intakeStatus   KNOWN | UNKNOWN (STEP 06)
- * @param excluded       규칙으로 제외됨 (STEP 07). 제외돼도 목록에 남겨 LLM 원래 출력을 보존한다
+ * @param currentIntake  계산에 쓴 현재 섭취량
+ * @param intakeStatus   KNOWN | UNKNOWN
+ * @param excluded       규칙으로 제외됨. 제외돼도 목록에 남겨 LLM 원래 출력을 보존한다
  */
 @Builder(toBuilder = true)
 public record RecommendationItem(

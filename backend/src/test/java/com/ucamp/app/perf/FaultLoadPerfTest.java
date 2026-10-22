@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.ucamp.app.domain.recommendation.queue.RecommendationQueue;
 import com.ucamp.app.eval.EvalRunner;
-import com.ucamp.app.infra.llm.LlmConfig;
+import com.ucamp.app.infra.llm.ResilientLlmClient;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
 import com.ucamp.app.support.PerfStats;
@@ -115,7 +115,7 @@ class FaultLoadPerfTest {
 
         @Test
         void scenarios() throws Exception {
-            runAll("V10", port, logs, queue, circuitBreakers.circuitBreaker(LlmConfig.RESILIENCE_NAME));
+            runAll("V10", port, logs, queue, circuitBreakers.circuitBreaker(ResilientLlmClient.RESILIENCE_NAME));
         }
     }
 

@@ -43,7 +43,7 @@ class V1PipelineTest {
 
     @Test
     void 정상_tool_use_입력을_성분_코드로() throws Exception {
-        fake.setResponder(req -> fake.toolResponse(req, "submit_recommendation", read(VALID)));
+        fake.setResponder(req -> fake.structuredResponse(req, read(VALID)));
 
         RecommendationResult r = pipeline.run(V0PipelineTest.input());
 
@@ -54,9 +54,9 @@ class V1PipelineTest {
         assertThat(r.llmCallLogIds()).hasSize(1);
         // 요청에 strict 도구 정의가 들어간다
         LlmRequest req = fake.requests().get(0);
-        assertThat(req.toolsOrEmpty()).hasSize(1);
-        assertThat(req.toolsOrEmpty().get(0).strict()).isTrue();
-        assertThat(req.toolName()).isEqualTo("submit_recommendation");
+        assertThat(req.outputSchema()).isNotNull();
+        assertThat(req.outputSchema().strict()).isTrue();
+        assertThat(req.outputSchema().name()).isEqualTo("submit_recommendation");
         assertThat(req.promptVersion()).isEqualTo("v1.1");
         assertThat(req.system()).contains("VITAMIN_C: 비타민 C, mg").contains("현재 복용 중인 영양제 함량을 뺀");
     }
@@ -64,7 +64,7 @@ class V1PipelineTest {
     @Test
     void 스키마_위반_후_재요청_성공() {
         AtomicInteger n = new AtomicInteger();
-        fake.setResponder(req -> fake.toolResponse(req, "submit_recommendation",
+        fake.setResponder(req -> fake.structuredResponse(req,
                 read(n.getAndIncrement() == 0 ? INVALID : VALID)));
 
         RecommendationResult r = pipeline.run(V0PipelineTest.input());
@@ -84,7 +84,7 @@ class V1PipelineTest {
 
     @Test
     void 재요청도_실패하면_PARSE_FAIL과_빈_결과() {
-        fake.setResponder(req -> fake.toolResponse(req, "submit_recommendation", read(INVALID)));
+        fake.setResponder(req -> fake.structuredResponse(req, read(INVALID)));
 
         RecommendationResult r = pipeline.run(V0PipelineTest.input());
 
@@ -99,7 +99,7 @@ class V1PipelineTest {
     void 도구를_호출하지_않고_텍스트로_답하면_검증_실패로_재요청() {
         AtomicInteger n = new AtomicInteger();
         fake.setResponder(req -> n.getAndIncrement() == 0 ? fake.textResponse(req, "비타민 C를 추천합니다")
-                : fake.toolResponse(req, "submit_recommendation", read(VALID)));
+                : fake.structuredResponse(req, read(VALID)));
 
         RecommendationResult r = pipeline.run(V0PipelineTest.input());
 

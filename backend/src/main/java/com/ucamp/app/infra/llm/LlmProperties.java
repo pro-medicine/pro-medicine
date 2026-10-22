@@ -23,7 +23,7 @@ public class LlmProperties {
     private String provider = PROVIDER_FAKE;
     /** 기본 모델. 모델 ID는 OpenAI 문서의 모델 표 기준 (docs/perf/pricing.md) */
     private String model = "gpt-6.1-sol";
-    /** STEP 08 모델 라우팅의 작은 모델 */
+    /** 모델 라우팅(V8)의 작은 모델 */
     private String smallModel = "gpt-6-luna";
     /** 요청 타임아웃. spring.ai.openai.chat.timeout이 이 값을 따른다 (recommendation-defaults.properties) */
     private int timeoutMs = 30000;
@@ -33,7 +33,7 @@ public class LlmProperties {
     private boolean logBody = false;
     private Resilience resilience = new Resilience();
 
-    /** STEP 10 장애 대응 (V10). enabled=false면 데코레이터를 붙이지 않는다 (V9 이전과 같은 동작) */
+    /** 장애 대응 (재시도·서킷 브레이커·Bulkhead·규칙 폴백). enabled=false면 ResilientLlmClient를 붙이지 않는다 */
     @Getter
     @Setter
     public static class Resilience {
@@ -50,7 +50,7 @@ public class LlmProperties {
         private int circuitMinimumCalls = 20;
         private Duration circuitOpenWait = Duration.ofSeconds(30);
         private int circuitHalfOpenCalls = 5;
-        /** 동시 호출 제한. STEP 09 워커 동시 처리 수와 같은 값으로 둔다 */
+        /** 동시 호출 제한. 큐 워커 동시 처리 수(recommendation.worker.concurrency)와 같은 값으로 둔다 */
         private int bulkheadMaxConcurrent = 20;
         private Duration bulkheadMaxWait = Duration.ofSeconds(10);
     }

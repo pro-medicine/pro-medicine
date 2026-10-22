@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 규칙 기반 폴백 (STEP 10). LLM 없이 조건 코드에 걸리는 ADJUST 규칙과 R-05·R-06의 대상 성분만 추천한다.
+ * 규칙 기반 폴백. LLM 없이 조건 코드에 걸리는 ADJUST 규칙과 R-05·R-06의 대상 성분만 추천한다.
  * R-23처럼 "확인"을 위한 ASK 규칙은 추천이 아니라 경고로만 쓴다. 규칙으로 설명할 수 없는 성분은 넣지 않는다.
  * 용량은 기준표로 계산하고 사후 규칙 검증을 적용한다. 결과는 fallback = true, model = RULE_ONLY.
  */

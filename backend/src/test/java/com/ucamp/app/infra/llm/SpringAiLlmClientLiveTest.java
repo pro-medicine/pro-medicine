@@ -69,23 +69,22 @@ class SpringAiLlmClientLiveTest {
                 .system("You are a test endpoint. Reply only with the requested JSON.")
                 .messages(List.of(LlmMessage.user("Return status ok and the number 2.")))
                 .maxTokens(2000)
-                .tools(List.of(new LlmTool("live_check", "connectivity check", Map.of(
+                .outputSchema(new LlmOutputSchema("live_check", Map.of(
                         "type", "object",
                         "properties", Map.of("status", Map.of("type", "string"), "number", Map.of("type", "integer")),
                         "required", List.of("status", "number"),
-                        "additionalProperties", false), true)))
-                .toolName("live_check")
+                        "additionalProperties", false), true))
                 .callTag("LIVE_CHECK")
                 .build());
 
-        System.out.printf("[LIVE] model=%s id=%s stop=%s usage=%s toolInput=%s latencyMs=%d%n", res.model(),
-                res.requestId(), res.stopReason(), res.usage(), res.toolInput(), res.latencyMs());
+        System.out.printf("[LIVE] model=%s id=%s stop=%s usage=%s output=%s latencyMs=%d%n", res.model(),
+                res.requestId(), res.stopReason(), res.usage(), res.output(), res.latencyMs());
         write("live-connectivity.json", Map.of("model", String.valueOf(res.model()), "requestId", String.valueOf(res.requestId()),
                 "stopReason", String.valueOf(res.stopReason()), "usage", res.usage(), "latencyMs", res.latencyMs(),
-                "toolInput", res.toolInput() == null ? "null" : res.toolInput()));
-        assertThat(res.toolInput()).isNotNull();
-        assertThat(res.toolInput().path("status").isString()).isTrue();
-        assertThat(res.toolInput().path("number").asInt()).isEqualTo(2);
+                "output", res.output() == null ? "null" : res.output()));
+        assertThat(res.output()).isNotNull();
+        assertThat(res.output().path("status").isString()).isTrue();
+        assertThat(res.output().path("number").asInt()).isEqualTo(2);
         assertThat(res.usage().outputTokens()).isPositive();
     }
 

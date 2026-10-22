@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
 import com.ucamp.app.domain.health.entity.IngredientCode;
-import com.ucamp.app.infra.llm.LlmTool;
+import com.ucamp.app.infra.llm.LlmOutputSchema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,16 +10,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * submit_recommendation 도구 정의 (JSON Schema, strict). V1은 amount·unit 포함, V2부터는 뺀다.
- * strict 도구는 additionalProperties=false와 모든 속성의 required가 필요하다 (OpenAI structured outputs 문서).
+ * 추천 결과 구조화 출력 스키마 (JSON Schema, strict). V1은 amount·unit 포함, V2부터는 뺀다.
+ * strict 스키마는 additionalProperties=false와 모든 속성의 required가 필요하다 (OpenAI structured outputs 문서).
+ * 이름 submit_recommendation은 프롬프트·검증 메시지에서 이 형식을 가리키는 말로 쓴다.
  */
-public final class RecommendationToolSchema {
-    public static final String TOOL_NAME = "submit_recommendation";
+public final class RecommendationOutputSchema {
+    public static final String NAME = "submit_recommendation";
 
-    private RecommendationToolSchema() {
+    private RecommendationOutputSchema() {
     }
 
-    public static LlmTool tool(boolean withDose) {
+    public static LlmOutputSchema schema(boolean withDose) {
         Map<String, Object> itemProps = new LinkedHashMap<>();
         itemProps.put("ingredient", Map.of("type", "string",
                 "enum", Arrays.stream(IngredientCode.values()).map(Enum::name).toList(),
@@ -48,6 +49,6 @@ public final class RecommendationToolSchema {
         schema.put("additionalProperties", false);
         schema.put("required", List.of("recommendations", "summary"));
         schema.put("properties", props);
-        return new LlmTool(TOOL_NAME, "영양 성분 추천 결과를 제출한다. 답은 반드시 이 도구로만 제출한다.", schema, true);
+        return new LlmOutputSchema(NAME, schema, true);
     }
 }

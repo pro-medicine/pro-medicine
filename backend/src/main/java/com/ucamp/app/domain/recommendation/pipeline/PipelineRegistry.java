@@ -29,8 +29,4 @@ public class PipelineRegistry {
         }
         return p;
     }
-
-    public List<String> versions() {
-        return List.copyOf(pipelines.keySet());
-    }
 }

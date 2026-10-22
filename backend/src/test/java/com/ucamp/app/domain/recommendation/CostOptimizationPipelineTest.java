@@ -122,11 +122,11 @@ class CostOptimizationPipelineTest {
 
         assertThat(fake.requests()).hasSize(2);
         LlmRequest req = fake.requests().get(0);
-        assertThat(req.cacheControl()).isTrue();
+        assertThat(req.promptCache()).isTrue();
         // 금지 목록(사용자마다 다름)은 시스템이 아니라 사용자 메시지에 있다 → 캐시 지점 뒤
         assertThat(req.system()).doesNotContain("다음 성분은 추천하지 마라");
         assertThat(req.messages().get(0).text()).contains("다음 성분은 추천하지 마라");
-        int prefixChars = req.system().length() + String.valueOf(req.toolsOrEmpty().get(0).inputSchema()).length();
+        int prefixChars = req.system().length() + String.valueOf(req.outputSchema().schema()).length();
         System.out.println("[V7] fixed prefix chars = " + prefixChars + " (system " + req.system().length() + ")");
         List<LlmCallLog> logs = logRepository.findByResponseIdOrderByLlmCallLogIdAsc(2L);
         LlmCallLog second = logs.get(logs.size() - 1);
@@ -155,6 +155,6 @@ class CostOptimizationPipelineTest {
         registry.get("V8").run(withDrug);
         assertThat(fake.requests().get(0).model()).isEqualTo("gpt-6-luna");
         assertThat(fake.requests().get(1).model()).isEqualTo("gpt-6.1-sol");
-        assertThat(fake.requests().get(1).cacheControl()).isTrue();
+        assertThat(fake.requests().get(1).promptCache()).isTrue();
     }
 }

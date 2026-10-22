@@ -46,14 +46,14 @@ public class LoggingLlmClient implements LlmClient {
                 .evalRunId(request.evalRunId())
                 .pipelineVersion(request.pipelineVersion() == null ? "-" : request.pipelineVersion())
                 .callTag(request.callTag() == null ? LlmRequest.TAG_RECOMMEND : request.callTag())
-                .model(model == null ? "unknown" : truncate(model, 60))
+                .model(model == null ? "unknown" : truncate(model, LlmCallLog.MODEL_LENGTH))
                 .promptVersion(request.promptVersion() == null ? "-" : request.promptVersion())
                 .attemptNo(request.attemptNoOrDefault());
     }
 
     // 응답에 지연이 있으면(실제 HTTP 측정값) 그 값을, 없으면 데코레이터에서 잰 값을 쓴다
     private static int latency(long reported, long startNanos) {
-        long measured = (System.nanoTime() - startNanos) / 1_000_000;
+        long measured = LlmTiming.elapsedMs(startNanos);
         return (int) Math.max(reported, measured);
     }
 

@@ -166,20 +166,19 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
     private LlmResponse call(RecommendationInput input, String system, String user, String model, String tag) {
         LlmRequest request = PipelineRequests.recommend(input, version(), options.prompt().version(), model,
                         system, user, deps.getLlmProperties().getMaxTokens(), tag)
-                .tools(List.of(RecommendationToolSchema.tool(options.llmDose())))
-                .toolName(RecommendationToolSchema.TOOL_NAME)
-                .cacheControl(options.has(Feature.PROMPT_CACHE))
+                .outputSchema(RecommendationOutputSchema.schema(options.llmDose()))
+                .promptCache(options.has(Feature.PROMPT_CACHE))
                 .build();
         return deps.getStageTimer().record(StageTimer.LLM, version(), () -> deps.getLlmClient().call(request));
     }
 
     private List<String> validate(LlmResponse response) {
         return deps.getStageTimer().record(StageTimer.PARSE, version(),
-                () -> deps.getValidator().validate(response.toolInput(), options.llmDose()));
+                () -> deps.getValidator().validate(response.output(), options.llmDose()));
     }
 
     private LlmPart parsed(LlmResponse response, List<Long> logIds) {
-        JsonNode output = response.toolInput();
+        JsonNode output = response.output();
         return new LlmPart(true, toItems(output), output.path("summary").asString(null), response.model(), logIds, null);
     }
 

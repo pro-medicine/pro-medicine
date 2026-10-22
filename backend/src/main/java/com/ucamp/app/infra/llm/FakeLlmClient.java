@@ -10,24 +10,29 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
  * 테스트·로컬용 가짜 LLM. 실제 API를 부르지 않는다.
  * - 응답은 responder로 바꿀 수 있다. 기본은 비타민 D 하나를 추천하는 고정 답
- * - tool 정의(스키마)가 있으면 구조화 출력(toolInput)으로, 없으면 V0 형식 JSON 텍스트로 답한다
+ * - 요청에 출력 스키마가 있으면 구조화 출력(output)으로, 없으면 V0 형식 JSON 텍스트로 답한다
  * - 토큰 사용량은 실제 값이 아니라 글자 수로 계산한 고정 추정치(3글자 ≈ 1토큰)다. 비용 비교에 쓰지 않는다
- * - cacheControl 요청은 API의 프롬프트 캐싱 규칙을 흉내 낸다: 고정 부분(스키마 + 시스템)이 최소 길이(추정 1024토큰) 이상이면
- *   모델별 첫 요청은 cache_creation, 같은 고정 부분의 다음 요청은 cache_read로 센다 (만료 없음)
+ * - promptCache 요청은 API의 프롬프트 캐싱 규칙을 흉내 낸다: 고정 부분(스키마 + 시스템)이 최소 길이(추정 1024토큰) 이상이면
+ *   모델별 첫 요청은 캐시 쓰기(cache_creation), 같은 고정 부분의 다음 요청은 캐시 읽기(cache_read)로 센다 (만료 없음)
  */
 public class FakeLlmClient implements LlmClient {
-    public static final String FAKE_MODEL_SUFFIX = "-fake";
+    private static final String FAKE_MODEL_SUFFIX = "-fake";
     /** GPT-5.6 이후 모델의 최소 캐시 길이 (OpenAI 프롬프트 캐싱 문서) */
     static final int MIN_CACHEABLE_TOKENS = 1024;
-    private final java.util.Set<String> cachedPrefixes = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** 토큰 추정: 3글자 ≈ 1토큰, 출력에는 고정 50토큰을 더한다 */
+    private static final int CHARS_PER_TOKEN = 3;
+    private static final int OUTPUT_TOKEN_OVERHEAD = 50;
 
     private final ObjectMapper objectMapper;
+    private final Set<String> cachedPrefixes = ConcurrentHashMap.newKeySet();
     private final AtomicReference<Function<LlmRequest, LlmResponse>> responder = new AtomicReference<>();
     private final List<LlmRequest> requests = Collections.synchronizedList(new ArrayList<>());
 
@@ -65,9 +70,8 @@ public class FakeLlmClient implements LlmClient {
     // ---------- 응답 만들기 ----------
 
     public LlmResponse render(LlmRequest request, FakeAnswer answer) {
-        if (!request.toolsOrEmpty().isEmpty()) {
-            LlmTool tool = request.toolsOrEmpty().get(0);
-            return toolResponse(request, tool.name(), toolInput(tool, answer));
+        if (request.outputSchema() != null) {
+            return structuredResponse(request, structuredOutput(request.outputSchema(), answer));
         }
         return textResponse(request, v0Text(answer));
     }
@@ -76,19 +80,19 @@ public class FakeLlmClient implements LlmClient {
         return base(request, text).stopReason("stop").build();
     }
 
-    public LlmResponse toolResponse(LlmRequest request, String toolName, JsonNode input) {
-        return base(request, "").toolName(toolName).toolInput(input).stopReason("stop").build();
+    public LlmResponse structuredResponse(LlmRequest request, JsonNode output) {
+        return base(request, "").output(output).stopReason("stop").build();
     }
 
     private LlmResponse.LlmResponseBuilder base(LlmRequest request, String outputText) {
         String prefix = (request.system() == null ? "" : request.system())
-                + request.toolsOrEmpty().stream().map(t -> String.valueOf(t.inputSchema())).reduce("", String::concat);
-        int prefixTokens = prefix.length() / 3;
-        int messageTokens = request.messages().stream().mapToInt(m -> m.text().length()).sum() / 3;
+                + (request.outputSchema() == null ? "" : String.valueOf(request.outputSchema().schema()));
+        int prefixTokens = prefix.length() / CHARS_PER_TOKEN;
+        int messageTokens = request.messages().stream().mapToInt(m -> m.text().length()).sum() / CHARS_PER_TOKEN;
         int cacheRead = 0;
         int cacheCreation = 0;
         int input = prefixTokens + messageTokens;
-        if (request.cacheControl() && prefixTokens >= MIN_CACHEABLE_TOKENS) {
+        if (request.promptCache() && prefixTokens >= MIN_CACHEABLE_TOKENS) {
             String key = request.model() + "|" + prefix.hashCode();
             if (cachedPrefixes.add(key)) {
                 cacheCreation = prefixTokens;
@@ -99,7 +103,7 @@ public class FakeLlmClient implements LlmClient {
         }
         return LlmResponse.builder()
                 .text(outputText)
-                .usage(new LlmUsage(Math.max(1, input), Math.max(1, outputText.length() / 3 + 50), cacheRead, cacheCreation))
+                .usage(new LlmUsage(Math.max(1, input), Math.max(1, outputText.length() / CHARS_PER_TOKEN + OUTPUT_TOKEN_OVERHEAD), cacheRead, cacheCreation))
                 .latencyMs(0)
                 .model((request.model() == null ? "unknown" : request.model()) + FAKE_MODEL_SUFFIX)
                 .requestId("fake-" + System.nanoTime());
@@ -122,10 +126,10 @@ public class FakeLlmClient implements LlmClient {
     }
 
     @SuppressWarnings("unchecked")
-    private JsonNode toolInput(LlmTool tool, FakeAnswer answer) {
+    private JsonNode structuredOutput(LlmOutputSchema outputSchema, FakeAnswer answer) {
         // 스키마에 amount가 있을 때만(V1) 용량을 넣는다
         boolean hasAmount = false;
-        Object recs = ((Map<String, Object>) tool.inputSchema().getOrDefault("properties", Map.of())).get("recommendations");
+        Object recs = ((Map<String, Object>) outputSchema.schema().getOrDefault("properties", Map.of())).get("recommendations");
         if (recs instanceof Map<?, ?> recsMap && recsMap.get("items") instanceof Map<?, ?> items
                 && items.get("properties") instanceof Map<?, ?> props) {
             hasAmount = props.containsKey("amount");

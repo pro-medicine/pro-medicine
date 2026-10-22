@@ -47,7 +47,7 @@ class SpringAiLlmClientTest {
         LlmResponse res = client.call(request(false));
 
         assertThat(res.text()).isEqualTo("{\"a\":1}");
-        assertThat(res.toolInput()).isNull();
+        assertThat(res.output()).isNull();
         assertThat(res.usage().inputTokens()).isEqualTo(120);
         assertThat(res.usage().outputTokens()).isEqualTo(30);
         assertThat(res.requestId()).isEqualTo("chatcmpl-test");
@@ -65,13 +65,12 @@ class SpringAiLlmClientTest {
     }
 
     @Test
-    void 도구_스키마는_structured_outputs로_보내고_응답_JSON을_toolInput으로_돌려준다() {
+    void 출력_스키마는_structured_outputs로_보내고_응답_JSON을_output으로_돌려준다() {
         server.stubFor(OpenAiStubs.ok("{\"recommendations\":[{\"ingredient\":\"VITAMIN_D\"}],\"summary\":\"s\"}", 1500, 300, 1024));
 
-        LlmResponse res = client.call(request(true).toBuilder().cacheControl(true).build());
+        LlmResponse res = client.call(request(true).toBuilder().promptCache(true).build());
 
-        assertThat(res.toolName()).isEqualTo("submit_recommendation");
-        assertThat(res.toolInput().path("recommendations").get(0).path("ingredient").asString()).isEqualTo("VITAMIN_D");
+        assertThat(res.output().path("recommendations").get(0).path("ingredient").asString()).isEqualTo("VITAMIN_D");
         assertThat(res.text()).isEmpty();
         // prompt_tokens(1500)는 캐시 토큰(1024)을 포함하므로 캐시 제외분만 inputTokens로 센다
         assertThat(res.usage().inputTokens()).isEqualTo(476);
@@ -85,13 +84,12 @@ class SpringAiLlmClientTest {
     }
 
     @Test
-    void 형식이_깨진_응답은_toolInput_없이_돌려준다() {
+    void 형식이_깨진_응답은_output_없이_돌려준다() {
         server.stubFor(OpenAiStubs.ok("not json"));
 
         LlmResponse res = client.call(request(true));
 
-        assertThat(res.toolInput()).isNull();
-        assertThat(res.toolName()).isNull();
+        assertThat(res.output()).isNull();
     }
 
     @Test
@@ -150,7 +148,7 @@ class SpringAiLlmClientTest {
         return new SpringAiLlmClient(chatModel, new OpenAiProviderSupport(), new LlmProperties(), objectMapper);
     }
 
-    private LlmRequest request(boolean withTool) {
+    private LlmRequest request(boolean withSchema) {
         LlmRequest.LlmRequestBuilder b = LlmRequest.builder()
                 .model("gpt-6.1-sol")
                 .system("시스템")
@@ -158,14 +156,13 @@ class SpringAiLlmClientTest {
                 .maxTokens(100)
                 .pipelineVersion("V1")
                 .promptVersion("v1");
-        if (withTool) {
-            b.tools(List.of(new LlmTool("submit_recommendation", "추천 결과 제출", Map.of(
+        if (withSchema) {
+            b.outputSchema(new LlmOutputSchema("submit_recommendation", Map.of(
                     "type", "object",
                     "properties", Map.of("recommendations", Map.of("type", "array", "items", Map.of("type", "object")),
                             "summary", Map.of("type", "string")),
                     "required", List.of("recommendations", "summary"),
-                    "additionalProperties", false), true)))
-                    .toolName("submit_recommendation");
+                    "additionalProperties", false), true));
         }
         return b.build();
     }
