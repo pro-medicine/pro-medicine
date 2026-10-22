@@ -12,23 +12,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+// 메서드 이름의 User_Id = Notification.user 필드의 id (밑줄은 "연관 엔티티 안의 필드"라는 뜻)
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     // 전체 탭: 최근 50개
-    List<Notification> findTop50ByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Notification> findTop50ByUser_IdOrderByCreatedAtDesc(Long userId);
 
     // 내 복용 / 친구 소식 탭: 해당 타입만 최근 50개
-    List<Notification> findTop50ByUserIdAndTypeInOrderByCreatedAtDesc(Long userId, Collection<NotificationType> types);
+    List<Notification> findTop50ByUser_IdAndNotificationTypeInOrderByCreatedAtDesc(Long userId, Collection<NotificationType> types);
 
     // 종 아이콘 뱃지: 안 읽은 개수
-    long countByUserIdAndReadAtIsNull(Long userId);
+    long countByUser_IdAndReadAtIsNull(Long userId);
 
     // 내 알림인지 확인하면서 조회 (남의 알림을 읽음 처리하지 못하게)
-    Optional<Notification> findByIdAndUserId(Long id, Long userId);
+    Optional<Notification> findByNotificationIdAndUser_Id(Long notificationId, Long userId);
 
     // 모두 읽음
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Notification n SET n.readAt = :now WHERE n.userId = :userId AND n.readAt IS NULL")
+    @Query("UPDATE Notification n SET n.readAt = :now WHERE n.user.id = :userId AND n.readAt IS NULL")
     int markAllRead(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
     // 알림 저장. 같은 dedup_key가 이미 있으면 아무것도 하지 않음 (중복 방지)

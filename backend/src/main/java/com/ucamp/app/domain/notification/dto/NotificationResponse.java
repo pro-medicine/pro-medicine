@@ -17,11 +17,11 @@ public record NotificationResponse(
 ) {
     public static NotificationResponse from(Notification n) {
         return new NotificationResponse(
-                n.getId(),
-                n.getType(),
-                n.getType().getCategory(),
+                n.getNotificationId(),
+                n.getNotificationType(),
+                n.getNotificationType().getCategory(),
                 n.getTitle(),
-                n.getActorUserId(),
+                n.getActorUser() == null ? null : n.getActorUser().getId(),
                 n.isRead(),
                 n.getCreatedAt()
         );

@@ -26,18 +26,18 @@ public class NotificationService {
 
     public List<NotificationResponse> getNotifications(Long userId, NotificationCategory category) {
         List<Notification> notifications = (category == null)
-                ? notificationRepository.findTop50ByUserIdOrderByCreatedAtDesc(userId)
-                : notificationRepository.findTop50ByUserIdAndTypeInOrderByCreatedAtDesc(userId, typesOf(category));
+                ? notificationRepository.findTop50ByUser_IdOrderByCreatedAtDesc(userId)
+                : notificationRepository.findTop50ByUser_IdAndNotificationTypeInOrderByCreatedAtDesc(userId, typesOf(category));
         return notifications.stream().map(NotificationResponse::from).toList();
     }
 
     public UnreadCountResponse getUnreadCount(Long userId) {
-        return new UnreadCountResponse(notificationRepository.countByUserIdAndReadAtIsNull(userId));
+        return new UnreadCountResponse(notificationRepository.countByUser_IdAndReadAtIsNull(userId));
     }
 
     @Transactional
     public NotificationResponse markRead(Long userId, Long notificationId) {
-        Notification notification = notificationRepository.findByIdAndUserId(notificationId, userId)
+        Notification notification = notificationRepository.findByNotificationIdAndUser_Id(notificationId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
         notification.markRead();
         return NotificationResponse.from(notification);
