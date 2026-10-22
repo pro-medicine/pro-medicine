@@ -15,9 +15,12 @@ INSERT INTO user_products (user_product_id, user_id, catalog_product_id, product
 -- 9001: 사용자 9001 점심 12:30
 -- 9002~9004: 사용자 9002 아침 08:30 (3개 → 알림 1개로 묶여야 함)
 -- 9005: 사용자 9001 저녁 23:59 (자정을 넘는 조회 범위 테스트용)
+-- 9006, 9007: 사용자 9001 점심 12:45:00, 12:45:30 (같은 분 안에서 초가 다른 일정 테스트용)
 INSERT INTO intake_schedules (schedule_id, user_product_id, meal_slot, meal_relation, remind_at, is_enabled, created_at) VALUES
     (9001, 9001, 'LUNCH',     'AFTER', '12:30:00', TRUE, NOW()),
     (9002, 9002, 'BREAKFAST', 'AFTER', '08:30:00', TRUE, NOW()),
     (9003, 9003, 'BREAKFAST', 'AFTER', '08:30:00', TRUE, NOW()),
     (9004, 9004, 'BREAKFAST', 'AFTER', '08:30:00', TRUE, NOW()),
-    (9005, 9001, 'DINNER',    'AFTER', '23:59:00', TRUE, NOW());
+    (9005, 9001, 'DINNER',    'AFTER', '23:59:00', TRUE, NOW()),
+    (9006, 9001, 'LUNCH',     'AFTER', '12:45:00', TRUE, NOW()),
+    (9007, 9001, 'LUNCH',     'AFTER', '12:45:30', TRUE, NOW());

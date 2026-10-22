@@ -44,11 +44,14 @@ public class IntakeReminderService {
      */
     public void sendReminders(LocalDateTime now) {
         LocalDate today = now.toLocalDate();
-        LocalTime to = now.toLocalTime().truncatedTo(ChronoUnit.SECONDS);
-        LocalTime from = to.minusMinutes(LOOKBACK_MINUTES);
+        // 분 단위로 처리한다. 현재 분 전체(예: 12:30:00 ~ 12:30:59)를 조회 범위에 포함해야
+        // 분 단위 묶음·dedup_key와 같은 경계를 쓰고, 같은 분의 일정이 나뉘어 저장되지 않는다.
+        LocalTime minuteStart = now.toLocalTime().truncatedTo(ChronoUnit.MINUTES);
+        LocalTime to = minuteStart.plusSeconds(59);
+        LocalTime from = minuteStart.minusMinutes(LOOKBACK_MINUTES);
 
-        if (from.isAfter(to)) {
-            // 조회 범위가 자정을 넘는 경우 (예: 00:02 → 전날 23:57 ~ 오늘 00:02)
+        if (from.isAfter(minuteStart)) {
+            // 조회 범위가 자정을 넘는 경우 (예: 00:02 → 전날 23:57 ~ 오늘 00:02:59)
             // 전날 남은 범위는 전날 날짜로 따로 조회해야 전날 일정의 알림을 놓치지 않는다.
             createReminders(today.minusDays(1), from, END_OF_DAY);
             createReminders(today, LocalTime.MIDNIGHT, to);

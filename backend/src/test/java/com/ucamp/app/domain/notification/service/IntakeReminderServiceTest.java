@@ -114,4 +114,15 @@ class IntakeReminderServiceTest {
                 .setParameter("dedupKey", dedupKey)
                 .getResultList();
     }
+
+    @Test
+    @DisplayName("같은 분 안에서 초가 다른 일정도 처음 실행 때 함께 묶인다")
+    void groupsSchedulesWithinSameMinute() {
+        // 12:45:00, 12:45:30 일정이 있을 때 12:45:10에 실행
+        intakeReminderService.sendReminders(LocalDateTime.of(OCT_23, LocalTime.of(12, 45, 10)));
+
+        List<Object[]> rows = findByDedupKey("INTAKE:9001:2026-10-23:12:45");
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)[1]).isEqualTo("점심 영양제 2개를 드실 시간이에요");
+    }
 }
