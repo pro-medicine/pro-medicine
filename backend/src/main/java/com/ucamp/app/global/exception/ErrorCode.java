@@ -22,7 +22,8 @@ public enum ErrorCode {
     COMPLETED_FOLLOW_REQUEST(HttpStatus.BAD_REQUEST, "F002", "이미 처리된 팔로우 요청입니다."),
     ALREADY_FOLLOWING(HttpStatus.CONFLICT, "F003", "이미 팔로우 중입니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "F004", "유효하지 않은 요청입니다."),
-    FOLLOWING_NOT_FOUND(HttpStatus.NOT_FOUND, "F005", "팔로잉을 찾을 수 없습니다.");
+    FOLLOWING_NOT_FOUND(HttpStatus.NOT_FOUND, "F005", "팔로잉을 찾을 수 없습니다."),
+    NOT_FRIEND(HttpStatus.BAD_REQUEST, "F006", "친구 상태가 아닙니다.");
 
     private final HttpStatus status;
     private final String code;

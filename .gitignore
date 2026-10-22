@@ -45,6 +45,7 @@ backend/*.log
 backend/logs/
 backend/*.hprof
 # 민감 정보 포함 설정 파일 (로컬 DB 암호, JWT 시크릿 키 등)
+backend/.env
 backend/src/main/resources/application.yml
 backend/src/main/resources/application-secret.yml
 backend/src/main/resources/application-local.yml
