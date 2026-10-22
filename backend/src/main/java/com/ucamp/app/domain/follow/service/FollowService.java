@@ -4,6 +4,7 @@ import com.ucamp.app.domain.follow.dto.FollowResponse;
 import com.ucamp.app.domain.follow.entity.Follow;
 import com.ucamp.app.domain.follow.enums.FollowStatus;
 import com.ucamp.app.domain.follow.repository.FollowRepository;
+import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +20,12 @@ import java.util.List;
 public class FollowService {
 
     private final FollowRepository followRepository;
+    private final UserRepository userRepository;
     // TODO: User 정보 가져오기
 
     @Transactional
-    public FollowResponse request(Long followerId, String followingNickname) {
-        Long followingId = findUserIdByNickname(followingNickname);
+    public FollowResponse request(Long followerId, String nickname) {
+        Long followingId = findUserIdByNickname(nickname);
 
         if (followerId.equals(followingId)) {
             throw new BusinessException(ErrorCode.INVALID_FOLLOW);
@@ -37,7 +39,6 @@ public class FollowService {
             // TODO: 상대(followingId)에게 알림
             return FollowResponse.from(saved);
         } catch (DataIntegrityViolationException e) {
-            // 동시에 같은 요청이 들어와 유니크 제약에 걸린 경우
             throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
         }
     }

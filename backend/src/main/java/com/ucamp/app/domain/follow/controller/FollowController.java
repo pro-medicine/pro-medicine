@@ -26,7 +26,7 @@ public class FollowController {
     public ResponseEntity<ApiResponse<FollowResponse>> request(
             @RequestParam Long userId,
             @Valid @RequestBody FollowCreateRequest request) {
-        FollowResponse response = followService.request(userId, request.followingNickname());
+        FollowResponse response = followService.request(userId, request.nickname());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
