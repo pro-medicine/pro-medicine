@@ -48,6 +48,7 @@ backend/*.hprof
 backend/src/main/resources/application.yml
 backend/src/main/resources/application-secret.yml
 backend/src/main/resources/application-local.yml
+backend/.env
 # ===================================================================
 # 3. Front-end: React / Vite / Node.js
 # ===================================================================

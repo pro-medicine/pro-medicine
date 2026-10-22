@@ -511,3 +511,99 @@
   gap: 3px;
 }
 
+.map-screen .disposal-search-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.map-screen .disposal-search-form label {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-search-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.map-screen .disposal-search-form button {
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #665619;
+  font-weight: 700;
+}
+
+.map-screen .kakao-map-frame {
+  height: 520px;
+  min-height: 520px;
+  border: 1px solid #e1e4dc;
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  background: #eef0e9;
+}
+
+.map-screen .kakao-map-canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.map-screen .map-overlay-state {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.85);
+  color: #555;
+  font-size: 13px;
+}
+
+.map-screen .map-selected-card {
+  z-index: 3;
+}
+
+.map-screen .map-detail-link {
+  border-radius: 8px;
+  background: var(--yellow-soft);
+  padding: 8px;
+  color: #826d23;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-state {
+  padding: 15px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .map-screen .disposal-search-form {
+    flex-wrap: wrap;
+  }
+
+  .map-screen .disposal-search-form label {
+    width: 100%;
+  }
+
+  .map-screen .kakao-map-frame {
+    height: 390px;
+    min-height: 390px;
+  }
+}
