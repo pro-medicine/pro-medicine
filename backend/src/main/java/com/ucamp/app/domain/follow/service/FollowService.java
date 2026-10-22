@@ -83,7 +83,7 @@ public class FollowService {
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        followRepository.delete(follow);
+        follow.markDeleted(userId);
     }
 
     // TODO: User 생기면 교체 필요
