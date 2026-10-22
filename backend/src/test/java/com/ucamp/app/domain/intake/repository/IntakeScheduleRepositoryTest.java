@@ -2,6 +2,7 @@ package com.ucamp.app.domain.intake.repository;
 
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,12 +114,28 @@ class IntakeScheduleRepositoryTest {
     }
 
     @Test
-    @DisplayName("조회 결과에 사용자 정보가 함께 담긴다")
-    void fetchesUser() {
+    @DisplayName("조회 결과에 영양제와 사용자 정보가 함께 로딩된다 (JOIN FETCH)")
+    void fetchesUserProductAndUser() {
         List<IntakeSchedule> result = intakeScheduleRepository.findReminderTargets(
                 OCT_21, LocalTime.of(12, 26), LocalTime.of(12, 31));
 
-        assertThat(result.get(0).getUserProduct().getUser().getId()).isEqualTo(1L);
+        IntakeSchedule schedule = result.get(0);
+        assertThat(Hibernate.isInitialized(schedule.getUserProduct())).isTrue();
+        assertThat(Hibernate.isInitialized(schedule.getUserProduct().getUser())).isTrue();
+        assertThat(schedule.getUserProduct().getUser().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("알림 시각이 범위의 시작 또는 끝과 같아도 조회된다")
+    void includesRangeBoundaries() {
+        // 일정 2의 알림 시각은 12:30
+        List<IntakeSchedule> atStart = intakeScheduleRepository.findReminderTargets(
+                OCT_21, LocalTime.of(12, 30), LocalTime.of(12, 35));
+        List<IntakeSchedule> atEnd = intakeScheduleRepository.findReminderTargets(
+                OCT_21, LocalTime.of(12, 25), LocalTime.of(12, 30));
+
+        assertThat(scheduleIds(atStart)).contains(2L);
+        assertThat(scheduleIds(atEnd)).contains(2L);
     }
 
     private List<Long> scheduleIds(List<IntakeSchedule> schedules) {

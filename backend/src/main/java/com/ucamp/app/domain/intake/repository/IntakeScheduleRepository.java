@@ -37,10 +37,11 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
               AND s.remindAt >= :from
               AND s.remindAt <= :to
               AND NOT EXISTS (
-                  SELECT r FROM IntakeRecord r
-                  WHERE r.schedule = s
-                    AND r.intakeDate = :today
-              )
+                                SELECT r FROM IntakeRecord r
+                                WHERE r.schedule = s
+                                  AND r.intakeDate = :today
+                                  AND r.status IN ('TAKEN', 'SKIPPED')
+                            )
             ORDER BY u.id, s.remindAt
             """)
     List<IntakeSchedule> findReminderTargets(@Param("today") LocalDate today,
