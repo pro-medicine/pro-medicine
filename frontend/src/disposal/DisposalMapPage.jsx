@@ -7,6 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export default function DisposalMapScreen({ onNotifications }) {
   const [searchInput, setSearchInput] = useState("강남역 약국");
   const [query, setQuery] = useState("강남역 약국");
+  const [searchCount, setSearchCount] = useState(0);
   const [pharmacies, setPharmacies] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,12 +30,25 @@ export default function DisposalMapScreen({ onNotifications }) {
         const url = new URL("/api/v1/disposal/places", API_BASE_URL);
         url.searchParams.set("query", query);
 
-        const response = await fetch(url.toString(), { signal: controller.signal });
-        const result = await response.json();
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || "약국 검색에 실패했습니다.");
+        const response = await fetch(url.toString(), { signal: controller.signal });
+
+        if (!response.ok) {
+          throw new Error(`약국 검색 요청에 실패했습니다. (HTTP ${response.status})`);
         }
+
+        let result;
+
+        try {
+          result = await response.json();
+        } catch {
+          throw new Error("서버 응답을 처리할 수 없습니다.");
+        }
+
+        if (!result?.success) {
+          throw new Error(result?.message || "약국 검색에 실패했습니다.");
+        }
+
 
         const documents = Array.isArray(result.data?.documents) ? result.data.documents : [];
         const places = documents
@@ -72,13 +86,14 @@ export default function DisposalMapScreen({ onNotifications }) {
       active = false;
       controller.abort();
     };
-  }, [query]);
+  }, [query, searchCount]);
 
   function handleSearch(event) {
     event.preventDefault();
     const value = searchInput.trim();
     if (!value) return;
     setQuery(value);
+    setSearchCount((count) => count + 1);
   }
 
   return (

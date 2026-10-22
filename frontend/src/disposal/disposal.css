@@ -607,3 +607,34 @@
     min-height: 390px;
   }
 }
+
+
+/* 폐의약품 지도 옆 약국 목록: 지도 높이만큼 표시하고 내부 스크롤 */
+.map-screen .pharmacy-list-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-screen .pharmacy-list-wrap .section-title-row {
+  flex-shrink: 0;
+}
+
+.map-screen .pharmacy-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-content: start;
+  grid-auto-rows: max-content;
+  padding-right: 6px;
+}
+
+@media (max-width: 600px) {
+  .map-screen .pharmacy-list-wrap {
+    height: 390px;
+  }
+}
