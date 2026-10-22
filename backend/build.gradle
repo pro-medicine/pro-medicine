@@ -42,6 +42,22 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// backend/.env(Git 제외)의 ANTHROPIC_API_KEY를 evalRun·liveTest JVM에 넘긴다. OS 환경변수가 있으면 그것을 우선한다.
+// 테스트용 application.yml은 .env를 불러오지 않기 때문에 Gradle에서 넘겨준다.
+def anthropicApiKey = {
+	def fromEnv = System.getenv('ANTHROPIC_API_KEY')
+	if (fromEnv) {
+		return fromEnv
+	}
+	def dotenv = file('.env')
+	if (!dotenv.exists()) {
+		return null
+	}
+	def line = dotenv.readLines('UTF-8').collect { it.trim() }.find { it.startsWith('ANTHROPIC_API_KEY=') }
+	def value = line?.substring('ANTHROPIC_API_KEY='.length())?.trim()?.replaceAll(/^["']|["']$/, '')
+	return value ?: null
+}
+
 tasks.named('test') {
 	useJUnitPlatform {
 		// 실제 API(live), 성능 측정(perf), 평가 실행(eval)은 기본 테스트에서 제외
@@ -62,17 +78,29 @@ tasks.register('evalRun', Test) {
 			systemProperty "eval.${key}", project.property(key)
 		}
 	}
+	doFirst {
+		def key = anthropicApiKey()
+		if (key) {
+			environment 'ANTHROPIC_API_KEY', key
+		}
+	}
 	testLogging { showStandardStreams = true }
 	outputs.upToDateWhen { false }
 }
 
-// 실제 Claude API 테스트: ./gradlew liveTest (ANTHROPIC_API_KEY 필요, 비용 발생)
+// 실제 Claude API 테스트: ./gradlew liveTest (backend/.env 또는 환경변수의 ANTHROPIC_API_KEY 필요, 비용 발생)
 tasks.register('liveTest', Test) {
 	description = '실제 Claude API 호출 테스트 (비용 발생)'
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform { includeTags 'live' }
+	doFirst {
+		def key = anthropicApiKey()
+		if (key) {
+			environment 'ANTHROPIC_API_KEY', key
+		}
+	}
 	testLogging { showStandardStreams = true }
 	outputs.upToDateWhen { false }
 }

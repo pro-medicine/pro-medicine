@@ -35,6 +35,7 @@ public class AnthropicLlmClient implements LlmClient {
     private final Supplier<String> apiKeySupplier;
     private final RestClient restClient;
 
+    /** 키를 OS 환경변수에서만 읽는다 (Spring 밖 테스트용). 앱에서는 LlmConfig가 backend/.env까지 읽는 supplier를 넘긴다 */
     public AnthropicLlmClient(LlmProperties properties, ObjectMapper objectMapper) {
         this(properties, objectMapper, () -> System.getenv(API_KEY_ENV));
     }
@@ -63,7 +64,7 @@ public class AnthropicLlmClient implements LlmClient {
         String apiKey = apiKeySupplier.get();
         if (apiKey == null || apiKey.isBlank()) {
             throw new LlmCallException(LlmCallException.Kind.HTTP_ERROR, null, null, 0,
-                    API_KEY_ENV + " 환경변수가 설정되지 않았습니다", null);
+                    API_KEY_ENV + "가 설정되지 않았습니다 (backend/.env 또는 환경변수)", null);
         }
         ObjectNode body = buildBody(request);
         long start = System.nanoTime();

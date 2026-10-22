@@ -17,10 +17,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 
 /**
  * LlmClient 조립: [ResilientLlmClient(STEP 10, llm.resilience.enabled)] → LoggingLlmClient → (Anthropic | Fake).
  * llm.provider 기본값은 fake. 실제 API는 local-llm 프로필(application-local-llm.yml)에서만 쓴다.
+ * API 키(ANTHROPIC_API_KEY)는 Spring Environment에서 읽는다: OS 환경변수 또는 backend/.env (application.yml의 config import).
  * 재시도는 LoggingLlmClient 바깥이라 시도마다 llm_call_logs 행이 남는다 (attempt_no).
  */
 @Slf4j
@@ -39,10 +41,11 @@ public class LlmConfig {
     public LlmClient llmClient(LlmProperties properties, ObjectMapper objectMapper, FakeLlmClient fakeLlmClient,
                                LlmCallLogService logService, ObjectProvider<CircuitBreakerRegistry> circuitBreakers,
                                ObjectProvider<RetryRegistry> retries, ObjectProvider<BulkheadRegistry> bulkheads,
-                               MeterRegistry meterRegistry) {
+                               MeterRegistry meterRegistry, Environment environment) {
         LlmClient raw;
         if ("anthropic".equalsIgnoreCase(properties.getProvider())) {
-            raw = new AnthropicLlmClient(properties, objectMapper);
+            raw = new AnthropicLlmClient(properties, objectMapper,
+                    () -> environment.getProperty(AnthropicLlmClient.API_KEY_ENV));
         } else {
             raw = fakeLlmClient;
         }

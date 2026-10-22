@@ -8,7 +8,7 @@ import java.time.Duration;
 
 /**
  * llm.* 설정. 기본값은 fake라 API 키 없이도 서버·테스트가 돈다. 실제 API는 local-llm 프로필에서만.
- * API 키는 설정 파일이 아니라 환경변수 ANTHROPIC_API_KEY로만 읽는다 (AnthropicLlmClient).
+ * API 키는 yml에 쓰지 않는다. ANTHROPIC_API_KEY를 OS 환경변수 또는 backend/.env(Git 제외)에서 읽는다 (LlmConfig).
  */
 @Getter
 @Setter

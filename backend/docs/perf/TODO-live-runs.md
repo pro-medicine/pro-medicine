@@ -4,7 +4,7 @@
 
 ## 공통 준비
 
-1. Anthropic Console에서 API 키 발급 → PowerShell: `setx ANTHROPIC_API_KEY "발급받은-키"` → 터미널·IntelliJ 다시 열기
+1. Anthropic Console에서 API 키 발급 → `backend/.env`에 `ANTHROPIC_API_KEY=발급받은-키` 한 줄 추가 (Git 제외 파일. OS 환경변수로 설정해도 된다)
 2. 모든 명령은 **`backend` 폴더**에서 실행한다 (`cd backend`). Git Bash면 `sh ./gradlew`, PowerShell이면 `.\gradlew.bat`
 3. 단가: [pricing.md](pricing.md) (2026-10-21 확인). 비용은 모델에 따라 크게 다르다 (기본 `claude-opus-5-5`).
 4. `evalRun`은 `-Pconfirm=true`가 없으면 예상 호출 수·비용만 출력하고 끝난다. 먼저 confirm 없이 돌려 예상치를 확인한다.

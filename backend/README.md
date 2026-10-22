@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | Java 21 | 빌드·실행 | |
 | MySQL | 로컬 DB | `.env`의 `MYSQL_URL`, `MYSQL_USERNAME`, `MYSQL_PASSWORD` (팀 공통 설정) |
-| `ANTHROPIC_API_KEY` 환경변수 | 실제 Claude API | `local-llm` 프로필에서만. 코드·설정 파일에 키를 쓰지 않는다 |
+| `ANTHROPIC_API_KEY` | 실제 Claude API | `backend/.env`(Git 제외)에 `ANTHROPIC_API_KEY=...` 한 줄, 또는 OS 환경변수. `bootRun`·`evalRun`·`liveTest` 모두 읽는다. `local-llm` 프로필에서만 사용. 코드·yml에 키를 쓰지 않는다 |
 | Redis (선택) | 결과 캐시·큐를 Redis로 쓸 때 | 기본은 메모리. `docker run -d -p 6379:6379 redis:7-alpine` |
 | Docker (선택) | Redis, WireMock, k6 | |
 
