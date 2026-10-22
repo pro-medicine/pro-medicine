@@ -39,7 +39,7 @@ public class AiRecommendation {
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
 
-    @Column(name = "model_name", length = 60)
+    @Column(name = "model_name", length = MODEL_NAME_LENGTH)
     private String modelName;
 
     @CreatedDate
@@ -56,13 +56,15 @@ public class AiRecommendation {
     @Column(name = "finished_at")
     private LocalDateTime finishedAt;
 
-    @Column(name = "error_code", length = 30)
+    @Column(name = "error_code", length = ERROR_CODE_LENGTH)
     private String errorCode;
 
     public static final String PENDING = "PENDING";
     public static final String PROCESSING = "PROCESSING";
     public static final String DONE = "DONE";
     public static final String FAILED = "FAILED";
+    public static final int MODEL_NAME_LENGTH = 60;
+    public static final int ERROR_CODE_LENGTH = 30;
 
     @Builder
     public AiRecommendation(SurveyResponse response, String summary, String modelName, String status) {
@@ -92,9 +94,5 @@ public class AiRecommendation {
         this.status = FAILED;
         this.errorCode = errorCode;
         this.finishedAt = LocalDateTime.now();
-    }
-
-    public boolean isActiveOrDone() {
-        return !FAILED.equals(status);
     }
 }

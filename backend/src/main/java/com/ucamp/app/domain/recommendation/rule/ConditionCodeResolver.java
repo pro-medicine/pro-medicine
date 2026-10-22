@@ -7,8 +7,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * 정규화 입력 → 조건 코드. 기준표 조건 행 선택(STEP 06)과 규칙 매칭(STEP 07)이 같은 코드를 쓴다.
- * 매핑은 이 클래스 한 곳에서만 관리한다 (STEP 07 2번 표).
+ * 정규화 입력 → 조건 코드. 기준표 조건 행 선택과 규칙 매칭이 같은 코드를 쓴다.
+ * 매핑은 이 클래스 한 곳에서만 관리한다.
  *
  * | 입력 | 조건 코드 |
  * | smoking ≠ NONE | SMOKING_CURRENT |

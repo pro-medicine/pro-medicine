@@ -1,4 +1,4 @@
-package com.ucamp.app.domain.recommendation.perf;
+package com.ucamp.app.perf;
 
 import java.time.Duration;
 import java.time.LocalDate;

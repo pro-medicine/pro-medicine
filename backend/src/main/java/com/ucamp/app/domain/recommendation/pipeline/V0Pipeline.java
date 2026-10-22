@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
+import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmClient;
 import com.ucamp.app.infra.llm.LlmProperties;
@@ -28,7 +29,6 @@ import java.util.Map;
 public class V0Pipeline implements RecommendationPipeline {
     public static final String VERSION = "V0";
     public static final String PROMPT_VERSION = "v0.1";
-    private static final int MAX_NAME_LENGTH = 150;
 
     private final LlmClient llmClient;
     private final LlmCallLogService llmCallLogService;
@@ -94,7 +94,8 @@ public class V0Pipeline implements RecommendationPipeline {
                     return Parsed.fail("EMPTY_NAME");
                 }
                 items.add(RecommendationItem.builder()
-                        .ingredient(name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name)
+                        .ingredient(name.length() > AiRecommendationItem.INGREDIENT_NAME_LENGTH
+                                ? name.substring(0, AiRecommendationItem.INGREDIENT_NAME_LENGTH) : name)
                         .reason(r.path("reason").asString(null))
                         .sortOrder(order++)
                         .amount(amount(r.path("amount")))

@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.rule;
 
+import com.ucamp.app.domain.recommendation.cache.Sha256;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationItem;
 import com.ucamp.app.domain.recommendation.repository.RecommendationRuleRepository;
@@ -11,10 +12,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -43,7 +40,7 @@ public class RuleService {
     @Transactional(readOnly = true)
     public synchronized void reload() {
         List<Rule> rules = repository.findByActiveTrueOrderByRuleIdAsc().stream().map(Rule::from).toList();
-        snapshot = new Snapshot(new RuleEngine(rules), hash(rules.toString()));
+        snapshot = new Snapshot(new RuleEngine(rules), Sha256.shortHex(rules.toString()));
         log.info("recommendation_rules loaded: {} rules, version {}", rules.size(), snapshot.version());
     }
 
@@ -82,14 +79,5 @@ public class RuleService {
             s = snapshot;
         }
         return s;
-    }
-
-    private static String hash(String text) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest, 0, 6);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

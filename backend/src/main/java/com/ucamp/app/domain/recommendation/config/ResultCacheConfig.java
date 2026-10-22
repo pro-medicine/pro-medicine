@@ -1,12 +1,14 @@
-package com.ucamp.app.domain.recommendation.cache;
+package com.ucamp.app.domain.recommendation.config;
 
-import tools.jackson.databind.ObjectMapper;
+import com.ucamp.app.domain.recommendation.cache.InMemoryResultCacheStore;
+import com.ucamp.app.domain.recommendation.cache.RedisResultCacheStore;
+import com.ucamp.app.domain.recommendation.cache.ResultCacheStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 // recommendation.cache.store = memory(기본) | redis
 @Slf4j
@@ -14,9 +16,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class ResultCacheConfig {
 
     @Bean
-    public ResultCacheStore resultCacheStore(@Value("${recommendation.cache.store:memory}") String store,
+    public ResultCacheStore resultCacheStore(RecommendationProperties properties,
                                              ObjectProvider<StringRedisTemplate> redis, ObjectMapper objectMapper) {
-        if ("redis".equalsIgnoreCase(store)) {
+        if (properties.getCache().isRedis()) {
             log.info("result cache store = redis");
             return new RedisResultCacheStore(redis.getObject(), objectMapper);
         }

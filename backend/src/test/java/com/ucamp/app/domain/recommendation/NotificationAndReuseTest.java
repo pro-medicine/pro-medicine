@@ -1,9 +1,9 @@
 package com.ucamp.app.domain.recommendation;
 
 import com.ucamp.app.domain.recommendation.dto.LatestRecommendationResponse;
-import com.ucamp.app.domain.recommendation.perf.LoggingNotificationSender;
-import com.ucamp.app.domain.recommendation.perf.NotificationSpikeSimulator;
-import com.ucamp.app.domain.recommendation.perf.NotificationSpikeSimulator.PlannedNotification;
+import com.ucamp.app.perf.LoggingNotificationSender;
+import com.ucamp.app.perf.NotificationSpikeSimulator;
+import com.ucamp.app.perf.NotificationSpikeSimulator.PlannedNotification;
 import com.ucamp.app.domain.recommendation.queue.InMemoryRecommendationQueue;
 import com.ucamp.app.domain.recommendation.queue.RecommendationQueue;
 import com.ucamp.app.domain.recommendation.queue.RedisRecommendationQueue;

@@ -2,7 +2,6 @@ package com.ucamp.app.domain.recommendation.controller;
 
 import com.ucamp.app.domain.recommendation.dto.CreateRecommendationRequest;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
-import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,7 @@ public class RecommendationController {
     @PostMapping
     public ResponseEntity<ApiResponse<RecommendationResponse>> create(@RequestBody CreateRecommendationRequest request) {
         RecommendationResponse response = recommendationService.create(request.responseId());
-        HttpStatus status = AiRecommendation.DONE.equals(response.status()) ? HttpStatus.OK : HttpStatus.ACCEPTED;
+        HttpStatus status = response.isDone() ? HttpStatus.OK : HttpStatus.ACCEPTED;
         return ResponseEntity.status(status).body(ApiResponse.success(response));
     }
 

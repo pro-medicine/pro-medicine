@@ -2,7 +2,6 @@ package com.ucamp.app.perf;
 
 import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.ucamp.app.domain.recommendation.perf.NotificationSpikeSimulator;
 import com.ucamp.app.eval.EvalRunner;
 import com.ucamp.app.support.PerfStats;
 import org.junit.jupiter.api.AfterAll;

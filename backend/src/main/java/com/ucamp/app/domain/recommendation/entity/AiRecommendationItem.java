@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "ai_recommendation_items")
 public class AiRecommendationItem {
+    public static final int INGREDIENT_NAME_LENGTH = 150;
+    public static final int UNIT_LENGTH = 10;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +33,7 @@ public class AiRecommendationItem {
     @JoinColumn(name = "recommendation_id", nullable = false)
     private AiRecommendation recommendation;
 
-    @Column(name = "ingredient_name", nullable = false, length = 150)
+    @Column(name = "ingredient_name", nullable = false, length = INGREDIENT_NAME_LENGTH)
     private String ingredientName;
 
     @Column(name = "reason", columnDefinition = "TEXT")
@@ -50,7 +52,7 @@ public class AiRecommendationItem {
     @Column(name = "intake_status", length = 10)
     private String intakeStatus;
 
-    @Column(name = "unit", length = 10)
+    @Column(name = "unit", length = UNIT_LENGTH)
     private String unit;
 
     @Column(name = "dose_note", length = 200)

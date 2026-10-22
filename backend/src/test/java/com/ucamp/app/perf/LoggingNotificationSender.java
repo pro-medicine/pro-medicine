@@ -1,4 +1,4 @@
-package com.ucamp.app.domain.recommendation.perf;
+package com.ucamp.app.perf;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,7 +1,5 @@
 package com.ucamp.app.domain.recommendation.service;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
@@ -26,29 +24,19 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class RecommendationStore {
-    private static final int MAX_NAME_LENGTH = 150;
-    private static final int MAX_MODEL_LENGTH = 60;
-    private static final int MAX_UNIT_LENGTH = 10;
     private static final List<String> ACTIVE_OR_DONE =
             List.of(AiRecommendation.PENDING, AiRecommendation.PROCESSING, AiRecommendation.DONE);
 
     private final AiRecommendationRepository recommendationRepository;
     private final AiRecommendationItemRepository itemRepository;
     private final SurveyQueryService surveyQueryService;
-    private final ObjectMapper objectMapper;
+    private final RecommendationMapper mapper;
 
     /** 동기 API: 결과를 바로 DONE으로 저장 */
     @Transactional
     public RecommendationResponse save(Long responseId, RecommendationResult result) {
-        SurveyResponse response = surveyQueryService.getResponse(responseId);
-        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
-                .response(response)
-                .summary(result.summary())
-                .modelName(truncate(result.model(), MAX_MODEL_LENGTH))
-                .status(AiRecommendation.DONE)
-                .build());
-        List<AiRecommendationItem> items = saveItems(rec, result);
-        return RecommendationResponse.of(rec, items, objectMapper);
+        AiRecommendation rec = newRecommendation(responseId, AiRecommendation.DONE, result.summary(), result.model());
+        return mapper.toResponse(rec, saveItems(rec, result));
     }
 
     /** 비동기 API: 같은 응답의 진행 중·완료 작업 (멱등) */
@@ -62,12 +50,7 @@ public class RecommendationStore {
     /** 비동기 API: PENDING 행 생성 */
     @Transactional
     public RecommendationResponse createPending(Long responseId) {
-        SurveyResponse response = surveyQueryService.getResponse(responseId);
-        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
-                .response(response)
-                .status(AiRecommendation.PENDING)
-                .build());
-        return RecommendationResponse.of(rec, List.of(), objectMapper);
+        return mapper.toResponse(newRecommendation(responseId, AiRecommendation.PENDING, null, null), List.of());
     }
 
     /** 워커: PENDING → PROCESSING. 이미 다른 워커가 가져갔거나 끝난 작업이면 empty */
@@ -87,12 +70,12 @@ public class RecommendationStore {
         AiRecommendation rec = recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
         saveItems(rec, result);
-        rec.markDone(result.summary(), truncate(result.model(), MAX_MODEL_LENGTH));
+        rec.markDone(result.summary(), truncate(result.model(), AiRecommendation.MODEL_NAME_LENGTH));
     }
 
     @Transactional
     public void fail(Long recommendationId, String errorCode) {
-        recommendationRepository.findById(recommendationId).ifPresent(r -> r.markFailed(truncate(errorCode, 30)));
+        recommendationRepository.findById(recommendationId).ifPresent(r -> r.markFailed(truncate(errorCode, AiRecommendation.ERROR_CODE_LENGTH)));
     }
 
     @Transactional(readOnly = true)
@@ -114,10 +97,19 @@ public class RecommendationStore {
     }
 
     private RecommendationResponse toResponse(AiRecommendation rec) {
-        return RecommendationResponse.of(rec,
+        return mapper.toResponse(rec,
                 itemRepository.findByRecommendation_RecommendationIdOrderBySortOrderAscRecommendationItemIdAsc(
-                        rec.getRecommendationId()),
-                objectMapper);
+                        rec.getRecommendationId()));
+    }
+
+    private AiRecommendation newRecommendation(Long responseId, String status, String summary, String model) {
+        SurveyResponse response = surveyQueryService.getResponse(responseId);
+        return recommendationRepository.save(AiRecommendation.builder()
+                .response(response)
+                .summary(summary)
+                .modelName(truncate(model, AiRecommendation.MODEL_NAME_LENGTH))
+                .status(status)
+                .build());
     }
 
     private List<AiRecommendationItem> saveItems(AiRecommendation rec, RecommendationResult result) {
@@ -125,30 +117,21 @@ public class RecommendationStore {
         for (RecommendationItem item : result.itemsOrEmpty()) {
             items.add(AiRecommendationItem.builder()
                     .recommendation(rec)
-                    .ingredientName(truncate(item.ingredient(), MAX_NAME_LENGTH))
+                    .ingredientName(truncate(item.ingredient(), AiRecommendationItem.INGREDIENT_NAME_LENGTH))
                     .reason(item.reason())
                     .sortOrder(item.sortOrder())
                     .recommendedAmount(item.amount())
                     .currentIntake(item.currentIntake())
                     .intakeStatus(item.intakeStatus())
-                    .unit(truncate(item.unit(), MAX_UNIT_LENGTH))
+                    .unit(truncate(item.unit(), AiRecommendationItem.UNIT_LENGTH))
                     .doseNote(item.doseNote())
                     .excluded(item.excluded())
-                    .appliedRuleIds(item.appliedRuleIdsOrEmpty().isEmpty() ? null
-                            : String.join(",", item.appliedRuleIdsOrEmpty()))
-                    .warnings(item.warningsOrEmpty().isEmpty() ? null : toJson(item.warningsOrEmpty()))
+                    .appliedRuleIds(mapper.encodeRuleIds(item.appliedRuleIdsOrEmpty()))
+                    .warnings(mapper.encodeWarnings(item.warningsOrEmpty()))
                     .build());
         }
         itemRepository.saveAll(items);
         return items;
-    }
-
-    private String toJson(List<String> values) {
-        try {
-            return objectMapper.writeValueAsString(values);
-        } catch (JacksonException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     private static String truncate(String s, int max) {

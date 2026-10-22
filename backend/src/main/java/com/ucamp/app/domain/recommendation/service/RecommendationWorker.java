@@ -1,8 +1,7 @@
-package com.ucamp.app.domain.recommendation.queue;
+package com.ucamp.app.domain.recommendation.service;
 
-import com.ucamp.app.domain.recommendation.service.RecommendationProperties;
-import com.ucamp.app.domain.recommendation.service.RecommendationService;
-import com.ucamp.app.domain.recommendation.service.RecommendationStore;
+import com.ucamp.app.domain.recommendation.config.RecommendationProperties;
+import com.ucamp.app.domain.recommendation.queue.RecommendationQueue;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -73,9 +72,6 @@ public class RecommendationWorker implements SmartLifecycle {
         }
     }
 
-    public int activeCount() {
-        return active.get();
-    }
 
     @Override
     public void stop() {

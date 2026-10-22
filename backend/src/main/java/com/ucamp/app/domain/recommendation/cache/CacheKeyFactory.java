@@ -6,10 +6,6 @@ import com.ucamp.app.domain.recommendation.rule.RuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,19 +59,10 @@ public class CacheKeyFactory {
                 .map(RecommendationInput.Intake::ingredient).distinct().toList()));
         String canonical = KEY_FIELDS.stream().map(f -> f + "=" + (v.get(f) == null ? "" : v.get(f)))
                 .collect(Collectors.joining("|"));
-        return sha256(canonical);
+        return Sha256.hex(canonical);
     }
 
     private static String sorted(List<String> values) {
         return values.stream().sorted().collect(Collectors.joining(","));
-    }
-
-    static String sha256(String text) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(text.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

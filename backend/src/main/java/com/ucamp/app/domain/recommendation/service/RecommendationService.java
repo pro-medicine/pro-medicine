@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.ucamp.app.domain.recommendation.config.RecommendationProperties;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 추천 생성. recommendation.api-mode로 처리 구조를 고른다 (STEP 09 비교 측정용, 둘 다 유지).
+ * 추천 생성. recommendation.api-mode로 처리 구조를 고른다 (비교 측정용, 둘 다 유지).
  * - sync: 입력 조립 → 파이프라인 실행(LLM, 트랜잭션 없음) → 저장. 요청 스레드가 LLM 응답을 기다린다
  * - queue: PENDING 행 생성 → 큐 → 즉시 응답(202). 워커가 process()로 처리, 클라이언트는 GET으로 상태를 본다
  * 비회원도 자기 responseId로 호출할 수 있다 (가로채기 방지는 범위 밖, progress 미룬 것 참고).
@@ -55,7 +56,7 @@ public class RecommendationService {
     }
 
     /** 비동기 접수. 같은 responseId로 진행 중이거나 끝난 작업이 있으면 그것을 돌려준다 (멱등) */
-    public RecommendationResponse submit(Long responseId) {
+    private RecommendationResponse submit(Long responseId) {
         Object lock = submitLocks.computeIfAbsent(responseId, k -> new Object());
         try {
             synchronized (lock) {
@@ -93,7 +94,7 @@ public class RecommendationService {
         try {
             return pipelineRegistry.get(version).run(input);
         } catch (LlmUnavailableException e) {
-            // STEP 10: 서킷 OPEN·재시도 소진이면 규칙 기반 폴백 (각 파이프라인 코드는 바꾸지 않는다)
+            // 서킷 OPEN·재시도 소진이면 규칙 기반 폴백 (각 파이프라인 코드는 바꾸지 않는다)
             log.warn("LLM unavailable, rule-only fallback: reason={}, responseId={}", e.getReason(), responseId);
             meterRegistry.counter("recommendation.fallback", "reason", e.getReason().name()).increment();
             return ruleOnlyPipeline.run(input);

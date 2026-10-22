@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
- * 알림을 열고 들어온 회원의 최근 추천 조회 (STEP 09 2-2). LLM을 부르지 않는다 (STEP 08 결과 캐시와 별개).
+ * 알림을 열고 들어온 회원의 최근 추천 조회. LLM을 부르지 않는다 (결과 캐시 V6와 별개).
  * 재사용 조건: 가장 최근 DONE 추천 이후 health_profiles · user_conditions · user_medications 변경이 없다.
  * 조건을 못 맞추면 새 설문을 하도록 안내한다 (needsNewSurvey). 새로 만들어야 하는 요청만 큐로 간다.
  */

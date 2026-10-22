@@ -3,7 +3,6 @@ package com.ucamp.app.domain.survey.dto;
 import com.ucamp.app.domain.survey.entity.RespondentType;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -12,8 +11,6 @@ public record SurveyResponseDetail(
         Long responseId,
         Long userId,
         RespondentType respondentType,
-        boolean includesSensitive,
-        LocalDateTime submittedAt,
         Map<String, AnswerValue> answers
 ) {
     public record AnswerValue(List<String> valueCodes, BigDecimal valueNumber, String valueText) {

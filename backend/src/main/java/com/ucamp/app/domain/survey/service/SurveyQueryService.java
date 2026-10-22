@@ -176,7 +176,6 @@ public class SurveyQueryService {
                 rows.get(0).getValueNumber(),
                 rows.get(0).getValueText())));
         Long userId = response.getUser() == null ? null : response.getUser().getId();
-        return new SurveyResponseDetail(response.getResponseId(), userId, response.getRespondentType(),
-                response.getIncludesSensitive(), response.getSubmittedAt(), answers);
+        return new SurveyResponseDetail(response.getResponseId(), userId, response.getRespondentType(), answers);
     }
 }

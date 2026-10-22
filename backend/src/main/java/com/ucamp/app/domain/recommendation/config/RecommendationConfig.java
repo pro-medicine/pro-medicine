@@ -1,4 +1,4 @@
-package com.ucamp.app.domain.recommendation.service;
+package com.ucamp.app.domain.recommendation.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
