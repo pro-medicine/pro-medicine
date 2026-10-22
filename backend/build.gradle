@@ -71,54 +71,49 @@ tasks.named('test') {
 	}
 }
 
-// 평가 실행 (STEP 04): ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=30] [-Prepeats=1] [-Pmode=repro] [-Pllm=fake] [-Pconfirm=true]
-// -Pconfirm=true가 없으면 실제 API(-Pllm=openai, 기본값)는 예상 호출 수·비용만 출력하고 끝낸다
-tasks.register('evalRun', Test) {
-	description = '추천 품질 평가 실행 (평가셋 → results.csv)'
+// 아래 태그별 테스트 태스크(evalRun·liveTest·perfTest) 공통: 테스트 클래스 공유, 콘솔 출력, 매번 실행
+def taggedTestTasks = ['evalRun', 'liveTest', 'perfTest']
+tasks.withType(Test).matching { it.name in taggedTestTasks }.configureEach {
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
+	testLogging { showStandardStreams = true }
+	outputs.upToDateWhen { false }
+}
+
+// 실제 API를 쓰는 태스크에 OPENAI_API_KEY(환경변수 또는 backend/.env)를 넘긴다
+def passOpenAiApiKey = { Test task ->
+	task.doFirst {
+		def key = openAiApiKey()
+		if (key) {
+			task.environment 'OPENAI_API_KEY', key
+		}
+	}
+}
+
+// 평가 실행: ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=30] [-Prepeats=1] [-Pmode=repro] [-Pllm=fake] [-Pconfirm=true]
+// -Pconfirm=true가 없으면 실제 API(-Pllm=openai, 기본값)는 예상 호출 수·비용만 출력하고 끝낸다
+tasks.register('evalRun', Test) {
+	description = '추천 품질 평가 실행 (평가셋 → results.csv)'
 	useJUnitPlatform { includeTags 'eval' }
 	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'passes'].each { key ->
 		if (project.hasProperty(key)) {
 			systemProperty "eval.${key}", project.property(key)
 		}
 	}
-	doFirst {
-		def key = openAiApiKey()
-		if (key) {
-			environment 'OPENAI_API_KEY', key
-		}
-	}
-	testLogging { showStandardStreams = true }
-	outputs.upToDateWhen { false }
+	passOpenAiApiKey(it)
 }
 
 // 실제 OpenAI API 테스트: ./gradlew liveTest (backend/.env 또는 환경변수의 OPENAI_API_KEY 필요, 비용 발생)
 tasks.register('liveTest', Test) {
 	description = '실제 OpenAI API 호출 테스트 (비용 발생)'
-	group = 'verification'
-	testClassesDirs = sourceSets.test.output.classesDirs
-	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform { includeTags 'live' }
-	doFirst {
-		def key = openAiApiKey()
-		if (key) {
-			environment 'OPENAI_API_KEY', key
-		}
-	}
-	testLogging { showStandardStreams = true }
-	outputs.upToDateWhen { false }
+	passOpenAiApiKey(it)
 }
 
-// 성능 측정 테스트: ./gradlew perfTest
+// 성능 측정 테스트: ./gradlew perfTest [-PperfLabel=before]
 tasks.register('perfTest', Test) {
-	description = '로컬 성능 측정 테스트 (H2, MockMvc)'
-	group = 'verification'
-	testClassesDirs = sourceSets.test.output.classesDirs
-	classpath = sourceSets.test.runtimeClasspath
+	description = '로컬 성능 측정 테스트 (H2, MockMvc, WireMock)'
 	useJUnitPlatform { includeTags 'perf' }
 	systemProperty 'perf.label', findProperty('perfLabel') ?: 'run'
-	testLogging { showStandardStreams = true }
-	outputs.upToDateWhen { false }
 }

@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class V3V4PipelineTest {
-    // V4가 V3를 상속해서 타입 주입이 모호하므로 레지스트리로 꺼낸다
+    // 버전 이름으로 꺼낸다 (평가 러너·API와 같은 경로)
     @Autowired
     PipelineRegistry registry;
     @Autowired

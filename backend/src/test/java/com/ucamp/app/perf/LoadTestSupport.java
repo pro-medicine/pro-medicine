@@ -11,7 +11,7 @@ import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.FakeLlmClient;
-import com.ucamp.app.support.PerfStats;
+import com.ucamp.app.support.SurveyFixture;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -42,20 +42,6 @@ public final class LoadTestSupport {
     public static final ObjectMapper OM = new ObjectMapper();
 
     private LoadTestSupport() {
-    }
-
-    /** perf/wiremock/{scenario} 매핑 파일로 WireMock을 띄운다. 지연 응답이 스레드를 잡지 않게 비동기 응답을 켠다 */
-    public static WireMockServer startWireMock(String scenario) {
-        WireMockServer server = new WireMockServer(WireMockConfiguration.options()
-                .dynamicPort()
-                .usingFilesUnderDirectory(Path.of("perf/wiremock", scenario).toString())
-                .asynchronousResponseEnabled(true)
-                .asynchronousResponseThreads(200)
-                .containerThreads(800)
-                .jettyAcceptQueueSize(2000)
-                .disableRequestJournal());
-        server.start();
-        return server;
     }
 
     public static WireMockServer startWireMockWithJournal(String scenario) {
@@ -182,15 +168,11 @@ public final class LoadTestSupport {
 
     /** 비회원 설문 제출 → responseId */
     public static long submitSurvey(HttpClient client, String base, JsonNode answers) throws Exception {
-        HttpResponse<String> r = postJson(client, base + "/api/v1/surveys/1/responses",
+        HttpResponse<String> r = postJson(client, base + "/api/v1/surveys/" + SurveyFixture.SURVEY_ID + "/responses",
                 OM.writeValueAsString(Map.of("answers", answers)), Duration.ofSeconds(60));
         if (r.statusCode() != 200) {
             throw new IllegalStateException("survey " + r.statusCode());
         }
         return OM.readTree(r.body()).get("data").get("responseId").asLong();
-    }
-
-    public static Map<String, Object> summary(PerfStats stats) {
-        return stats.summary();
     }
 }
