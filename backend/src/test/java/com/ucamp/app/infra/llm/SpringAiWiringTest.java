@@ -110,7 +110,7 @@ class SpringAiWiringTest {
         JsonNode reqBody = objectMapper.readTree(req.getBodyAsString());
         assertThat(req.getHeader("Authorization")).isEqualTo("Bearer key-from-dotenv");
         assertThat(reqBody.path("model").asString()).isEqualTo("gpt-6.1-sol");
-        assertThat(reqBody.path("max_completion_tokens").asInt()).isEqualTo(8000);
+        assertThat(reqBody.path("max_completion_tokens").asInt()).isEqualTo(2000);
         assertThat(reqBody.has("temperature")).isFalse();
         assertThat(reqBody.has("tools")).isFalse();
         assertThat(reqBody.path("messages").get(0).path("role").asString()).isEqualTo("system");

@@ -11,4 +11,4 @@ llm:
   model: gpt-6.1-sol
   small-model: gpt-6-luna
   timeout-ms: 30000
-  max-tokens: 8000
+  max-tokens: 2000

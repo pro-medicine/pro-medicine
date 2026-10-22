@@ -27,8 +27,8 @@ public class LlmProperties {
     private String smallModel = "gpt-6-luna";
     /** 요청 타임아웃. spring.ai.openai.chat.timeout이 이 값을 따른다 (recommendation-defaults.properties) */
     private int timeoutMs = 30000;
-    /** 추론 모델은 reasoning 토큰도 이 한도(max_completion_tokens)에 포함되므로 여유를 둔다 */
-    private int maxTokens = 8000;
+    /** 추론 모델은 reasoning 토큰도 이 한도(max_completion_tokens)에 포함된다. OpenAI rate limit(TPM)은 이 값으로 미리 계산하므로 실제 출력(약 300)보다 너무 크게 두지 않는다 */
+    private int maxTokens = 2000;
     /** true면 프롬프트·응답 본문을 로컬 파일(build/llm-body/)에만 남긴다. DB에는 절대 저장하지 않음 */
     private boolean logBody = false;
     private Resilience resilience = new Resilience();
