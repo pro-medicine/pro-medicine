@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
+import com.ucamp.app.support.GoldenFiles;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +96,7 @@ class SpringAiWiringTest {
                         Map.of("ingredient", "BETA_CAROTENE", "reason", "항산화", "priority", 2)),
                 "summary", "WireMock 응답")), 1500, 200, 1024));
 
-        long responseId = submit(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995),
+        long responseId = submit(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, java.time.Year.now().getValue() - 31),
                 choice(Q_SMOKING, SMOKING_ONE_PACK), choice(Q_SUN, SUN_LOW)));
         String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
@@ -108,6 +109,7 @@ class SpringAiWiringTest {
         assertThat(sent).hasSize(1);
         LoggedRequest req = sent.get(0);
         JsonNode reqBody = objectMapper.readTree(req.getBodyAsString());
+        GoldenFiles.assertMatches("openai/v4-request", reqBody); // OpenAI로 나간 본문 전체 (리팩터링 안전망)
         assertThat(req.getHeader("Authorization")).isEqualTo("Bearer key-from-dotenv");
         assertThat(reqBody.path("model").asString()).isEqualTo("gpt-6.1-sol");
         assertThat(reqBody.path("max_completion_tokens").asInt()).isEqualTo(2000);

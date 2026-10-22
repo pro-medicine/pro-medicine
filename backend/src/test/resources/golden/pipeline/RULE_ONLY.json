@@ -1,0 +1,206 @@
+{
+  "failAfterRepair" : {
+    "callLogs" : [ ],
+    "metrics" : {
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-01)}" : 1.0,
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-06)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=calc)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=rule_post)}" : 1.0
+    },
+    "requests" : [ ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : true,
+      "items" : [ {
+        "amount" : "1E+2",
+        "appliedRuleIds" : [ "R-01" ],
+        "currentIntake" : "25",
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "VITAMIN_C",
+        "intakeStatus" : "KNOWN",
+        "reason" : "흡연자는 비타민 C 필요량이 하루 35mg 많아요",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : [ "R-06" ],
+        "currentIntake" : null,
+        "doseNote" : "기준값 미등록",
+        "excluded" : false,
+        "ingredient" : "VITAMIN_D",
+        "intakeStatus" : null,
+        "reason" : "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요",
+        "sortOrder" : 2,
+        "unit" : null,
+        "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+      } ],
+      "llmCallLogCount" : 0,
+      "model" : "RULE_ONLY",
+      "parseSuccess" : true,
+      "pipelineVersion" : "RULE_ONLY",
+      "promptVersion" : "-",
+      "summary" : "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"
+    }
+  },
+  "guest" : {
+    "callLogs" : [ ],
+    "metrics" : {
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-05)}" : 1.0,
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-06)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=calc)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=rule_post)}" : 1.0
+    },
+    "requests" : [ ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : true,
+      "items" : [ {
+        "amount" : null,
+        "appliedRuleIds" : [ "R-05" ],
+        "currentIntake" : null,
+        "doseNote" : "기준값 미등록",
+        "excluded" : false,
+        "ingredient" : "VITAMIN_B12",
+        "intakeStatus" : null,
+        "reason" : "비건 식단은 비타민 B12 보충이 필요한지 확인하세요",
+        "sortOrder" : 1,
+        "unit" : null,
+        "warnings" : [ "비건 식단은 비타민 B12 보충이 필요한지 확인하세요" ]
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : [ "R-06" ],
+        "currentIntake" : null,
+        "doseNote" : "기준값 미등록",
+        "excluded" : false,
+        "ingredient" : "VITAMIN_D",
+        "intakeStatus" : null,
+        "reason" : "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요",
+        "sortOrder" : 2,
+        "unit" : null,
+        "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+      } ],
+      "llmCallLogCount" : 0,
+      "model" : "RULE_ONLY",
+      "parseSuccess" : true,
+      "pipelineVersion" : "RULE_ONLY",
+      "promptVersion" : "-",
+      "summary" : "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"
+    }
+  },
+  "member" : {
+    "callLogs" : [ ],
+    "metrics" : {
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-01)}" : 1.0,
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-06)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=calc)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=rule_post)}" : 1.0
+    },
+    "requests" : [ ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : true,
+      "items" : [ {
+        "amount" : "1E+2",
+        "appliedRuleIds" : [ "R-01" ],
+        "currentIntake" : "25",
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "VITAMIN_C",
+        "intakeStatus" : "KNOWN",
+        "reason" : "흡연자는 비타민 C 필요량이 하루 35mg 많아요",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : [ "R-06" ],
+        "currentIntake" : null,
+        "doseNote" : "기준값 미등록",
+        "excluded" : false,
+        "ingredient" : "VITAMIN_D",
+        "intakeStatus" : null,
+        "reason" : "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요",
+        "sortOrder" : 2,
+        "unit" : null,
+        "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+      } ],
+      "llmCallLogCount" : 0,
+      "model" : "RULE_ONLY",
+      "parseSuccess" : true,
+      "pipelineVersion" : "RULE_ONLY",
+      "promptVersion" : "-",
+      "summary" : "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"
+    }
+  },
+  "repair" : {
+    "callLogs" : [ ],
+    "metrics" : {
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-01)}" : 1.0,
+      "recommendation.rule.hit{tag(phase=post),tag(rule_id=R-06)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=calc)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=rule_post)}" : 1.0
+    },
+    "requests" : [ ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : true,
+      "items" : [ {
+        "amount" : "1E+2",
+        "appliedRuleIds" : [ "R-01" ],
+        "currentIntake" : "25",
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "VITAMIN_C",
+        "intakeStatus" : "KNOWN",
+        "reason" : "흡연자는 비타민 C 필요량이 하루 35mg 많아요",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : [ "R-06" ],
+        "currentIntake" : null,
+        "doseNote" : "기준값 미등록",
+        "excluded" : false,
+        "ingredient" : "VITAMIN_D",
+        "intakeStatus" : null,
+        "reason" : "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요",
+        "sortOrder" : 2,
+        "unit" : null,
+        "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+      } ],
+      "llmCallLogCount" : 0,
+      "model" : "RULE_ONLY",
+      "parseSuccess" : true,
+      "pipelineVersion" : "RULE_ONLY",
+      "promptVersion" : "-",
+      "summary" : "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"
+    }
+  },
+  "simple" : {
+    "callLogs" : [ ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=calc)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=RULE_ONLY),tag(stage=rule_post)}" : 1.0
+    },
+    "requests" : [ ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : true,
+      "items" : [ ],
+      "llmCallLogCount" : 0,
+      "model" : "RULE_ONLY",
+      "parseSuccess" : true,
+      "pipelineVersion" : "RULE_ONLY",
+      "promptVersion" : "-",
+      "summary" : "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "get" : {
+    "body" : {
+      "code" : "S000",
+      "data" : {
+        "createdAt" : "<createdAt>",
+        "errorCode" : null,
+        "excludedItems" : [ {
+          "appliedRuleIds" : [ "R-13" ],
+          "doseNote" : "기준값 미등록",
+          "ingredient" : "POTASSIUM",
+          "reason" : "혈압",
+          "sortOrder" : 3,
+          "warnings" : [ "혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요" ]
+        } ],
+        "fallback" : false,
+        "items" : [ {
+          "amount" : 100.0,
+          "appliedRuleIds" : [ "R-01" ],
+          "currentIntake" : 25.0,
+          "ingredient" : "VITAMIN_C",
+          "intakeStatus" : "KNOWN",
+          "reason" : "흡연자는 필요량이 늘어요",
+          "sortOrder" : 1,
+          "unit" : "mg"
+        }, {
+          "appliedRuleIds" : [ "R-06" ],
+          "doseNote" : "기준값 미등록",
+          "ingredient" : "VITAMIN_D",
+          "reason" : "햇빛 노출이 적어요",
+          "sortOrder" : 2,
+          "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+        }, {
+          "amount" : 8.0,
+          "appliedRuleIds" : [ "R-04" ],
+          "doseNote" : "현재 섭취량 미반영",
+          "ingredient" : "IRON",
+          "intakeStatus" : "UNKNOWN",
+          "reason" : "피로",
+          "sortOrder" : 4,
+          "unit" : "mg",
+          "warnings" : [ "커피·차와 철분은 시간 간격을 두고 드세요" ]
+        } ],
+        "modelName" : "gpt-6.1-sol-fake",
+        "recommendationId" : "<recommendationId>",
+        "responseId" : "<responseId>",
+        "status" : "DONE",
+        "summary" : "회원 요약"
+      },
+      "message" : "성공",
+      "success" : true
+    },
+    "raw" : "{\"code\":\"S000\",\"data\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"회원 요약\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_C\",\"reason\":\"흡연자는 필요량이 늘어요\",\"sortOrder\":1,\"amount\":100.00,\"unit\":\"mg\",\"currentIntake\":25.00,\"intakeStatus\":\"KNOWN\",\"appliedRuleIds\":[\"R-01\"]},{\"ingredient\":\"VITAMIN_D\",\"reason\":\"햇빛 노출이 적어요\",\"sortOrder\":2,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]},{\"ingredient\":\"IRON\",\"reason\":\"피로\",\"sortOrder\":4,\"amount\":8.00,\"unit\":\"mg\",\"intakeStatus\":\"UNKNOWN\",\"doseNote\":\"현재 섭취량 미반영\",\"warnings\":[\"커피·차와 철분은 시간 간격을 두고 드세요\"],\"appliedRuleIds\":[\"R-04\"]}],\"excludedItems\":[{\"ingredient\":\"POTASSIUM\",\"reason\":\"혈압\",\"sortOrder\":3,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요\"],\"appliedRuleIds\":[\"R-13\"]}],\"fallback\":false},\"message\":\"성공\",\"success\":true}",
+    "status" : 200
+  },
+  "latest" : {
+    "body" : {
+      "code" : "S000",
+      "data" : {
+        "needsNewSurvey" : false,
+        "recommendation" : {
+          "createdAt" : "<createdAt>",
+          "errorCode" : null,
+          "excludedItems" : [ {
+            "appliedRuleIds" : [ "R-13" ],
+            "doseNote" : "기준값 미등록",
+            "ingredient" : "POTASSIUM",
+            "reason" : "혈압",
+            "sortOrder" : 3,
+            "warnings" : [ "혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요" ]
+          } ],
+          "fallback" : false,
+          "items" : [ {
+            "amount" : 100.0,
+            "appliedRuleIds" : [ "R-01" ],
+            "currentIntake" : 25.0,
+            "ingredient" : "VITAMIN_C",
+            "intakeStatus" : "KNOWN",
+            "reason" : "흡연자는 필요량이 늘어요",
+            "sortOrder" : 1,
+            "unit" : "mg"
+          }, {
+            "appliedRuleIds" : [ "R-06" ],
+            "doseNote" : "기준값 미등록",
+            "ingredient" : "VITAMIN_D",
+            "reason" : "햇빛 노출이 적어요",
+            "sortOrder" : 2,
+            "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+          }, {
+            "amount" : 8.0,
+            "appliedRuleIds" : [ "R-04" ],
+            "doseNote" : "현재 섭취량 미반영",
+            "ingredient" : "IRON",
+            "intakeStatus" : "UNKNOWN",
+            "reason" : "피로",
+            "sortOrder" : 4,
+            "unit" : "mg",
+            "warnings" : [ "커피·차와 철분은 시간 간격을 두고 드세요" ]
+          } ],
+          "modelName" : "gpt-6.1-sol-fake",
+          "recommendationId" : "<recommendationId>",
+          "responseId" : "<responseId>",
+          "status" : "DONE",
+          "summary" : "회원 요약"
+        },
+        "reusable" : true
+      },
+      "message" : "성공",
+      "success" : true
+    },
+    "raw" : "{\"code\":\"S000\",\"data\":{\"reusable\":true,\"needsNewSurvey\":false,\"recommendation\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"회원 요약\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_C\",\"reason\":\"흡연자는 필요량이 늘어요\",\"sortOrder\":1,\"amount\":100.00,\"unit\":\"mg\",\"currentIntake\":25.00,\"intakeStatus\":\"KNOWN\",\"appliedRuleIds\":[\"R-01\"]},{\"ingredient\":\"VITAMIN_D\",\"reason\":\"햇빛 노출이 적어요\",\"sortOrder\":2,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]},{\"ingredient\":\"IRON\",\"reason\":\"피로\",\"sortOrder\":4,\"amount\":8.00,\"unit\":\"mg\",\"intakeStatus\":\"UNKNOWN\",\"doseNote\":\"현재 섭취량 미반영\",\"warnings\":[\"커피·차와 철분은 시간 간격을 두고 드세요\"],\"appliedRuleIds\":[\"R-04\"]}],\"excludedItems\":[{\"ingredient\":\"POTASSIUM\",\"reason\":\"혈압\",\"sortOrder\":3,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요\"],\"appliedRuleIds\":[\"R-13\"]}],\"fallback\":false}},\"message\":\"성공\",\"success\":true}",
+    "status" : 200
+  },
+  "post" : {
+    "body" : {
+      "code" : "S000",
+      "data" : {
+        "createdAt" : "<createdAt>",
+        "errorCode" : null,
+        "excludedItems" : [ {
+          "appliedRuleIds" : [ "R-13" ],
+          "doseNote" : "기준값 미등록",
+          "ingredient" : "POTASSIUM",
+          "reason" : "혈압",
+          "sortOrder" : 3,
+          "warnings" : [ "혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요" ]
+        } ],
+        "fallback" : false,
+        "items" : [ {
+          "amount" : 100.0,
+          "appliedRuleIds" : [ "R-01" ],
+          "currentIntake" : 25,
+          "ingredient" : "VITAMIN_C",
+          "intakeStatus" : "KNOWN",
+          "reason" : "흡연자는 필요량이 늘어요",
+          "sortOrder" : 1,
+          "unit" : "mg"
+        }, {
+          "appliedRuleIds" : [ "R-06" ],
+          "doseNote" : "기준값 미등록",
+          "ingredient" : "VITAMIN_D",
+          "reason" : "햇빛 노출이 적어요",
+          "sortOrder" : 2,
+          "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+        }, {
+          "amount" : 8,
+          "appliedRuleIds" : [ "R-04" ],
+          "doseNote" : "현재 섭취량 미반영",
+          "ingredient" : "IRON",
+          "intakeStatus" : "UNKNOWN",
+          "reason" : "피로",
+          "sortOrder" : 4,
+          "unit" : "mg",
+          "warnings" : [ "커피·차와 철분은 시간 간격을 두고 드세요" ]
+        } ],
+        "modelName" : "gpt-6.1-sol-fake",
+        "recommendationId" : "<recommendationId>",
+        "responseId" : "<responseId>",
+        "status" : "DONE",
+        "summary" : "회원 요약"
+      },
+      "message" : "성공",
+      "success" : true
+    },
+    "raw" : "{\"code\":\"S000\",\"data\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"회원 요약\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_C\",\"reason\":\"흡연자는 필요량이 늘어요\",\"sortOrder\":1,\"amount\":1E+2,\"unit\":\"mg\",\"currentIntake\":25,\"intakeStatus\":\"KNOWN\",\"appliedRuleIds\":[\"R-01\"]},{\"ingredient\":\"VITAMIN_D\",\"reason\":\"햇빛 노출이 적어요\",\"sortOrder\":2,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]},{\"ingredient\":\"IRON\",\"reason\":\"피로\",\"sortOrder\":4,\"amount\":8,\"unit\":\"mg\",\"intakeStatus\":\"UNKNOWN\",\"doseNote\":\"현재 섭취량 미반영\",\"warnings\":[\"커피·차와 철분은 시간 간격을 두고 드세요\"],\"appliedRuleIds\":[\"R-04\"]}],\"excludedItems\":[{\"ingredient\":\"POTASSIUM\",\"reason\":\"혈압\",\"sortOrder\":3,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요\"],\"appliedRuleIds\":[\"R-13\"]}],\"fallback\":false},\"message\":\"성공\",\"success\":true}",
+    "status" : 200
+  },
+  "saved" : {
+    "errorCode" : null,
+    "finishedAt" : "set",
+    "items" : [ {
+      "appliedRuleIds" : "R-01",
+      "currentIntake" : "25.00",
+      "doseNote" : null,
+      "excluded" : false,
+      "ingredientName" : "VITAMIN_C",
+      "intakeStatus" : "KNOWN",
+      "reason" : "흡연자는 필요량이 늘어요",
+      "recommendedAmount" : "100.00",
+      "sortOrder" : 1,
+      "unit" : "mg",
+      "warnings" : null
+    }, {
+      "appliedRuleIds" : "R-06",
+      "currentIntake" : null,
+      "doseNote" : "기준값 미등록",
+      "excluded" : false,
+      "ingredientName" : "VITAMIN_D",
+      "intakeStatus" : null,
+      "reason" : "햇빛 노출이 적어요",
+      "recommendedAmount" : null,
+      "sortOrder" : 2,
+      "unit" : null,
+      "warnings" : "[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"]"
+    }, {
+      "appliedRuleIds" : "R-13",
+      "currentIntake" : null,
+      "doseNote" : "기준값 미등록",
+      "excluded" : true,
+      "ingredientName" : "POTASSIUM",
+      "intakeStatus" : null,
+      "reason" : "혈압",
+      "recommendedAmount" : null,
+      "sortOrder" : 3,
+      "unit" : null,
+      "warnings" : "[\"혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요\"]"
+    }, {
+      "appliedRuleIds" : "R-04",
+      "currentIntake" : null,
+      "doseNote" : "현재 섭취량 미반영",
+      "excluded" : false,
+      "ingredientName" : "IRON",
+      "intakeStatus" : "UNKNOWN",
+      "reason" : "피로",
+      "recommendedAmount" : "8.00",
+      "sortOrder" : 4,
+      "unit" : "mg",
+      "warnings" : "[\"커피·차와 철분은 시간 간격을 두고 드세요\"]"
+    } ],
+    "modelName" : "gpt-6.1-sol-fake",
+    "startedAt" : null,
+    "status" : "DONE",
+    "summary" : "회원 요약"
+  }
+}
