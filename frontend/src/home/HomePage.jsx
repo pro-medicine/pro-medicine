@@ -79,7 +79,6 @@ export default function HomePage({ userId = 1, onOpenNotifications }) {
             <div className="home-inner">
                 <HomeHeader
                     userName={home.userName}
-                    date={home.today}
                     hasUnread={home.hasUnreadNotifications}
                     onBellClick={onOpenNotifications}
                 />

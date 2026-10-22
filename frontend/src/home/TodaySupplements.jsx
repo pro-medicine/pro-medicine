@@ -1,7 +1,7 @@
 // 오늘 먹을 영양제 목록 + 복용 체크
 import SupplementBottle from "./SupplementBottle";
 
-export default function TodaySupplements({ supplements, done, total, onToggle }) {
+export default function TodaySupplements({ supplements, done, total, pendingIds = [], onToggle }) {
     return (
         <section className="home-today">
             {/* 제목 + 완료 개수 */}
