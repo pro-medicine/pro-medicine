@@ -7,6 +7,7 @@ import com.ucamp.app.domain.health.service.DrugService;
 import com.ucamp.app.domain.health.service.HealthProfileService;
 import com.ucamp.app.domain.survey.dto.SubmitSurveyRequest;
 import com.ucamp.app.domain.survey.dto.SubmitSurveyResponse;
+import com.ucamp.app.domain.survey.entity.AnswerType;
 import com.ucamp.app.domain.survey.entity.QuestionOption;
 import com.ucamp.app.domain.survey.entity.RespondentType;
 import com.ucamp.app.domain.survey.entity.ResponseStatus;
@@ -130,7 +131,7 @@ public class SurveySubmitService {
         if (optionIds == null || optionIds.isEmpty() || optionIds.stream().anyMatch(Objects::isNull)) {
             throw invalid();
         }
-        if (q.getAnswerType() == com.ucamp.app.domain.survey.entity.AnswerType.SINGLE && optionIds.size() > 1) {
+        if (q.getAnswerType() == AnswerType.SINGLE && optionIds.size() > 1) {
             throw invalid();
         }
         if (new HashSet<>(optionIds).size() != optionIds.size()) {
@@ -158,7 +159,7 @@ public class SurveySubmitService {
         if (value == null) {
             throw invalid();
         }
-        if ("birth_year".equals(q.getProfileKey())
+        if (HealthProfile.KEY_BIRTH_YEAR.equals(q.getProfileKey())
                 && (value.intValue() < MIN_BIRTH_YEAR || value.intValue() > Year.now().getValue()
                 || value.stripTrailingZeros().scale() > 0)) {
             throw invalid();

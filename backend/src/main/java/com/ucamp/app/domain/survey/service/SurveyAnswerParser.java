@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.survey.service;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.dto.MedicationEntry;
@@ -80,7 +81,7 @@ public class SurveyAnswerParser {
                 throw invalid();
             }
             return root;
-        } catch (tools.jackson.core.JacksonException e) {
+        } catch (JacksonException e) {
             throw invalid();
         }
     }

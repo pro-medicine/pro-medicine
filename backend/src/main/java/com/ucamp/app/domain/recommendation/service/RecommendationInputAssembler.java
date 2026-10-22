@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.ucamp.app.domain.health.entity.HealthProfile;
 import com.ucamp.app.domain.health.dto.HealthProfileSnapshot;
 import com.ucamp.app.domain.health.dto.MedicationEntry;
 import com.ucamp.app.domain.health.entity.Drug;
@@ -42,15 +43,15 @@ public class RecommendationInputAssembler {
 
         RecommendationInput.RecommendationInputBuilder b = RecommendationInput.builder()
                 .respondentType(member ? RecommendationInput.MEMBER : RecommendationInput.GUEST)
-                .gender(code(detail, SurveyCodes.GENDER, profile, "gender"))
+                .gender(code(detail, SurveyCodes.GENDER, profile, HealthProfile.KEY_GENDER))
                 .birthYear(birthYear(detail, profile))
-                .smoking(code(detail, SurveyCodes.SMOKING, profile, "smoking"))
-                .drinking(code(detail, SurveyCodes.DRINKING, profile, "drinking"))
-                .caffeine(code(detail, SurveyCodes.CAFFEINE, profile, "caffeine"))
-                .dietType(code(detail, SurveyCodes.DIET, profile, "diet_type"))
-                .sunExposure(code(detail, SurveyCodes.SUN, profile, "sun_exposure"))
-                .height((BigDecimal) profile.value("height"))
-                .weight((BigDecimal) profile.value("weight"))
+                .smoking(code(detail, SurveyCodes.SMOKING, profile, HealthProfile.KEY_SMOKING))
+                .drinking(code(detail, SurveyCodes.DRINKING, profile, HealthProfile.KEY_DRINKING))
+                .caffeine(code(detail, SurveyCodes.CAFFEINE, profile, HealthProfile.KEY_CAFFEINE))
+                .dietType(code(detail, SurveyCodes.DIET, profile, HealthProfile.KEY_DIET_TYPE))
+                .sunExposure(code(detail, SurveyCodes.SUN, profile, HealthProfile.KEY_SUN_EXPOSURE))
+                .height((BigDecimal) profile.value(HealthProfile.KEY_HEIGHT))
+                .weight((BigDecimal) profile.value(HealthProfile.KEY_WEIGHT))
                 .sleep(code(detail, SurveyCodes.SLEEP, null, null))
                 .fatigue(code(detail, SurveyCodes.FATIGUE, null, null))
                 .goals(codes(detail, SurveyCodes.GOAL))
@@ -85,7 +86,7 @@ public class RecommendationInputAssembler {
         if (a != null && a.valueNumber() != null) {
             return a.valueNumber().intValue();
         }
-        Object v = profile.value("birth_year");
+        Object v = profile.value(HealthProfile.KEY_BIRTH_YEAR);
         return v == null ? null : ((BigDecimal) v).intValue();
     }
 

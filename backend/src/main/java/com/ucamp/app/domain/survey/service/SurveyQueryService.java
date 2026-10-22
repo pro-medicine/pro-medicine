@@ -1,6 +1,5 @@
 package com.ucamp.app.domain.survey.service;
 
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.dto.HealthProfileSnapshot;
 import com.ucamp.app.domain.health.dto.MedicationInfo;
@@ -148,11 +147,7 @@ public class SurveyQueryService {
         List<Map<String, String>> items = medications.stream()
                 .map(m -> m.drugId() != null ? Map.of("drugId", m.drugId()) : Map.of("name", m.unmatchedName()))
                 .toList();
-        try {
-            return objectMapper.writeValueAsString(items);
-        } catch (JacksonException e) {
-            throw new IllegalStateException(e);
-        }
+        return objectMapper.writeValueAsString(items);
     }
 
     // 추천 결과 저장 시 FK 연결용
@@ -163,8 +158,7 @@ public class SurveyQueryService {
 
     // 제출된 응답 한 건을 문항 code 기준으로 읽는다 (추천 입력 조립용)
     public SurveyResponseDetail getResponseDetail(Long responseId) {
-        SurveyResponse response = surveyResponseRepository.findById(responseId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SURVEY_RESPONSE_NOT_FOUND));
+        SurveyResponse response = getResponse(responseId);
         Map<String, List<SurveyAnswer>> byCode = new LinkedHashMap<>();
         for (SurveyAnswer a : surveyAnswerRepository.findDetailByResponseId(responseId)) {
             byCode.computeIfAbsent(a.getQuestion().getCode(), k -> new ArrayList<>()).add(a);

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserMedicationRepository extends JpaRepository<UserMedication, Long> {
@@ -13,7 +14,7 @@ public interface UserMedicationRepository extends JpaRepository<UserMedication, 
     List<UserMedication> findWithDrugByUserId(@Param("userId") Long userId);
 
     @Query("select max(m.updatedAt) from UserMedication m where m.user.id = :userId")
-    java.time.LocalDateTime findLastUpdatedAt(@Param("userId") Long userId);
+    LocalDateTime findLastUpdatedAt(@Param("userId") Long userId);
 
     @Modifying(flushAutomatically = true, clearAutomatically = false)
     @Query("delete from UserMedication m where m.user.id = :userId")
