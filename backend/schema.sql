@@ -96,7 +96,7 @@ CREATE TABLE `catalog_products` (
 );
 
 CREATE TABLE `notifications` (
-                                 `notification_id`   BIGINT   NOT NULL,
+                                 `notification_id`   BIGINT   NOT NULL AUTO_INCREMENT,
                                  `user_id`   BIGINT   NOT NULL,
                                  `schedule_id`   BIGINT   NULL,
                                  `actor_user_id`   BIGINT   NULL,
@@ -106,7 +106,11 @@ CREATE TABLE `notifications` (
                                  `sent_at`   DATETIME   NULL,
                                  `read_at`   DATETIME   NULL,
                                  `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
-                                 `dedup_key`   VARCHAR(150)   NULL
+                                 `dedup_key`   VARCHAR(150)   NOT NULL,
+                                 PRIMARY KEY (`notification_id`),
+                                 UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
+                                 KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),
+                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER'))
 );
 
 CREATE TABLE `guardian_settings` (
@@ -126,7 +130,7 @@ CREATE TABLE `follows` (
                            `status`   VARCHAR(10)   NOT NULL   DEFAULT 'PENDING',
                            `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                            PRIMARY KEY (`follow_id`)
-                       );
+);
 
 CREATE TABLE `disposal_locations` (
                                       `disposal_location_id`   BIGINT   NOT NULL,
@@ -246,10 +250,6 @@ ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
 
 ALTER TABLE `catalog_products` ADD CONSTRAINT `PK_CATALOG_PRODUCTS` PRIMARY KEY (
                                                                                  `catalog_product_id`
-    );
-
-ALTER TABLE `notifications` ADD CONSTRAINT `PK_NOTIFICATIONS` PRIMARY KEY (
-                                                                           `notification_id`
     );
 
 ALTER TABLE `guardian_settings` ADD CONSTRAINT `PK_GUARDIAN_SETTINGS` PRIMARY KEY (
@@ -500,13 +500,13 @@ INSERT INTO `intake_records` (`intake_record_id`, `schedule_id`, `intake_date`, 
                                                                                                                                               (38, 9, '2026-10-20', 'TAKEN', '2026-10-20 19:33:00', NULL, FALSE);
 
 -- 알림 --------------------------------------------------------
--- FRIEND 타입은 명세서(v1.0)에서 추가를 제안한 값입니다.
+-- notification_type은 NotificationType enum 상수명과 같아야 합니다. (INTAKE_REMINDER / FRIEND_GOAL_ACHIEVED / NEW_FOLLOWER)
+-- dedup_key 형식: INTAKE:{받는사람}:{날짜}:{시각} / FRIEND_GOAL:{받는사람}:{완료한사람}:{날짜} / FOLLOW:{받는사람}:{팔로우한사람}
+-- 1: 김민지 점심 복용 알림 / 2: 김민지가 팔로우하는 김서준(follows 1)의 복용 완료 / 3: 이유진의 팔로우 요청(follows 6, PENDING)
 INSERT INTO `notifications` (`notification_id`, `user_id`, `schedule_id`, `actor_user_id`, `notification_type`, `title`, `scheduled_at`, `sent_at`, `read_at`, `created_at`, `dedup_key`) VALUES
-                                                                                                                                                                                              (1, 1, 2,    NULL, 'INTAKE',   '점심 영양제, 챙겨 드셨나요?',       '2026-10-21 12:30:00', '2026-10-21 12:30:00', NULL,                  '2026-10-21 12:30:00', 'INTAKE:2:20261021'),
-                                                                                                                                                                                              (2, 1, NULL, 2,    'FRIEND',   '김서준님이 오늘의 약속을 완료했어요', NULL,                  '2026-10-21 09:10:00', NULL,                  '2026-10-21 09:10:00', 'FRIEND:2:20261021'),
-                                                                                                                                                                                              (3, 1, NULL, 3,    'FRIEND',   '이유진님이 점심 영양제를 챙겼어요',   NULL,                  '2026-10-20 12:10:00', '2026-10-20 18:00:00', '2026-10-20 12:10:00', 'FRIEND:3:20261020'),
-                                                                                                                                                                                              (4, 1, NULL, NULL, 'SYSTEM',   '어제의 복용률은 100%예요',            NULL,                  '2026-10-21 08:00:00', '2026-10-21 08:10:00', '2026-10-21 08:00:00', 'SYSTEM:1:20261020'),
-                                                                                                                                                                                              (5, 5, NULL, 4,    'GUARDIAN', '박지호님이 3일째 접속하지 않았어요', NULL,                  '2026-10-20 09:00:00', NULL,                  '2026-10-20 09:00:00', 'GUARDIAN:1:20261020');
+                                                                                                                                                                                              (1, 1, 2,    NULL, 'INTAKE_REMINDER',      '점심 영양제, 챙겨 드셨나요?',       '2026-10-21 12:30:00', '2026-10-21 12:30:00', NULL,                  '2026-10-21 12:30:00', 'INTAKE:1:2026-10-21:12:30'),
+                                                                                                                                                                                              (2, 1, NULL, 2,    'FRIEND_GOAL_ACHIEVED', '김서준님이 오늘의 약속을 완료했어요', NULL,                  '2026-10-21 09:10:00', NULL,                  '2026-10-21 09:10:00', 'FRIEND_GOAL:1:2:2026-10-21'),
+                                                                                                                                                                                              (3, 1, NULL, 3,    'NEW_FOLLOWER',         '이유진님이 팔로우를 요청했어요',      NULL,                  '2026-10-20 15:00:00', '2026-10-20 18:00:00', '2026-10-20 15:00:00', 'FOLLOW:1:3');
 
 -- 팔로우 (김민지는 4명을 팔로우, 3→1은 수락 대기, 5→3은 거절됨) ------
 INSERT INTO `follows` (`follow_id`, `follower_id`, `following_id`, `status`, `created_at`) VALUES
