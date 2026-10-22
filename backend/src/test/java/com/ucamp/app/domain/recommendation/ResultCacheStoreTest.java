@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.recommendation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.cache.CachedLlmOutput;
 import com.ucamp.app.domain.recommendation.cache.InMemoryResultCacheStore;
 import com.ucamp.app.domain.recommendation.cache.RedisResultCacheStore;
@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ResultCacheStoreTest {
     private final CachedLlmOutput value = new CachedLlmOutput(
-            List.of(new CachedLlmOutput.Item("VITAMIN_D", "햇빛", 1)), "요약", "claude-opus-5-5");
+            List.of(new CachedLlmOutput.Item("VITAMIN_D", "햇빛", 1)), "요약", "gpt-6.1-sol");
 
     @Test
     void 메모리_저장소_조회와_TTL_만료() throws Exception {

@@ -1,7 +1,6 @@
 package com.ucamp.app.domain.recommendation.cache;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -29,7 +28,7 @@ public class RedisResultCacheStore implements ResultCacheStore {
         try {
             String json = redis.opsForValue().get(PREFIX + key);
             return json == null ? Optional.empty() : Optional.of(objectMapper.readValue(json, CachedLlmOutput.class));
-        } catch (RuntimeException | JsonProcessingException e) {
+        } catch (RuntimeException e) {
             log.warn("result cache get failed: {}", e.getClass().getSimpleName());
             return Optional.empty();
         }
@@ -39,7 +38,7 @@ public class RedisResultCacheStore implements ResultCacheStore {
     public void put(String key, CachedLlmOutput value, Duration ttl) {
         try {
             redis.opsForValue().set(PREFIX + key, objectMapper.writeValueAsString(value), ttl);
-        } catch (RuntimeException | JsonProcessingException e) {
+        } catch (RuntimeException e) {
             log.warn("result cache put failed: {}", e.getClass().getSimpleName());
         }
     }

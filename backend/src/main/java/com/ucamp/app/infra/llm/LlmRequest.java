@@ -9,7 +9,7 @@ import java.util.List;
  *
  * @param temperature  null이면 보내지 않는다 (최신 모델은 기본값 외 sampling 값을 거부)
  * @param tools        tool use 정의. 비어 있으면 텍스트 응답
- * @param toolName     반드시 쓰게 할 도구 이름 (tool_choice 처리 방식은 AnthropicLlmClient 참고)
+ * @param toolName     구조화 출력에 쓸 도구(스키마) 이름 (SpringAiLlmClient가 response_format json_schema로 보낸다)
  * @param cacheControl true면 고정 부분(tool 정의, 시스템 프롬프트) 끝에 프롬프트 캐시 지점을 표시
  */
 @Builder(toBuilder = true)

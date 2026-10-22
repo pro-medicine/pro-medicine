@@ -1,4 +1,5 @@
 // STEP 10 장애 주입 WireMock 매핑 생성. 실행: node perf/wiremock/gen-scenarios.js  (backend 폴더에서)
+// 응답 형식은 OpenAI Chat Completions (normal/mappings/chat-completions.json). 앱은 Spring AI(OpenAiChatModel)로 호출한다.
 // WireMock은 확률 응답이 없어서 "상태 순환 시나리오"로 비율을 정확히 맞춘다 (요청 순서대로 상태가 하나씩 넘어간다).
 //  - normal : 항상 정상, 지연 3초 (이미 있는 perf/wiremock/normal)
 //  - slow   : 5건 중 1건(20%) 20초 지연, 나머지 3초
@@ -9,15 +10,15 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const okBody = JSON.parse(fs.readFileSync(path.join(ROOT, 'normal', 'mappings', 'messages.json'), 'utf8')).response.jsonBody;
+const okBody = JSON.parse(fs.readFileSync(path.join(ROOT, 'normal', 'mappings', 'chat-completions.json'), 'utf8')).response.jsonBody;
 
 function ok(delay) {
   return {status: 200, fixedDelayMilliseconds: delay, headers: {'Content-Type': 'application/json'}, jsonBody: okBody};
 }
 const error500 = {status: 500, fixedDelayMilliseconds: 200, headers: {'Content-Type': 'application/json'},
-  jsonBody: {type: 'error', error: {type: 'api_error', message: 'injected 500'}}};
+  jsonBody: {error: {message: 'injected 500', type: 'server_error', param: null, code: null}}};
 const tooMany = {status: 429, fixedDelayMilliseconds: 100, headers: {'Content-Type': 'application/json', 'retry-after': '1'},
-  jsonBody: {type: 'error', error: {type: 'rate_limit_error', message: 'injected 429'}}};
+  jsonBody: {error: {message: 'injected 429', type: 'requests', param: null, code: 'rate_limit_exceeded'}}};
 
 function cycle(name, responses) {
   const dir = path.join(ROOT, name, 'mappings');
@@ -28,7 +29,7 @@ function cycle(name, responses) {
     const next = i === responses.length - 1 ? 'Started' : `S${i + 1}`;
     fs.writeFileSync(path.join(dir, `${String(i).padStart(2, '0')}.json`), JSON.stringify({
       scenarioName: name, requiredScenarioState: state, newScenarioState: next,
-      request: {method: 'POST', urlPath: '/v1/messages'}, response}, null, 2));
+      request: {method: 'POST', urlPath: '/v1/chat/completions'}, response}, null, 2));
   });
 }
 
@@ -48,8 +49,8 @@ const outageDir = path.join(ROOT, 'outage', 'mappings');
 fs.rmSync(path.join(ROOT, 'outage'), {recursive: true, force: true});
 fs.mkdirSync(outageDir, {recursive: true});
 fs.writeFileSync(path.join(outageDir, 'normal.json'), JSON.stringify({
-  priority: 5, request: {method: 'POST', urlPath: '/v1/messages'}, response: ok(3000)}, null, 2));
+  priority: 5, request: {method: 'POST', urlPath: '/v1/chat/completions'}, response: ok(3000)}, null, 2));
 fs.writeFileSync(path.join(outageDir, 'outage-500.json'), JSON.stringify({
   id: '00000000-0000-0000-0000-000000000500', priority: 1,
-  request: {method: 'POST', urlPath: '/v1/messages'}, response: error500}, null, 2));
+  request: {method: 'POST', urlPath: '/v1/chat/completions'}, response: error500}, null, 2));
 console.log('generated slow, flaky, outage');

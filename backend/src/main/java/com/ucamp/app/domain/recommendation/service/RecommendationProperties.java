@@ -24,7 +24,7 @@ public class RecommendationProperties {
     @Getter
     @Setter
     public static class Worker {
-        /** 워커 동시 처리 수 = LLM 동시 호출 상한. Anthropic 계정 rate limit을 넘지 않게 정한다 (콘솔 확인 후 조정) */
+        /** 워커 동시 처리 수 = LLM 동시 호출 상한. OpenAI 계정 rate limit을 넘지 않게 정한다 (콘솔 확인 후 조정) */
         private int concurrency = 4;
         private Duration pollTimeout = Duration.ofSeconds(1);
     }

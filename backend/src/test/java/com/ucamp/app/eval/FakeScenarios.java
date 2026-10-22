@@ -1,7 +1,7 @@
 package com.ucamp.app.eval;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.ucamp.app.eval.EvalCaseFile.Dose;
 import com.ucamp.app.eval.EvalCaseFile.EvalCase;
 import com.ucamp.app.infra.llm.FakeLlmClient;

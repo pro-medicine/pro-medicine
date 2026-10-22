@@ -1,16 +1,18 @@
 package com.ucamp.app.perf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.ucamp.app.infra.llm.AnthropicLlmClient;
+import com.ucamp.app.infra.llm.ChatProviderSupport;
+import com.ucamp.app.infra.llm.SpringAiLlmClient;
 import com.ucamp.app.infra.llm.LlmClient;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.support.PerfStats;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -34,7 +36,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 /**
  * k6 대체 로컬 부하 측정 지원 (k6 미설치). 실제 Tomcat(RANDOM_PORT) + 프로세스 안 WireMock(LLM 대체) + JDK HttpClient.
- * 실제 Claude API는 부르지 않는다. 결과는 같은 JVM에서 부하 발생기와 서버가 CPU를 나눠 쓰는 조건이다.
+ * 실제 OpenAI API는 부르지 않는다. 결과는 같은 JVM에서 부하 발생기와 서버가 CPU를 나눠 쓰는 조건이다.
  */
 public final class LoadTestSupport {
     public static final ObjectMapper OM = new ObjectMapper();
@@ -68,26 +70,35 @@ public final class LoadTestSupport {
         return server;
     }
 
+    /** Spring AI(OpenAI) 자동 설정을 WireMock으로 향하게 한다 */
+    public static void wireMockProperties(org.springframework.test.context.DynamicPropertyRegistry r, WireMockServer server) {
+        r.add("spring.ai.model.chat", () -> "openai");
+        r.add("OPENAI_API_KEY", () -> "dummy-key");
+        r.add("spring.ai.openai.base-url", () -> "http://localhost:" + server.port() + "/v1");
+    }
+
     public static int llmCalls(WireMockServer server) {
-        return server.countRequestsMatching(postRequestedFor(urlPathEqualTo("/v1/messages")).build()).getCount();
+        return server.countRequestsMatching(postRequestedFor(urlPathEqualTo("/v1/chat/completions")).build()).getCount();
     }
 
     /**
-     * 원본 LLM 클라이언트(fakeLlmClient 빈)를 "실제 Anthropic HTTP 클라이언트 + WireMock 주소 + 가짜 API 키"로 바꾼다 (테스트 전용).
-     * llm.provider는 기본값(fake) 그대로 두므로 LlmConfig가 그 위에 LoggingLlmClient(·ResilientLlmClient)를 그대로 씌운다.
-     * API 키를 환경변수로만 읽는 운영 코드를 바꾸지 않으려고 빈 후처리로 교체한다.
+     * 원본 LLM 클라이언트(fakeLlmClient 빈)를 "SpringAiLlmClient + Spring AI가 만든 ChatModel(WireMock 주소, 가짜 키)"로 바꾼다 (테스트 전용).
+     * 각 부하 테스트가 spring.ai.model.chat=openai와 spring.ai.openai.base-url(WireMock)을 넣는다 ({@link #wireMockProperties}).
+     * llm.provider는 fake 그대로 두고 빈 후처리로 바꾸는 이유: LLM 동시 호출 수를 세는 CountingLlmClient를 원본 자리에 끼우기 위해서다.
      */
     @TestConfiguration
     public static class WireMockLlmConfig {
         @Bean
         public static BeanPostProcessor wireMockLlmClientReplacer(ObjectProvider<LlmProperties> properties,
-                                                                  ObjectProvider<ObjectMapper> objectMapper) {
+                                                                  ObjectProvider<ObjectMapper> objectMapper,
+                                                                  ObjectProvider<ChatModel> chatModel,
+                                                                  ObjectProvider<ChatProviderSupport> provider) {
             return new BeanPostProcessor() {
                 @Override
                 public Object postProcessAfterInitialization(Object bean, String beanName) {
                     if ("fakeLlmClient".equals(beanName)) {
-                        LlmClient http = new AnthropicLlmClient(properties.getObject(), objectMapper.getObject(),
-                                () -> "dummy-key");
+                        LlmClient http = new SpringAiLlmClient(chatModel.getObject(), provider.getObject(),
+                                properties.getObject(), objectMapper.getObject());
                         return new WireMockBackedLlmClient(objectMapper.getObject(), new CountingLlmClient(http));
                     }
                     return bean;

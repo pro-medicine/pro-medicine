@@ -7,41 +7,31 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 /**
- * llm.* 설정. 기본값은 fake라 API 키 없이도 서버·테스트가 돈다. 실제 API는 local-llm 프로필에서만.
- * API 키는 yml에 쓰지 않는다. ANTHROPIC_API_KEY를 OS 환경변수 또는 backend/.env(Git 제외)에서 읽는다 (LlmConfig).
+ * llm.* 설정 = 추천 파이프라인이 쓰는 값. 기본값은 fake라 API 키 없이도 서버·테스트가 돈다. 실제 API는 local-llm 프로필에서만.
+ * 연결 설정(API 키·주소·재시도·추론 강도)은 Spring AI 표준 설정 spring.ai.* 에 둔다
+ * (기본값: config/recommendation-defaults.properties, 실제 API: application-local-llm.yml).
+ * API 키는 yml에 쓰지 않는다: spring.ai.openai.api-key=${OPENAI_API_KEY:} → OS 환경변수 또는 backend/.env(Git 제외).
  */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "llm")
 public class LlmProperties {
-    /** anthropic | fake */
-    private String provider = "fake";
-    /** 기본 모델. 모델 ID는 Anthropic 문서의 현재 모델 표 기준 (docs/perf/pricing.md) */
-    private String model = "claude-opus-5-5";
+    public static final String PROVIDER_SPRING_AI = "spring-ai";
+    public static final String PROVIDER_FAKE = "fake";
+
+    /** spring-ai(Spring AI가 만든 ChatModel 사용) | fake */
+    private String provider = PROVIDER_FAKE;
+    /** 기본 모델. 모델 ID는 OpenAI 문서의 모델 표 기준 (docs/perf/pricing.md) */
+    private String model = "gpt-6.1-sol";
     /** STEP 08 모델 라우팅의 작은 모델 */
-    private String smallModel = "claude-haiku-5-5";
+    private String smallModel = "gpt-6-luna";
+    /** 요청 타임아웃. spring.ai.openai.chat.timeout이 이 값을 따른다 (recommendation-defaults.properties) */
     private int timeoutMs = 30000;
-    /** 최신 모델은 adaptive thinking이 기본이라 thinking 토큰까지 들어갈 여유를 둔다 */
+    /** 추론 모델은 reasoning 토큰도 이 한도(max_completion_tokens)에 포함되므로 여유를 둔다 */
     private int maxTokens = 8000;
     /** true면 프롬프트·응답 본문을 로컬 파일(build/llm-body/)에만 남긴다. DB에는 절대 저장하지 않음 */
     private boolean logBody = false;
-    private Anthropic anthropic = new Anthropic();
     private Resilience resilience = new Resilience();
-
-    @Getter
-    @Setter
-    public static class Anthropic {
-        private String baseUrl = "https://api.anthropic.com";
-        /** anthropic-version 헤더 */
-        private String version = "2023-06-01";
-        /**
-         * true면 tool_choice {"type":"tool"}로 도구 사용을 강제한다. Claude Opus 5.5 / Sonnet 5.5 등 최신 모델은
-         * 강제 tool_choice를 400으로 거부하므로 기본값은 false (auto + strict 도구 + 프롬프트 지시).
-         */
-        private boolean forceToolChoice = false;
-        /** output_config.effort (low|medium|high|xhigh|max). 비우면 모델 기본값 */
-        private String effort;
-    }
 
     /** STEP 10 장애 대응 (V10). enabled=false면 데코레이터를 붙이지 않는다 (V9 이전과 같은 동작) */
     @Getter

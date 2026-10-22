@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.recommendation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.domain.recommendation.pipeline.V1Pipeline;
 import com.ucamp.app.infra.llm.FakeLlmClient;
@@ -104,10 +104,10 @@ class V1PipelineTest {
         RecommendationResult r = pipeline.run(V0PipelineTest.input());
 
         assertThat(r.parseSuccess()).isTrue();
-        assertThat(fake.requests().get(1).messages().get(0).text()).contains("도구를 호출하지 않았다");
+        assertThat(fake.requests().get(1).messages().get(0).text()).contains("JSON 형식(submit_recommendation 스키마)으로 답하지 않았다");
     }
 
-    private com.fasterxml.jackson.databind.JsonNode read(String s) {
+    private tools.jackson.databind.JsonNode read(String s) {
         try {
             return om.readTree(s);
         } catch (Exception e) {

@@ -1,2 +1,2 @@
-이전 응답이 아래 이유로 검증에 실패했다. 고쳐서 submit_recommendation 도구로 다시 제출해라.
+이전 응답이 아래 이유로 검증에 실패했다. 고쳐서 정해진 JSON 형식(submit_recommendation 스키마)으로 다시 제출해라.
 {{errors}}

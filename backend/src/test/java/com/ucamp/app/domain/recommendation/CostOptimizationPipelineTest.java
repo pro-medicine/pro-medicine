@@ -153,8 +153,8 @@ class CostOptimizationPipelineTest {
 
         registry.get("V8").run(simple);
         registry.get("V8").run(withDrug);
-        assertThat(fake.requests().get(0).model()).isEqualTo("claude-haiku-5-5");
-        assertThat(fake.requests().get(1).model()).isEqualTo("claude-opus-5-5");
+        assertThat(fake.requests().get(0).model()).isEqualTo("gpt-6-luna");
+        assertThat(fake.requests().get(1).model()).isEqualTo("gpt-6.1-sol");
         assertThat(fake.requests().get(1).cacheControl()).isTrue();
     }
 }

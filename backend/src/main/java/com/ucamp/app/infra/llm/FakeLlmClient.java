@@ -1,9 +1,9 @@
 package com.ucamp.app.infra.llm;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -16,15 +16,15 @@ import java.util.function.Function;
 /**
  * 테스트·로컬용 가짜 LLM. 실제 API를 부르지 않는다.
  * - 응답은 responder로 바꿀 수 있다. 기본은 비타민 D 하나를 추천하는 고정 답
- * - tool 정의가 있으면 tool_use 입력으로, 없으면 V0 형식 JSON 텍스트로 답한다
+ * - tool 정의(스키마)가 있으면 구조화 출력(toolInput)으로, 없으면 V0 형식 JSON 텍스트로 답한다
  * - 토큰 사용량은 실제 값이 아니라 글자 수로 계산한 고정 추정치(3글자 ≈ 1토큰)다. 비용 비교에 쓰지 않는다
- * - cacheControl 요청은 API의 프롬프트 캐싱 규칙을 흉내 낸다: 고정 부분(tool 정의 + 시스템)이 최소 길이(추정 512토큰) 이상이면
+ * - cacheControl 요청은 API의 프롬프트 캐싱 규칙을 흉내 낸다: 고정 부분(스키마 + 시스템)이 최소 길이(추정 1024토큰) 이상이면
  *   모델별 첫 요청은 cache_creation, 같은 고정 부분의 다음 요청은 cache_read로 센다 (만료 없음)
  */
 public class FakeLlmClient implements LlmClient {
     public static final String FAKE_MODEL_SUFFIX = "-fake";
-    /** Opus 5.5 / Sonnet 5.5 / Haiku 5.5의 최소 캐시 길이 (Anthropic 문서) */
-    static final int MIN_CACHEABLE_TOKENS = 512;
+    /** GPT-5.6 이후 모델의 최소 캐시 길이 (OpenAI 프롬프트 캐싱 문서) */
+    static final int MIN_CACHEABLE_TOKENS = 1024;
     private final java.util.Set<String> cachedPrefixes = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private final ObjectMapper objectMapper;
@@ -73,11 +73,11 @@ public class FakeLlmClient implements LlmClient {
     }
 
     public LlmResponse textResponse(LlmRequest request, String text) {
-        return base(request, text).stopReason("end_turn").build();
+        return base(request, text).stopReason("stop").build();
     }
 
     public LlmResponse toolResponse(LlmRequest request, String toolName, JsonNode input) {
-        return base(request, "").toolName(toolName).toolInput(input).stopReason("tool_use").build();
+        return base(request, "").toolName(toolName).toolInput(input).stopReason("stop").build();
     }
 
     private LlmResponse.LlmResponseBuilder base(LlmRequest request, String outputText) {

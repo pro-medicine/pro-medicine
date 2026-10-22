@@ -3,7 +3,7 @@
   "priority": 1,
   "request": {
     "method": "POST",
-    "urlPath": "/v1/messages"
+    "urlPath": "/v1/chat/completions"
   },
   "response": {
     "status": 500,
@@ -12,10 +12,11 @@
       "Content-Type": "application/json"
     },
     "jsonBody": {
-      "type": "error",
       "error": {
-        "type": "api_error",
-        "message": "injected 500"
+        "message": "injected 500",
+        "type": "server_error",
+        "param": null,
+        "code": null
       }
     }
   }

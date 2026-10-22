@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.survey.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.dto.MedicationEntry;
 import com.ucamp.app.domain.health.entity.IngredientCode;
 import com.ucamp.app.domain.survey.dto.SupplementIntake;
@@ -80,7 +80,7 @@ public class SurveyAnswerParser {
                 throw invalid();
             }
             return root;
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (tools.jackson.core.JacksonException e) {
             throw invalid();
         }
     }
@@ -90,10 +90,10 @@ public class SurveyAnswerParser {
         if (v == null || v.isNull()) {
             return null;
         }
-        if (!v.isTextual() || v.asText().isBlank()) {
+        if (!v.isString() || v.asString().isBlank()) {
             throw invalid();
         }
-        return v.asText().strip();
+        return v.asString().strip();
     }
 
     private static BusinessException invalid() {

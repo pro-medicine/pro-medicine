@@ -1,12 +1,12 @@
 package com.ucamp.app.domain.recommendation.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
 
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -52,7 +52,7 @@ public record RecommendationResponse(
             try {
                 return objectMapper.readValue(json, new TypeReference<>() {
                 });
-            } catch (IOException e) {
+            } catch (JacksonException e) {
                 return List.of(json);
             }
         }

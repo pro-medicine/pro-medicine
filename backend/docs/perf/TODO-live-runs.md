@@ -1,12 +1,12 @@
 # 실제 API로 직접 실행할 명령 (실제 측정 대기)
 
-밤새 실행은 실제 API 예산 0달러라 Claude API를 한 번도 부르지 않았다. 아래 명령을 **STEP 순서대로** 직접 실행하면 각 리포트의 "실제 측정 대기" 칸을 채울 수 있다.
+밤새 실행(2026-10-21)은 실제 API 예산 0달러라 LLM API를 한 번도 부르지 않았다. 2026-10-22에 LLM을 OpenAI(Spring AI)로 바꿨다. 아래 명령을 **STEP 순서대로** 직접 실행하면 각 리포트의 "실제 측정 대기" 칸을 채울 수 있다.
 
 ## 공통 준비
 
-1. Anthropic Console에서 API 키 발급 → `backend/.env`에 `ANTHROPIC_API_KEY=발급받은-키` 한 줄 추가 (Git 제외 파일. OS 환경변수로 설정해도 된다)
+1. OpenAI 플랫폼에서 API 키 발급 → `backend/.env`에 `OPENAI_API_KEY=발급받은-키` 한 줄 추가 (Git 제외 파일. OS 환경변수로 설정해도 된다)
 2. 모든 명령은 **`backend` 폴더**에서 실행한다 (`cd backend`). Git Bash면 `sh ./gradlew`, PowerShell이면 `.\gradlew.bat`
-3. 단가: [pricing.md](pricing.md) (2026-10-21 확인). 비용은 모델에 따라 크게 다르다 (기본 `claude-opus-5-5`).
+3. 단가: [pricing.md](pricing.md) (2026-10-22 확인). 비용은 모델에 따라 크게 다르다 (기본 `gpt-6.1-sol`, 작은 모델 `gpt-6-luna`).
 4. `evalRun`은 `-Pconfirm=true`가 없으면 예상 호출 수·비용만 출력하고 끝난다. 먼저 confirm 없이 돌려 예상치를 확인한다.
 
 ## STEP 03 - 연결 확인
@@ -45,7 +45,7 @@ FROM llm_call_logs ORDER BY llm_call_log_id DESC LIMIT 3;
 | 05-1 | `./gradlew evalRun -PpipelineVersion=V1 -Pconfirm=true` | 32 ~ 64 (재요청 포함) | parse_fail_rate, note의 repair_calls, avg_input_tokens (V0 대비) |
 | 05-2 | `./gradlew evalRun -PpipelineVersion=V1 -Pmode=repro -Pconfirm=true` | 50 ~ 100 | reproducibility_set / dose |
 
-Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)이다. 다른 모델로 강제 비교를 하려면 `--llm.anthropic.force-tool-choice=true`.
+OpenAI에서는 tool calling 대신 structured outputs(json_schema strict)로 형식을 강제한다 (`gpt-6.1-sol`은 Chat Completions tool calling 미지원). parse_fail_rate는 거의 0이어야 정상이다.
 
 ## STEP 06 - V2 용량 계산 분리
 
@@ -74,7 +74,7 @@ Opus 5.5에서 `tool_choice` 강제가 400이면 정상 동작(기본값 auto)�
 | # | 명령 | 예상 호출 수 | 확인할 것 |
 | --- | --- | ---: | --- |
 | 08-1 | `./gradlew evalRun -PpipelineVersion=V6 -Ppasses=2 -Pconfirm=true` | 32 ~ 64 (2회차는 0) | pass1/pass2 두 줄, cache_hit_rate, cost_per_req_usd |
-| 08-2 | `./gradlew evalRun -PpipelineVersion=V7 -Pconfirm=true` | 32 ~ 64 | avg_cache_read_tokens, note의 avg_cache_creation_tokens (0이면 고정 부분이 최소 길이 미만) |
+| 08-2 | `./gradlew evalRun -PpipelineVersion=V7 -Pconfirm=true` | 32 ~ 64 | avg_cache_read_tokens, note의 avg_cache_creation_tokens (0이면 고정 부분이 최소 1,024토큰 미만). OpenAI는 자동 캐싱이라 V4 실행에도 캐시 읽기가 있을 수 있다 → V4의 avg_cache_read_tokens와 함께 비교 |
 | 08-3 | `./gradlew evalRun -PpipelineVersion=V8 -Pconfirm=true` | 32 ~ 64 (작은 모델 13케이스) | note의 calls_by_model, recall_by_routed_model, cost_per_req_usd |
 | 08-4 | k6 (WireMock, 비용 없음): `perf/k6/cache-load.js` 머리말의 준비 순서대로 V4, V6 서버에 각각 실행 | 0 (WireMock) | TPS, p95, WireMock 호출 수 |
 
@@ -84,7 +84,7 @@ k6 설치: `winget install k6 --source winget`. 08-4는 실제 API를 쓰지 않
 
 | # | 명령 | 예상 호출 수 | 확인할 것 |
 | --- | --- | ---: | --- |
-| 09-0 | Anthropic Console에서 계정 rate limit(분당 요청·토큰) 확인 → `recommendation.worker.concurrency`, `llm.resilience.bulkhead-max-concurrent` 조정 | 0 | progress "결정한 것"에 값 기록 |
+| 09-0 | OpenAI 플랫폼(Limits)에서 계정 rate limit(분당 요청·토큰) 확인 → `recommendation.worker.concurrency`, `llm.resilience.bulkhead-max-concurrent` 조정 | 0 | progress "결정한 것"에 값 기록 |
 | 09-1 | k6 (WireMock, 비용 없음): `perf/k6/spike.js` 머리말 순서대로 sync / vt / queue 서버 × steady / spike-burst / spike-spread | 0 | TPS, p95, 에러율, complete_ms |
 
 ## STEP 10 - 장애 대응

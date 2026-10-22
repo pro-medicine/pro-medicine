@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.ucamp.app.domain.health.entity.IngredientCode;
 import com.ucamp.app.domain.recommendation.cache.CachedLlmOutput;
 import com.ucamp.app.infra.llm.LlmMessage;
@@ -118,7 +118,7 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
             }
             used = repair;
         }
-        return new LlmPart(true, toItems(used.toolInput()), used.toolInput().path("summary").asText(null),
+        return new LlmPart(true, toItems(used.toolInput()), used.toolInput().path("summary").asString(null),
                 used.model(), logIds, null);
     }
 
@@ -162,11 +162,11 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
             String unit = null;
             if (options.llmDose() && r.hasNonNull("amount")) {
                 amount = r.get("amount").decimalValue();
-                unit = r.path("unit").asText(null);
+                unit = r.path("unit").asString(null);
             }
             items.add(RecommendationItem.builder()
-                    .ingredient(r.get("ingredient").asText())
-                    .reason(r.get("reason").asText())
+                    .ingredient(r.get("ingredient").asString())
+                    .reason(r.get("reason").asString())
                     .sortOrder(r.get("priority").asInt())
                     .amount(amount)
                     .unit(unit)

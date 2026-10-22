@@ -1,6 +1,6 @@
 package com.ucamp.app.eval;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.entity.Drug;
 import com.ucamp.app.domain.health.repository.DrugRepository;
 import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 
 /**
  * 평가 실행 진입점. ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=N] [-Prepeats=R] [-Pmode=repro]
- *   [-Pllm=anthropic|fake|fake-noisy] [-Pconfirm=true] [-Pmodel=...] [-Plabel=...] [-Pnote=...]
- * - 실제 API(-Pllm=anthropic, 기본)는 -Pconfirm=true가 없으면 예상 호출 수·비용만 출력하고 끝낸다
+ *   [-Pllm=openai|fake|fake-noisy] [-Pconfirm=true] [-Pmodel=...] [-Plabel=...] [-Pnote=...]
+ * - 실제 API(-Pllm=openai, 기본)는 -Pconfirm=true가 없으면 예상 호출 수·비용만 출력하고 끝낸다
  * - 결과: docs/perf/results.csv 한 줄 + docs/perf/runs/{eval_run_id}.json
  * - Fake로 돌린 결과는 label에 fake가 붙는다 (실제 측정값이 아님)
  */
@@ -65,8 +65,11 @@ class EvalRunTest {
 
     @DynamicPropertySource
     static void llmProvider(DynamicPropertyRegistry registry) {
-        String llm = System.getProperty("eval.llm", "anthropic");
-        registry.add("llm.provider", () -> "anthropic".equalsIgnoreCase(llm) ? "anthropic" : "fake");
+        String llm = System.getProperty("eval.llm", "openai");
+        if ("openai".equalsIgnoreCase(llm)) {
+            registry.add("llm.provider", () -> "spring-ai");
+            registry.add("spring.ai.model.chat", () -> "openai");
+        }
         String model = System.getProperty("eval.model");
         if (model != null && !model.isBlank()) {
             registry.add("llm.model", () -> model);
@@ -79,10 +82,10 @@ class EvalRunTest {
         boolean repro = "repro".equalsIgnoreCase(System.getProperty("eval.mode", "full"));
         int caseLimit = Integer.parseInt(System.getProperty("eval.cases", "0"));
         int repeats = repro ? 5 : Integer.parseInt(System.getProperty("eval.repeats", "1"));
-        EvalRunner.LlmMode mode = switch (System.getProperty("eval.llm", "anthropic").toLowerCase()) {
+        EvalRunner.LlmMode mode = switch (System.getProperty("eval.llm", "openai").toLowerCase()) {
             case "fake" -> EvalRunner.LlmMode.FAKE;
             case "fake-noisy" -> EvalRunner.LlmMode.FAKE_NOISY;
-            default -> EvalRunner.LlmMode.ANTHROPIC;
+            default -> EvalRunner.LlmMode.OPENAI;
         };
         boolean confirm = Boolean.parseBoolean(System.getProperty("eval.confirm", "false"));
 
@@ -98,7 +101,7 @@ class EvalRunTest {
         if (llmFree) {
             mode = EvalRunner.LlmMode.FAKE;
         }
-        if (mode == EvalRunner.LlmMode.ANTHROPIC) {
+        if (mode == EvalRunner.LlmMode.OPENAI) {
             int maxCalls = "V0".equals(version) ? runs : runs * 2;
             EvalCost.Price price = EvalCost.price(llmProperties.getModel());
             String cost = price == null ? "단가 미등록 모델"
@@ -206,7 +209,7 @@ class EvalRunTest {
         if (s.llmErrors() > 0) {
             sb.append("; llm_errors=").append(s.llmErrors());
         }
-        if (!llmFree && s.config().llmMode() != EvalRunner.LlmMode.ANTHROPIC) {
+        if (!llmFree && s.config().llmMode() != EvalRunner.LlmMode.OPENAI) {
             sb.append("; FAKE LLM - 러너 검증용, 실제 측정값 아님 (토큰은 글자 수 추정치)");
         }
         if (extra != null && !extra.isBlank()) {

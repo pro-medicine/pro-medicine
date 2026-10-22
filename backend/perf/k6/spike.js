@@ -2,7 +2,7 @@
 // 준비 (backend 폴더):
 //   1) WireMock: docker run --rm -p 8089:8080 -v "$PWD/perf/wiremock/normal:/home/wiremock" wiremock/wiremock:3.13.2 --async-response-enabled=true --container-threads=800
 //   2) 서버 (세 구조 중 하나). 같은 자원 조건: --server.tomcat.threads.max=50
-//      V9-sync : ANTHROPIC_API_KEY=dummy ./gradlew bootRun --args='--llm.provider=anthropic --llm.anthropic.base-url=http://localhost:8089 --recommendation.pipeline-version=V4 --server.tomcat.threads.max=50'
+//      V9-sync : OPENAI_API_KEY=dummy ./gradlew bootRun --args='--llm.provider=spring-ai --spring.ai.model.chat=openai --spring.ai.openai.base-url=http://localhost:8089/v1 --recommendation.pipeline-version=V4 --server.tomcat.threads.max=50'
 //      V9-vt   : 위 + --spring.threads.virtual.enabled=true
 //      V9-queue: 위 + --recommendation.api-mode=queue --recommendation.worker.concurrency=20 (Redis 큐면 --recommendation.queue.store=redis)
 //   3) 응답 ID 준비: 비회원 설문을 N건 제출해 둔다 (setup()이 한다)

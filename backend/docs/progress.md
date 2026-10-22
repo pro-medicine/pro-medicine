@@ -122,6 +122,15 @@
 - (STEP 10) 장애 주입은 WireMock 상태 순환 시나리오로 비율을 정확히 맞췄다 (확률 응답 기능이 없어서). outage 복구는 테스트에서 500 매핑을 지워서 만든다.
 - (STEP 10) 측정 결과 slow 시나리오에서 15초 타임아웃이 20초 느린 응답을 실패·재시도로 바꿔 p95가 나빠졌다 → 타임아웃은 실제 API 지연을 잰 뒤 정한다 (TODO 10-0).
 
+- (2026-10-22, 사용자 결정) LLM을 Claude(직접 HTTP)에서 **OpenAI + Spring AI**로 바꿨다. Claude 직접 호출(`AnthropicLlmClient`)은 삭제. 모든 실제 호출은 `LlmClient` → `SpringAiLlmClient` → Spring AI `OpenAiChatModel`(공식 openai-java SDK). 기본 `gpt-6.1-sol`, 작은 모델 `gpt-6-luna` (단가 2026-10-22 확인 → `perf/pricing.md`). 키는 `backend/.env`의 `OPENAI_API_KEY`.
+- (2026-10-22, 사용자 결정) Spring Boot 3.5.6 → **4.1.1**. 이유: Spring AI 2.x(정식판, 공식 OpenAI SDK 기반)가 Boot 4 필요. 1.1.x로 만들고 나중에 Jackson 3·Spring AI 2로 두 번 옮기는 비용을 피함. 함께 바뀐 것: Jackson 2 → 3(`tools.jackson.*`, 애너테이션은 `com.fasterxml.jackson.annotation` 그대로), `spring-boot-starter-web` → `-webmvc`, Resilience4j `-spring-boot3` → `-spring-boot4:2.4.0`, 테스트 모듈 `spring-boot-starter-webmvc-test`·`-data-jpa-test`·`-micrometer-metrics-test` (`@AutoConfigureObservability` → `@AutoConfigureMetrics`). **팀 전체 백엔드 버전이 바뀌므로 develop 반영 전 공유 필요.**
+- (2026-10-22) `org.springframework.ai:spring-ai-starter-model-openai` (BOM 2.0.1) implementation 추가. 연결은 Spring AI 표준 자동 설정(`spring.ai.*`)에 맡기고, 기본값 `spring.ai.model.chat=none`(그 밖의 embedding·image·audio·moderation도 none)이라 키 없는 팀원·테스트 환경에서도 서버가 뜬다. `local-llm` 프로필에서 `spring.ai.model.chat=openai`, `llm.provider=spring-ai`. 키는 `spring.ai.openai.api-key=${OPENAI_API_KEY:}`, SDK 재시도 0(`spring.ai.openai.max-retries`), 타임아웃은 `spring.ai.openai.chat.timeout=${llm.timeout-ms}ms`.
+- (2026-10-22) 구조: `SpringAiLlmClient`는 Spring AI 공통 API(`ChatModel`, `ChatOptions`, `StructuredOutputChatOptions.outputSchema`)만 쓰고, 회사별 차이(출력 토큰 파라미터, strict, prompt_cache_key, SDK 예외 변환, 캐시 토큰 포함 여부)는 `ChatProviderSupport` 인터페이스(지금 구현 `OpenAiProviderSupport`)로 분리. 다른 회사로 바꿀 때 = starter + `spring.ai.*` + 이 빈 하나.
+- (2026-10-22) 연동 검증: WireMock으로 설문→추천 전체 흐름(`SpringAiWiringTest`), 실제 API 2회(`liveTest`). 결과는 `docs/llm-integration-report.md`.
+- (2026-10-22) 출력 형식 강제를 tool use → structured outputs(`response_format` json_schema strict)로 바꿨다. `gpt-6.1-sol`이 Chat Completions에서 tool calling을 지원하지 않고(모델 문서), Spring AI 2.0은 Responses API를 지원하지 않는다(2.1 마일스톤부터). 응답 JSON은 `LlmResponse.toolInput`에 넣어 파이프라인은 그대로다.
+- (2026-10-22) 프롬프트 캐싱: OpenAI는 자동(최소 1,024토큰)이라 V7은 `prompt_cache_key`만 보낸다. `usage.prompt_tokens`에 캐시분이 포함되므로 클라이언트에서 빼서 기록. Fake의 최소 캐시 길이도 512 → 1024 추정 토큰으로 맞췄다.
+- (2026-10-22) 부하 테스트 WireMock 매핑(`perf/wiremock/*`)을 OpenAI Chat Completions 형식(`/v1/chat/completions`)으로 다시 만들었다. 이전 results.csv 줄(Claude 형식 WireMock)은 그대로 두고, 재측정 줄은 note로 구분한다.
+
 ## 막힌 것
 
 - 없음 (대체 방식으로 진행한 항목은 맨 위 "밤새 실행 요약" 2번)

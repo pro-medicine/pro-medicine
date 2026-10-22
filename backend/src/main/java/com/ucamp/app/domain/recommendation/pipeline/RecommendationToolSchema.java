@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * submit_recommendation 도구 정의 (JSON Schema, strict). V1은 amount·unit 포함, V2부터는 뺀다.
- * strict 도구는 additionalProperties=false와 모든 속성의 required가 필요하다 (Anthropic 문서).
+ * strict 도구는 additionalProperties=false와 모든 속성의 required가 필요하다 (OpenAI structured outputs 문서).
  */
 public final class RecommendationToolSchema {
     public static final String TOOL_NAME = "submit_recommendation";

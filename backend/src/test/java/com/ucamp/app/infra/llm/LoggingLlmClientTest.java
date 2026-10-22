@@ -27,7 +27,7 @@ class LoggingLlmClientTest {
 
     @Test
     void 성공_호출을_기록하고_행_ID를_돌려준다() {
-        LlmClient delegate = req -> LlmResponse.builder().text("ok").model("claude-opus-5-5")
+        LlmClient delegate = req -> LlmResponse.builder().text("ok").model("gpt-6.1-sol")
                 .usage(new LlmUsage(100, 20, 5, 0)).latencyMs(1234).build();
         LoggingLlmClient client = new LoggingLlmClient(delegate, logService);
 
@@ -77,7 +77,7 @@ class LoggingLlmClientTest {
     }
 
     private static LlmRequest request(String evalRunId) {
-        return LlmRequest.builder().model("claude-opus-5-5").system("s").messages(List.of(LlmMessage.user("u")))
+        return LlmRequest.builder().model("gpt-6.1-sol").system("s").messages(List.of(LlmMessage.user("u")))
                 .maxTokens(10).callTag(LlmRequest.TAG_RECOMMEND).pipelineVersion("V0").promptVersion("v0.1")
                 .evalRunId(evalRunId).build();
     }

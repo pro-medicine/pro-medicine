@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.recommendation;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationOutputValidator;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +26,7 @@ class RecommendationOutputValidatorTest {
 
     @Test
     void 도구를_호출하지_않음() {
-        assertThat(validator.validate(null, true)).containsExactly("submit_recommendation 도구를 호출하지 않았다");
+        assertThat(validator.validate(null, true)).containsExactly("정해진 JSON 형식(submit_recommendation 스키마)으로 답하지 않았다");
     }
 
     @Test

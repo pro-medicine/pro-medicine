@@ -1,13 +1,13 @@
 package com.ucamp.app.domain.recommendation;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmCallException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,10 +51,10 @@ class QueueModeTest {
         long responseId = submitSurvey();
 
         JsonNode accepted = create(responseId, 202);
-        assertThat(accepted.get("status").asText()).isIn("PENDING", "PROCESSING");
+        assertThat(accepted.get("status").asString()).isIn("PENDING", "PROCESSING");
 
         JsonNode done = waitUntilFinished(accepted.get("recommendationId").asLong());
-        assertThat(done.get("status").asText()).isEqualTo("DONE");
+        assertThat(done.get("status").asString()).isEqualTo("DONE");
         assertThat(done.get("items").size()).isPositive();
     }
 
@@ -91,8 +91,8 @@ class QueueModeTest {
 
         JsonNode done = waitUntilFinished(create(responseId, 202).get("recommendationId").asLong());
 
-        assertThat(done.get("status").asText()).isEqualTo("FAILED");
-        assertThat(done.get("errorCode").asText()).isEqualTo("R003");
+        assertThat(done.get("status").asString()).isEqualTo("FAILED");
+        assertThat(done.get("errorCode").asString()).isEqualTo("R003");
     }
 
     private long submitSurvey() throws Exception {
@@ -114,7 +114,7 @@ class QueueModeTest {
         for (int i = 0; i < 100; i++) {
             JsonNode data = body(mockMvc.perform(get("/api/v1/recommendations/" + recommendationId))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
-            String s = data.get("status").asText();
+            String s = data.get("status").asString();
             if ("DONE".equals(s) || "FAILED".equals(s)) {
                 return data;
             }

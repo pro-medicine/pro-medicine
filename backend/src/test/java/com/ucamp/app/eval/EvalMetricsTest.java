@@ -1,6 +1,6 @@
 package com.ucamp.app.eval;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.eval.EvalCaseFile.Dose;
 import com.ucamp.app.eval.EvalCaseFile.EvalCase;
 import com.ucamp.app.eval.EvalCaseFile.Expected;

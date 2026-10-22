@@ -1,0 +1,16 @@
+{
+  "model" : "gpt-6.1-sol",
+  "latencyMs" : 2938,
+  "usage" : {
+    "inputTokens" : 64,
+    "outputTokens" : 16,
+    "cacheReadTokens" : 0,
+    "cacheCreationTokens" : 0
+  },
+  "requestId" : "chatcmpl-Ebd5XRHRKfDRtY4PWZJFMJuBJqfs0",
+  "stopReason" : "STOP",
+  "toolInput" : {
+    "number" : 2,
+    "status" : "ok"
+  }
+}

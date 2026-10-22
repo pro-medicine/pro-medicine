@@ -1,6 +1,6 @@
 package com.ucamp.app.perf;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.ucamp.app.domain.recommendation.perf.NotificationSpikeSimulator;
 import com.ucamp.app.eval.EvalRunner;
@@ -62,7 +62,7 @@ class StructureLoadPerfTest {
     }
 
     static void base(DynamicPropertyRegistry r) {
-        r.add("llm.anthropic.base-url", () -> "http://localhost:" + WIREMOCK.port());
+        LoadTestSupport.wireMockProperties(r, WIREMOCK);
         r.add("recommendation.pipeline-version", () -> "V4");
         r.add("server.tomcat.threads.max", () -> String.valueOf(TOMCAT_THREADS));
         r.add("recommendation.worker.concurrency", () -> String.valueOf(WORKERS));
@@ -343,7 +343,7 @@ class StructureLoadPerfTest {
         while (System.nanoTime() < deadlineNanos) {
             HttpResponse<String> r = LoadTestSupport.get(client, base + "/api/v1/recommendations/" + id, CLIENT_TIMEOUT);
             JsonNode data = OM.readTree(r.body()).get("data");
-            String status = data == null ? "" : data.get("status").asText();
+            String status = data == null ? "" : data.get("status").asString();
             if ("DONE".equals(status)) {
                 return true;
             }

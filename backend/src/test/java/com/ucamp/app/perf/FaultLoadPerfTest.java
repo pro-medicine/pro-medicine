@@ -1,6 +1,6 @@
 package com.ucamp.app.perf;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.ucamp.app.domain.recommendation.queue.RecommendationQueue;
@@ -62,7 +62,7 @@ class FaultLoadPerfTest {
     }
 
     static void base(DynamicPropertyRegistry r) {
-        r.add("llm.anthropic.base-url", () -> "http://localhost:" + WIREMOCK.port());
+        LoadTestSupport.wireMockProperties(r, WIREMOCK);
         r.add("recommendation.pipeline-version", () -> "V4");
         r.add("recommendation.api-mode", () -> "queue");
         r.add("recommendation.worker.concurrency", () -> String.valueOf(WORKERS));
@@ -279,7 +279,7 @@ class FaultLoadPerfTest {
                 HttpResponse<String> g = LoadTestSupport.get(client, base + "/api/v1/recommendations/" + id,
                         Duration.ofSeconds(30));
                 JsonNode data = OM.readTree(g.body()).get("data");
-                String status = data.get("status").asText();
+                String status = data.get("status").asString();
                 if ("DONE".equals(status) || "FAILED".equals(status)) {
                     long now = System.nanoTime();
                     return new Outcome(status, data.path("fallback").asBoolean(false), (now - start) / 1_000_000.0, now);

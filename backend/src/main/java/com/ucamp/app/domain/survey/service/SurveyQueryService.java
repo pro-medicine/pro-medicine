@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.survey.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.dto.HealthProfileSnapshot;
 import com.ucamp.app.domain.health.dto.MedicationInfo;
 import com.ucamp.app.domain.health.service.HealthProfileService;
@@ -150,7 +150,7 @@ public class SurveyQueryService {
                 .toList();
         try {
             return objectMapper.writeValueAsString(items);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException(e);
         }
     }

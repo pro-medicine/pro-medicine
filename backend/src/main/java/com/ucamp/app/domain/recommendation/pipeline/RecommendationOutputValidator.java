@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.ucamp.app.domain.health.entity.IngredientCode;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +20,7 @@ public class RecommendationOutputValidator {
     public List<String> validate(JsonNode input, boolean withDose) {
         List<String> errors = new ArrayList<>();
         if (input == null || input.isNull() || input.isMissingNode()) {
-            errors.add("submit_recommendation 도구를 호출하지 않았다");
+            errors.add("정해진 JSON 형식(submit_recommendation 스키마)으로 답하지 않았다");
             return errors;
         }
         if (!input.isObject()) {
@@ -28,7 +28,7 @@ public class RecommendationOutputValidator {
             return errors;
         }
         JsonNode summary = input.get("summary");
-        if (summary == null || !summary.isTextual()) {
+        if (summary == null || !summary.isString()) {
             errors.add("summary(문자열)가 없다");
         }
         JsonNode recs = input.get("recommendations");
@@ -47,15 +47,15 @@ public class RecommendationOutputValidator {
                 continue;
             }
             JsonNode ingredient = r.get("ingredient");
-            if (ingredient == null || !ingredient.isTextual()) {
+            if (ingredient == null || !ingredient.isString()) {
                 errors.add(at + ".ingredient가 없다");
-            } else if (IngredientCode.find(ingredient.asText()).isEmpty()) {
-                errors.add(at + ".ingredient '" + ingredient.asText() + "'는 허용된 성분 코드가 아니다");
-            } else if (!seen.add(ingredient.asText())) {
-                errors.add(at + ".ingredient '" + ingredient.asText() + "'가 중복됐다");
+            } else if (IngredientCode.find(ingredient.asString()).isEmpty()) {
+                errors.add(at + ".ingredient '" + ingredient.asString() + "'는 허용된 성분 코드가 아니다");
+            } else if (!seen.add(ingredient.asString())) {
+                errors.add(at + ".ingredient '" + ingredient.asString() + "'가 중복됐다");
             }
             JsonNode reason = r.get("reason");
-            if (reason == null || !reason.isTextual() || reason.asText().isBlank()) {
+            if (reason == null || !reason.isString() || reason.asString().isBlank()) {
                 errors.add(at + ".reason이 없다");
             }
             JsonNode priority = r.get("priority");
@@ -70,7 +70,7 @@ public class RecommendationOutputValidator {
                 if (amount != null && !amount.isNull() && (!amount.isNumber() || amount.decimalValue().signum() < 0)) {
                     errors.add(at + ".amount는 0 이상 숫자 또는 null이어야 한다");
                 }
-                if (unit != null && !unit.isNull() && !unit.isTextual()) {
+                if (unit != null && !unit.isNull() && !unit.isString()) {
                     errors.add(at + ".unit은 문자열 또는 null이어야 한다");
                 }
                 boolean hasAmount = amount != null && !amount.isNull();

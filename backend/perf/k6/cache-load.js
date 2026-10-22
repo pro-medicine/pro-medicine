@@ -4,12 +4,12 @@
 //   2) WireMock (LLM 대체, 고정 지연 3초):
 //      docker run --rm -p 8089:8080 -v "$PWD/perf/wiremock/normal:/home/wiremock" wiremock/wiremock:3.13.2 --async-response-enabled=true --container-threads=500
 //   3) 서버 (V4 또는 V6). API 키는 WireMock이라 아무 값이나 된다:
-//      ANTHROPIC_API_KEY=dummy ./gradlew bootRun --args='--llm.provider=anthropic --llm.anthropic.base-url=http://localhost:8089 --recommendation.pipeline-version=V4'
+//      OPENAI_API_KEY=dummy ./gradlew bootRun --args='--llm.provider=spring-ai --spring.ai.model.chat=openai --spring.ai.openai.base-url=http://localhost:8089/v1 --recommendation.pipeline-version=V4'
 //      (로컬 MySQL에 docs/sql/STEP02~07 시드가 있어야 한다)
 // 실행:
 //   k6 run -e BASE_URL=http://localhost:8080 -e LABEL=V4 perf/k6/cache-load.js
 //   k6 run -e BASE_URL=http://localhost:8080 -e LABEL=V6 perf/k6/cache-load.js
-// LLM 호출 수: curl -s http://localhost:8089/__admin/requests/count -d '{"method":"POST","url":"/v1/messages"}'
+// LLM 호출 수: curl -s http://localhost:8089/__admin/requests/count -d '{"method":"POST","url":"/v1/chat/completions"}'
 import http from 'k6/http';
 import { check } from 'k6';
 import { SharedArray } from 'k6/data';

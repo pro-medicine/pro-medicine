@@ -1,7 +1,6 @@
 package com.ucamp.app.eval;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.entity.Drug;
 import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
@@ -38,7 +37,7 @@ import java.util.stream.Collectors;
  */
 public class EvalRunner {
 
-    public enum LlmMode {ANTHROPIC, FAKE, FAKE_NOISY}
+    public enum LlmMode {OPENAI, FAKE, FAKE_NOISY}
 
     /** 평가 실행 조건. caseLimit = 0이면 전체 */
     public record Config(String pipelineVersion, boolean repro, int caseLimit, int repeats, LlmMode llmMode,
@@ -213,7 +212,7 @@ public class EvalRunner {
             case FAKE -> fakeLlmClient.answerWith(FakeScenarios.oracle(c, aliases));
             case FAKE_NOISY -> fakeLlmClient.setResponder(FakeScenarios.noisy(c, aliases, fakeLlmClient, objectMapper,
                     (c.caseId() + "#" + rep + "#" + config.pipelineVersion().charAt(0)).hashCode()));
-            case ANTHROPIC -> {
+            case OPENAI -> {
             }
         }
     }
@@ -313,7 +312,7 @@ public class EvalRunner {
                 Map.entry("cacheHitRate", String.valueOf(s.cacheHitRate()))));
         root.put("runs", s.details());
         Path out = dir.resolve(s.config().evalRunId() + ".json");
-        Files.writeString(out, objectMapper.copy().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(root));
+        Files.writeString(out, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root));
         return out;
     }
 }

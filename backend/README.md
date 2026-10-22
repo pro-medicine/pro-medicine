@@ -9,9 +9,9 @@
 
 | 항목 | 용도 | 비고 |
 | --- | --- | --- |
-| Java 21 | 빌드·실행 | |
+| Java 21 | 빌드·실행 | Spring Boot 4.1.1 (Jackson 3) |
 | MySQL | 로컬 DB | `.env`의 `MYSQL_URL`, `MYSQL_USERNAME`, `MYSQL_PASSWORD` (팀 공통 설정) |
-| `ANTHROPIC_API_KEY` | 실제 Claude API | `backend/.env`(Git 제외)에 `ANTHROPIC_API_KEY=...` 한 줄, 또는 OS 환경변수. `bootRun`·`evalRun`·`liveTest` 모두 읽는다. `local-llm` 프로필에서만 사용. 코드·yml에 키를 쓰지 않는다 |
+| `OPENAI_API_KEY` | 실제 OpenAI API (Spring AI 2.0.1) | `backend/.env`(Git 제외)에 `OPENAI_API_KEY=...` 한 줄, 또는 OS 환경변수. `bootRun`·`evalRun`·`liveTest` 모두 읽는다. `local-llm` 프로필에서만 사용. 코드·yml에 키를 쓰지 않는다 |
 | Redis (선택) | 결과 캐시·큐를 Redis로 쓸 때 | 기본은 메모리. `docker run -d -p 6379:6379 redis:7-alpine` |
 | Docker (선택) | Redis, WireMock, k6 | |
 
@@ -34,7 +34,7 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 # 기본: LLM = Fake (API 키 없이 동작, 고정 응답)
 .\gradlew.bat bootRun
 
-# 실제 Claude API (application-local-llm.yml)
+# 실제 OpenAI API (application-local-llm.yml)
 .\gradlew.bat bootRun --args='--spring.profiles.active=local-llm --recommendation.pipeline-version=V4'
 ```
 
@@ -42,8 +42,10 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 
 | 설정 | 기본값 | 설명 |
 | --- | --- | --- |
-| `llm.provider` | fake | `anthropic`이면 실제 API (`local-llm` 프로필) |
-| `llm.model` / `llm.small-model` | claude-opus-5-5 / claude-haiku-5-5 | 단가: [docs/perf/pricing.md](docs/perf/pricing.md) |
+| `llm.provider` | fake | `spring-ai`면 실제 API (`local-llm` 프로필). 호출은 `LlmClient` → `SpringAiLlmClient` → Spring AI `ChatModel`(지금은 OpenAI) |
+| `spring.ai.model.chat` | none | `openai`면 Spring AI가 ChatModel을 만든다 (`local-llm` 프로필). 연결 설정은 `spring.ai.openai.*` (키 `${OPENAI_API_KEY}`, 재시도 0, 타임아웃 = `llm.timeout-ms`) |
+| `llm.model` / `llm.small-model` | gpt-6.1-sol / gpt-6-luna | 단가: [docs/perf/pricing.md](docs/perf/pricing.md) |
+| `spring.ai.openai.chat.reasoning-effort` | (모델 기본값 medium) | low·medium·high·xhigh·max |
 | `recommendation.pipeline-version` | V0 | V0~V4, V6~V8, RULE_ONLY |
 | `recommendation.api-mode` | sync | `queue`면 202 접수 + 워커 |
 | `recommendation.worker.concurrency` | 4 | 큐 워커 = LLM 동시 호출 상한 (계정 rate limit에 맞춤) |
@@ -57,7 +59,7 @@ API 명세: [docs/api/survey-api.md](docs/api/survey-api.md), [docs/api/recommen
 ```powershell
 .\gradlew.bat test          # 실제 MySQL·API 없이 H2 + Fake LLM + WireMock
 $env:REDIS_HOST="localhost"; .\gradlew.bat test   # Redis 실연결 테스트까지
-.\gradlew.bat liveTest      # 실제 Claude API 1회 (비용 발생)
+.\gradlew.bat liveTest      # 실제 OpenAI API 1회 (비용 발생, 1센트 미만)
 ```
 
 ## 3. 평가 (품질 지표 → docs/perf/results.csv)

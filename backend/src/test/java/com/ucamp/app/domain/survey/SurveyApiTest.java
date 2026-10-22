@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.survey;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.entity.HealthProfile;
 import com.ucamp.app.domain.health.entity.UserCondition;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
@@ -17,7 +17,7 @@ import com.ucamp.app.support.TestUsers;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -72,7 +72,7 @@ class SurveyApiTest {
     void 비회원_설문_시작_민감_문항이_없다() throws Exception {
         JsonNode data = getActive(null);
 
-        assertThat(data.get("respondentType").asText()).isEqualTo("GUEST");
+        assertThat(data.get("respondentType").asString()).isEqualTo("GUEST");
         List<String> codes = codes(data);
         assertThat(codes).hasSize(11)
                 .doesNotContain("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS");
@@ -91,7 +91,7 @@ class SurveyApiTest {
 
         JsonNode data = getActive(user.getId());
 
-        assertThat(data.get("respondentType").asText()).isEqualTo("MEMBER");
+        assertThat(data.get("respondentType").asString()).isEqualTo("MEMBER");
         assertThat(codes(data)).hasSize(14).contains("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS");
         JsonNode smoking = question(data, "Q-SMOKING");
         assertThat(smoking.get("prefill").get("optionIds").get(0).asLong()).isEqualTo(SMOKING_HALF_PACK);
@@ -118,9 +118,9 @@ class SurveyApiTest {
         JsonNode data = getActive(user.getId());
 
         assertThat(question(data, "Q-CONDITIONS").get("prefill").get("optionIds").size()).isEqualTo(2);
-        JsonNode meds = objectMapper.readTree(question(data, "Q-MEDICATIONS").get("prefill").get("valueText").asText());
-        assertThat(meds.get(0).get("drugId").asText()).isEqualTo("D-003");
-        assertThat(meds.get(1).get("name").asText()).isEqualTo("마스터에 없는 약");
+        JsonNode meds = objectMapper.readTree(question(data, "Q-MEDICATIONS").get("prefill").get("valueText").asString());
+        assertThat(meds.get(0).get("drugId").asString()).isEqualTo("D-003");
+        assertThat(meds.get(1).get("name").asString()).isEqualTo("마스터에 없는 약");
     }
 
     @Test
@@ -333,13 +333,13 @@ class SurveyApiTest {
 
     private static List<String> codes(JsonNode data) {
         List<String> codes = new ArrayList<>();
-        data.get("questions").forEach(q -> codes.add(q.get("code").asText()));
+        data.get("questions").forEach(q -> codes.add(q.get("code").asString()));
         return codes;
     }
 
     private static JsonNode question(JsonNode data, String code) {
         for (JsonNode q : data.get("questions")) {
-            if (q.get("code").asText().equals(code)) {
+            if (q.get("code").asString().equals(code)) {
                 return q;
             }
         }

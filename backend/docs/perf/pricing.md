@@ -1,27 +1,31 @@
 # 토큰 단가 (USD / 100만 토큰)
 
-- 출처: Anthropic 공식 가격표 https://platform.claude.com/docs/en/about-claude/pricing (docs.claude.com에서 리다이렉트)
-- 확인 날짜: **2026-10-21**
-- 기준: 1st-party Claude API, 글로벌 라우팅(기본값). `inference_geo`로 US 전용을 쓰면 전 항목 1.1배.
+- 출처: OpenAI 공식 가격표 https://developers.openai.com/api/docs/pricing , 프롬프트 캐싱 https://developers.openai.com/api/docs/guides/prompt-caching
+- 확인 날짜: **2026-10-22**
+- 기준: Standard 티어, 짧은 컨텍스트(입력 272K 토큰 이하). 지역 처리(data residency)는 10% 추가.
+- 2026-10-22에 LLM을 Claude(직접 HTTP)에서 OpenAI(Spring AI)로 바꿨다. 이전 Claude 단가는 이 파일의 git 기록(2026-10-21)에 있다.
 
-| 모델 | 모델 ID | 입력 | 캐시 쓰기 (5분) | 캐시 쓰기 (1시간) | 캐시 읽기 | 출력 | 이 프로젝트에서 |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Claude Opus 5.5 | `claude-opus-5-5` | 4.00 | 5.00 | 8.00 | 0.20 | 20.00 | 기본 모델 (`llm.model`) |
-| Claude Sonnet 5.5 | `claude-sonnet-5-5` | 2.00 | 2.50 | 4.00 | 0.10 | 10.00 | 비교 후보 |
-| Claude Haiku 5.5 (프롬프트 10만 토큰 이하) | `claude-haiku-5-5` | 0.10 | 0.125 | 0.20 | 0.01 | 0.50 | 작은 모델 (`llm.small-model`, STEP 08 라우팅) |
-| Claude Haiku 5.5 (프롬프트 10만 토큰 초과) | `claude-haiku-5-5` | 0.50 | 0.625 | 1.00 | 0.05 | 2.50 | 해당 없음 (추천 프롬프트는 수천 토큰) |
+| 모델 | 모델 ID | 입력 | 캐시 쓰기 (30분) | 캐시 읽기 | 출력 | 이 프로젝트에서 |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| GPT-6.1 Sol | `gpt-6.1-sol` | 2.00 | 2.50 | 0.10 | 10.00 | 기본 모델 (`llm.model`) |
+| GPT-6 Luna | `gpt-6-luna` | 0.10 | 0.125 | 0.01 | 0.50 | 작은 모델 (`llm.small-model`, STEP 08 라우팅) |
+| GPT-6 Astra | `gpt-6-astra` | 10.00 | 12.50 | 1.00 | 50.00 | 비교 후보 (OpenAI 문서 기본 권장) |
+
+- 캐시 쓰기: GPT-5.6 이후 모델은 30분 보관 쓰기가 입력 단가의 1.25배 (가격표에 별도 칸이 없어 캐싱 문서 기준으로 계산).
+- 캐시 읽기: 가격표의 cached input 단가 (GPT-6.1 Sol은 입력의 0.05배).
 
 ## 비용 계산식 (평가 러너 `EvalCost`)
 
 ```text
-요청당 비용 = (input × 입력 + cache_creation × 캐시쓰기(5분) + cache_read × 캐시읽기 + output × 출력) / 1,000,000
+요청당 비용 = (input × 입력 + cache_write × 캐시쓰기 + cache_read × 캐시읽기 + output × 출력) / 1,000,000
 ```
 
-- Messages API `usage.input_tokens`는 캐시 읽기·쓰기 토큰을 뺀 나머지 입력이다. 세 값을 따로 곱해서 더한다.
-- tool use를 쓰면 API가 시스템 프롬프트에 도구 사용 안내를 붙인다 (가격표 기준 Opus 5.5 / Sonnet 5.5 / Haiku 5.5: `auto` 선택 시 286토큰). 이 토큰도 `input_tokens`에 포함되어 돌아온다.
-- 최신 모델(Opus 5.5 등)은 adaptive thinking이 항상 켜져 있어 thinking 토큰도 출력 토큰으로 과금된다.
+- OpenAI `usage.prompt_tokens`는 캐시 읽기·쓰기 토큰을 포함한다. `SpringAiLlmClient`가 캐시분을 빼서 `input_tokens`(llm_call_logs)에 넣으므로 세 값을 따로 곱해서 더한다.
+- 추론(reasoning) 토큰은 `completion_tokens`에 포함되어 출력 단가로 과금된다.
+- 최소 캐시 길이: 1,024토큰 (GPT-5.6 이후). 캐싱은 자동이고, `prompt_cache_key`는 같은 고정 부분끼리 묶는 용도다.
 
 ## 모델 선택 메모
 
-- 모델 결정은 사용자 몫이다 (STEP 03 "사용자가 먼저 해야 할 것"). 지금은 Anthropic 문서의 기본 권장 모델인 `claude-opus-5-5`를 기본값으로 두었다.
+- 2026-10-22 사용자 결정: OpenAI 사용, 기본 `gpt-6.1-sol` + 작은 모델 `gpt-6-luna`.
+- `gpt-6.1-sol`은 Chat Completions에서 tool calling을 지원하지 않는다 (모델 문서). 그래서 출력 형식은 structured outputs(`response_format` json_schema strict)로 강제한다.
 - 바꾸려면 `application-local-llm.yml`의 `llm.model` 또는 실행 인자 `--llm.model=...`. 평가 러너는 `-Pmodel=...`.

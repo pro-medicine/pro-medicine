@@ -1,7 +1,6 @@
 package com.ucamp.app.domain.survey;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
@@ -13,7 +12,7 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -78,7 +77,7 @@ class SurveyApiPerfTest {
         result.put("submit_member", measure(submitRequest(member.getId())).summary());
         result.put("submit_guest", measure(submitGuestRequest()).summary());
 
-        String json = objectMapper.copy().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(result);
+        String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
         Path out = Path.of("docs/perf/runs/STEP02-survey-" + result.get("label") + ".json");
         Files.createDirectories(out.getParent());
         Files.writeString(out, json);

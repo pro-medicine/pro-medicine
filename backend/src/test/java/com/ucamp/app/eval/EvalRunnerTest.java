@@ -1,6 +1,6 @@
 package com.ucamp.app.eval;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.entity.Drug;
 import com.ucamp.app.domain.health.repository.DrugRepository;
 import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
@@ -70,8 +70,8 @@ class EvalRunnerTest {
                 "{\"recommendations\":[{\"name\":\"베타카로틴\"},{\"name\":\"칼륨\"}],\"summary\":\"x\"}"));
         EvalRunner r = new EvalRunner(pipelineRegistry, drugs(), fake, logRepository,
                 IngredientAliases.load(objectMapper), objectMapper, null, null);
-        // ANTHROPIC 모드는 러너가 Fake 응답을 바꾸지 않으므로 위에서 정한 응답이 그대로 쓰인다
-        EvalRunner.Summary s = r.run(config("V0", EvalRunner.LlmMode.ANTHROPIC, "test-wrong"), cases());
+        // OPENAI 모드는 러너가 Fake 응답을 바꾸지 않으므로 위에서 정한 응답이 그대로 쓰인다
+        EvalRunner.Summary s = r.run(config("V0", EvalRunner.LlmMode.OPENAI, "test-wrong"), cases());
         fake.reset();
 
         assertThat(s.metrics().recall()).isEqualTo(0.0);

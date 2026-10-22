@@ -1,0 +1,22 @@
+{
+  "code" : "S000",
+  "data" : {
+    "recommendationId" : 2,
+    "responseId" : 3,
+    "status" : "DONE",
+    "errorCode" : null,
+    "modelName" : "gpt-6.1-sol",
+    "summary" : "재요청",
+    "createdAt" : "2026-10-22T11:43:41.4913913",
+    "items" : [ {
+      "ingredient" : "VITAMIN_D",
+      "reason" : "재요청 응답",
+      "sortOrder" : 1,
+      "doseNote" : "기준값 미등록"
+    } ],
+    "excludedItems" : [ ],
+    "fallback" : false
+  },
+  "message" : "성공",
+  "success" : true
+}

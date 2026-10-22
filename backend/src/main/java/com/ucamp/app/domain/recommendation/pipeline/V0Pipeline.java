@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.recommendation.pipeline;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmClient;
 import com.ucamp.app.infra.llm.LlmMessage;
@@ -13,7 +13,7 @@ import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,30 +98,30 @@ public class V0Pipeline implements RecommendationPipeline {
             List<RecommendationItem> items = new ArrayList<>();
             int order = 1;
             for (JsonNode r : recs) {
-                String name = r.path("name").asText("").strip();
+                String name = r.path("name").asString("").strip();
                 if (name.isEmpty()) {
                     return Parsed.fail("EMPTY_NAME");
                 }
                 items.add(RecommendationItem.builder()
                         .ingredient(name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name)
-                        .reason(r.path("reason").asText(null))
+                        .reason(r.path("reason").asString(null))
                         .sortOrder(order++)
                         .amount(r.path("amount").isNumber() ? r.path("amount").decimalValue() : decimalOrNull(r.path("amount")))
-                        .unit(r.path("unit").isTextual() ? r.path("unit").asText() : null)
+                        .unit(r.path("unit").isString() ? r.path("unit").asString() : null)
                         .build());
             }
-            return new Parsed(items, root.path("summary").asText(null), null);
-        } catch (IOException e) {
+            return new Parsed(items, root.path("summary").asString(null), null);
+        } catch (JacksonException e) {
             return Parsed.fail("INVALID_JSON");
         }
     }
 
     private static BigDecimal decimalOrNull(JsonNode node) {
-        if (node == null || !node.isTextual()) {
+        if (node == null || !node.isString()) {
             return null;
         }
         try {
-            return new BigDecimal(node.asText().strip());
+            return new BigDecimal(node.asString().strip());
         } catch (NumberFormatException e) {
             return null;
         }

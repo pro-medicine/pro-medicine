@@ -4,8 +4,8 @@ import com.ucamp.app.domain.recommendation.dose.DoseCalculator;
 import com.ucamp.app.domain.recommendation.dose.DoseCalculator.DoseResult;
 import com.ucamp.app.domain.recommendation.dose.Standard;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput.Intake;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

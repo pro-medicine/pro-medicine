@@ -1,7 +1,7 @@
 package com.ucamp.app.domain.recommendation;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.domain.health.entity.HealthProfile;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
@@ -14,8 +14,8 @@ import com.ucamp.app.support.TestUsers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // 설문 제출 → 입력 조립 → 추천 생성(Fake LLM) → 조회
 // 테스트는 기본으로 메트릭 내보내기를 끄므로 prometheus 확인을 위해 켠다
-@AutoConfigureObservability(tracing = false)
+@AutoConfigureMetrics
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
