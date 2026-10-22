@@ -1,11 +1,11 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { useEffect, useState } from "react";
 import { getHome, updateIntake } from "./homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
 import RecommendBanner from "./RecommendBanner";
 import "./home.css";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * props (App.jsx에서 전달)
@@ -16,6 +16,8 @@ export default function HomePage({ userId = 1, onOpenNotifications }) {
     const [home, setHome] = useState(null); // 홈 데이터
     const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
     const [error, setError] = useState(""); // 저장 실패 메시지
+    const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
+    const pendingRef = useRef(new Set());              // 연속 클릭을 즉시 막기 위한 기록
 
     // 1) 화면이 처음 열릴 때 GET /home 호출
     useEffect(() => {
@@ -47,18 +49,28 @@ export default function HomePage({ userId = 1, onOpenNotifications }) {
     };
 
     // 4) 복용 체크: 화면 먼저 바꾸고 → 서버 저장 실패하면 되돌리기
+    //    저장 중인 카드는 다시 못 누르게 해서, 늦게 끝난 요청이 최신 상태를 덮어쓰지 않게 한다.
     const handleToggle = async (id) => {
+        if (pendingRef.current.has(id)) return; // 이 카드는 저장 중 → 클릭 무시
+
         const next = !supplements.find((s) => s.id === id).taken;
         setTaken(id, next);
         setError("");
 
         if (isSample) return; // 예시 데이터일 때는 서버 저장 안 함
 
+        pendingRef.current.add(id);
+        setPendingIds((prev) => [...prev, id]);
+
         try {
             await updateIntake(userId, id, next);
         } catch (e) {
             setTaken(id, !next);
             setError("복용 체크를 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+        } finally {
+            // 성공이든 실패든 끝나면 다시 누를 수 있게
+            pendingRef.current.delete(id);
+            setPendingIds((prev) => prev.filter((p) => p !== id));
         }
     };
 
@@ -82,6 +94,7 @@ export default function HomePage({ userId = 1, onOpenNotifications }) {
                     supplements={supplements}
                     done={done}
                     total={total}
+                    pendingIds={pendingIds}
                     onToggle={handleToggle}
                 />
                 {error && <p className="home-error">{error}</p>}

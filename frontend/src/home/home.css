@@ -95,4 +95,5 @@
   .home-promise-title { font-size: 28px; }
   .home-ring { transform: scale(0.75); }
   .home-supp-grid { grid-template-columns: 1fr; }
+  .home-page .home-supp-card:disabled { opacity: 0.6; cursor: wait; }
 }

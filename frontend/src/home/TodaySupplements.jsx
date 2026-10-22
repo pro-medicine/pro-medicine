@@ -29,6 +29,7 @@ export default function TodaySupplements({ supplements, done, total, onToggle })
                             className={`home-supp-card ${s.taken ? "is-taken" : ""}`}
                             onClick={() => onToggle(s.id)}
                             aria-pressed={s.taken}
+                            disabled={pendingIds.includes(s.id)}
                         >
                             <SupplementBottle color={s.color} />
 
