@@ -52,7 +52,6 @@ public class NotificationService {
 
     /**
      * 알림을 저장한다. 같은 dedupKey의 알림이 이미 있으면 저장하지 않는다.
-     * @return 새로 저장했으면 true, 이미 있어서 건너뛰었으면 false
      */
     @Transactional
     public void create(Long receiverId, NotificationType type, String title,
