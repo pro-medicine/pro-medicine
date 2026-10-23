@@ -3,6 +3,7 @@ import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
 import "./friends.css";
+import AddFriendModal from "./AddFriendModal";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
 const COLORS = ["mint", "blue", "yellow", "pink"];
@@ -36,6 +37,7 @@ export default function FriendsScreen({ onNotifications }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedFriend, setSelectedFriend] = useState(null); // 추가
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -110,7 +112,10 @@ export default function FriendsScreen({ onNotifications }) {
             <span className="section-label">MY FRIENDS</span>
             <h2>친구들의 오늘</h2>
           </div>
-          <button className="add-friend-button">
+          <button
+            className="add-friend-button"
+            onClick={() => setAddOpen(true)}
+          >
             <Icon name="plus" size={16} />
             친구 추가
           </button>
@@ -166,6 +171,9 @@ export default function FriendsScreen({ onNotifications }) {
             ))}
         </div>
       </section>
+      {addOpen && (
+        <AddFriendModal userId={userId} onClose={() => setAddOpen(false)} />
+      )}
     </div>
   );
 }
