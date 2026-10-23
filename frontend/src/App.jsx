@@ -1,72 +1,31 @@
-import { useMemo, useState } from "react";
-import { BottomNav, NotificationPanel } from "./common/AppChrome";
-import DisposalMapPage from "./disposal/DisposalMapPage";
-import FriendsPage from "./friends/FriendsPage";
-import { SurveyModal } from "./home/HomeFeature";
-import HomePage from "./home/HomePage";
-import MyPage from "./mypage/MyPage";
+import { useState } from "react";
+import HomePage from "./home";
+import { BottomNav } from "./common/AppChrome"; // 실제 파일 경로에 맞게 수정
+// import { NotificationPanel } from "./NotificationPanel"; // 실제 파일 경로에 맞게 수정
+import FriendScreen from "./friends/FriendsPage";
+import DisposalMapScreen from "./disposal/DisposalMapPage";
+import ProfileScreen from "./mypage/MyPage";
 
 export default function App() {
+  const userId = 1; // TODO: 로그인 연동 후 실제 사용자 id
+
   const [tab, setTab] = useState("home");
-  const [selectedFriend, setSelectedFriend] = useState(null);
-  const [surveyOpen, setSurveyOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-
-  const content = useMemo(() => {
-    const openNotifications = () => setNotificationsOpen(true);
-
-    if (selectedFriend) {
-      return (
-        <MyPage
-          friend={selectedFriend}
-          onBack={() => setSelectedFriend(null)}
-          onOpenNotifications={openNotifications}
-        />
-      );
-    }
-
-    if (tab === "friends") {
-      return (
-        <FriendsPage
-          onSelect={setSelectedFriend}
-          onNotifications={openNotifications}
-        />
-      );
-    }
-
-    if (tab === "my") {
-      return <MyPage onNotifications={openNotifications} />;
-    }
-
-    if (tab === "disposal") {
-      return <DisposalMapPage onNotifications={openNotifications} />;
-    }
-
-    return (
-      <HomePage
-        onOpenNotifications={openNotifications}
-        onSurvey={() => setSurveyOpen(true)}
-      />
-    );
-  }, [selectedFriend, tab]);
-
-  const changeTab = (nextTab) => {
-    setSelectedFriend(null);
-    setTab(nextTab);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <div className="app-shell">
-      <main>{content}</main>
-
-      {!selectedFriend && <BottomNav tab={tab} onChange={changeTab} />}
-
-      {surveyOpen && <SurveyModal onClose={() => setSurveyOpen(false)} />}
-
-      {notificationsOpen && (
-        <NotificationPanel onClose={() => setNotificationsOpen(false)} />
+    <>
+      {tab === "home" && (
+        <HomePage userId={userId} onOpenNotifications={() => {}} />
       )}
-    </div>
+      {tab === "friends" && <FriendScreen onNotifications={() => {}} />}
+      {tab === "disposal" && <DisposalMapScreen onNotifications={() => {}} />}
+      {tab === "my" && <ProfileScreen />}
+
+      <BottomNav tab={tab} onChange={setTab} />
+
+      {/* {showNotifications && (
+        <NotificationPanel onClose={() => setShowNotifications(false)} />
+      )} */}
+    </>
   );
 }

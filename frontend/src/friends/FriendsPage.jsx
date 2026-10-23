@@ -1,35 +1,73 @@
 import { useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
+import ProfileScreen from "../mypage/MyPage";
 import "./friends.css";
 
-export default function FriendsScreen({ onSelect, onNotifications }) {
-  // 로그인 기능이 아직 없다면 임시로 테스트
+// 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
+const COLORS = ["mint", "blue", "yellow", "pink"];
+
+// API 응답 → 기존 Friend 모양으로 변환
+// 서버에 아직 없는 값(relation, status, streak, supplements, completed)은 기본값
+function toFriend(item, index) {
+  const supplements = item.supplements ?? [];
+  const completed = item.completed ?? 0;
+
+  return {
+    ...item,
+    id: item.followId,
+    name: item.nickname ?? "",
+    initial: item.nickname?.charAt(0) ?? "?",
+    color: item.color ?? COLORS[index % COLORS.length],
+    relation: item.relation ?? "친구",
+    status: item.status ?? "아직 복용 기록이 없어요",
+    streak: item.streak ?? 0,
+    supplements,
+    completed,
+  };
+}
+
+export default function FriendsScreen({ onNotifications }) {
+  // TODO: 로그인 연동 후 실제 사용자 id
   const userId = 1;
 
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedFriend, setSelectedFriend] = useState(null); // 추가
 
   useEffect(() => {
+    let ignore = false;
+
     getFriends(userId)
       .then((data) => {
-        setFriends(data ?? []);
+        if (!ignore) setFriends((data ?? []).map(toFriend));
       })
       .catch((err) => {
         console.error(err);
-        setError(err.message || "친구 목록을 불러오지 못했습니다.");
+        if (!ignore)
+          setError(err.message || "친구 목록을 불러오지 못했습니다.");
       })
       .finally(() => {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       });
-  }, []);
 
-  const filtered = friends.filter((friend) =>
-    friend.nickname.toLowerCase().includes(query.toLowerCase()),
-  );
+    return () => {
+      ignore = true;
+    };
+  }, [userId]);
 
+  const filtered = friends.filter((friend) => friend.name.includes(query));
+  if (selectedFriend) {
+    return (
+      <ProfileScreen
+        friend={selectedFriend}
+        onBack={() => setSelectedFriend(null)}
+        onNotifications={onNotifications}
+      />
+    );
+  }
   return (
     <div className="screen">
       <TopBar
@@ -54,14 +92,12 @@ export default function FriendsScreen({ onSelect, onNotifications }) {
           <h2>친구 {friends.length}명이 함께하고 있어요</h2>
           <p>서로의 건강 루틴을 보며 꾸준한 습관을 만들어요.</p>
         </div>
-
         <div className="stacked-avatars">
           {friends.slice(0, 3).map((friend) => (
-            <span className="avatar mint" key={friend.followId}>
-              {friend.nickname?.charAt(0) ?? "?"}
+            <span className={`avatar ${friend.color}`} key={friend.id}>
+              {friend.initial}
             </span>
           ))}
-
           {friends.length > 3 && (
             <span className="avatar more">+{friends.length - 3}</span>
           )}
@@ -74,47 +110,60 @@ export default function FriendsScreen({ onSelect, onNotifications }) {
             <span className="section-label">MY FRIENDS</span>
             <h2>친구들의 오늘</h2>
           </div>
-
-          <button
-            className="add-friend-button"
-            onClick={() => {
-              // TODO: 친구 추가 기능 연결
-            }}
-          >
+          <button className="add-friend-button">
             <Icon name="plus" size={16} />
             친구 추가
           </button>
         </div>
 
         <div className="friend-list">
-          {loading ? (
-            <p>친구 목록을 불러오는 중...</p>
-          ) : error ? (
-            <p>{error}</p>
-          ) : filtered.length === 0 ? (
-            <p>등록된 친구가 없습니다.</p>
-          ) : (
+          {loading && <p>친구 목록을 불러오는 중...</p>}
+          {!loading && error && <p>{error}</p>}
+          {!loading && !error && filtered.length === 0 && (
+            <p>
+              {friends.length === 0
+                ? "등록된 친구가 없습니다."
+                : "검색 결과가 없습니다."}
+            </p>
+          )}
+
+          {!loading &&
+            !error &&
             filtered.map((friend) => (
               <button
                 className="friend-row"
-                key={friend.followId}
-                onClick={() => onSelect(friend)}
+                key={friend.id}
+                onClick={() => setSelectedFriend(friend)}
               >
-                <span className="avatar large mint">
-                  {friend.nickname.charAt(0)}
+                <span className={`avatar large ${friend.color}`}>
+                  {friend.initial}
                 </span>
-
                 <span className="friend-copy">
                   <span>
-                    <strong>{friend.nickname}</strong>
+                    <strong>{friend.name}</strong>
+                    <small>{friend.relation}</small>
                   </span>
-                  <small>친구 ID: {friend.userId}</small>
+                  <span className="friend-status">
+                    <i
+                      className={
+                        friend.supplements.length > 0 &&
+                        friend.completed === friend.supplements.length
+                          ? "complete"
+                          : ""
+                      }
+                    />
+                    {friend.status}
+                  </span>
                 </span>
-
+                <span className="friend-meta">
+                  <span>
+                    <b>{friend.streak}</b>일째
+                  </span>
+                  <small>{friend.supplements.length}개 복용 중</small>
+                </span>
                 <Icon name="chevron" size={18} />
               </button>
-            ))
-          )}
+            ))}
         </div>
       </section>
     </div>
