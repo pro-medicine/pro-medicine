@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
-import KakaoMap from "./KakaoMap";
+import KakaoMap from "./KaKaoMap";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const RADII = [500, 1000, 2000, 3000];
