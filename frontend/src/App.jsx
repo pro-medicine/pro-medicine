@@ -9,7 +9,6 @@ import MyPage from "./mypage/MyPage";
 export default function App() {
   const [tab, setTab] = useState("home");
   const [selectedFriend, setSelectedFriend] = useState(null);
-  const [completed, setCompleted] = useState([1]);
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -21,7 +20,7 @@ export default function App() {
         <MyPage
           friend={selectedFriend}
           onBack={() => setSelectedFriend(null)}
-          onNotifications={openNotifications}
+          onOpenNotifications={openNotifications}
         />
       );
     }
@@ -45,19 +44,11 @@ export default function App() {
 
     return (
       <HomePage
-        completed={completed}
-        onNotifications={openNotifications}
+        onOpenNotifications={openNotifications}
         onSurvey={() => setSurveyOpen(true)}
-        toggleComplete={(id) =>
-          setCompleted((items) =>
-            items.includes(id)
-              ? items.filter((item) => item !== id)
-              : [...items, id],
-          )
-        }
       />
     );
-  }, [completed, selectedFriend, tab]);
+  }, [selectedFriend, tab]);
 
   const changeTab = (nextTab) => {
     setSelectedFriend(null);
