@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { BottomNav, NotificationPanel } from "./common/AppChrome";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
-import { HomeScreen, SurveyModal } from "./home/HomeFeature";
+import { SurveyModal } from "./home/HomeFeature";
+import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 
 export default function App() {
@@ -43,7 +44,7 @@ export default function App() {
     }
 
     return (
-      <HomeScreen
+      <HomePage
         completed={completed}
         onNotifications={openNotifications}
         onSurvey={() => setSurveyOpen(true)}
