@@ -1,4 +1,3 @@
-
 package com.ucamp.app.domain.disposal.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,7 +18,6 @@ public class DisposalService {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(3))
                 .build();
-
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(5));
 
@@ -33,6 +31,21 @@ public class DisposalService {
     public JsonNode searchPlaces(String query) {
         return kakaoRestClient.get()
                 .uri("/v2/local/search/keyword.json?query={query}&category_group_code=PM9&size=15", query)
+                .retrieve()
+                .body(JsonNode.class);
+    }
+
+    public JsonNode searchNearby(double latitude, double longitude, int radius) {
+        return kakaoRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/v2/local/search/category.json")
+                        .queryParam("category_group_code", "PM9")
+                        .queryParam("x", longitude)
+                        .queryParam("y", latitude)
+                        .queryParam("radius", radius)
+                        .queryParam("sort", "distance")
+                        .queryParam("size", 15)
+                        .build())
                 .retrieve()
                 .body(JsonNode.class);
     }
