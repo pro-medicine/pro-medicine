@@ -22,6 +22,9 @@ public class IntakeReminderScheduler {
 
     private final IntakeReminderService intakeReminderService;
 
+    /**
+     * 매분 0초에 현재 한국 시각 기준으로 복용 알림을 생성한다.
+     */
     @Scheduled(cron = "0 * * * * *", zone = KST)
     public void sendIntakeReminders() {
         try {
