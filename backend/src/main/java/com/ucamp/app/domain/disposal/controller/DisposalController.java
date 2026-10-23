@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.global.exception.ErrorCode;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,33 +32,48 @@ public class DisposalController {
             @RequestParam(required = false) String query) {
 
         if (query == null || query.isBlank() || query.trim().length() > 100) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("D001", "검색어는 1~100자로 입력해주세요."));
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_QUERY);
         }
 
         return ResponseEntity.ok(
                 ApiResponse.success(disposalService.searchPlaces(query.trim())));
     }
 
+
     @GetMapping("/nearby")
     public ResponseEntity<ApiResponse<JsonNode>> searchNearby(
-            @RequestParam(required = false) Double latitude,
-            @RequestParam(required = false) Double longitude,
-            @RequestParam(defaultValue = "1000") Integer radius) {
+            @RequestParam(required = false) String latitude,
+            @RequestParam(required = false) String longitude,
+            @RequestParam(defaultValue = "1000") String radius) {
 
-        if (latitude == null || longitude == null ||
-                !Double.isFinite(latitude) || !Double.isFinite(longitude) ||
-                latitude < -90 || latitude > 90 ||
-                longitude < -180 || longitude > 180 ||
-                radius == null ||
-                (radius != 500 && radius != 1000 && radius != 2000 && radius != 3000)) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("D003", "올바른 위치 좌표와 검색 반경(500/1000/2000/3000m)을 입력해주세요."));
+        if (latitude == null || longitude == null || radius == null) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
+        }
+
+        double parsedLatitude;
+        double parsedLongitude;
+        int parsedRadius;
+
+        try {
+            parsedLatitude = Double.parseDouble(latitude);
+            parsedLongitude = Double.parseDouble(longitude);
+            parsedRadius = Integer.parseInt(radius);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
+        }
+
+        if (!Double.isFinite(parsedLatitude) || !Double.isFinite(parsedLongitude) ||
+                parsedLatitude < -90 || parsedLatitude > 90 ||
+                parsedLongitude < -180 || parsedLongitude > 180 ||
+                (parsedRadius != 500 && parsedRadius != 1000 &&
+                        parsedRadius != 2000 && parsedRadius != 3000)) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
         }
 
         return ResponseEntity.ok(ApiResponse.success(
-                disposalService.searchNearby(latitude, longitude, radius)));
+                disposalService.searchNearby(parsedLatitude, parsedLongitude, parsedRadius)));
     }
+
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidParameter(MethodArgumentTypeMismatchException ex) {
