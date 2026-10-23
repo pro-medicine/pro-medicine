@@ -37,7 +37,8 @@ public class UserConditionService {
     @Transactional
     public UserConditionsResponse replaceConditions(Long userId, UserConditionsRequest request) {
         List<String> names = normalize(request);
-        User user = userRepository.findById(userId)
+        // 동시에 들어온 교체 요청이 서로의 결과를 합치지 않도록 유저 행을 잠그고 진행
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         userConditionRepository.deleteAllByUser_Id(userId);
