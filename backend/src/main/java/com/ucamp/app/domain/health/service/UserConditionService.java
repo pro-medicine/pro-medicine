@@ -12,9 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,33 +36,49 @@ public class UserConditionService {
     @Transactional
     public UserConditionsResponse replaceConditions(Long userId, UserConditionsRequest request) {
         List<String> names = normalize(request);
-        // 동시에 들어온 교체 요청이 서로의 결과를 합치지 않도록 유저 행을 잠그고 진행
-        User user = userRepository.findByIdForUpdate(userId)
+
+        // 유저를 잠가서 조회: 같은 유저가 동시에 저장해도 한 번에 하나씩 처리돼서 두 목록이 섞이지 않음
+        User user = userRepository.findWithLockById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 1. 기존 질환 전부 삭제
         userConditionRepository.deleteAllByUser_Id(userId);
-        // 같은 이름을 다시 저장할 때 (user_id, condition_name) 중복이 나지 않도록 삭제를 먼저 반영
+        // 같은 이름을 다시 저장할 때 중복 오류가 나지 않도록 삭제를 DB에 먼저 반영
         userConditionRepository.flush();
 
-        List<UserCondition> saved = userConditionRepository.saveAll(names.stream()
-                .map(name -> UserCondition.builder().user(user).conditionName(name).build())
-                .toList());
+        // 2. 요청한 질환 저장
+        List<UserCondition> saved = new ArrayList<>();
+        for (String name : names) {
+            UserCondition condition = UserCondition.builder()
+                    .user(user)
+                    .conditionName(name)
+                    .build();
+            saved.add(userConditionRepository.save(condition));
+        }
         return toResponse(userId, saved);
     }
 
-    // 앞뒤 공백 제거, 중복 제거(순서 유지), 빈 값이나 70자 초과는 잘못된 요청
+    // 질환 이름 정리: 앞뒤 공백 제거, 같은 이름은 한 번만 / 빈 이름, 70자 초과는 잘못된 요청
     private List<String> normalize(UserConditionsRequest request) {
         if (request == null || request.conditions() == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
-        Set<String> names = new LinkedHashSet<>();
+
+        List<String> names = new ArrayList<>();
         for (String name : request.conditions()) {
-            if (name == null || name.isBlank() || name.strip().length() > MAX_NAME_LENGTH) {
+            if (name == null || name.isBlank()) {
                 throw new BusinessException(ErrorCode.INVALID_INPUT);
             }
-            names.add(name.strip());
+
+            String trimmed = name.strip();
+            if (trimmed.length() > MAX_NAME_LENGTH) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+            if (!names.contains(trimmed)) {
+                names.add(trimmed);
+            }
         }
-        return List.copyOf(names);
+        return names;
     }
 
     private UserConditionsResponse toResponse(Long userId, List<UserCondition> conditions) {
