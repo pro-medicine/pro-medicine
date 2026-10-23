@@ -1,0 +1,9 @@
+# 테스트 실행 중에는 스케줄러를 끈다.
+# 켜 두면 테스트 도중 실제 시각 기준 알림이 로컬 DB에 저장되고, 테스트 롤백 대상도 아니다.
+notification:
+  scheduler:
+    enabled: false
+
+# DisposalService가 시작할 때 필요한 값. 테스트에서는 카카오 API를 호출하지 않으므로 가짜 값을 넣는다.
+kakao:
+  rest-api-key: test-dummy-key
