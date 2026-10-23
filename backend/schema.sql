@@ -437,14 +437,14 @@ INSERT INTO `catalog_products` (`catalog_product_id`, `mfds_item_no`, `product_n
                                                                                                                                                                                          (8, 'SAMPLE-0008', '프로바이오틱스 유산균',   '샘플네이처', '유산균 증식 및 유해균 억제, 배변활동 원활에 도움', '1일 1회, 1캡슐을 식전에 섭취', '냉암소에 보관하세요.', NULL, '2026-10-01 00:00:00');
 
 -- 영양제 카드 표기용 정보 (카테고리, 영양성분 요약, 용량, 참고 가격) — 모두 예시 값
-UPDATE `catalog_products` SET `category` = '종합비타민', `ingredient_summary` = '비타민 21종 · 미네랄 7종', `package_size` = '60정 · 2개월분', `price` = 28900 WHERE `catalog_product_id` = 1;
-UPDATE `catalog_products` SET `category` = '오메가3', `ingredient_summary` = 'EPA+DHA 600mg', `package_size` = '30캡슐 · 1개월분', `price` = 21500 WHERE `catalog_product_id` = 2;
-UPDATE `catalog_products` SET `category` = '미네랄', `ingredient_summary` = '마그네슘 200mg', `package_size` = '120캡슐 · 2개월분', `price` = 32800 WHERE `catalog_product_id` = 3;
-UPDATE `catalog_products` SET `category` = '간 건강', `ingredient_summary` = '실리마린 130mg', `package_size` = '30캡슐 · 1개월분', `price` = 19800 WHERE `catalog_product_id` = 4;
-UPDATE `catalog_products` SET `category` = '비타민B', `ingredient_summary` = '비타민B군 8종', `package_size` = '60정 · 2개월분', `price` = 15900 WHERE `catalog_product_id` = 5;
-UPDATE `catalog_products` SET `category` = '눈 건강', `ingredient_summary` = '루테인 20mg · 지아잔틴 4mg', `package_size` = '30캡슐 · 1개월분', `price` = 24000 WHERE `catalog_product_id` = 6;
-UPDATE `catalog_products` SET `category` = '비타민D', `ingredient_summary` = '비타민D 2000IU', `package_size` = '90정 · 3개월분', `price` = 12900 WHERE `catalog_product_id` = 7;
-UPDATE `catalog_products` SET `category` = '유산균', `ingredient_summary` = '프로바이오틱스 100억 CFU', `package_size` = '30캡슐 · 1개월분', `price` = 26000 WHERE `catalog_product_id` = 8;
+UPDATE `catalog_products` SET `category` = '종합비타민', `ingredient_summary` = '비타민 21종 · 미네랄 7종', `package_size` = '60정 · 2개월분', `price` = 28900 WHERE `mfds_item_no` = 'SAMPLE-0001';
+UPDATE `catalog_products` SET `category` = '오메가3', `ingredient_summary` = 'EPA+DHA 600mg', `package_size` = '30캡슐 · 1개월분', `price` = 21500 WHERE `mfds_item_no` = 'SAMPLE-0002';
+UPDATE `catalog_products` SET `category` = '미네랄', `ingredient_summary` = '마그네슘 200mg', `package_size` = '120캡슐 · 2개월분', `price` = 32800 WHERE `mfds_item_no` = 'SAMPLE-0003';
+UPDATE `catalog_products` SET `category` = '간 건강', `ingredient_summary` = '실리마린 130mg', `package_size` = '30캡슐 · 1개월분', `price` = 19800 WHERE `mfds_item_no` = 'SAMPLE-0004';
+UPDATE `catalog_products` SET `category` = '비타민B', `ingredient_summary` = '비타민B군 8종', `package_size` = '60정 · 2개월분', `price` = 15900 WHERE `mfds_item_no` = 'SAMPLE-0005';
+UPDATE `catalog_products` SET `category` = '눈 건강', `ingredient_summary` = '루테인 20mg · 지아잔틴 4mg', `package_size` = '30캡슐 · 1개월분', `price` = 24000 WHERE `mfds_item_no` = 'SAMPLE-0006';
+UPDATE `catalog_products` SET `category` = '비타민D', `ingredient_summary` = '비타민D 2000IU', `package_size` = '90정 · 3개월분', `price` = 12900 WHERE `mfds_item_no` = 'SAMPLE-0007';
+UPDATE `catalog_products` SET `category` = '유산균', `ingredient_summary` = '프로바이오틱스 100억 CFU', `package_size` = '30캡슐 · 1개월분', `price` = 26000 WHERE `mfds_item_no` = 'SAMPLE-0008';
 
 -- 사용자가 등록한 영양제와 약 ----------------------------------------
 -- 카탈로그에서 고르면 catalog_product_id, 직접 입력하면 manual_product_name에 저장
