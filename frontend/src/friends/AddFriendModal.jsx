@@ -32,9 +32,7 @@ export default function AddFriendModal({ userId, onClose }) {
       console.error(err);
       setResult({
         type: "error",
-        text:
-          err.response?.data?.message ||
-          "팔로우 신청에 실패했어요. 닉네임을 다시 확인해주세요.",
+        text: err.response?.data?.message || err.message,
       });
     } finally {
       setSending(false);
