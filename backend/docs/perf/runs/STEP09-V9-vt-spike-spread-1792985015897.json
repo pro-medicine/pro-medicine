@@ -1,0 +1,35 @@
+{
+  "structure" : "V9-vt",
+  "scenario" : "spike-spread",
+  "conditions" : "in-JVM (k6 대체), Tomcat threads.max=50, Hikari 10, H2, WireMock 3000ms, V4 pipeline, queue workers=20, client timeout 30s",
+  "requests" : 600,
+  "arrivalWindowMs" : 59900,
+  "elapsedSeconds" : 62.9093777,
+  "ok" : 600,
+  "errorRate" : 0.0,
+  "tps" : 9.537528774505745,
+  "acceptLatency" : {
+    "n" : 600,
+    "p50_ms" : 3009.352,
+    "p95_ms" : 3020.606,
+    "p99_ms" : 3023.84,
+    "max_ms" : 3032.678,
+    "mean_ms" : 3011.113
+  },
+  "completeLatency" : {
+    "n" : 600,
+    "p50_ms" : 3009.352,
+    "p95_ms" : 3020.606,
+    "p99_ms" : 3023.84,
+    "max_ms" : 3032.678,
+    "mean_ms" : 3011.113
+  },
+  "maxThreads" : 318,
+  "peakThreads" : 318,
+  "maxServerPlatformThreads" : 0,
+  "cpuPercentMax" : 25.645,
+  "cpuPercentAvg" : 5.71,
+  "heapUsedMaxMb" : 314,
+  "llmConcurrentMax" : 31,
+  "llmCalls" : 600
+}
