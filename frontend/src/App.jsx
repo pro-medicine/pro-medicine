@@ -13,9 +13,14 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
 
   const openNotifications = () => setNotificationsOpen(true);
+  const closeNotifications = () => {
+    setNotificationsOpen(false);
+    setHomeRefreshKey((key) => key + 1);
+  };
 
   const changeTab = (nextTab) => {
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
@@ -37,6 +42,7 @@ export default function App() {
         return (
           <HomePage
             userId={userId}
+            refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
             onSurvey={() => setSurveyOpen(true)}
           />
@@ -55,7 +61,7 @@ export default function App() {
       {notificationsOpen && (
           <NotificationPanel
               userId={userId}
-              onClose={() => setNotificationsOpen(false)}
+              onClose={closeNotifications}
           />
       )}
     </div>
