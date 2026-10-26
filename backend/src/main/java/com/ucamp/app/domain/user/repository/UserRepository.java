@@ -1,3 +1,4 @@
+
 package com.ucamp.app.domain.user.repository;
 
 import com.ucamp.app.domain.user.entity.User;
@@ -8,11 +9,20 @@ import org.springframework.data.jpa.repository.Lock;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
+
+    // 닉네임 중복 검사
     boolean existsByNickname(String nickname);
+
+    // 닉네임으로 조회
     Optional<User> findByNickname(String nickname);
 
-    // findById와 같지만 유저를 잠가서 조회한다.
-    // 같은 유저의 요청이 동시에 오면, 먼저 온 요청이 끝날 때까지 다음 요청은 기다린다.
+    // 회원가입: 이메일 중복 검사
+    boolean existsByEmailIgnoreCase(String email);
+
+    // 로그인: 이메일로 사용자 조회
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    // 기존 사용자 잠금 조회
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findWithLockById(Long id);
 }
