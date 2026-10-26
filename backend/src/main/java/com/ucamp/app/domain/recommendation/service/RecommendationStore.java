@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
@@ -36,6 +37,18 @@ public class RecommendationStore {
     @Transactional
     public RecommendationResponse save(Long responseId, RecommendationResult result) {
         AiRecommendation rec = newRecommendation(responseId, AiRecommendation.DONE, result.summary(), result.model());
+        return mapper.toResponse(rec, saveItems(rec, result));
+    }
+
+    /** V2 정밀 추천: 설문 응답 없이 맞춤 질문 회차로 DONE 저장 (response_id = null, session_id = 회차) */
+    @Transactional
+    public RecommendationResponse saveForSession(AiQuestionSession session, RecommendationResult result) {
+        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
+                .session(session)
+                .summary(result.summary())
+                .modelName(truncate(result.model(), AiRecommendation.MODEL_NAME_LENGTH))
+                .status(AiRecommendation.DONE)
+                .build());
         return mapper.toResponse(rec, saveItems(rec, result));
     }
 

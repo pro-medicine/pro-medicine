@@ -9,7 +9,8 @@ import java.util.List;
 /**
  * 추천 파이프라인의 정규화 입력. 설문 응답 + (회원이면) 프로필을 합친 값이다.
  * 값은 설문 value_code 그대로 (smoking = NONE, HALF_PACK …). 평가 러너도 이 객체를 직접 만들어 넣는다.
- * responseId, evalRunId는 기록용 메타데이터라 추천 내용(캐시 키 등)에 쓰지 않는다.
+ * responseId, evalRunId, sessionId는 기록용 메타데이터라 추천 내용(캐시 키 등)에 쓰지 않는다.
+ * V2 정밀 추천은 설문 없이 프로필 + 회차 임신 답 + personalizedAnswers로 만든다 (responseId = null, sessionId = 회차).
  */
 @Builder(toBuilder = true)
 public record RecommendationInput(
@@ -31,10 +32,28 @@ public record RecommendationInput(
         List<String> goals,
         List<Intake> currentIntake,
         Long responseId,
-        String evalRunId
+        String evalRunId,
+        List<PersonalizedAnswer> personalizedAnswers,
+        Long sessionId
 ) {
     public static final String MEMBER = "MEMBER";
     public static final String GUEST = "GUEST";
+
+    /**
+     * V2 맞춤 질문 답 하나 (NONE·UNKNOWN 답도 포함). topicLabel은 프롬프트에 보일 한글 주제 ("불편한 점: 쉽게 피곤해요").
+     * 안전 규칙(조건 코드·금지 목록·사후 규칙·용량)은 이 값을 읽지 않는다. LLM의 성분 선택과 이유에만 쓴다.
+     */
+    public record PersonalizedAnswer(String topic, String topicLabel, String question, List<String> selectedLabels) {
+    }
+
+    public List<PersonalizedAnswer> personalizedAnswersOrEmpty() {
+        return personalizedAnswers == null ? List.of() : personalizedAnswers;
+    }
+
+    /** V2 정밀 추천 입력인지 (맞춤 질문 회차에서 만든 입력) */
+    public boolean isPersonalized() {
+        return sessionId != null;
+    }
 
     /** drugClass는 약 마스터의 계열(ACE_INHIBITOR 등). 마스터에 없는 약이면 drugId·drugClass가 null이고 name만 있다 */
     public record Medication(String drugId, String drugClass, String name) {

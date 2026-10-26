@@ -59,6 +59,12 @@ public class CacheKeyFactory {
                 .map(RecommendationInput.Intake::ingredient).distinct().toList()));
         String canonical = KEY_FIELDS.stream().map(f -> f + "=" + (v.get(f) == null ? "" : v.get(f)))
                 .collect(Collectors.joining("|"));
+        // V2 정밀 추천: 맞춤 질문 답이 있을 때만 그 해시를 붙인다 (답이 없으면 V1과 같은 키)
+        if (!in.personalizedAnswersOrEmpty().isEmpty()) {
+            canonical += "|personalizedAnswers=" + Sha256.hex(in.personalizedAnswersOrEmpty().stream()
+                    .map(a -> a.topic() + ">" + a.question() + ">" + String.join(",", a.selectedLabels()))
+                    .collect(Collectors.joining("\n")));
+        }
         return Sha256.hex(canonical);
     }
 

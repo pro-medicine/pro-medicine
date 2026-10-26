@@ -86,7 +86,7 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
     public RecommendationResult run(RecommendationInput input) {
         String model = chooseModel(input);
         String cacheKey = options.has(Feature.RESULT_CACHE)
-                ? deps.getCacheKeyFactory().key(input, version(), options.prompt().version(), model) : null;
+                ? deps.getCacheKeyFactory().key(input, version(), promptVersion(input), model) : null;
 
         Optional<LlmPart> cached = cacheKey == null ? Optional.empty() : fromCache(cacheKey);
         LlmPart part = cached.orElseGet(() -> callLlm(input, model));
@@ -94,14 +94,19 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
             deps.getResultCacheService().put(cacheKey, toCache(part));
         }
         if (!part.parseSuccess()) {
-            return RecommendationResult.parseFailure(version(), options.prompt().version(), part.model(),
+            return RecommendationResult.parseFailure(version(), promptVersion(input), part.model(),
                     part.logIds(), part.failureReason());
         }
         return RecommendationResult.builder()
-                .pipelineVersion(version()).promptVersion(options.prompt().version()).model(part.model())
+                .pipelineVersion(version()).promptVersion(promptVersion(input)).model(part.model())
                 .llmCallLogIds(part.logIds()).cacheHit(cached.isPresent())
                 .parseSuccess(true).items(postProcess(input, part.items())).summary(part.summary())
                 .build();
+    }
+
+    /** 기록용 프롬프트 버전. V2 정밀 추천(맞춤 질문 답 포함)은 뒤에 -p를 붙여 구분한다 (예: v4.1-p) */
+    private String promptVersion(RecommendationInput input) {
+        return input.isPersonalized() ? options.prompt().version() + "-p" : options.prompt().version();
     }
 
     private String chooseModel(RecommendationInput input) {
@@ -164,7 +169,7 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
     }
 
     private LlmResponse call(RecommendationInput input, String system, String user, String model, String tag) {
-        LlmRequest request = PipelineRequests.recommend(input, version(), options.prompt().version(), model,
+        LlmRequest request = PipelineRequests.recommend(input, version(), promptVersion(input), model,
                         system, user, deps.getLlmProperties().getMaxTokens(), tag)
                 .outputSchema(RecommendationOutputSchema.schema(options.llmDose()))
                 .promptCache(options.has(Feature.PROMPT_CACHE))

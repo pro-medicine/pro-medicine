@@ -22,6 +22,7 @@ final class PipelineRequests {
                 .pipelineVersion(pipelineVersion)
                 .promptVersion(promptVersion)
                 .responseId(input.responseId())
-                .evalRunId(input.evalRunId());
+                .evalRunId(input.evalRunId())
+                .sessionId(input.sessionId());
     }
 }

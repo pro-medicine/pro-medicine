@@ -53,11 +53,20 @@ public class InputFormatter {
         if (!in.goalsOrEmpty().isEmpty()) {
             lines.add("- 원하는 효과: " + String.join(", ", in.goalsOrEmpty().stream().map(g -> GOAL.getOrDefault(g, g)).toList()));
         }
-        lines.add("- 현재 복용 중인 영양제 성분(하루 함량): " + (in.currentIntakeOrEmpty().isEmpty() ? "없음"
+        // V2 정밀 추천은 영양제 섭취를 묻지 않으므로 "모름" (V1은 설문 답 그대로 "없음")
+        lines.add("- 현재 복용 중인 영양제 성분(하루 함량): " + (in.currentIntakeOrEmpty().isEmpty()
+                ? (in.isPersonalized() ? "모름" : "없음")
                 : String.join(", ", in.currentIntakeOrEmpty().stream()
                 .map(i -> i.ingredient() + " " + i.amount().stripTrailingZeros().toPlainString() + " " + i.unit())
                 .toList())));
-        return String.join("\n", lines);
+        String text = String.join("\n", lines);
+        // V2 정밀 추천만: 맞춤 질문 답변 블록 (설계 7-3). 답이 없으면 V1과 같은 문자열
+        if (!in.personalizedAnswersOrEmpty().isEmpty()) {
+            text += "\n\n## 맞춤 질문 답변\n" + String.join("\n", in.personalizedAnswersOrEmpty().stream()
+                    .map(a -> "- [" + a.topicLabel() + "] " + a.question() + " → " + String.join(", ", a.selectedLabels()))
+                    .toList());
+        }
+        return text;
     }
 
     /**

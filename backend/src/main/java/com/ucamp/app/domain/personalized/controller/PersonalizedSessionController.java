@@ -2,7 +2,9 @@ package com.ucamp.app.domain.personalized.controller;
 
 import com.ucamp.app.domain.personalized.dto.AnswerRequest;
 import com.ucamp.app.domain.personalized.dto.PersonalizedSessionResponse;
+import com.ucamp.app.domain.personalized.service.PersonalizedRecommendationService;
 import com.ucamp.app.domain.personalized.service.PersonalizedSessionService;
+import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/personalized-sessions")
 public class PersonalizedSessionController {
     private final PersonalizedSessionService sessionService;
+    private final PersonalizedRecommendationService recommendationService;
 
     // 회차 시작: 임신 고정 질문 또는 첫 LLM 질문
     @PostMapping
@@ -42,6 +45,13 @@ public class PersonalizedSessionController {
     public ResponseEntity<ApiResponse<PersonalizedSessionResponse>> stop(@CurrentUserId Long userId,
                                                                          @PathVariable Long sessionId) {
         return ResponseEntity.ok(ApiResponse.success(sessionService.stop(member(userId), sessionId)));
+    }
+
+    // 정밀 추천: READY일 때만. 응답은 V1 추천과 같은 형식. 같은 회차로 다시 부르면 저장된 결과
+    @PostMapping("/{sessionId}/recommendation")
+    public ResponseEntity<ApiResponse<RecommendationResponse>> recommend(@CurrentUserId Long userId,
+                                                                        @PathVariable Long sessionId) {
+        return ResponseEntity.ok(ApiResponse.success(recommendationService.recommend(member(userId), sessionId)));
     }
 
     static Long member(Long userId) {
