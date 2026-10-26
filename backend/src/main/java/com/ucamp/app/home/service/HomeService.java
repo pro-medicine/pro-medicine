@@ -10,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
+import com.ucamp.app.domain.notification.event.IntakeCheckedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @RequiredArgsConstructor
 public class HomeService {
 
     private final HomeRepository homeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public HomeResponse getHome(Long userId, LocalDate date) {
@@ -55,6 +58,7 @@ public class HomeService {
             if (homeRepository.updateTaken(scheduleId, date) == 0) {
                 homeRepository.insertTaken(scheduleId, date);
             }
+            eventPublisher.publishEvent(new IntakeCheckedEvent(userId, date));
         } else {
             homeRepository.deleteRecord(scheduleId, date);   // 체크 해제 = 기록 삭제
         }
