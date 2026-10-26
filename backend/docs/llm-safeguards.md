@@ -172,3 +172,13 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 | ~~출력 한도 2,000 검증~~ | 확인 완료: 284회 중 최대 1,064토큰, 잘림 0건 | 2,000 유지 |
 | 캐시 스탬피드 | 같은 조건 요청이 동시에 오면 캐시 전 중복 호출 | 다음 과제 (single-flight) |
 | 규칙 검토 | 규칙 27개 출처는 있으나 약사 검토 전 | 서비스 공개 전 검토 |
+
+## 11. V2 맞춤 질문 (STEP 14)
+
+| 장치 | 내용 | 위치 |
+| --- | --- | --- |
+| 서버 주제 계획 | 주제·깊이·종료(기본 5 / 최대 7문항)는 서버가 정한다. LLM은 질문 문장·선택지·kind만 만든다 | `domain/personalized/planner/TopicPlanner.java` |
+| 질문 검증 + 1회 재요청 | 선택지 2~5개, UNKNOWN 정확히 1개, NONE 0~1개, 라벨 20자·질문 60자, 이전 질문 반복, 금지어(중단, 끊으세요, 진단, 처방, 복용을 멈추), answerType 일치. 재요청까지 실패하면 PQ005 | `domain/personalized/question/PersonalizedQuestionValidator.java`, `PersonalizedQuestionGenerator.java` |
+| 안전 규칙은 프로필 기준 | 정밀 추천의 조건 코드·금지 목록·사후 규칙·용량 계산은 프로필·임신 답만 본다. 맞춤 답변은 프롬프트 텍스트 블록으로만 들어간다. 규칙이 없는 V0~V3 설정이면 V4로 실행 | `PersonalizedRecommendationService.java`, `InputFormatter.java` |
+| 맞춤 답변 비저장 | 맞춤 답은 프로필에 저장하지 않고 회차 기록에만, 90일 뒤 삭제 | `PersonalizedSessionCleanupScheduler.java` |
+| 남은 빈틈 | 임신 고정 질문 전에 "그만하기"를 하면 임신 답 없이 추천 (임신 규칙 미적용) | 협의 필요: 임신 질문은 그만하기 전에 필수로 할지 |
