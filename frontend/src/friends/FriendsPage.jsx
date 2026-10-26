@@ -9,11 +9,8 @@ import FriendDetailPage from "./FriendDetailPage";
 const COLORS = ["mint", "blue", "yellow", "pink"];
 
 // API 응답 → 기존 Friend 모양으로 변환
-// 서버에 아직 없는 값(relation, status, streak, supplements, completed)은 기본값
+// 서버에 아직 없는 값(relation, status, streak)은 기본값
 function toFriend(item, index) {
-  const supplements = item.supplements ?? [];
-  const completed = item.completed ?? 0;
-
   return {
     ...item,
     id: item.followId,
@@ -21,14 +18,11 @@ function toFriend(item, index) {
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
     relation: item.relation ?? "친구",
-    status: item.status ?? "아직 복용 기록이 없어요",
     streak: item.streak ?? 0,
-    supplements,
-    completed,
   };
 }
 
-export default function FriendsScreen({ onNotifications }) {
+export default function FriendsPage({ onNotifications }) {
   // TODO: 로그인 연동 후 실제 사용자 id
   const userId = 1;
 
@@ -150,23 +144,15 @@ export default function FriendsScreen({ onNotifications }) {
                     <strong>{friend.name}</strong>
                     <small>{friend.relation}</small>
                   </span>
-                  <span className="friend-status">
-                    <i
-                      className={
-                        friend.supplements.length > 0 &&
-                        friend.completed === friend.supplements.length
-                          ? "complete"
-                          : ""
-                      }
-                    />
-                    {friend.status}
-                  </span>
                 </span>
                 <span className="friend-meta">
-                  <span>
-                    <b>{friend.streak}</b>일째
-                  </span>
-                  <small>{friend.supplements.length}개 복용 중</small>
+                  {friend.streak > 0 ? (
+                    <span>
+                      <b>{friend.streak}</b>일째
+                    </span>
+                  ) : (
+                    <small>친구를 응원해보세요.</small>
+                  )}
                 </span>
                 <Icon name="chevron" size={18} />
               </button>
