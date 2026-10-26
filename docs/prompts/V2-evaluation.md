@@ -4,11 +4,23 @@
 - 브랜치: `feat/personalized-recommendation` (V2 구현이 끝난 상태에서 진행)
 - V2 백엔드(회차 API, 질문 생성, 정밀 추천)가 동작하고 테스트가 통과해야 한다. 아니면 멈추고 보고
 
+## 0-1. 측정 코드는 저장소에 올리지 않는다 (중요)
+커밋 e22b843에서 측정 자료와 평가 러너를 저장소에서 뺐다. 파일은 로컬에만 있고 `.git/info/exclude`에 등록돼 있다.
+- 로컬 전용 경로: `backend/src/test/java/com/ucamp/app/eval/`, `backend/src/test/resources/eval/`, `backend/docs/perf/`, `backend/perf/`
+- V2 측정 코드·페르소나·결과·리포트도 **전부 위 로컬 전용 경로에 둔다** (`eval` 패키지, `resources/eval/`, `docs/perf/`)
+- `v2EvalRun` Gradle 태스크는 추적되는 `build.gradle`에 직접 쓰지 않는다. 로컬 전용 파일 `backend/eval.gradle`에 정의하고 `.git/info/exclude`에 `/backend/eval.gradle`를 추가한다. `build.gradle`에는 아래 한 줄만 넣는다 (파일이 없는 팀원 환경에서는 아무 일도 없음)
+  ```groovy
+  if (file('eval.gradle').exists()) { apply from: 'eval.gradle' }
+  ```
+- OpenAI 키 전달은 `build.gradle`의 기존 `passOpenAiApiKey` 방식을 `eval.gradle`에서 재사용한다
+- 운영 코드에 측정용 훅을 넣어야 하면, 훅은 저장소에 올라가도 되는 형태(기본 꺼짐, 측정 코드에 의존하지 않음)로 만든다
+- 커밋 전 `git status`로 측정 파일이 추적 대상에 들어가지 않았는지 확인한다
+
 ## 1. 먼저 읽을 것
 - **`docs/design/V2-evaluation.md` (이번 작업의 기준 설계. 전부 읽기)**
 - `docs/design/V2-personalized-recommendation.md`
 - V1 측정: `backend/docs/supplement-recommendation/reference/measurement.md`, `backend/src/test/java/com/ucamp/app/eval/**`, `backend/src/test/resources/eval/cases.json`, `backend/docs/perf/results.csv`, `backend/docs/perf/pricing.md`, `backend/docs/perf/live-performance-report.md`
-- `backend/build.gradle`의 `evalRun` 태스크
+- `backend/build.gradle` (커밋 e22b843에서 `evalRun` 태스크가 제거됨 — 아래 0-1 참고)
 
 **나는 자리에 없다 (무인 실행).** 승인을 기다리지 말고 끝까지 진행한다.
 - 계획은 `docs/logs/YYYY-MM-DD.md`에 먼저 적고 바로 구현한다
