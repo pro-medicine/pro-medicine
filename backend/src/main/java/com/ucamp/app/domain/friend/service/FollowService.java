@@ -55,8 +55,8 @@ public class FollowService {
 
     public List<FollowResponse> getRequests(Long userId, String direction, FollowStatus status) {
         List<Follow> follows = switch (direction) {
-            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, status);
-            case "sent" -> followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, status);
+            case "received" -> followRepository.findByFollowingIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, status);
+            case "sent" -> followRepository.findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, status);
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
         return toResponses(follows);
