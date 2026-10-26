@@ -1,0 +1,1003 @@
+{
+  "evalRunId" : "V0-openai-20261022-180246",
+  "createdAt" : "2026-10-22T18:14:27.9828352",
+  "label" : "V0",
+  "step" : "04",
+  "evalSetReviewed" : false,
+  "stageTimings" : {
+    "llm" : {
+      "count" : 32,
+      "mean_ms" : 22042.380771875,
+      "max_ms" : 22070.762,
+      "p50_ms" : 20937.965568,
+      "p95_ms" : 22011.707392,
+      "p99_ms" : 22011.707392
+    },
+    "parse" : {
+      "count" : 31,
+      "mean_ms" : 0.8203483870967743,
+      "max_ms" : 0.7154,
+      "p50_ms" : 0.221184,
+      "p95_ms" : 0.712704,
+      "p99_ms" : 0.712704
+    }
+  },
+  "ruleHits" : { },
+  "cacheCounters" : { },
+  "reasoningEffort" : "default",
+  "llmP99Ms" : 60012.0,
+  "llmCallLogs" : [ {
+    "id" : 1,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 223,
+    "outputTokens" : 361,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16933,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 2,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 231,
+    "outputTokens" : 555,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 19160,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 3,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 223,
+    "outputTokens" : 300,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 10887,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 4,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 234,
+    "outputTokens" : 381,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 13385,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 5,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 232,
+    "outputTokens" : 680,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 24497,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 6,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : null,
+    "outputTokens" : null,
+    "cacheReadTokens" : null,
+    "latencyMs" : 60012,
+    "outcome" : "TIMEOUT",
+    "httpStatus" : null
+  }, {
+    "id" : 7,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 251,
+    "outputTokens" : 463,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 54301,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 8,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 231,
+    "outputTokens" : 464,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 17624,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 9,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 249,
+    "outputTokens" : 382,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 31026,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 10,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 240,
+    "outputTokens" : 434,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 13207,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 11,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 239,
+    "outputTokens" : 407,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 13585,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 12,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 231,
+    "outputTokens" : 441,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 15192,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 13,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 230,
+    "outputTokens" : 629,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 31158,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 14,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 232,
+    "outputTokens" : 692,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 18413,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 15,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 235,
+    "outputTokens" : 505,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16542,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 16,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 249,
+    "outputTokens" : 442,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 13168,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 17,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 232,
+    "outputTokens" : 870,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 26558,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 18,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 257,
+    "outputTokens" : 573,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 39469,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 19,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 226,
+    "outputTokens" : 475,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 13913,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 20,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 238,
+    "outputTokens" : 493,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16801,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 21,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 260,
+    "outputTokens" : 902,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 47022,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 22,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 253,
+    "outputTokens" : 392,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 18743,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 23,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 238,
+    "outputTokens" : 329,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 12181,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 24,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 245,
+    "outputTokens" : 294,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 14769,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 25,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 233,
+    "outputTokens" : 473,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 18504,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 26,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 258,
+    "outputTokens" : 457,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 19263,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 27,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 229,
+    "outputTokens" : 343,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 15375,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 28,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 221,
+    "outputTokens" : 301,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16917,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 29,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 222,
+    "outputTokens" : 394,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16896,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 30,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 227,
+    "outputTokens" : 480,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 21089,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 31,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 230,
+    "outputTokens" : 451,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 16479,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  }, {
+    "id" : 32,
+    "callTag" : "RECOMMEND",
+    "model" : "gpt-6.1-sol",
+    "attemptNo" : 1,
+    "inputTokens" : 229,
+    "outputTokens" : 508,
+    "cacheReadTokens" : 0,
+    "latencyMs" : 22065,
+    "outcome" : "SUCCESS",
+    "httpStatus" : 200
+  } ],
+  "config" : {
+    "pipelineVersion" : "V0",
+    "repro" : false,
+    "caseLimit" : 0,
+    "repeats" : 1,
+    "llmMode" : "OPENAI",
+    "evalRunId" : "V0-openai-20261022-180246"
+  },
+  "summary" : {
+    "e2eP95Ms" : "54308.3909",
+    "cases" : 32,
+    "recallByDifficulty" : {
+      "EASY" : 1.0,
+      "HARD" : 0.9,
+      "NORMAL" : 1.0
+    },
+    "llmP50Ms" : "16933.0",
+    "repeats" : 1,
+    "avgInputTokens" : "229.0",
+    "llmP95Ms" : "54301.0",
+    "avgOutputTokens" : "464.71875",
+    "llmCalls" : 32,
+    "repairCalls" : 0,
+    "callsByModel" : {
+      "gpt-6.1-sol" : 32
+    },
+    "avgCacheReadTokens" : "0.0",
+    "model" : "gpt-6.1-sol",
+    "avgCacheCreationTokens" : "0.0",
+    "metrics" : {
+      "recall" : 0.9615384615384616,
+      "precision" : 0.45614035087719296,
+      "violationRate" : 0.0,
+      "rawViolationRate" : 0.0,
+      "overLimitRate" : 0.0,
+      "overLimitN" : 0,
+      "doseErrorRate" : 0.75,
+      "doseN" : 8,
+      "reproducibilitySet" : null,
+      "reproducibilityDose" : null,
+      "parseFailRate" : 0.03125,
+      "runs" : 32,
+      "recallCases" : 13,
+      "recommendedTotal" : 57
+    },
+    "cacheHitRate" : "null",
+    "failureReasons" : {
+      "LLM_TIMEOUT" : 1
+    },
+    "llmErrors" : 1,
+    "costPerReqUsd" : "0.0051051875",
+    "recallByRoutedModel" : { }
+  },
+  "runs" : [ {
+    "caseId" : "E-001",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "35 mg"
+    },
+    "e2eMs" : 17126.492,
+    "llmCallLogIds" : [ 1 ]
+  }, {
+    "caseId" : "E-002",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12", "VITAMIN_D", "?오메가-3(EPA+DHA)" ],
+    "rawCodes" : [ "VITAMIN_B12", "VITAMIN_D", "?오메가-3(EPA+DHA)" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg",
+      "VITAMIN_D" : "10 μg",
+      "?오메가-3(EPA+DHA)" : "250 mg"
+    },
+    "e2eMs" : 19164.551,
+    "llmCallLogIds" : [ 2 ]
+  }, {
+    "caseId" : "E-003",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 10892.276,
+    "llmCallLogIds" : [ 3 ]
+  }, {
+    "caseId" : "E-004",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE" ],
+    "rawCodes" : [ "FOLATE" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 μg"
+    },
+    "e2eMs" : 13389.341,
+    "llmCallLogIds" : [ 4 ]
+  }, {
+    "caseId" : "E-005",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE", "IRON", "VITAMIN_D", "?DHA" ],
+    "rawCodes" : [ "FOLATE", "IRON", "VITAMIN_D", "?DHA" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 μg",
+      "IRON" : "24 mg",
+      "VITAMIN_D" : "15 μg",
+      "?DHA" : "200 mg"
+    },
+    "e2eMs" : 24503.522,
+    "llmCallLogIds" : [ 5 ]
+  }, {
+    "caseId" : "E-006",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : false,
+    "failureReason" : "LLM_TIMEOUT",
+    "llmError" : true,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 60019.792,
+    "llmCallLogIds" : [ 6 ]
+  }, {
+    "caseId" : "E-007",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "MAGNESIUM" : "100 mg"
+    },
+    "e2eMs" : 54308.391,
+    "llmCallLogIds" : [ 7 ]
+  }, {
+    "caseId" : "E-008",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B1" : "10 mg"
+    },
+    "e2eMs" : 17627.419,
+    "llmCallLogIds" : [ 8 ]
+  }, {
+    "caseId" : "E-009",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "10 μg"
+    },
+    "e2eMs" : 31030.503,
+    "llmCallLogIds" : [ 9 ]
+  }, {
+    "caseId" : "E-010",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 13209.698,
+    "llmCallLogIds" : [ 10 ]
+  }, {
+    "caseId" : "E-011",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "60 mg"
+    },
+    "e2eMs" : 13589.254,
+    "llmCallLogIds" : [ 11 ]
+  }, {
+    "caseId" : "E-012",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 15195.665,
+    "llmCallLogIds" : [ 12 ]
+  }, {
+    "caseId" : "E-013",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_B1" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "25 mg",
+      "VITAMIN_B1" : "1.2 mg"
+    },
+    "e2eMs" : 31170.624,
+    "llmCallLogIds" : [ 13 ]
+  }, {
+    "caseId" : "E-014",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12", "VITAMIN_D", "CALCIUM", "?요오드", "?조류 유래 오메가-3(EPA·DHA 합계)" ],
+    "rawCodes" : [ "VITAMIN_B12", "VITAMIN_D", "CALCIUM", "?요오드", "?조류 유래 오메가-3(EPA·DHA 합계)" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg",
+      "VITAMIN_D" : "20 μg",
+      "CALCIUM" : "500 mg",
+      "?요오드" : "150 μg",
+      "?조류 유래 오메가-3(EPA·DHA 합계)" : "250 mg"
+    },
+    "e2eMs" : 18417.136,
+    "llmCallLogIds" : [ 14 ]
+  }, {
+    "caseId" : "E-015",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE", "VITAMIN_D" ],
+    "rawCodes" : [ "FOLATE", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 μg",
+      "VITAMIN_D" : "10 μg"
+    },
+    "e2eMs" : 16545.322,
+    "llmCallLogIds" : [ 15 ]
+  }, {
+    "caseId" : "E-016",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12" ],
+    "rawCodes" : [ "VITAMIN_B12" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg"
+    },
+    "e2eMs" : 13171.891,
+    "llmCallLogIds" : [ 16 ]
+  }, {
+    "caseId" : "E-017",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12", "VITAMIN_D", "?조류 유래 DHA", "CALCIUM", "?콜린", "?요오드" ],
+    "rawCodes" : [ "VITAMIN_B12", "VITAMIN_D", "?조류 유래 DHA", "CALCIUM", "?콜린", "?요오드" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg",
+      "VITAMIN_D" : "15 μg",
+      "?조류 유래 DHA" : "300 mg",
+      "CALCIUM" : "500 mg",
+      "?콜린" : "350 mg",
+      "?요오드" : "150 μg"
+    },
+    "e2eMs" : 26563.175,
+    "llmCallLogIds" : [ 17 ]
+  }, {
+    "caseId" : "E-018",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_B12", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg",
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 39472.792,
+    "llmCallLogIds" : [ 18 ]
+  }, {
+    "caseId" : "E-019",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "10 μg"
+    },
+    "e2eMs" : 13918.067,
+    "llmCallLogIds" : [ 19 ]
+  }, {
+    "caseId" : "E-020",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_C", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "100 mg",
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 16804.797,
+    "llmCallLogIds" : [ 20 ]
+  }, {
+    "caseId" : "E-021",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "FOLATE", "VITAMIN_D", "IRON", "?요오드", "?DHA" ],
+    "rawCodes" : [ "FOLATE", "VITAMIN_D", "IRON", "?요오드", "?DHA" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "FOLATE" : "400 μg",
+      "VITAMIN_D" : "15 μg",
+      "IRON" : "27 mg",
+      "?요오드" : "150 μg",
+      "?DHA" : "200 mg"
+    },
+    "e2eMs" : 47025.621,
+    "llmCallLogIds" : [ 21 ]
+  }, {
+    "caseId" : "E-022",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ ],
+    "rawCodes" : [ ],
+    "excludedCodes" : [ ],
+    "doses" : { },
+    "e2eMs" : 18746.392,
+    "llmCallLogIds" : [ 22 ]
+  }, {
+    "caseId" : "E-023",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "MAGNESIUM" ],
+    "rawCodes" : [ "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "MAGNESIUM" : "100 mg"
+    },
+    "e2eMs" : 12187.06,
+    "llmCallLogIds" : [ 23 ]
+  }, {
+    "caseId" : "E-024",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "70 mg"
+    },
+    "e2eMs" : 14773.029,
+    "llmCallLogIds" : [ 24 ]
+  }, {
+    "caseId" : "E-025",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D", "CALCIUM" ],
+    "rawCodes" : [ "VITAMIN_D", "CALCIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "15 μg",
+      "CALCIUM" : "300 mg"
+    },
+    "e2eMs" : 18507.049,
+    "llmCallLogIds" : [ 25 ]
+  }, {
+    "caseId" : "E-026",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D", "MAGNESIUM" ],
+    "rawCodes" : [ "VITAMIN_D", "MAGNESIUM" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "10 μg",
+      "MAGNESIUM" : "100 mg"
+    },
+    "e2eMs" : 19266.15,
+    "llmCallLogIds" : [ 26 ]
+  }, {
+    "caseId" : "E-027",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "?루테인" ],
+    "rawCodes" : [ "?루테인" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "?루테인" : "10 mg"
+    },
+    "e2eMs" : 15383.579,
+    "llmCallLogIds" : [ 27 ]
+  }, {
+    "caseId" : "E-028",
+    "repeat" : 0,
+    "difficulty" : "EASY",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 16926.079,
+    "llmCallLogIds" : [ 28 ]
+  }, {
+    "caseId" : "E-029",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_C" ],
+    "rawCodes" : [ "VITAMIN_C" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_C" : "100 mg"
+    },
+    "e2eMs" : 16900.566,
+    "llmCallLogIds" : [ 29 ]
+  }, {
+    "caseId" : "E-030",
+    "repeat" : 0,
+    "difficulty" : "HARD",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B12", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_B12", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B12" : "50 μg",
+      "VITAMIN_D" : "15 μg"
+    },
+    "e2eMs" : 21092.623,
+    "llmCallLogIds" : [ 30 ]
+  }, {
+    "caseId" : "E-031",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "CALCIUM", "VITAMIN_D" ],
+    "rawCodes" : [ "CALCIUM", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "CALCIUM" : "300 mg",
+      "VITAMIN_D" : "10 μg"
+    },
+    "e2eMs" : 16482.989,
+    "llmCallLogIds" : [ 31 ]
+  }, {
+    "caseId" : "E-032",
+    "repeat" : 0,
+    "difficulty" : "NORMAL",
+    "parseSuccess" : true,
+    "failureReason" : null,
+    "llmError" : false,
+    "cacheHit" : false,
+    "fallback" : false,
+    "finalCodes" : [ "VITAMIN_B1", "VITAMIN_D" ],
+    "rawCodes" : [ "VITAMIN_B1", "VITAMIN_D" ],
+    "excludedCodes" : [ ],
+    "doses" : {
+      "VITAMIN_B1" : "1.1 mg",
+      "VITAMIN_D" : "10 μg"
+    },
+    "e2eMs" : 22072.543,
+    "llmCallLogIds" : [ 32 ]
+  } ]
+}
