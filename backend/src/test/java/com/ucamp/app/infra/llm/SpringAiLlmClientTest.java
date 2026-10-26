@@ -84,6 +84,19 @@ class SpringAiLlmClientTest {
     }
 
     @Test
+    void 요청별_추론_강도는_reasoning_effort로_보내고_없으면_보내지_않는다() {
+        server.stubFor(OpenAiStubs.ok("{\"question\":\"q\"}"));
+
+        client.call(request(true).toBuilder().reasoningEffort("low").build());
+        client.call(request(true));
+
+        server.verify(1, postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                .withRequestBody(matchingJsonPath("$.reasoning_effort", equalTo("low"))));
+        server.verify(1, postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                .withRequestBody(matchingJsonPath("$.reasoning_effort", absent())));
+    }
+
+    @Test
     void 형식이_깨진_응답은_output_없이_돌려준다() {
         server.stubFor(OpenAiStubs.ok("not json"));
 

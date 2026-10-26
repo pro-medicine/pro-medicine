@@ -17,6 +17,10 @@ public interface ChatProviderSupport {
     /** 프롬프트 캐싱 힌트. 지원하지 않는 회사는 아무것도 하지 않는다 */
     void promptCache(ChatOptions.Builder<?> options, String cacheKey);
 
+    /** 요청별 추론 강도. 지원하지 않는 회사는 아무것도 하지 않는다 */
+    default void reasoningEffort(ChatOptions.Builder<?> options, String effort) {
+    }
+
     /** 회사 SDK 예외 → LlmCallException(상태 코드·retry-after·타임아웃 구분). 모르는 예외면 null */
     LlmCallException translate(Throwable e, long latencyMs);
 

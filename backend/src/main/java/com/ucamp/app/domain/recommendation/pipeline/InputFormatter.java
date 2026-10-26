@@ -60,6 +60,37 @@ public class InputFormatter {
         return String.join("\n", lines);
     }
 
+    /**
+     * V2 맞춤 질문 생성용 "알고 있는 정보" (설계 6-2). 추천 입력 형식(format)과 따로 두어 V1 프롬프트에 영향이 없다.
+     * 모르는 값은 "모름"으로 적어 LLM이 다시 물을 수 있게 한다.
+     */
+    public String formatKnown(RecommendationInput in) {
+        List<String> lines = new ArrayList<>();
+        String gender = "M".equals(in.gender()) ? "남성" : "F".equals(in.gender()) ? "여성" : "모름";
+        lines.add("- 성별: " + gender + ", 나이: " + (in.age() == null ? "모름" : in.age() + "세"));
+        lines.add("- 흡연: " + label(in.smoking(), SMOKING) + " / 음주: " + label(in.drinking(), LEVEL)
+                + " / 커피·차: " + label(in.caffeine(), LEVEL) + " / 식단: " + label(in.dietType(), DIET)
+                + " / 햇빛: " + label(in.sunExposure(), SUN));
+        lines.add("- 진단받은 질환: " + (in.conditionsOrEmpty().isEmpty() ? "없음"
+                : String.join(", ", in.conditionsOrEmpty().stream().map(c -> CONDITION.getOrDefault(c, c)).toList())));
+        lines.add("- 복용 중인 약: " + (in.medicationsOrEmpty().isEmpty() ? "없음"
+                : String.join(", ", in.medicationsOrEmpty().stream().map(InputFormatter::medicationName).toList())));
+        lines.add("- 임신·수유: " + (in.pregnancy() == null ? "해당 없음" : label(in.pregnancy(), PREGNANCY)));
+        return String.join("\n", lines);
+    }
+
+    private static String label(String code, Map<String, String> labels) {
+        return code == null ? "모름" : labels.getOrDefault(code, code);
+    }
+
+    // 이름(계열). 약 마스터에 없는 약은 이름만
+    private static String medicationName(RecommendationInput.Medication m) {
+        if (m.drugClass() == null) {
+            return m.name();
+        }
+        return (m.name() != null ? m.name() : "") + "(" + m.drugClass() + ")";
+    }
+
     private static void add(List<String> lines, String label, String code, Map<String, String> labels) {
         if (code != null) {
             lines.add("- " + label + ": " + labels.getOrDefault(code, code));

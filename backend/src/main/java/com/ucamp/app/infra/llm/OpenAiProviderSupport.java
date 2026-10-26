@@ -38,6 +38,11 @@ public class OpenAiProviderSupport implements ChatProviderSupport {
     }
 
     @Override
+    public void reasoningEffort(ChatOptions.Builder<?> options, String effort) {
+        openAi(options).reasoningEffort(effort);
+    }
+
+    @Override
     public LlmCallException translate(Throwable e, long latencyMs) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof OpenAIServiceException se) {

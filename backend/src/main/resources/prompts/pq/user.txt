@@ -1,0 +1,9 @@
+## 알고 있는 정보
+{{known}}
+## 이번 질문
+- topic: {{topic}} ({{topicLabel}})
+- depth: {{depth}} / 최대 {{maxDepth}}
+- answerType: {{answerType}}
+- 목적: {{purpose}}
+## 이전 질문과 답 (이 회차)
+{{history}}

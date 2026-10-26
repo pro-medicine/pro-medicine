@@ -81,6 +81,9 @@ public class SpringAiLlmClient implements LlmClient {
         ChatOptions.Builder<?> b = chatModel.getOptions().mutate()
                 .model(request.model() != null ? request.model() : properties.getModel());
         provider.maxOutputTokens(b, request.maxTokens() > 0 ? request.maxTokens() : properties.getMaxTokens());
+        if (request.reasoningEffort() != null) {
+            provider.reasoningEffort(b, request.reasoningEffort());
+        }
         LlmOutputSchema outputSchema = request.outputSchema();
         if (outputSchema != null) {
             String schema = objectMapper.writeValueAsString(outputSchema.schema());
