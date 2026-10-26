@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 export default function HomePage({
   userId = 1,
   onOpenNotifications,
-  onSurvey,
+  onSurvey, headerActions,
 }) {
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
@@ -85,6 +85,7 @@ export default function HomePage({
           userName={home.userName}
           hasUnread={home.hasUnreadNotifications}
           onBellClick={onOpenNotifications}
+          headerActions={headerActions}
         />
 
         {isSample && (

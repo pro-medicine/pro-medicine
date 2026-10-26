@@ -12,6 +12,7 @@ import FriendsPage from "./friends/FriendsPage";
 import { SurveyModal } from "./home/HomeFeature";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
+import "./auth/auth.css";
 
 export default function App() {
     // ===========================
@@ -94,6 +95,22 @@ export default function App() {
             setLoggingOut(false);
         }
     };
+    const renderSessionActions = () => (
+        <div className="auth-session-actions">
+    <span className="auth-session-name">
+      {user.nickname}님
+    </span>
+
+            <button
+                type="button"
+                className="auth-logout-button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+            >
+                {loggingOut ? "로그아웃 중..." : "로그아웃"}
+            </button>
+        </div>
+    );
 
     // ===========================
     // 6. 기존 알림 및 탭 기능
@@ -147,9 +164,10 @@ export default function App() {
             default:
                 return (
                     <HomePage
-                        userId={userId}
+                        userId={user.userId}
                         onOpenNotifications={openNotifications}
                         onSurvey={() => setSurveyOpen(true)}
+                        headerActions={renderSessionActions()}
                     />
                 );
         }
@@ -189,27 +207,21 @@ export default function App() {
     // ===========================
     return (
         <div className="app-shell">
+            {/* 인증 관련 오류 메시지 */}
+            {error && (
+                <p role="alert" className="auth-error-message">
+                    {error}
+                </p>
+            )}
 
-            {/* 로그인 사용자 및 로그아웃 */}
-            <header className="auth-account-bar">
-                <strong>약쏙해줘</strong>
-
-                <div className="user-session">
-                    <span>{user.nickname}님</span>
-
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        disabled={loggingOut}
-                    >
-                        {loggingOut ? "로그아웃 중..." : "로그아웃"}
-                    </button>
+            {/* 홈이 아닌 다른 탭에서 로그아웃 표시 */}
+            {tab !== "home" && (
+                <div className="auth-secondary-bar">
+                    {renderSessionActions()}
                 </div>
-            </header>
+            )}
 
-            {error && <p role="alert">{error}</p>}
-
-            {/* 팀원들이 구현한 기존 화면 */}
+            {/* 구현한 기존 화면 */}
             <main>{renderContent()}</main>
 
             {/* 하단 탭 */}
