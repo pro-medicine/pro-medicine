@@ -49,7 +49,7 @@ RecommendationController → RecommendationService → PipelineRegistry(V0~V8, R
 | 타임아웃 | `llm.timeout-ms` 하나 | `spring.ai.openai.chat.timeout=${llm.timeout-ms}ms` |
 | SDK 재시도 | `spring.ai.openai.max-retries=0` | 재시도는 `ResilientLlmClient`(STEP 10) 한 곳에서만 |
 | 추론 강도 | `spring.ai.openai.chat.reasoning-effort` | 지정 안 함(모델 기본 medium) |
-| 단가 | `docs/perf/pricing.md`, `EvalCost` | 2026-10-22 OpenAI 가격표 |
+| 단가 | OpenAI 가격표 (로컬 측정 자료) | 2026-10-22 기준 |
 
 점검 결과: 메인 Java 코드에 남은 OpenAI 고유 문자열은 `OpenAiProviderSupport`와 `LlmConfig`(빈 등록 1줄)뿐이고, 나머지는 주석이다. 모델 ID는 `LlmProperties` 기본값과 `application-local-llm.yml`에 같은 값이 두 번 있다 (yml이 우선, 기본값은 yml이 없을 때를 위한 것).
 

@@ -49,7 +49,7 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
-// backend/.env(Git 제외)의 OPENAI_API_KEY를 evalRun·liveTest JVM에 넘긴다. OS 환경변수가 있으면 그것을 우선한다.
+// backend/.env(Git 제외)의 OPENAI_API_KEY를 liveTest JVM에 넘긴다. OS 환경변수가 있으면 그것을 우선한다.
 // 테스트용 application.yml은 .env를 불러오지 않기 때문에 Gradle에서 넘겨준다.
 def openAiApiKey = {
 	def fromEnv = System.getenv('OPENAI_API_KEY')
@@ -72,8 +72,8 @@ tasks.named('test') {
 	}
 }
 
-// 아래 태그별 테스트 태스크(evalRun·liveTest·perfTest) 공통: 테스트 클래스 공유, 콘솔 출력, 매번 실행
-def taggedTestTasks = ['evalRun', 'liveTest', 'perfTest']
+// 아래 태그별 테스트 태스크(liveTest) 공통: 테스트 클래스 공유, 콘솔 출력, 매번 실행
+def taggedTestTasks = ['liveTest']
 tasks.withType(Test).matching { it.name in taggedTestTasks }.configureEach {
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
@@ -92,29 +92,9 @@ def passOpenAiApiKey = { Test task ->
 	}
 }
 
-// 평가 실행: ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=30] [-Prepeats=1] [-Pmode=repro] [-Pllm=fake] [-PreasoningEffort=low] [-Pconfirm=true]
-// -Pconfirm=true가 없으면 실제 API(-Pllm=openai, 기본값)는 예상 호출 수·비용만 출력하고 끝낸다
-tasks.register('evalRun', Test) {
-	description = '추천 품질 평가 실행 (평가셋 → results.csv)'
-	useJUnitPlatform { includeTags 'eval' }
-	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'passes', 'reasoningEffort'].each { key ->
-		if (project.hasProperty(key)) {
-			systemProperty "eval.${key}", project.property(key)
-		}
-	}
-	passOpenAiApiKey(it)
-}
-
 // 실제 OpenAI API 테스트: ./gradlew liveTest (backend/.env 또는 환경변수의 OPENAI_API_KEY 필요, 비용 발생)
 tasks.register('liveTest', Test) {
 	description = '실제 OpenAI API 호출 테스트 (비용 발생)'
 	useJUnitPlatform { includeTags 'live' }
 	passOpenAiApiKey(it)
-}
-
-// 성능 측정 테스트: ./gradlew perfTest [-PperfLabel=before]
-tasks.register('perfTest', Test) {
-	description = '로컬 성능 측정 테스트 (H2, MockMvc, WireMock)'
-	useJUnitPlatform { includeTags 'perf' }
-	systemProperty 'perf.label', findProperty('perfLabel') ?: 'run'
 }

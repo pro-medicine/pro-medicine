@@ -21,7 +21,7 @@ public class LlmProperties {
 
     /** spring-ai(Spring AI가 만든 ChatModel 사용) | fake */
     private String provider = PROVIDER_FAKE;
-    /** 기본 모델. 모델 ID는 OpenAI 문서의 모델 표 기준 (docs/perf/pricing.md) */
+    /** 기본 모델. 모델 ID는 OpenAI 문서의 모델 표 기준 */
     private String model = "gpt-6.1-sol";
     /** 모델 라우팅(V8)의 작은 모델 */
     private String smallModel = "gpt-6-luna";

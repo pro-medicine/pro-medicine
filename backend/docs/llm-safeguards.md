@@ -1,7 +1,7 @@
 # AI 추천 안전장치 정리
 
 AI 추천(설문 → GPT → 추천 응답)에 들어 있는 안전장치를 한곳에 모은 문서다. 2026-10-22 기준.
-연동 검증 결과는 [llm-integration-report.md](llm-integration-report.md), 단계별 측정값은 [perf/SUMMARY.md](perf/SUMMARY.md).
+연동 검증 결과는 [llm-integration-report.md](llm-integration-report.md). 성능·부하 측정은 로컬에서만 진행했다 (자료는 저장소에 올리지 않음).
 
 - 파일 경로는 `backend/src/main/java/com/ucamp/app/` 기준 (그 밖의 경로는 따로 적음)
 - "지금"은 이 문서 작성 시점에 쓰는 실행 설정: `local-llm` 프로필, `recommendation.pipeline-version=V4`, `api-mode=sync`, `llm.resilience.enabled=false`
@@ -140,7 +140,7 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 - 꺼져 있으면 GPT 실패 시 502 `R003`.
 - 측정 (WireMock): flaky 성공률 0.8 → 1.0, 60초 전면 장애 0.5 → 1.0 (폴백 포함). 느린 응답(20초)에서는 15초 타임아웃 때문에 p95가 악화됐다.
 - `enabled` 하나로 네 장치가 함께 켜진다. 서킷만 따로 끄는 설정은 없다. 서킷 없이 쓰려면 `circuit-failure-rate-threshold=100`으로 사실상 열리지 않게 하거나 코드에 설정을 추가해야 한다.
-- 실제 측정(2026-10-22, 284회): V2 이후 정상 응답 p95 15.2초, p99 18.5초, 최대 22.8초. 15초로 두면 정상 응답의 5.5%가 잘린다 → **25~30초 권장** ([perf/live-performance-report.md](perf/live-performance-report.md) 5장).
+- 실제 측정(2026-10-22, 284회): V2 이후 정상 응답 p95 15.2초, p99 18.5초, 최대 22.8초. 15초로 두면 정상 응답의 5.5%가 잘린다 → **25~30초 권장**.
 - **`llm.timeout-ms`는 지금 적용되지 않는다.** OpenAI 전환(e11fb07) 때 HTTP 클라이언트의 읽기 시간 제한 설정이 빠져, 실제 타임아웃 3건이 모두 60초에 끊겼다. Spring AI OpenAI 모델이 쓰는 RestClient에 시간 제한을 넣어야 한다.
 
 ## 8. 관측 장치
@@ -151,17 +151,15 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 | 단계별 지연 | assemble(입력 조립), cache, rule_pre, llm, parse, calc(용량), rule_post | `global/metrics/StageTimer.java` → `/actuator/prometheus`의 `recommendation_stage_seconds` |
 | 본문 로그 (선택) | 프롬프트·응답 본문을 로컬 파일에만 저장 | `llm.log-body=true` → `build/llm-body/` |
 
-비용 계산: `llm_call_logs`의 토큰 × [perf/pricing.md](perf/pricing.md) 단가. 예) 2026-10-22 실제 호출 1건: 입력 967 × $2/M + 출력 307 × $10/M ≈ $0.005.
+비용 계산: `llm_call_logs`의 토큰 × OpenAI 모델 단가. 예) 2026-10-22 실제 호출 1건: 입력 967 × $2/M + 출력 307 × $10/M ≈ $0.005.
 
 ## 9. 테스트 장치
 
 | 장치 | 용도 | 위치 |
 | --- | --- | --- |
 | Fake LLM | 비용 없이 전체 흐름 (기본 설정) | `infra/llm/FakeLlmClient.java` |
-| WireMock | 가짜 OpenAI 서버로 정상·재요청·429·500·지연·장애 재현 | `src/test/.../infra/llm/OpenAiStubs.java`, `SpringAiWiringTest.java`, `backend/perf/wiremock/` |
+| WireMock | 가짜 OpenAI 서버로 정상·재요청·429·500·지연·장애 재현 | `src/test/.../infra/llm/OpenAiStubs.java`, `SpringAiWiringTest.java` |
 | 실제 API 테스트 | 연결 + 전체 흐름 (최대 3회 호출) | `src/test/.../infra/llm/SpringAiLlmClientLiveTest.java`, `./gradlew liveTest` |
-| 평가 러너 | 32케이스 품질 지표 (위반율, 용량 오류율, 재현성). 실행 전 예상 비용 출력 | `src/test/.../eval/EvalRunner.java`, `./gradlew evalRun` |
-| 부하·장애 테스트 | 캐시, 구조, 장애 시나리오 | `src/test/.../perf/*LoadPerfTest.java`, `./gradlew perfTest` |
 
 ## 10. 남은 빈틈
 

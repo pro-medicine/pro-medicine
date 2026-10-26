@@ -1,5 +1,7 @@
 # AI 영양제 추천 진행 기록
 
+> 성능·부하 측정 자료(`docs/perf/`, `perf/`), 부하·평가 테스트 코드(`perf`·`eval` 태그, `perfTest`·`evalRun` 태스크)는 저장소에서 뺐다 (로컬에서만 사용). 아래에 나오는 해당 경로·명령은 작업 기록용이다.
+
 ## 밤새 실행 요약 (2026-10-21)
 
 **실제 Claude API는 한 번도 호출하지 않았다** (예산 0달러). 품질·비용의 실제 수치는 전부 "실제 측정 대기"이고, 명령은 `perf/TODO-live-runs.md`에 STEP 순서로 있다. 최종 정리: [perf/SUMMARY.md](perf/SUMMARY.md).
