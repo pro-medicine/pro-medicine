@@ -78,7 +78,26 @@
 | R-G3 | STATUS | GUEST | VITAMIN_A | EXCLUDE | 임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요 | S-06 |
 | R-G4 | STATUS | GUEST | BETA_CAROTENE | EXCLUDE | 흡연 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요 | S-05, S-06 |
 
-규칙은 회원용 23개 + 비회원용 4개, 총 27개다.
+### 약 계열만 아는 경우 (STEP 12)
+
+"혈압약을 먹는데 이름은 모른다"처럼 계열만 아는 사용자를 위해 `drugs`에 계열 모름 항목(`D-U01`~`D-U08`, 이름 "혈압약 (이름 모름)" 등)을 두고, 조건 코드는 `drug_class` 그대로 쓴다. 대상 성분은 하위 계열 규칙의 대상 성분을 합친 것이다. 정확한 약을 모르므로 `EXCLUDE` 대신 **추천은 하되 해당 성분에 상담 안내(`WARN`)**를 붙인다. 원래 `TIMING`인 규칙은 `TIMING` 그대로 둔다. 항우울제 + 세인트존스워트는 대부분의 항우울제와 위험한 상호작용이 있어 `EXCLUDE`를 유지한다.
+
+| rule_id | 조건 타입 | 조건 코드 | 대상 성분 | 조치 | 메시지 | source |
+| --- | --- | --- | --- | --- | --- | --- |
+| R-U01 | DRUG | ANTIHYPERTENSIVE_UNKNOWN | POTASSIUM | WARN | 혈압약 종류에 따라 칼륨 보충이 위험할 수 있어요. 드시기 전에 의사·약사와 상담하세요 | S-14 |
+| R-U01b | DRUG | ANTIHYPERTENSIVE_UNKNOWN | MAGNESIUM | WARN | 일부 혈압약(이뇨제)은 마그네슘을 줄일 수 있어요. 의사·약사와 상담하세요 | S-13 |
+| R-U02 | DRUG | DIURETIC_UNKNOWN | POTASSIUM | WARN | 이뇨제 종류에 따라 칼륨 보충이 위험할 수 있어요. 드시기 전에 의사·약사와 상담하세요 | S-14 |
+| R-U02b | DRUG | DIURETIC_UNKNOWN | MAGNESIUM | WARN | 일부 이뇨제는 마그네슘을 줄일 수 있어요. 의사·약사와 상담하세요 | S-13 |
+| R-U03 | DRUG | ANTIDIABETIC_UNKNOWN | VITAMIN_B12 | WARN | 일부 당뇨약(메트포르민)은 오래 드시면 B12 흡수가 줄 수 있어요. 의사·약사와 상담하세요 | S-12 |
+| R-U04 | DRUG | ACID_REDUCER_UNKNOWN | VITAMIN_B12 | WARN | 위산억제제를 오래 드시면 B12 흡수가 줄 수 있어요. 의사·약사와 상담하세요 | S-12 |
+| R-U04b | DRUG | ACID_REDUCER_UNKNOWN | MAGNESIUM | WARN | 위산억제제를 오래 드시면 마그네슘이 줄 수 있어요. 의사·약사와 상담하세요 | S-13 |
+| R-U05 | DRUG | ANTICOAGULANT_UNKNOWN | VITAMIN_K | WARN | 항응고제 종류에 따라 비타민 K가 약효에 영향을 줄 수 있어요. 의사·약사와 상담하세요 | S-15 |
+| R-U06 | DRUG | THYROID_MED_UNKNOWN | IRON | TIMING | 갑상선약과 철분은 시간 간격을 두고 드세요. 간격은 의사·약사와 상담하세요 | S-16 |
+| R-U06b | DRUG | THYROID_MED_UNKNOWN | CALCIUM | TIMING | 갑상선약과 칼슘은 시간 간격을 두고 드세요. 간격은 의사·약사와 상담하세요 | S-17 |
+| R-U07 | DRUG | ANTIBIOTIC_UNKNOWN | MAGNESIUM | TIMING | 일부 항생제는 마그네슘과 시간 간격을 두고 드셔야 해요. 의사·약사와 상담하세요 | S-13 |
+| R-U08 | DRUG | ANTIDEPRESSANT_UNKNOWN | ST_JOHNS_WORT | EXCLUDE | 항우울제와 세인트존스워트는 함께 드시면 안 돼요. 의사·약사와 상담하세요 | S-18 |
+
+규칙은 회원용 35개(기본 23 + 계열 모름 12) + 비회원용 4개, 총 39개다.
 
 ## 4. 출처
 

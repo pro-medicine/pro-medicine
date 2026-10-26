@@ -19,14 +19,15 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 규칙 27개(회원 23 + 비회원 4) 각각 단위 테스트.
+ * 규칙 39개(회원 35 = 기본 23 + 계열 모름 12, 비회원 4) 각각 단위 테스트.
  * 규칙 데이터는 시드(sql/seed-recommendation-rules.sql = domain-rules.md 3번 표)에서 읽고, RuleEngine은 순수 클래스로 직접 호출한다.
  */
 @SpringBootTest
 class RuleEngineTest {
     static final List<String> ALL_RULE_IDS = List.of("R-01", "R-02", "R-03", "R-04", "R-05", "R-06", "R-07", "R-08",
             "R-11", "R-12", "R-12b", "R-13", "R-13b", "R-14", "R-15", "R-16", "R-17", "R-17b", "R-18", "R-19",
-            "R-21", "R-22", "R-23", "R-G1", "R-G2", "R-G3", "R-G4");
+            "R-21", "R-22", "R-23", "R-G1", "R-G2", "R-G3", "R-G4",
+            "R-U01", "R-U01b", "R-U02", "R-U02b", "R-U03", "R-U04", "R-U04b", "R-U05", "R-U06", "R-U06b", "R-U07", "R-U08");
 
     @Autowired
     RuleService ruleService;
@@ -42,11 +43,11 @@ class RuleEngineTest {
     }
 
     @Test
-    void 규칙은_회원_23개_비회원_4개_총_27개() {
+    void 규칙은_회원_35개_비회원_4개_총_39개() {
         List<Rule> rules = engine.rules();
         assertThat(rules).extracting(Rule::ruleId).containsExactlyInAnyOrderElementsOf(ALL_RULE_IDS);
         assertThat(rules.stream().filter(Rule::guestExcluded).count()).isEqualTo(4);
-        assertThat(rules.stream().filter(r -> !r.guestExcluded()).count()).isEqualTo(23);
+        assertThat(rules.stream().filter(r -> !r.guestExcluded()).count()).isEqualTo(35);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -125,6 +126,21 @@ class RuleEngineTest {
         assertThat(r.items().get(3).appliedRuleIdsOrEmpty()).containsExactlyInAnyOrder("R-04", "R-23");
         assertThat(engine.preFilter(conditions, false)).extracting(RuleEngine.Banned::ingredient)
                 .containsExactly("BETA_CAROTENE", "POTASSIUM");
+    }
+
+    @Test
+    void 혈압약_이름을_모르면_칼륨은_추천하되_상담_경고를_붙이고_이름을_알면_제외한다() {
+        RuleEngine.PostResult unknown = engine.applyPost(List.of(item("POTASSIUM"), item("VITAMIN_C")),
+                Set.of("ANTIHYPERTENSIVE_UNKNOWN"), false);
+        RecommendationItem potassium = unknown.items().get(0);
+        assertThat(potassium.excluded()).isFalse();
+        assertThat(potassium.appliedRuleIdsOrEmpty()).containsExactly("R-U01");
+        assertThat(potassium.warningsOrEmpty()).anyMatch(w -> w.contains("상담"));
+        assertThat(unknown.items().get(1).warningsOrEmpty()).isEmpty();
+        assertThat(engine.preFilter(Set.of("ANTIHYPERTENSIVE_UNKNOWN"), false)).isEmpty();
+
+        RuleEngine.PostResult known = engine.applyPost(List.of(item("POTASSIUM")), Set.of("ARB"), false);
+        assertThat(known.items().get(0).excluded()).isTrue();
     }
 
     private Rule rule(String id) {
