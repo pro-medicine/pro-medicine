@@ -16,7 +16,11 @@ import com.ucamp.app.domain.notification.event.FollowAcceptedEvent;
 import com.ucamp.app.domain.notification.event.FollowRequestedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +30,6 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
-    // TODO: User 정보 가져오기
 
     @Transactional
     public FollowResponse request(Long followerId, String nickname) {
@@ -44,7 +47,7 @@ public class FollowService {
         try {
             Follow saved = followRepository.saveAndFlush(Follow.request(followerId, followingId));
             eventPublisher.publishEvent(new FollowRequestedEvent(followerId, followingId));
-            return FollowResponse.from(saved);
+            return toResponse(saved);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
         }
@@ -56,7 +59,7 @@ public class FollowService {
             case "sent" -> followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, status);
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
-        return follows.stream().map(FollowResponse::from).toList();
+        return toResponses(follows);
     }
 
     @Transactional
@@ -81,7 +84,7 @@ public class FollowService {
             eventPublisher.publishEvent(
                     new FollowAcceptedEvent(follow.getFollowerId(), follow.getFollowingId()));
         }
-        return FollowResponse.from(follow);
+        return toResponse(follow);
     }
 
     @Transactional
@@ -100,5 +103,25 @@ public class FollowService {
     private Follow getFollow(Long followId) {
         return followRepository.findById(followId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
+    }
+
+    private FollowResponse toResponse(Follow follow) {
+        return toResponses(List.of(follow)).getFirst();
+    }
+
+    private List<FollowResponse> toResponses(List<Follow> follows) {
+        Set<Long> userIds = new HashSet<>();
+        follows.forEach(f -> {
+            userIds.add(f.getFollowerId());
+            userIds.add(f.getFollowingId());
+        });
+        Map<Long, String> nicknames = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+        return follows.stream()
+                .map(f -> FollowResponse.of(
+                        f,
+                        nicknames.get(f.getFollowerId()),
+                        nicknames.get(f.getFollowingId())))
+                .toList();
     }
 }
