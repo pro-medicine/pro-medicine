@@ -44,10 +44,13 @@ export default function FriendsPage({ onNotifications }) {
 
   useEffect(() => {
     let ignore = false;
-
+    setError("");
     getFriends(userId)
       .then((data) => {
-        if (!ignore) setFriends((data ?? []).map(toFriend));
+        if (!ignore) {
+          setFriends((data ?? []).map(toFriend));
+          setError("");
+        }
       })
       .catch((err) => {
         console.error(err);
