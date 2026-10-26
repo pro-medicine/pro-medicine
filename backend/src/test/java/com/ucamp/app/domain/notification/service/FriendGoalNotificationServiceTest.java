@@ -65,7 +65,7 @@ class FriendGoalNotificationServiceTest {
 
         Object[] row = findByDedupKey("FRIEND_GOAL:9302:9301:2026-10-23").get(0);
         assertThat(row[0]).isEqualTo("FRIEND_GOAL_ACHIEVED");
-        assertThat(row[1]).isEqualTo("목표테스트9301님이 오늘 영양제 섭취를 완료했어요");
+        assertThat(row[1]).isEqualTo("목표테스트9301님이 오늘 복용을 모두 완료했어요");
         assertThat(((Number) row[2]).longValue()).isEqualTo(9302L);   // 받는 사람
         assertThat(((Number) row[3]).longValue()).isEqualTo(9301L);   // 완료한 친구
     }

@@ -102,7 +102,7 @@ public class FriendGoalNotificationService {
      * 예: "김민지님이 오늘 영양제 섭취를 완료했어요"
      */
     static String title(String nickname) {
-        return "%s님이 오늘 영양제 섭취를 완료했어요".formatted(nickname);
+        return "%s님이 오늘 복용을 모두 완료했어요".formatted(nickname);
     }
 
     /**
