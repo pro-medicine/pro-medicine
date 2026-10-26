@@ -17,14 +17,19 @@
 
 ### 시드 (로컬 MySQL에 한 번)
 
-앱 시작 시 자동으로 넣지 않는다. 순서대로 실행 (모두 예시 데이터):
+앱 시작 시 자동으로 넣지 않는다. 새 DB는 `schema.sql`(설문 v1·약물 예시 포함) 실행 후 시드 2개를 순서대로 실행 (모두 예시 데이터):
 
 ```text
-docs/sql/STEP02_seed_survey_v1.sql
-docs/sql/STEP02_seed_drugs.sql
+schema.sql
 docs/sql/STEP06_seed_ingredient_standards.sql
 docs/sql/STEP07_seed_recommendation_rules.sql
 ```
+
+`schema.sql`을 쓰지 않는 경우에만 위 STEP06·STEP07 앞에 `docs/sql/STEP02_seed_survey_v1.sql`, `docs/sql/STEP02_seed_drugs.sql`을 먼저 실행한다 (`schema.sql`과 같이 실행하면 PK 중복).
+
+이미 예전 STEP02·STEP07 시드를 넣은 DB라면 `docs/sql/STEP12_seed_unknown_drug_classes.sql`만 추가로 실행한다 (약 이름 모름 항목·규칙).
+
+**기존 팀원 DB**(예전 `schema.sql`로 만든 DB)는 `docs/sql/STEP13_ai_survey_setup.sql` 하나만 실행하면 된다 (MySQL Workbench 가능). AI 테이블·컬럼과 PK AUTO_INCREMENT를 맞추고, 예전 예시 설문(CONCERN 등)과 그 응답·추천을 지운 뒤 STEP02·06·07(STEP12 포함) 시드를 넣는다. STEP02·06·07·12 시드를 따로 실행할 필요 없고, 여러 번 실행해도 안전하다. 다른 팀원 테이블 데이터는 바꾸지 않는다.
 
 테이블·컬럼은 `ddl-auto: update`로 자동 반영된다. 공유 DB용 DDL은 `docs/sql/STEPxx_*.sql`, 변경 목록은 [docs/schema-changes.md](docs/schema-changes.md).
 
