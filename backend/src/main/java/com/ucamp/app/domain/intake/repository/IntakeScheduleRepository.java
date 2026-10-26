@@ -47,4 +47,41 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
     List<IntakeSchedule> findReminderTargets(@Param("today") LocalDate today,
                                              @Param("from") LocalTime from,
                                              @Param("to") LocalTime to);
+
+    /**
+     * 사용자가 오늘 먹어야 하는 일정 수. (홈 화면 "오늘 먹을 영양제"와 같은 기준)
+     * - 영양제·약을 복용 중 (user_products.is_active = true)
+     * - 일정 알림이 켜져 있음 (is_enabled = true)
+     * - 복용 시작일이 없거나 오늘 이전
+     */
+    @Query("""
+            SELECT COUNT(s) FROM IntakeSchedule s
+            JOIN s.userProduct up
+            WHERE up.user.id = :userId
+              AND up.isActive = true
+              AND s.isEnabled = true
+              AND (up.startDate IS NULL OR up.startDate <= :today)
+            """)
+    long countTodaySchedules(@Param("userId") Long userId, @Param("today") LocalDate today);
+
+    /**
+     * 오늘 먹어야 하는 일정 중 오늘 복용 완료(TAKEN)한 일정 수.
+     * 건너뜀(SKIPPED)은 복용 완료로 보지 않는다.
+     * countTodaySchedules와 같으면(0보다 클 때) 오늘 영양제를 모두 먹은 것이다.
+     */
+    @Query("""
+            SELECT COUNT(s) FROM IntakeSchedule s
+            JOIN s.userProduct up
+            WHERE up.user.id = :userId
+              AND up.isActive = true
+              AND s.isEnabled = true
+              AND (up.startDate IS NULL OR up.startDate <= :today)
+              AND EXISTS (
+                  SELECT r FROM IntakeRecord r
+                  WHERE r.schedule = s
+                    AND r.intakeDate = :today
+                    AND r.status = 'TAKEN'
+              )
+            """)
+    long countTodayTakenSchedules(@Param("userId") Long userId, @Param("today") LocalDate today);
 }
