@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.guardian.controller;
 
-import com.ucamp.app.domain.guardian.dto.GuardianCreteRequest;
+import com.ucamp.app.domain.guardian.dto.GuardianCreateRequest;
 import com.ucamp.app.domain.guardian.dto.GuardianDaysRequest;
 import com.ucamp.app.domain.guardian.dto.GuardianResponse;
 import com.ucamp.app.domain.guardian.service.GuardianService;
@@ -23,7 +23,7 @@ public class GuardianController {
     @PostMapping
     public ResponseEntity<ApiResponse<GuardianResponse>> request(
             @RequestParam Long userId,
-            @Valid @RequestBody GuardianCreteRequest request) {
+            @Valid @RequestBody GuardianCreateRequest request) {
         GuardianResponse response = guardianService.request(userId, request.targetId(), request.inactivityDays());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }

@@ -1,5 +1,7 @@
 package com.ucamp.app.domain.guardian.service;
 
+import com.ucamp.app.domain.friend.enums.FollowStatus;
+import com.ucamp.app.domain.friend.repository.FollowRepository;
 import com.ucamp.app.domain.guardian.dto.GuardianResponse;
 import com.ucamp.app.domain.guardian.entity.GuardianSetting;
 import com.ucamp.app.domain.guardian.repository.GuardianSettingRepository;
@@ -19,6 +21,7 @@ import java.util.List;
 public class GuardianService {
 
     private final GuardianSettingRepository guardianSettingRepository;
+    private final FollowRepository followRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -27,6 +30,9 @@ public class GuardianService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(guardianUserId, targetId, FollowStatus.ACCEPTED)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
         if (guardianSettingRepository.existsByUserIdAndGuardianUserId(targetId, guardianUserId)) {
             throw new BusinessException(ErrorCode.ALREADY_GUARDIAN);
         }
