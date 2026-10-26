@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 public record GuardianCreteRequest(
-        @NotBlank String nickname,
+        @NotBlank Long targetId,
         @Min(1) @Max(30) int inactivityDays
 ) {
 }

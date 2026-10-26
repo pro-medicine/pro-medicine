@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface GuardianSettingRepository extends JpaRepository<GuardianSetting, Long> {
+
 
     boolean existsByUserIdAndGuardianUserId(Long userId, Long guardianUserId);
 
@@ -23,4 +25,6 @@ public interface GuardianSettingRepository extends JpaRepository<GuardianSetting
             "join fetch g.user u join fetch g.guardianUser " +
             "where g.isActive = true")
     List<GuardianSetting> findAllActiveWithUsers();
+
+    Optional<GuardianSetting> findByGuardianSettingId(Long guardianSettingId);
 }

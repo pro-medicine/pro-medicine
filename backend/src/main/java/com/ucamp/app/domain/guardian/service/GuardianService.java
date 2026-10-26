@@ -16,7 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class GuardianSettingService {
+public class GuardianService {
 
     private final GuardianSettingRepository guardianSettingRepository;
     private final UserRepository userRepository;
@@ -76,7 +76,7 @@ public class GuardianSettingService {
     }
 
     private GuardianSetting get(Long id) {
-        return GuardianSettingRepository.findById(id)
+        return guardianSettingRepository.findByGuardianSettingId(id)
                 .orElseThrow(()->new BusinessException(ErrorCode.SETTING_NOT_FOUND));
     }
 }
