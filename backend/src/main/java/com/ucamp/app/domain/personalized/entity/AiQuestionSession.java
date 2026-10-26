@@ -139,6 +139,16 @@ public class AiQuestionSession {
         this.finishedAt = LocalDateTime.now();
     }
 
+    // ✕ 닫기: 사용자가 직접 중단 (추천 없음)
+    public void close() {
+        markAbandoned();
+        this.stoppedByUser = true;
+    }
+
+    public boolean isAbandoned() {
+        return ABANDONED.equals(status);
+    }
+
     public void markFailed(String errorCode) {
         this.status = FAILED;
         this.errorCode = errorCode == null || errorCode.length() <= ERROR_CODE_LENGTH

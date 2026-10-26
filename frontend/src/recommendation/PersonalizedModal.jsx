@@ -1,6 +1,8 @@
-// 회원 맞춤 질문 모달 (담당: 영준) — 모드 확인 → 맞춤 질문 → (그만하기) → 정밀 추천 → 결과 흐름
+// 회원 맞춤 질문 모달 (담당: 영준) — 모드 확인 → 맞춤 질문 → (여기까지 답하고 결과 보기) → 정밀 추천 → 결과 흐름.
+// ✕ 닫기는 추천 없이 회차를 끝낸다
 import {
   answerPersonalizedQuestion,
+  closePersonalizedSession,
   createPersonalizedRecommendation,
   getIngredients,
   getRecommendationMode,
@@ -32,20 +34,31 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   const [step, setStep] = useState("loading"); // "loading" | "waiting" | "question" | "result" | "error"
   const [loadingText, setLoadingText] = useState(CHECK_LOADING_TEXT); // 로딩 화면 문구
   const [waitingIndex, setWaitingIndex] = useState(0); // 질문 생성 대기 문구 위치
-  const [session, setSession] = useState(null); // 회차 응답 { sessionId, status, question, progress }
+  const [session, setSession] = useState(null); // 회차 응답 { sessionId, status, question, progress, canStop }
   const [selected, setSelected] = useState([]); // 지금 질문에서 고른 선택지 index
   const [ingredients, setIngredients] = useState({}); // 성분 코드 → { name, unit }
   const [result, setResult] = useState(null); // 정밀 추천 결과
   const [error, setError] = useState(null); // { message, retrySessionId }
   const [sending, setSending] = useState(false); // 요청 중 여부 (중복 클릭 방지)
   const aliveRef = useRef(true); // 닫힌 뒤에는 화면을 바꾸지 않기 위한 표시
+  const openSessionRef = useRef(null); // 아직 결과가 나오지 않은 회차 id (닫을 때 서버에 알림)
+
+  // ✕·ESC·바깥 클릭: 결과 전이면 회차를 닫고(추천 없음) 모달을 닫는다. 서버 응답은 기다리지 않는다
+  const handleClose = useCallback(() => {
+    const sessionId = openSessionRef.current;
+    openSessionRef.current = null;
+    if (sessionId) {
+      closePersonalizedSession(userId, sessionId).catch(() => {});
+    }
+    onClose();
+  }, [userId, onClose]);
 
   // ESC로 닫기
   useEffect(() => {
-    const onKeyDown = (e) => e.key === "Escape" && onClose();
+    const onKeyDown = (e) => e.key === "Escape" && handleClose();
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [handleClose]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -84,6 +97,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
       try {
         const data = await createPersonalizedRecommendation(userId, sessionId);
         if (!aliveRef.current) return;
+        openSessionRef.current = null;
         setResult(data);
         setStep("result");
       } catch (e) {
@@ -97,6 +111,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   const applySession = useCallback(
     (data) => {
       if (!aliveRef.current) return;
+      openSessionRef.current = data.sessionId;
       if (data.status === "READY") {
         recommend(data.sessionId);
         return;
@@ -169,9 +184,9 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     }
   };
 
-  // 3) 그만하기 → 지금까지 답으로 정밀 추천
+  // 3) 여기까지 답하고 결과 보기 → 지금까지 답으로 정밀 추천 (서버가 허용할 때만: canStop)
   const handleStop = async () => {
-    if (sending || !session) return;
+    if (sending || !session?.canStop) return;
     setSending(true);
     try {
       applySession(await stopPersonalizedSession(userId, session.sessionId));
@@ -183,7 +198,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   };
 
   return (
-    <div className="rec-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="rec-backdrop" role="presentation" onMouseDown={handleClose}>
       <div
         className="rec-modal"
         role="dialog"
@@ -200,7 +215,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
             type="button"
             className="rec-close"
             aria-label="닫기"
-            onClick={onClose}
+            onClick={handleClose}
           >
             ×
           </button>
@@ -233,6 +248,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
             selected={selected}
             sending={sending}
             onChange={setSelected}
+            canStop={session.canStop}
             onSubmit={handleAnswer}
             onStop={handleStop}
           />
@@ -266,7 +282,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
               <button type="button" className="rec-button" onClick={start}>
                 처음부터
               </button>
-              <button type="button" className="rec-button" onClick={onClose}>
+              <button type="button" className="rec-button" onClick={handleClose}>
                 닫기
               </button>
             </div>

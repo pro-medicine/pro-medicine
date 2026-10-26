@@ -223,7 +223,17 @@ class PersonalizedRecommendationApiTest {
                         Map.of("turnId", s.at("/question/turnId").asLong(), "selected", selected))));
     }
 
+    // 결과 보기 조건(임신 질문 답, LLM 질문 1개 이상)을 채우도록 남은 질문에 첫 선택지로 답한 뒤 그만한다
     private void stop(User user, long sessionId) throws Exception {
+        while (jdbcTemplate.queryForObject("select count(*) from ai_question_turns where session_id = ?"
+                + " and fixed = false and selected_json is not null", Integer.class, sessionId) == 0) {
+            long turnId = jdbcTemplate.queryForObject("select turn_id from ai_question_turns where session_id = ?"
+                    + " and selected_json is null", Long.class, sessionId);
+            mockMvc.perform(post(BASE + "/" + sessionId + "/answers").header("X-User-Id", user.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(Map.of("turnId", turnId, "selected", List.of(0)))))
+                    .andExpect(status().isOk());
+        }
         mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
                 .andExpect(status().isOk());
     }

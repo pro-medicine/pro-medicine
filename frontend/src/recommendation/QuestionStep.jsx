@@ -1,4 +1,4 @@
-// 맞춤 질문 한 개 (담당: 영준) — 선택지 버튼, 진행 표시, 그만하고 결과 보기
+// 맞춤 질문 한 개 (담당: 영준) — 선택지 버튼, 진행 표시, 여기까지 답하고 결과 보기
 
 /**
  * props (PersonalizedModal에서 전달)
@@ -8,13 +8,15 @@
  * - sending: 답 보내는 중 여부
  * - onChange(selected): 선택 변경
  * - onSubmit: 답 보내기
- * - onStop: 그만하고 결과 보기
+ * - canStop: "여기까지 답하고 결과 보기" 가능 여부 (서버 판단: 임신 질문 답 + LLM 질문 1개 이상 답)
+ * - onStop: 여기까지 답하고 결과 보기
  */
 export default function QuestionStep({
   question,
   progress,
   selected,
   sending,
+  canStop,
   onChange,
   onSubmit,
   onStop,
@@ -73,10 +75,11 @@ export default function QuestionStep({
         <button
           type="button"
           className="rec-link"
-          disabled={sending}
+          disabled={sending || !canStop}
+          title={canStop ? undefined : "질문에 1개 이상 답하면 결과를 볼 수 있어요"}
           onClick={onStop}
         >
-          그만하고 결과 보기
+          여기까지 답하고 결과 보기
         </button>
         <button
           type="button"

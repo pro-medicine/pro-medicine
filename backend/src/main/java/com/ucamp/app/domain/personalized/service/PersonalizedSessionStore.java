@@ -121,7 +121,8 @@ public class PersonalizedSessionStore {
     }
 
     /**
-     * 그만하기 (설계 4-4): 답하지 않은 마지막 질문은 버리고 READY. 답한 질문이 0개여도 된다.
+     * 여기까지 답하고 결과 보기 (설계 4-4, D8): 답하지 않은 마지막 질문은 버리고 READY.
+     * 임신 고정 질문 대상자는 그 질문에 답하고, LLM 질문도 1개 이상 답했을 때만 (아니면 PQ003).
      * 버린 LLM 질문은 question_count에서도 뺀다 (question_count = 저장된 LLM 질문 수). 이미 READY면 그대로 돌려준다
      */
     @Transactional
@@ -130,10 +131,41 @@ public class PersonalizedSessionStore {
         if (session.isReady()) {
             return state(session);
         }
-        if (!session.isInProgress()) {
+        if (!session.isInProgress() || !canStop(state(session))) {
             throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_STATE);
         }
-        turnRepository.findFirstBySession_SessionIdOrderByTurnNoDesc(sessionId)
+        discardPending(session);
+        session.markReady(true);
+        return state(session);
+    }
+
+    /**
+     * ✕ 닫기: 추천 없이 끝낸다 → ABANDONED, stopped_by_user = true. 답하지 않은 마지막 질문은 버린다.
+     * 이미 ABANDONED면 그대로, DONE·FAILED면 PQ003
+     */
+    @Transactional
+    public SessionState close(Long userId, Long sessionId) {
+        AiQuestionSession session = lockOwned(userId, sessionId);
+        if (session.isAbandoned()) {
+            return state(session);
+        }
+        if (!session.isInProgress() && !session.isReady()) {
+            throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_STATE);
+        }
+        discardPending(session);
+        session.close();
+        return state(session);
+    }
+
+    /** 결과 보기 조건: 임신 고정 질문이 있으면 답했고, 답한 LLM 질문이 1개 이상 */
+    public static boolean canStop(SessionState state) {
+        boolean pregnancyAnswered = state.turns().stream().filter(SessionState.TurnState::fixed)
+                .allMatch(SessionState.TurnState::answered);
+        return pregnancyAnswered && !state.answeredLlmTurns().isEmpty();
+    }
+
+    private void discardPending(AiQuestionSession session) {
+        turnRepository.findFirstBySession_SessionIdOrderByTurnNoDesc(session.getSessionId())
                 .filter(t -> !t.isAnswered())
                 .ifPresent(t -> {
                     if (!t.isFixed()) {
@@ -142,8 +174,6 @@ public class PersonalizedSessionStore {
                     turnRepository.delete(t);
                 });
         turnRepository.flush();
-        session.markReady(true);
-        return state(session);
     }
 
     /**

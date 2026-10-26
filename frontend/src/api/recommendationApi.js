@@ -54,7 +54,7 @@ export function getRecommendationMode(userId) {
   return api.get("/api/v1/users/me/recommendation-mode", userHeader(userId));
 }
 
-// 맞춤 질문 회차 시작 → { sessionId, status, question, progress }
+// 맞춤 질문 회차 시작 → { sessionId, status, question, progress, canStop }
 export function startPersonalizedSession(userId) {
   return api.post("/api/v1/personalized-sessions", null, userHeader(userId));
 }
@@ -68,10 +68,19 @@ export function answerPersonalizedQuestion(userId, sessionId, turnId, selected) 
   );
 }
 
-// 그만하기 → status READY
+// 여기까지 답하고 결과 보기 → status READY (조건 미충족이면 PQ003)
 export function stopPersonalizedSession(userId, sessionId) {
   return api.post(
     `/api/v1/personalized-sessions/${sessionId}/stop`,
+    null,
+    userHeader(userId),
+  );
+}
+
+// ✕ 닫기 → status ABANDONED (추천 없음)
+export function closePersonalizedSession(userId, sessionId) {
+  return api.post(
+    `/api/v1/personalized-sessions/${sessionId}/close`,
     null,
     userHeader(userId),
   );

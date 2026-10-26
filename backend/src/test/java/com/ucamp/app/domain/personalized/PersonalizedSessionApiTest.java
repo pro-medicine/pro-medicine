@@ -173,12 +173,73 @@ class PersonalizedSessionApiTest {
     }
 
     @Test
-    void 답한_질문이_0개여도_그만할_수_있다() throws Exception {
+    void 답한_LLM_질문이_0개면_결과_보기는_PQ003() throws Exception {
         User user = members.fullMale(1980);
         JsonNode s = data(start(user));
+        assertThat(s.get("canStop").asBoolean()).isFalse();
         mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/stop").header("X-User-Id", user.getId()))
-                .andExpect(jsonPath("$.data.status").value("READY"))
-                .andExpect(jsonPath("$.data.progress.asked").value(0));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PQ003"));
+        assertThat(data(answer(user, s, List.of(0))).get("canStop").asBoolean()).isTrue();
+    }
+
+    @Test
+    void 임신_질문에_답하기_전에는_결과_보기_PQ003() throws Exception {
+        User user = female(Year.now().getValue() - 30);
+        JsonNode s = data(start(user));
+        long sessionId = s.get("sessionId").asLong();
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PQ003"));
+
+        // 임신 질문만 답해도 아직 안 됨, LLM 질문까지 답하면 가능
+        JsonNode s2 = data(answer(user, s, List.of(0)));
+        assertThat(s2.get("canStop").asBoolean()).isFalse();
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+                .andExpect(status().isConflict());
+        data(answer(user, s2, List.of(0)));
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("READY"));
+    }
+
+    @Test
+    void 닫기는_추천_없이_ABANDONED_사용자_중단_이후_답변은_PQ003() throws Exception {
+        User user = members.fullMale(1980);
+        JsonNode s = data(start(user));
+        long sessionId = s.get("sessionId").asLong();
+
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ABANDONED"))
+                .andExpect(jsonPath("$.data.question").doesNotExist())
+                .andExpect(jsonPath("$.data.progress.asked").value(0))
+                .andExpect(jsonPath("$.data.canStop").value(false));
+        AiQuestionSession saved = sessionRepository.findById(sessionId).orElseThrow();
+        assertThat(saved.isStoppedByUser()).isTrue();
+        assertThat(saved.getFinishedAt()).isNotNull();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from ai_question_turns where session_id = ?",
+                Integer.class, sessionId)).isZero();
+
+        answer(user, s, List.of(0)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PQ003"));
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post(BASE + "/" + sessionId + "/recommendation").header("X-User-Id", user.getId()))
+                .andExpect(status().isConflict());
+        // 다시 닫기는 그대로
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ABANDONED"));
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void READY_회차도_닫을_수_있다() throws Exception {
+        User user = members.fullMale(1980);
+        JsonNode s = data(start(user));
+        long sessionId = s.get("sessionId").asLong();
+        answer(user, s, List.of(0));
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+                .andExpect(jsonPath("$.data.status").value("READY"));
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+                .andExpect(jsonPath("$.data.status").value("ABANDONED"));
     }
 
     @Test

@@ -40,11 +40,18 @@ public class PersonalizedSessionController {
                 sessionService.answer(member(userId), sessionId, request.turnId(), request.selected())));
     }
 
-    // 그만하기: 지금까지 답으로 정밀 추천을 받을 수 있게 READY
+    // 여기까지 답하고 결과 보기: 지금까지 답으로 정밀 추천을 받을 수 있게 READY (조건 미충족이면 PQ003)
     @PostMapping("/{sessionId}/stop")
     public ResponseEntity<ApiResponse<PersonalizedSessionResponse>> stop(@CurrentUserId Long userId,
                                                                          @PathVariable Long sessionId) {
         return ResponseEntity.ok(ApiResponse.success(sessionService.stop(member(userId), sessionId)));
+    }
+
+    // ✕ 닫기: 추천 없이 끝냄 (ABANDONED)
+    @PostMapping("/{sessionId}/close")
+    public ResponseEntity<ApiResponse<PersonalizedSessionResponse>> close(@CurrentUserId Long userId,
+                                                                          @PathVariable Long sessionId) {
+        return ResponseEntity.ok(ApiResponse.success(sessionService.close(member(userId), sessionId)));
     }
 
     // 정밀 추천: READY일 때만. 응답은 V1 추천과 같은 형식. 같은 회차로 다시 부르면 저장된 결과

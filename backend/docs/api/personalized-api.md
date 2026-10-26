@@ -13,7 +13,7 @@
                  ├ 19~50세 여성 → 임신·수유 고정 질문 (서버가 만든 질문, LLM 호출 없음)
                  └ 그 밖 → 첫 LLM 질문: 불편한 점 (MULTI, 최대 2개)
                POST /api/v1/personalized-sessions/{id}/answers  (반복, 기본 5 / 최대 7문항)
-               └ 응답 status = READY (question = null) 또는 사용자가 POST .../stop
+               └ 응답 status = READY (question = null) 또는 사용자가 POST .../stop (✕ 닫기는 POST .../close, 추천 없음)
                POST /api/v1/personalized-sessions/{id}/recommendation → V1과 같은 결과 형식
 ```
 
@@ -61,7 +61,8 @@
         { "index": 3, "label": "수유 중이에요", "exclusive": false }
       ]
     },
-    "progress": { "asked": 0, "base": 5, "max": 7 }
+    "progress": { "asked": 0, "base": 5, "max": 7 },
+    "canStop": false
   }
 }
 ```
@@ -78,7 +79,8 @@
     { "index": 2, "label": "없어요", "exclusive": true }, { "index": 3, "label": "잘 모르겠어요", "exclusive": true }
   ]
 },
-"progress": { "asked": 1, "base": 5, "max": 7 }
+"progress": { "asked": 1, "base": 5, "max": 7 },
+"canStop": false
 ```
 
 | 필드 | 설명 |
@@ -89,6 +91,7 @@
 | `options[].index` | 답할 때 보내는 값. 선택지 성격(kind: NONE/UNKNOWN/NORMAL/CONCERN)은 **내려주지 않는다** (서버 판단용) |
 | `options[].exclusive` | true = "없어요"·"잘 모르겠어요"처럼 다른 선택지와 함께 고를 수 없는 선택지 (화면에서 고르면 다른 선택 해제) |
 | `progress.asked` | 지금까지 낸 LLM 질문 수 (고정 질문 제외). 남은 수는 서버도 정확히 모른다 (답에 따라 달라짐) |
+| `canStop` | true면 "여기까지 답하고 결과 보기" 가능 (임신 고정 질문에 답했고 LLM 질문을 1개 이상 답함, 진행 중일 때만) |
 
 ## 3. 답변 `POST /api/v1/personalized-sessions/{sessionId}/answers`
 
@@ -105,11 +108,18 @@
 - 개수: SINGLE 1개, MULTI 1~2개 / 범위 안 / 중복 없음
 - "없어요"·"잘 모르겠어요"는 다른 선택지와 함께 고를 수 없음
 
-## 4. 그만하기 `POST /api/v1/personalized-sessions/{sessionId}/stop`
+## 4. 여기까지 답하고 결과 보기 `POST /api/v1/personalized-sessions/{sessionId}/stop`
 
-- 답하지 않은 마지막 질문은 버리고(`progress.asked`에서도 빠짐) `status = READY`. 답한 질문이 0개여도 된다 (프로필만으로 정밀 추천).
+- 답하지 않은 마지막 질문은 버리고(`progress.asked`에서도 빠짐) `status = READY`.
+- 조건: 임신 고정 질문 대상자는 그 질문에 답했고, 답한 LLM 질문이 1개 이상. 아니면 409 PQ003. 회차 응답의 `canStop`이 `true`일 때만 화면 버튼을 켠다.
 - 이미 READY면 그대로 READY를 돌려준다. DONE·ABANDONED·FAILED면 409 PQ003.
 - 응답: 3번의 끝났을 때와 같은 형식.
+
+## 4b. 닫기 `POST /api/v1/personalized-sessions/{sessionId}/close`
+
+- ✕ 닫기(ESC·바깥 클릭 포함). 추천 없이 `status = ABANDONED`, `stopped_by_user = true`. 답하지 않은 마지막 질문은 버린다.
+- IN_PROGRESS·READY만. 이미 ABANDONED면 그대로 돌려준다. DONE·FAILED면 409 PQ003.
+- 응답: `{ "sessionId": 12, "status": "ABANDONED", "question": null, "progress": {...}, "canStop": false }`
 
 ## 5. 정밀 추천 `POST /api/v1/personalized-sessions/{sessionId}/recommendation`
 

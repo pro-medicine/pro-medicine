@@ -39,7 +39,7 @@
 | D5 | **질문과 선택지 모두 LLM이 생성**. 선택지마다 `kind`(NONE/UNKNOWN/NORMAL/CONCERN)를 붙이고 서버는 `kind`로 깊이·전환 판단 |
 | D6 | 질문 수 기본 5, 최대 7 |
 | D7 | 주제별 최대 깊이: 약물·불편한 점 2, 생활습관 1 |
-| D8 | "그만하기" 허용 → 지금까지 답으로 정밀 추천 |
+| D8 | 중단 버튼 2개: ✕ 닫기(추천 없이 회차 ABANDONED, 사용자 중단) / "여기까지 답하고 결과 보기"(지금까지 답으로 정밀 추천. 임신 고정 질문 대상자는 그 질문에 답하고 LLM 질문도 1개 이상 답한 뒤에만, 2026-10-27 변경) |
 | D9 | 맞춤 답변은 **프로필에 저장하지 않음** (회차 기록에만) |
 | D10 | 이미 답한 주제도 다시 물음 (건너뛰지 않음). 질문 표현은 매번 달라도 됨 |
 | D11 | V1 대비 변화는 **모니터링만** (사용자에게 안 보임) |
@@ -68,7 +68,7 @@
                          ↓
                        POST .../answers (답 저장 → 서버가 다음 주제 결정 → LLM 질문 생성)
                          ↓ (반복, 기본 5 / 최대 7)
-                       done = true 또는 사용자가 "그만하기"
+                       done = true 또는 사용자가 "여기까지 답하고 결과 보기" (✕ 닫기는 추천 없이 끝)
                          ↓
                        POST .../recommendation (정밀 추천: 기존 파이프라인)
                          ↓
@@ -120,8 +120,14 @@
 응답 (끝났을 때): `{ "sessionId": 12, "status": "READY", "question": null, "progress": {...} }`
 - 검증: 이 회차의 **마지막 질문**에 대한 답인지, `selected` 개수(SINGLE 1개, MULTI 1~2개), 범위, NONE/UNKNOWN 선택지는 다른 선택지와 함께 고를 수 없음
 
-### 4-4. 그만하기 `POST /api/v1/personalized-sessions/{sessionId}/stop`
-- 마지막 질문에 답하지 않았으면 그 질문은 버린다. `status = READY`로 바꾼다. 답한 질문이 0개여도 가능 (프로필만으로 정밀 추천).
+### 4-4. 여기까지 답하고 결과 보기 `POST /api/v1/personalized-sessions/{sessionId}/stop`
+- 마지막 질문에 답하지 않았으면 그 질문은 버린다. `status = READY`로 바꾼다.
+- 조건 (2026-10-27 변경, D8): 임신 고정 질문 대상자는 그 질문에 답했고, 답한 LLM 질문이 1개 이상. 아니면 PQ003. 응답의 `canStop`으로 화면 버튼을 켠다.
+
+### 4-4b. 닫기 `POST /api/v1/personalized-sessions/{sessionId}/close`
+- ✕ 닫기(ESC·바깥 클릭 포함). 추천 없이 `status = ABANDONED`, `stopped_by_user = true`. 답하지 않은 마지막 질문은 버린다.
+- IN_PROGRESS·READY만. 이미 ABANDONED면 그대로, DONE·FAILED면 PQ003.
+
 
 ### 4-5. 정밀 추천 `POST /api/v1/personalized-sessions/{sessionId}/recommendation`
 - `status`가 `READY`일 때만. 응답은 **V1 추천 응답과 같은 형식** (`RecommendationResponse`).
@@ -396,7 +402,7 @@ ALTER TABLE llm_call_logs ADD COLUMN session_id BIGINT NULL;
   - 한 번에 질문 1개, 선택지 버튼 (MULTI는 최대 2개, 2개 고르면 나머지 비활성)
   - "없어요"·"잘 모르겠어요"를 고르면 다른 선택 해제 (화면에서도 막고 서버도 검증)
   - 진행 표시: "질문 2 / 최대 7" 정도, 정확한 남은 수는 서버도 모르므로 막대는 쓰지 않음
-  - "그만하고 결과 보기" 버튼 상시 노출
+  - "여기까지 답하고 결과 보기" 버튼 상시 노출 (조건 전에는 비활성), ✕ 닫기는 회차를 닫고(close) 모달을 닫음
 - 대기 화면 (질문 생성 중): 1.5~2초마다 문구가 바뀌는 애니메이션
   - "답변을 살펴보고 있어요" → "다음 질문을 고르고 있어요" → "거의 다 만들었어요"
 - 정밀 추천: V1 `ResultStep` 재사용

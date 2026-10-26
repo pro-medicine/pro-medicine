@@ -81,6 +81,16 @@ public class PersonalizedSessionService {
         return response(store.stop(userId, sessionId));
     }
 
+    /** ✕ 닫기: 추천 없이 ABANDONED (사용자 중단) */
+    public PersonalizedSessionResponse close(Long userId, Long sessionId) {
+        SessionState before = store.get(userId, sessionId);
+        SessionState state = store.close(userId, sessionId);
+        if (!before.is(AiQuestionSession.ABANDONED)) {
+            countSession(AiQuestionSession.ABANDONED, true);
+        }
+        return response(state);
+    }
+
     /** 회차 상태 그대로 (정밀 추천 등 다른 서비스용) */
     public SessionState state(Long userId, Long sessionId) {
         return store.get(userId, sessionId);
@@ -127,7 +137,8 @@ public class PersonalizedSessionService {
     public static PersonalizedSessionResponse response(SessionState state) {
         SessionState.TurnState pending = state.is(AiQuestionSession.IN_PROGRESS) ? state.pendingTurn() : null;
         return new PersonalizedSessionResponse(state.sessionId(), state.status(), pending == null ? null : view(pending),
-                new Progress(state.questionCount(), TopicPlanner.BASE_QUESTIONS, TopicPlanner.MAX_QUESTIONS));
+                new Progress(state.questionCount(), TopicPlanner.BASE_QUESTIONS, TopicPlanner.MAX_QUESTIONS),
+                state.is(AiQuestionSession.IN_PROGRESS) && PersonalizedSessionStore.canStop(state));
     }
 
     private static QuestionView view(SessionState.TurnState t) {
