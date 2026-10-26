@@ -7,7 +7,9 @@ import com.ucamp.app.domain.recommendation.pipeline.PipelineRegistry;
 import com.ucamp.app.eval.EvalCaseFile.EvalCase;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmProperties;
+import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
+import com.ucamp.app.support.PerfStats;
 import com.ucamp.app.global.metrics.StageTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -73,6 +75,11 @@ class EvalRunTest {
         String model = System.getProperty("eval.model");
         if (model != null && !model.isBlank()) {
             registry.add("llm.model", () -> model);
+        }
+        // 추론 강도 비교 (-PreasoningEffort=low). 지정하지 않으면 모델 기본값
+        String effort = System.getProperty("eval.reasoningEffort");
+        if (effort != null && !effort.isBlank()) {
+            registry.add("spring.ai.openai.chat.reasoning-effort", () -> effort);
         }
     }
 
@@ -140,7 +147,14 @@ class EvalRunTest {
                 + (llmFree ? "" : mode == EvalRunner.LlmMode.FAKE ? "-fake" : mode == EvalRunner.LlmMode.FAKE_NOISY ? "-fake-noisy" : "")
                 + passSuffix
                 + (System.getProperty("eval.label") == null ? "" : "-" + System.getProperty("eval.label"));
+        List<LlmCallLog> callLogs = logRepository.findByEvalRunIdOrderByLlmCallLogIdAsc(evalRunId);
+        Double llmP99 = llmPercentile(callLogs, 99);
         String note = buildNote(file, summary, llmFree ? "LLM 미사용(규칙 기반 폴백) - 실제 측정값" : System.getProperty("eval.note"), llmFree);
+        if (mode == EvalRunner.LlmMode.OPENAI) {
+            note += "; llm=openai; llm_p99_ms=" + (llmP99 == null ? "-" : Math.round(llmP99))
+                    + "; reasoning=" + System.getProperty("eval.reasoningEffort", "default")
+                    + "; max_output_tokens=" + callLogs.stream().mapToInt(l -> l.getOutputTokens() == null ? 0 : l.getOutputTokens()).max().orElse(0);
+        }
         String step = System.getProperty("eval.step", stepOf(version));
         EvalRunner.appendCsv(CSV, EvalRunner.csvRow(step, label, summary, note));
         Map<String, Object> extra = new LinkedHashMap<>();
@@ -150,6 +164,10 @@ class EvalRunTest {
         extra.put("stageTimings", stageTimings(version));
         extra.put("ruleHits", ruleHits());
         extra.put("cacheCounters", cacheCounters());
+        extra.put("reasoningEffort", System.getProperty("eval.reasoningEffort", "default"));
+        extra.put("llmP99Ms", llmP99);
+        // 호출 단위 원자료 (H2 메모리 DB는 실행이 끝나면 사라지므로 분포를 다시 계산할 수 있게 남긴다)
+        extra.put("llmCallLogs", callLogs.stream().map(EvalRunTest::callLog).toList());
         Path json = EvalRunner.writeRunJson(RUNS, summary, extra, objectMapper);
         System.out.printf("[EVAL] label=%s metrics=%s%n", label, summary.metrics());
         System.out.printf("[EVAL] llmCalls=%d repair=%d errors=%d failures=%s byModel=%s recallByDifficulty=%s%n",
@@ -158,6 +176,30 @@ class EvalRunTest {
         System.out.println("[EVAL] stages=" + extra.get("stageTimings"));
         System.out.println("[EVAL] ruleHits=" + extra.get("ruleHits"));
         System.out.println("[EVAL] saved " + CSV + " and " + json);
+    }
+
+    private static Double llmPercentile(List<LlmCallLog> logs, double p) {
+        if (logs.isEmpty()) {
+            return null;
+        }
+        PerfStats stats = new PerfStats();
+        logs.forEach(l -> stats.add(l.getLatencyMs()));
+        return stats.percentile(p);
+    }
+
+    private static Map<String, Object> callLog(LlmCallLog l) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", l.getLlmCallLogId());
+        m.put("callTag", l.getCallTag());
+        m.put("model", l.getModel());
+        m.put("attemptNo", l.getAttemptNo());
+        m.put("inputTokens", l.getInputTokens());
+        m.put("outputTokens", l.getOutputTokens());
+        m.put("cacheReadTokens", l.getCacheReadTokens());
+        m.put("latencyMs", l.getLatencyMs());
+        m.put("outcome", l.getOutcome());
+        m.put("httpStatus", l.getHttpStatus());
+        return m;
     }
 
     // 이번 실행에서 기록된 단계별 Timer (ms). 같은 JVM에서 한 버전만 돌리므로 그 버전 값이다

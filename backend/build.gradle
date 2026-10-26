@@ -91,12 +91,12 @@ def passOpenAiApiKey = { Test task ->
 	}
 }
 
-// 평가 실행: ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=30] [-Prepeats=1] [-Pmode=repro] [-Pllm=fake] [-Pconfirm=true]
+// 평가 실행: ./gradlew evalRun -PpipelineVersion=V0 [-Pcases=30] [-Prepeats=1] [-Pmode=repro] [-Pllm=fake] [-PreasoningEffort=low] [-Pconfirm=true]
 // -Pconfirm=true가 없으면 실제 API(-Pllm=openai, 기본값)는 예상 호출 수·비용만 출력하고 끝낸다
 tasks.register('evalRun', Test) {
 	description = '추천 품질 평가 실행 (평가셋 → results.csv)'
 	useJUnitPlatform { includeTags 'eval' }
-	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'passes'].each { key ->
+	['pipelineVersion', 'cases', 'repeats', 'mode', 'llm', 'confirm', 'model', 'label', 'note', 'step', 'passes', 'reasoningEffort'].each { key ->
 		if (project.hasProperty(key)) {
 			systemProperty "eval.${key}", project.property(key)
 		}
