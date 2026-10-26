@@ -19,6 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +27,8 @@ import java.util.Map;
 
 /**
  * LlmClient의 실제 구현: Spring AI ChatModel(설정한 회사의 모델)로 호출한다.
- * - 연결(API 키·주소·타임아웃·재시도 횟수)은 Spring AI가 spring.ai.* 설정으로 만든 ChatModel의 기본 옵션을 그대로 쓴다
+ * - 연결(API 키·주소·재시도 횟수)은 Spring AI가 spring.ai.* 설정으로 만든 ChatModel의 기본 옵션을 그대로 쓴다.
+ *   타임아웃은 요청마다 llm.timeout-ms로 넣는다 (기본 옵션의 60초가 클라이언트 설정을 덮어쓰기 때문)
  * - 요청마다 모델·출력 토큰·구조화 출력 스키마만 정한다. 회사마다 다른 부분은 ChatProviderSupport가 맡는다
  * - 출력 형식 강제: LlmRequest의 출력 스키마를 구조화 출력(outputSchema)으로 보내고, 응답 JSON을 output에 넣는다.
  *   파이프라인(StructuredPipeline)이 output을 검증·재요청한다
@@ -81,6 +83,7 @@ public class SpringAiLlmClient implements LlmClient {
         ChatOptions.Builder<?> b = chatModel.getOptions().mutate()
                 .model(request.model() != null ? request.model() : properties.getModel());
         provider.maxOutputTokens(b, request.maxTokens() > 0 ? request.maxTokens() : properties.getMaxTokens());
+        provider.timeout(b, Duration.ofMillis(properties.getTimeoutMs()));
         if (request.reasoningEffort() != null) {
             provider.reasoningEffort(b, request.reasoningEffort());
         }

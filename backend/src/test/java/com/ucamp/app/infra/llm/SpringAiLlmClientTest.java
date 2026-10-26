@@ -158,7 +158,9 @@ class SpringAiLlmClientTest {
                         .maxRetries(0)
                         .build())
                 .build();
-        return new SpringAiLlmClient(chatModel, new OpenAiProviderSupport(), new LlmProperties(), objectMapper);
+        LlmProperties properties = new LlmProperties();
+        properties.setTimeoutMs(timeoutMs); // 요청 옵션에도 같은 값이 들어간다 (SpringAiLlmClient.options)
+        return new SpringAiLlmClient(chatModel, new OpenAiProviderSupport(), properties, objectMapper);
     }
 
     private LlmRequest request(boolean withSchema) {
