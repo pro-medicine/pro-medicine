@@ -298,3 +298,103 @@
 .modal-result.error {
   color: #d64545;
 }
+
+.friend-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-card {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.request-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0 12px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f3f5;
+}
+
+.request-tabs button {
+  flex: 1;
+  padding: 9px 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.request-tabs button.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 80px;
+}
+
+.request-empty {
+  margin: 24px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.request-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #eceff3;
+  border-radius: 14px;
+}
+
+.request-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.request-name small {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.request-actions button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.request-actions .accept {
+  background: #2f9e8f; /* 메인 컬러로 교체 */
+  color: #fff;
+}
+
+.request-actions .reject {
+  background: #f1f3f5;
+  color: #4b5563;
+}
+
+.request-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

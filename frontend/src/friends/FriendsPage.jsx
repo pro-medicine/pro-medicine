@@ -4,6 +4,7 @@ import { getFriends } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
+import FollowRequestModal from "./FollowRequestsModal";
 import FriendDetailPage from "./FriendDetailPage";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
@@ -33,6 +34,8 @@ export default function FreindsPage({ onNotifications }) {
   const [error, setError] = useState("");
   const [selectedFriend, setSelectedFriend] = useState(null); // 추가
   const [addOpen, setAddOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -53,7 +56,7 @@ export default function FreindsPage({ onNotifications }) {
     return () => {
       ignore = true;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   const filtered = friends.filter((friend) => friend.name.includes(query));
   if (selectedFriend) {
@@ -109,13 +112,21 @@ export default function FreindsPage({ onNotifications }) {
             <span className="section-label">MY FRIENDS</span>
             <h2>친구들의 오늘</h2>
           </div>
-          <button
-            className="add-friend-button"
-            onClick={() => setAddOpen(true)}
-          >
-            <Icon name="plus" size={16} />
-            친구 추가
-          </button>
+          <div className="friend-header-actions">
+            <button
+              className="add-friend-button"
+              onClick={() => setRequestsOpen(true)}
+            >
+              친구 신청
+            </button>
+            <button
+              className="add-friend-button"
+              onClick={() => setAddOpen(true)}
+            >
+              <Icon name="plus" size={16} />
+              친구 추가
+            </button>
+          </div>
         </div>
 
         <div className="friend-list">
@@ -154,18 +165,17 @@ export default function FreindsPage({ onNotifications }) {
                   ) : (
                     <small>친구를 응원해보세요.</small>
                   )}
-                  </span>
-                  <span className="friend-status">
-                    <i
-                      className={
-                        friend.supplements.length > 0 &&
-                        friend.completed === friend.supplements.length
-                          ? "complete"
-                          : ""
-                      }
-                    />
-                    {friend.status}
-                  </span>
+                </span>
+                <span className="friend-status">
+                  <i
+                    className={
+                      friend.supplements.length > 0 &&
+                      friend.completed === friend.supplements.length
+                        ? "complete"
+                        : ""
+                    }
+                  />
+                  {friend.status}
                 </span>
                 <span className="friend-meta">
                   <span>
@@ -178,6 +188,13 @@ export default function FreindsPage({ onNotifications }) {
             ))}
         </div>
       </section>
+      {requestsOpen && (
+        <FollowRequestModal
+          userId={userId}
+          onClose={() => setRequestsOpen(false)}
+          onAccepted={() => setReloadKey((k) => k + 1)}
+        />
+      )}
       {addOpen && (
         <AddFriendModal userId={userId} onClose={() => setAddOpen(false)} />
       )}
