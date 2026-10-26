@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TopBar } from "../shared/ui";
+import { Icon, TopBar } from "../shared/ui";
 import { getFriendDetail } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
 import {
@@ -108,6 +108,36 @@ export default function FriendDetailPage({
       setGuardianBusy(false);
     }
   };
+  const guardianLabel = !guardian
+    ? "안부지킴이 신청"
+    : guardian.active
+      ? "안부지킴이 해지"
+      : "신청 취소 (수락 대기 중)";
+
+  const handleGuardianClick = () => {
+    if (!guardian) {
+      if (window.confirm("이 친구에게 안부지킴이를 신청할까요?")) {
+        handleGuardianRequest();
+      }
+    } else if (window.confirm(`${guardianLabel}할까요?`)) {
+      handleGuardianRemove();
+    }
+  };
+
+  const guardianButton = (
+    <button
+      type="button"
+      className={`round-button guardian-button ${
+        guardian?.active ? "on" : guardian ? "pending" : ""
+      }`}
+      aria-label={guardianLabel}
+      title={guardianLabel}
+      disabled={guardianBusy}
+      onClick={handleGuardianClick}
+    >
+      <Icon name="shield" size={20} />
+    </button>
+  );
 
   if (error) {
     return (
@@ -141,51 +171,9 @@ export default function FriendDetailPage({
         friend={friend}
         onBack={onBack}
         onNotifications={onNotifications}
+        topBarActions={guardianButton}
       />
-
-      <div className="guardian-action">
-        {!guardian && (
-          <button
-            type="button"
-            className="guardian-request-button"
-            disabled={guardianBusy}
-            onClick={handleGuardianRequest}
-          >
-            🛡️ 안부지킴이 신청
-          </button>
-        )}
-
-        {guardian && !guardian.active && (
-          <>
-            <small>안부지킴이 수락을 기다리는 중이에요</small>
-            <button
-              type="button"
-              disabled={guardianBusy}
-              onClick={handleGuardianRemove}
-            >
-              신청 취소
-            </button>
-          </>
-        )}
-
-        {guardian?.active && (
-          <>
-            <small>
-              🛡️ 안부지킴이로 지켜보는 중 ({guardian.inactivityDays}일 미접속 시
-              알림)
-            </small>
-            <button
-              type="button"
-              disabled={guardianBusy}
-              onClick={handleGuardianRemove}
-            >
-              지킴이 해지
-            </button>
-          </>
-        )}
-
-        {guardianMsg && <p className="guardian-msg">{guardianMsg}</p>}
-      </div>
+      {guardianMsg && <p className="guardian-toast">{guardianMsg}</p>}
     </>
   );
 }
