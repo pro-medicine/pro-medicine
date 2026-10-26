@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { friends, Icon, mySupplements, ProductVisual, TopBar } from "../shared/ui";
-
+/**
+ * (미사용) Figma 시안 홈 화면 — 현재 홈은 HomePage 사용
+ * @param {{ completed: number[], toggleComplete: (id: number) => void, onSurvey: () => void, onNotifications: () => void }} props
+ */
 export function HomeScreen({ completed, toggleComplete, onSurvey, onNotifications }) {
     const todayItems = mySupplements;
     const percentage = Math.round((completed.length / todayItems.length) * 100);
@@ -125,6 +128,10 @@ const recommendationMap = {
     "장 건강이 걱정돼요": [friends[1].supplements[1], mySupplements[0]],
 };
 
+/**
+ * 맞춤 영양 추천 설문 모달 (3단계 질문 → 추천 결과)
+ * @param {{ onClose: () => void }} props
+ */
 export function SurveyModal({ onClose }) {
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState([]);

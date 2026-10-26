@@ -1,3 +1,8 @@
+/**
+ * SVG 아이콘
+ * @param {{ name: "arrow"|"bell"|"check"|"chevron"|"clock"|"home"|"people"|"plus"|"pin"|"search"|"sparkles"|"trash"|"user", size?: number }} props
+ */
+
 export function Icon({ name, size = 20 }) {
     const paths = {
         arrow: <path d="m15 18-6-6 6-6" />,
@@ -271,6 +276,10 @@ export const friends = [
     },
 ];
 
+/**
+ * 영양제 병 모양 이미지
+ * @param {{ color: string, small?: boolean }} props
+ */
 export function ProductVisual({ color, small = false }) {
     return (
         <span className={`product-visual ${color} ${small ? "small" : ""}`}>
@@ -283,6 +292,10 @@ export function ProductVisual({ color, small = false }) {
     );
 }
 
+/**
+ * 영양제 정보 카드 (이미지·카테고리·브랜드·성분·용량·가격·복용 시간)
+ * @param {{ supplement: { id: number, name: string, brand: string, ingredient: string, amount: string, price: string, category: string, color: string, time: string } }} props
+ */
 export function SupplementCard({ supplement }) {
     return (
         <article className="supplement-card">
@@ -313,6 +326,10 @@ export function SupplementCard({ supplement }) {
     );
 }
 
+/**
+ * 화면 상단 헤더 (제목, 뒤로 가기, 알림 버튼)
+ * @param {{ title: string, subtitle?: string, back?: () => void, onNotifications: () => void }} props
+ */
 export function TopBar({ title, subtitle, back, onNotifications }) {
     return (
         <header className="app-header">

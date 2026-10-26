@@ -1,5 +1,9 @@
 import { Icon } from "../shared/ui";
 
+/**
+ * 하단 탭 네비게이션
+ * @param {{ tab: "home"|"friends"|"disposal"|"my", onChange: (tab: string) => void }} props
+ */
 export function BottomNav({ tab, onChange }) {
     const items = [
         { id: "home", label: "홈", icon: "home" },
@@ -26,6 +30,10 @@ export function BottomNav({ tab, onChange }) {
     );
 }
 
+/**
+ * 알림 목록 패널 (바깥 영역 클릭 시 닫힘)
+ * @param {{ onClose: () => void }} props
+ */
 export function NotificationPanel({ onClose }) {
     const notifications = [
         {
