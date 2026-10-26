@@ -1,4 +1,6 @@
-# 실제 API로 직접 실행할 명령 (실제 측정 대기)
+# 실제 API로 직접 실행할 명령
+
+> **2026-10-22 실행 결과:** 04-1, 05-1, 06-1, 07-3, 07-4, 08-1, 08-2(10케이스), 08-3을 실행했다 (총 284회, 약 $1.39, 평가셋 `reviewed=false`). 추가로 V4 추론 강도 low를 측정했다. 실행하지 않은 것: 04-2, 05-2, 06-2, 07-1, 07-2, 10-2. 10-0은 확인했다(타임아웃 미적용 발견). 08-4·09-1·10-1은 k6 대신 in-JVM 부하 테스트로 2026-10-26 재측정. 결과: [live-performance-report.md](live-performance-report.md)
 
 밤새 실행(2026-10-21)은 실제 API 예산 0달러라 LLM API를 한 번도 부르지 않았다. 2026-10-22에 LLM을 OpenAI(Spring AI)로 바꿨다. 아래 명령을 **STEP 순서대로** 직접 실행하면 각 리포트의 "실제 측정 대기" 칸을 채울 수 있다.
 
@@ -74,7 +76,7 @@ OpenAI에서는 tool calling 대신 structured outputs(json_schema strict)로 �
 | # | 명령 | 예상 호출 수 | 확인할 것 |
 | --- | --- | ---: | --- |
 | 08-1 | `./gradlew evalRun -PpipelineVersion=V6 -Ppasses=2 -Pconfirm=true` | 32 ~ 64 (2회차는 0) | pass1/pass2 두 줄, cache_hit_rate, cost_per_req_usd |
-| 08-2 | `./gradlew evalRun -PpipelineVersion=V7 -Pconfirm=true` | 32 ~ 64 | avg_cache_read_tokens, note의 avg_cache_creation_tokens (0이면 고정 부분이 최소 1,024토큰 미만). OpenAI는 자동 캐싱이라 V4 실행에도 캐시 읽기가 있을 수 있다 → V4의 avg_cache_read_tokens와 함께 비교 |
+| 08-2 | `./gradlew evalRun -PpipelineVersion=V7 -Pconfirm=true` | 32 ~ 64 | avg_cache_read_tokens (0이면 캐싱 미적용 = 고정 부분이 최소 1,024토큰 미만일 가능성). OpenAI는 캐시 쓰기 토큰을 따로 주지 않아 avg_cache_creation_tokens는 항상 0이다. OpenAI는 자동 캐싱이라 V4 실행에도 캐시 읽기가 있을 수 있다 → V4의 avg_cache_read_tokens와 함께 비교 |
 | 08-3 | `./gradlew evalRun -PpipelineVersion=V8 -Pconfirm=true` | 32 ~ 64 (작은 모델 13케이스) | note의 calls_by_model, recall_by_routed_model, cost_per_req_usd |
 | 08-4 | k6 (WireMock, 비용 없음): `perf/k6/cache-load.js` 머리말의 준비 순서대로 V4, V6 서버에 각각 실행 | 0 (WireMock) | TPS, p95, WireMock 호출 수 |
 

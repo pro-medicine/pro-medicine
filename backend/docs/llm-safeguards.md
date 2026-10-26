@@ -22,7 +22,7 @@ AI 추천(설문 → GPT → 추천 응답)에 들어 있는 안전장치를 한
 | 비용·성능 | 알림 진입 재사용 | 프로필 그대로인데 다시 호출 | 켜짐 | 항상 |
 | 비용·성능 | 출력 토큰 한도 | 출력 폭주, rate limit 낭비 | 2,000 | `llm.max-tokens` |
 | 트래픽 | 큐 + 워커 | 몰림 시 스레드 고갈, OpenAI 429 | 꺼짐 (sync) | `recommendation.api-mode=queue` |
-| 장애 | 타임아웃 | 응답 없는 호출에 묶임 | 30초 | `llm.timeout-ms` |
+| 장애 | 타임아웃 | 응답 없는 호출에 묶임 | 30초 (**현재 미적용, 실제 약 60초** - 7장) | `llm.timeout-ms` |
 | 장애 | 재시도 / 서킷 / Bulkhead / 폴백 | 일시 오류, 장기 장애 | 꺼짐 | `llm.resilience.enabled=true` |
 | 관측 | 호출 기록, 단계별 지연 | 원인 추적, 비용 계산 | 켜짐 | 항상 |
 
@@ -128,7 +128,7 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 
 | 장치 | 하는 일 | 설정 (`llm.resilience.*`) | 기본값 |
 | --- | --- | --- | --- |
-| 타임아웃 | 늦은 응답을 끊음 | `llm.timeout-ms` | 30000 (켤 때 15000 권장) |
+| 타임아웃 | 늦은 응답을 끊음 | `llm.timeout-ms` | 30000 (**미적용**, 연결 수정 후 25000~30000 권장) |
 | 재시도 | 429·5xx·타임아웃·네트워크 오류 재시도, 지수 백오프 + 지터, `retry-after` 존중 | `max-attempts`, `initial-backoff`, `backoff-multiplier`, `jitter`, `max-retry-after` | 3회, 500ms, ×2, 0.5, 10초 |
 | 서킷 브레이커 | 실패율이 높으면 일정 시간 호출 차단 | `circuit-window-size`, `circuit-failure-rate-threshold`, `circuit-minimum-calls`, `circuit-open-wait`, `circuit-half-open-calls` | 20, 50%, 20, 30초, 5 |
 | Bulkhead | 동시 호출 상한 | `bulkhead-max-concurrent`, `bulkhead-max-wait` | 20, 10초 |
@@ -140,7 +140,8 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 - 꺼져 있으면 GPT 실패 시 502 `R003`.
 - 측정 (WireMock): flaky 성공률 0.8 → 1.0, 60초 전면 장애 0.5 → 1.0 (폴백 포함). 느린 응답(20초)에서는 15초 타임아웃 때문에 p95가 악화됐다.
 - `enabled` 하나로 네 장치가 함께 켜진다. 서킷만 따로 끄는 설정은 없다. 서킷 없이 쓰려면 `circuit-failure-rate-threshold=100`으로 사실상 열리지 않게 하거나 코드에 설정을 추가해야 한다.
-- 실제 응답 시간이 10~13초라 15초 타임아웃은 여유가 작다. 켤 때 실제 지연을 다시 재고 정한다.
+- 실제 측정(2026-10-22, 284회): V2 이후 정상 응답 p95 15.2초, p99 18.5초, 최대 22.8초. 15초로 두면 정상 응답의 5.5%가 잘린다 → **25~30초 권장** ([perf/live-performance-report.md](perf/live-performance-report.md) 5장).
+- **`llm.timeout-ms`는 지금 적용되지 않는다.** OpenAI 전환(e11fb07) 때 HTTP 클라이언트의 읽기 시간 제한 설정이 빠져, 실제 타임아웃 3건이 모두 60초에 끊겼다. Spring AI OpenAI 모델이 쓰는 RestClient에 시간 제한을 넣어야 한다.
 
 ## 8. 관측 장치
 
@@ -167,9 +168,9 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 | 빈틈 | 영향 | 제안 |
 | --- | --- | --- |
 | `reason`·`summary` 문장 검사 없음 | 설명 문장에 숫자 용량, 금지 성분 이름, 과장 표현이 들어가도 그대로 나감 | `RecommendationOutputValidator`에 숫자+단위 패턴, 금지 성분 이름 검사 추가 → 실패 시 재요청 |
-| 응답 숫자 표기 `1E+2` | 100이 지수 표기로 나감 (JSON상 유효하지만 혼동 소지) | `DoseCalculator`의 `stripTrailingZeros()` 결과 표기 수정 |
-| 실제 GPT 품질 미측정 | 위반율·용량 오류율은 Fake LLM 값 | 평가셋 검토(`reviewed = true`) 후 `evalRun` (32건 약 $0.16) |
-| 타임아웃 기준 | 실제 10~13초, V10 권장 15초 | 실제 지연 분포를 잰 뒤 조정 |
-| 출력 한도 2,000 검증 | 추론 토큰 때문에 잘릴 수 있음 | 실제 호출로 `llm_call_logs`의 결과·출력 토큰 확인 |
+| ~~응답 숫자 표기 `1E+2`~~ | 해결 (c11a960, `RecommendationMapper.plain()`) | - |
+| 실제 GPT 품질 (평가셋 검토 전) | 2026-10-22 실제 측정: 위반율 0, V2 이후 용량 오류율 0. 평가셋이 `reviewed=false`라 기대값은 확정 전 | 평가셋 검토(`reviewed = true`) 후 재측정 (32건 약 $0.16) |
+| 타임아웃 미적용 | `llm.timeout-ms`가 HTTP 클라이언트에 연결되지 않아 약 60초에 끊김 | RestClient 읽기 시간 제한 연결 후 25~30초 |
+| ~~출력 한도 2,000 검증~~ | 확인 완료: 284회 중 최대 1,064토큰, 잘림 0건 | 2,000 유지 |
 | 캐시 스탬피드 | 같은 조건 요청이 동시에 오면 캐시 전 중복 호출 | 다음 과제 (single-flight) |
 | 규칙 검토 | 규칙 27개 출처는 있으나 약사 검토 전 | 서비스 공개 전 검토 |
