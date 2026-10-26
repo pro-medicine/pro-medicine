@@ -41,6 +41,8 @@ public enum ErrorCode {
     FOLLOWING_NOT_FOUND(HttpStatus.NOT_FOUND, "F005", "팔로잉을 찾을 수 없습니다."),
     NOT_FRIEND(HttpStatus.BAD_REQUEST, "F006", "친구 상태가 아닙니다."),
     INVALID_INACTIVITY_DAYS(HttpStatus.BAD_REQUEST, "F007", "기간은 1일 이상이어야 합니다."),
+    ALREADY_GUARDIAN(HttpStatus.CONFLICT, "F008", "이미 등록된 지킴이입니다."),
+    SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F009", "지킴이 설정을 찾을 수 없습니다."),
 
     // DISPOSAL
     DISPOSAL_INVALID_QUERY(HttpStatus.BAD_REQUEST, "D001", "검색어는 1~100자로 입력해주세요."),

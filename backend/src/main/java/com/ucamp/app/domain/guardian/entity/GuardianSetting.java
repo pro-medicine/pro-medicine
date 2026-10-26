@@ -58,7 +58,19 @@ public class GuardianSetting extends Timestamped {
         this.lastNotifiedAt = lastNotifiedAt;
     }
 
-    public void activate() {
+    public static GuardianSetting request(User user, User guardianUser, int inactivityDays) {
+        if (user.getId().equals(guardianUser.getId())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        validateDays(inactivityDays);
+        return GuardianSetting.builder()
+                .user(user)
+                .guardianUser(guardianUser)
+                .inactivityDays(inactivityDays)
+                .build();
+    }
+
+    public void accept() {
         this.consentedAt = LocalDateTime.now();
         this.isActive = true;
     }
@@ -72,7 +84,11 @@ public class GuardianSetting extends Timestamped {
     }
 
     public void changeInactivityDays(int days) {
-        if (days < 1) throw new BusinessException(ErrorCode.INVALID_INACTIVITY_DAYS);
+        validateDays(days);
         this.inactivityDays = days;
+    }
+
+    private static void validateDays(int days) {
+        if (days < 1 || days > 30) throw new BusinessException(ErrorCode.INVALID_INACTIVITY_DAYS);
     }
 }
