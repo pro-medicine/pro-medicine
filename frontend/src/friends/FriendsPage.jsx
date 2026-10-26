@@ -5,6 +5,7 @@ import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
 import FollowRequestModal from "./FollowRequestsModal";
 import FriendDetailPage from "./FriendDetailPage";
+import { getWatching } from "../api/guardianApi";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
 const COLORS = ["mint", "blue", "yellow", "pink"];
@@ -44,7 +45,15 @@ export default function FriendsPage({ onNotifications }) {
 
   useEffect(() => {
     let ignore = false;
-    setError("");
+    getWatching(userId)
+      .then((data) => {
+        if (ignore) return;
+        setWatchingIds(
+          new Set((data ?? []).filter((g) => g.active).map((g) => g.userId)),
+        );
+      })
+      .catch(() => {});
+
     getFriends(userId)
       .then((data) => {
         if (!ignore) {
@@ -162,6 +171,7 @@ export default function FriendsPage({ onNotifications }) {
                 <span className="friend-copy">
                   <span>
                     <strong>{friend.name}</strong>
+                    {watchingIds.has(friend.userId) && <span>🕵</span>}
                     <small>{friend.relation}</small>
                   </span>
                 </span>
