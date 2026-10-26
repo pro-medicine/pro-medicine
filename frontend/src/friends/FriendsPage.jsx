@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
+import ProfileScreen from "../mypage/MyPage";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
 import FriendDetailPage from "./FriendDetailPage";
@@ -22,7 +23,7 @@ function toFriend(item, index) {
   };
 }
 
-export default function FriendsPage({ onNotifications }) {
+export default function FreindsPage({ onNotifications }) {
   // TODO: 로그인 연동 후 실제 사용자 id
   const userId = 1;
 
@@ -92,11 +93,10 @@ export default function FriendsPage({ onNotifications }) {
         </div>
         <div className="stacked-avatars">
           {friends.slice(0, 3).map((friend) => (
-            <span className="avatar mint" key={friend.followId}>
-              {friend.nickname?.charAt(0) ?? "?"}
+            <span className={`avatar ${friend.color}`} key={friend.id}>
+              {friend.initial}
             </span>
           ))}
-
           {friends.length > 3 && (
             <span className="avatar more">+{friends.length - 3}</span>
           )}
@@ -154,6 +154,24 @@ export default function FriendsPage({ onNotifications }) {
                   ) : (
                     <small>친구를 응원해보세요.</small>
                   )}
+                  </span>
+                  <span className="friend-status">
+                    <i
+                      className={
+                        friend.supplements.length > 0 &&
+                        friend.completed === friend.supplements.length
+                          ? "complete"
+                          : ""
+                      }
+                    />
+                    {friend.status}
+                  </span>
+                </span>
+                <span className="friend-meta">
+                  <span>
+                    <b>{friend.streak}</b>일째
+                  </span>
+                  <small>{friend.supplements.length}개 복용 중</small>
                 </span>
                 <Icon name="chevron" size={18} />
               </button>
