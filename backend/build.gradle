@@ -98,3 +98,6 @@ tasks.register('liveTest', Test) {
 	useJUnitPlatform { includeTags 'live' }
 	passOpenAiApiKey(it)
 }
+
+// 로컬 전용 측정 태스크(v2EvalRun 등). 파일이 없는 환경에서는 아무 일도 없다
+if (file('eval.gradle').exists()) { apply from: 'eval.gradle' }
