@@ -13,7 +13,8 @@ public record PersonalizedSessionResponse(Long sessionId, String status, Questio
                                int maxSelect, List<OptionView> options) {
     }
 
-    public record OptionView(int index, String label) {
+    /** exclusive = "없어요"·"잘 모르겠어요"처럼 다른 선택지와 함께 고를 수 없는 선택지 (kind 자체는 보내지 않는다) */
+    public record OptionView(int index, String label, boolean exclusive) {
     }
 
     public record Progress(int asked, int base, int max) {

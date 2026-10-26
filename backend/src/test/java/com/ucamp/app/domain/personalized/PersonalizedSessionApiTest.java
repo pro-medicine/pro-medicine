@@ -68,6 +68,8 @@ class PersonalizedSessionApiTest {
                 .andExpect(jsonPath("$.data.question.maxSelect").value(2))
                 .andExpect(jsonPath("$.data.question.options[0].index").value(0))
                 .andExpect(jsonPath("$.data.question.options[0].kind").doesNotExist())
+                .andExpect(jsonPath("$.data.question.options[0].exclusive").value(false))
+                .andExpect(jsonPath("$.data.question.options[2].exclusive").value(true))
                 .andExpect(jsonPath("$.data.progress.asked").value(1))
                 .andExpect(jsonPath("$.data.progress.base").value(5))
                 .andExpect(jsonPath("$.data.progress.max").value(7));

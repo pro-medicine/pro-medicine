@@ -55,10 +55,10 @@
       "text": "현재 임신 중이거나 수유 중이신가요?",
       "answerType": "SINGLE", "maxSelect": 1,
       "options": [
-        { "index": 0, "label": "해당 없어요" },
-        { "index": 1, "label": "임신 가능성이 있어요" },
-        { "index": 2, "label": "임신 중이에요" },
-        { "index": 3, "label": "수유 중이에요" }
+        { "index": 0, "label": "해당 없어요", "exclusive": true },
+        { "index": 1, "label": "임신 가능성이 있어요", "exclusive": false },
+        { "index": 2, "label": "임신 중이에요", "exclusive": false },
+        { "index": 3, "label": "수유 중이에요", "exclusive": false }
       ]
     },
     "progress": { "asked": 0, "base": 5, "max": 7 }
@@ -74,8 +74,8 @@
   "text": "요즘 불편한 점을 골라주세요 (최대 2개)",
   "answerType": "MULTI", "maxSelect": 2,
   "options": [
-    { "index": 0, "label": "쉽게 피곤해요" }, { "index": 1, "label": "잠을 잘 못 자요" },
-    { "index": 2, "label": "없어요" }, { "index": 3, "label": "잘 모르겠어요" }
+    { "index": 0, "label": "쉽게 피곤해요", "exclusive": false }, { "index": 1, "label": "잠을 잘 못 자요", "exclusive": false },
+    { "index": 2, "label": "없어요", "exclusive": true }, { "index": 3, "label": "잘 모르겠어요", "exclusive": true }
   ]
 },
 "progress": { "asked": 1, "base": 5, "max": 7 }
@@ -87,6 +87,7 @@
 | `topic` | 서버 주제 코드 (`CONCERN_OPEN`, `MED:METFORMIN`, `CONCERN:쉽게 피곤해요`, `CONDITION:HYPERTENSION`, `LIFESTYLE:SMOKING`, `PREGNANCY`). 화면에 보여줄 필요는 없다 |
 | `maxSelect` | SINGLE 1, MULTI 2 |
 | `options[].index` | 답할 때 보내는 값. 선택지 성격(kind: NONE/UNKNOWN/NORMAL/CONCERN)은 **내려주지 않는다** (서버 판단용) |
+| `options[].exclusive` | true = "없어요"·"잘 모르겠어요"처럼 다른 선택지와 함께 고를 수 없는 선택지 (화면에서 고르면 다른 선택 해제) |
 | `progress.asked` | 지금까지 낸 LLM 질문 수 (고정 질문 제외). 남은 수는 서버도 정확히 모른다 (답에 따라 달라짐) |
 
 ## 3. 답변 `POST /api/v1/personalized-sessions/{sessionId}/answers`

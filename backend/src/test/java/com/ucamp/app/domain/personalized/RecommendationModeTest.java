@@ -43,6 +43,7 @@ class RecommendationModeTest {
     void 모두_있으면_V2() throws Exception {
         User user = members.create(true, BASIC, List.of("HYPERTENSION"), List.of("D-001"));
         mode(user).andExpect(jsonPath("$.data.mode").value("V2"))
+                .andExpect(jsonPath("$.data.v2").doesNotExist())
                 .andExpect(jsonPath("$.data.missing.length()").value(0));
     }
 

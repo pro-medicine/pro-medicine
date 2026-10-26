@@ -132,7 +132,8 @@ public class PersonalizedSessionService {
 
     private static QuestionView view(SessionState.TurnState t) {
         List<OptionView> options = IntStream.range(0, t.options().size())
-                .mapToObj(i -> new OptionView(i, t.options().get(i).label())).toList();
+                .mapToObj(i -> new OptionView(i, t.options().get(i).label(), t.options().get(i).kind().isExclusive()))
+                .toList();
         return new QuestionView(t.turnId(), t.turnNo(), t.fixed(), t.topic(), t.question(), t.answerType(),
                 Topic.MULTI.equals(t.answerType()) ? TopicPlanner.MAX_CONCERN_TOPICS : 1, options);
     }
