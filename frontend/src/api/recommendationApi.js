@@ -46,3 +46,42 @@ export function getRecommendation(userId, recommendationId) {
     userHeader(userId),
   );
 }
+
+// ---------- V2 회원 맞춤 질문 (회원 전용) ----------
+
+// 회원 추천 방식 → { mode: "V1" | "V2", missing }
+export function getRecommendationMode(userId) {
+  return api.get("/api/v1/users/me/recommendation-mode", userHeader(userId));
+}
+
+// 맞춤 질문 회차 시작 → { sessionId, status, question, progress }
+export function startPersonalizedSession(userId) {
+  return api.post("/api/v1/personalized-sessions", null, userHeader(userId));
+}
+
+// 질문에 답하기 → 다음 질문 또는 status READY
+export function answerPersonalizedQuestion(userId, sessionId, turnId, selected) {
+  return api.post(
+    `/api/v1/personalized-sessions/${sessionId}/answers`,
+    { turnId, selected },
+    userHeader(userId),
+  );
+}
+
+// 그만하기 → status READY
+export function stopPersonalizedSession(userId, sessionId) {
+  return api.post(
+    `/api/v1/personalized-sessions/${sessionId}/stop`,
+    null,
+    userHeader(userId),
+  );
+}
+
+// 정밀 추천 (V1 추천과 같은 결과 형식)
+export function createPersonalizedRecommendation(userId, sessionId) {
+  return api.post(
+    `/api/v1/personalized-sessions/${sessionId}/recommendation`,
+    null,
+    userHeader(userId),
+  );
+}

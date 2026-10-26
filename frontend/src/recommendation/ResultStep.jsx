@@ -13,12 +13,18 @@ function formatNumber(value) {
  * - ingredients: 성분 코드 → { name, unit }
  * - onRestart: 다시 설문하기
  * - onClose: 닫기
+ * - basisText: 결과 기준 안내 문구 (V2 맞춤 질문은 다른 문구)
+ * - restartLabel: 다시 하기 버튼 문구
+ * - children: 버튼 위에 덧붙일 안내 (V1 회원 결과의 맞춤 질문 안내 등)
  */
 export default function ResultStep({
   result,
   ingredients,
   onRestart,
   onClose,
+  basisText = "설문과 건강 프로필에 입력한 약을 기준으로 확인했어요.",
+  restartLabel = "다시 설문하기",
+  children,
 }) {
   const nameOf = (code) => ingredients[code]?.name ?? code;
   const items = [...(result.items ?? [])].sort(
@@ -94,13 +100,15 @@ export default function ResultStep({
       )}
 
       <div className="rec-footnote">
-        <p>설문과 건강 프로필에 입력한 약을 기준으로 확인했어요.</p>
+        <p>{basisText}</p>
         <p>이 결과는 의학적 진단이 아니에요. 복용 전 의사·약사와 상담하세요.</p>
       </div>
 
+      {children}
+
       <div className="rec-actions">
         <button type="button" className="rec-button" onClick={onRestart}>
-          다시 설문하기
+          {restartLabel}
         </button>
         <button
           type="button"
