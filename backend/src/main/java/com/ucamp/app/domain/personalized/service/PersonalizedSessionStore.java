@@ -17,7 +17,9 @@ import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +39,9 @@ public class PersonalizedSessionStore {
     private final UserConsentService userConsentService;
     private final TurnCodec codec;
     private final RecommendationStore recommendationStore;
+    private final ObjectMapper objectMapper;
+    /** V1 대비 변화를 비교할 V1 추천의 최대 경과 일수 */
+    public static final int BASELINE_DAYS = 30;
 
     /** 새 회차 시작 결과. abandoned = 이번에 ABANDONED로 바꾼 이전 회차 수 */
     public record Started(SessionState state, int abandoned) {
@@ -141,27 +146,35 @@ public class PersonalizedSessionStore {
         return state(session);
     }
 
-    /** 정밀 추천 저장 결과. alreadyDone = 다른 요청이 먼저 끝내서 이번 결과는 버리고 저장된 결과를 돌려줌 */
+    /**
+     * 정밀 추천 저장 결과. alreadyDone = 다른 요청이 먼저 끝내서 이번 결과는 버리고 저장된 결과를 돌려줌.
+     * diff = V1 대비 변화 (비교할 V1 추천이 없으면 null)
+     */
     public record Completed(RecommendationResponse response, boolean alreadyDone, boolean stoppedByUser,
-                            int questionCount) {
+                            int questionCount, RecommendationDiff diff) {
     }
 
     /**
-     * 정밀 추천 결과 저장 → 회차 DONE (설계 4-5). READY일 때만. 같은 회차가 이미 DONE이면 저장된 결과를 그대로 돌려준다
+     * 정밀 추천 결과 저장 → 회차 DONE (설계 4-5). READY일 때만. 같은 회차가 이미 DONE이면 저장된 결과를 그대로 돌려준다.
+     * 같은 회원의 30일 이내 가장 최근 V1 추천이 있으면 비교해서 diff_json에 남긴다 (모니터링, 추가 LLM 호출 없음)
      */
     @Transactional
     public Completed complete(Long userId, Long sessionId, RecommendationResult result) {
         AiQuestionSession session = lockOwned(userId, sessionId);
         if (session.isDone() && session.getRecommendationId() != null) {
             return new Completed(recommendationStore.get(session.getRecommendationId()), true,
-                    session.isStoppedByUser(), session.getQuestionCount());
+                    session.isStoppedByUser(), session.getQuestionCount(), null);
         }
         if (!session.isReady()) {
             throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_STATE);
         }
         RecommendationResponse saved = recommendationStore.saveForSession(session, result);
-        session.markDone(saved.recommendationId(), null, null);
-        return new Completed(saved, false, session.isStoppedByUser(), session.getQuestionCount());
+        Optional<RecommendationResponse> baseline = recommendationStore.latestV1DoneForUserSince(userId,
+                LocalDateTime.now().minusDays(BASELINE_DAYS));
+        RecommendationDiff diff = baseline.map(b -> RecommendationDiff.of(b, saved)).orElse(null);
+        session.markDone(saved.recommendationId(), baseline.map(RecommendationResponse::recommendationId).orElse(null),
+                diff == null ? null : objectMapper.writeValueAsString(diff));
+        return new Completed(saved, false, session.isStoppedByUser(), session.getQuestionCount(), diff);
     }
 
     @Transactional

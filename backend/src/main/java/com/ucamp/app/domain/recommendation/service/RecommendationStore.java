@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -101,6 +102,13 @@ public class RecommendationStore {
     @Transactional(readOnly = true)
     public Optional<RecommendationResponse> latestDoneForUser(Long userId) {
         return recommendationRepository.findLatestDoneByUserId(userId, PageRequest.of(0, 1)).stream()
+                .findFirst().map(this::toResponse);
+    }
+
+    /** V2 모니터링 기준: since 이후 가장 최근 V1(설문 기반) 완료 추천 */
+    @Transactional(readOnly = true)
+    public Optional<RecommendationResponse> latestV1DoneForUserSince(Long userId, LocalDateTime since) {
+        return recommendationRepository.findLatestDoneByUserIdSince(userId, since, PageRequest.of(0, 1)).stream()
                 .findFirst().map(this::toResponse);
     }
 

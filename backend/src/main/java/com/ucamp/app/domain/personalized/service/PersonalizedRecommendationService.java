@@ -63,6 +63,12 @@ public class PersonalizedRecommendationService {
             sessionService.countSession(AiQuestionSession.DONE, completed.stoppedByUser());
             DistributionSummary.builder("pq.session.questions").register(meterRegistry)
                     .record(completed.questionCount());
+            RecommendationDiff diff = completed.diff();
+            if (diff != null) {
+                meterRegistry.counter("pq.recommendation.diff", "type", "added").increment(diff.added().size());
+                meterRegistry.counter("pq.recommendation.diff", "type", "removed").increment(diff.removed().size());
+                meterRegistry.counter("pq.recommendation.diff", "type", "rank").increment(diff.rankChanged().size());
+            }
         }
         return completed.response();
     }

@@ -27,6 +27,8 @@ import java.time.Year;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.SurveyAnswers.choice;
+import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -171,6 +173,42 @@ class PersonalizedRecommendationApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reusable").value(false))
                 .andExpect(jsonPath("$.data.reason").value("NO_RECOMMENDATION"));
+    }
+
+    @Test
+    void 최근_V1_추천이_있으면_변화를_diff_json에_남긴다_없으면_비교하지_않는다() throws Exception {
+        User user = members.fullMale(1980);
+        // V1 회원 설문 → 추천 (Fake 기본: 비타민 D 하나)
+        String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses").header("X-User-Id", user.getId())
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(
+                                Map.of("answers", List.of(choice(Q_GENDER, GENDER_M))))))
+                .andReturn().getResponse().getContentAsString();
+        long responseId = objectMapper.readTree(body).at("/data/responseId").asLong();
+        long v1 = data(mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"responseId\":" + responseId + "}"))).get("recommendationId").asLong();
+
+        fake.answerWith(new FakeAnswer(List.of(
+                new FakeAnswer.Item("MAGNESIUM", "마그네슘", "가짜", null, null),
+                new FakeAnswer.Item("VITAMIN_D", "비타민 D", "가짜", null, null)), "가짜"));
+        long sessionId = data(start(user)).get("sessionId").asLong();
+        stop(user, sessionId);
+        recommend(user, sessionId).andExpect(status().isOk());
+
+        AiQuestionSession session = sessionRepository.findById(sessionId).orElseThrow();
+        assertThat(session.getBaselineRecommendationId()).isEqualTo(v1);
+        JsonNode diff = objectMapper.readTree(session.getDiffJson());
+        assertThat(diff.get("added").get(0).asString()).isEqualTo("MAGNESIUM");
+        assertThat(diff.get("removed")).isEmpty();
+        assertThat(diff.at("/rankChanged/0/ingredient").asString()).isEqualTo("VITAMIN_D");
+
+        // V1 추천이 없는 회원은 비교하지 않는다
+        User fresh = members.fullMale(1985);
+        long other = data(start(fresh)).get("sessionId").asLong();
+        stop(fresh, other);
+        recommend(fresh, other).andExpect(status().isOk());
+        AiQuestionSession none = sessionRepository.findById(other).orElseThrow();
+        assertThat(none.getBaselineRecommendationId()).isNull();
+        assertThat(none.getDiffJson()).isNull();
     }
 
     // ---------- helpers ----------
