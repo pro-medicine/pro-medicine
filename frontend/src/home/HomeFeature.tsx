@@ -1,5 +1,11 @@
 import { useState, type CSSProperties } from "react";
-import { friends, Icon, mySupplements, ProductVisual, TopBar, type Supplement } from "../shared/ui";
+import {
+  Icon,
+  mySupplements,
+  ProductVisual,
+  TopBar,
+  type Supplement,
+} from "../shared/ui";
 
 export function HomeScreen({
   completed,
@@ -53,7 +59,9 @@ export function HomeScreen({
             <span className="section-label">TODAY</span>
             <h2>오늘 먹을 영양제</h2>
           </div>
-          <span className="count-badge">{completed.length}/{todayItems.length} 완료</span>
+          <span className="count-badge">
+            {completed.length}/{todayItems.length} 완료
+          </span>
         </div>
 
         <div className="today-list">
@@ -101,12 +109,22 @@ const surveyQuestions = [
   {
     title: "요즘 가장 신경 쓰이는 건강 고민은 무엇인가요?",
     description: "한 가지를 선택해주세요.",
-    options: ["쉽게 피로해요", "잠을 푹 못 자요", "눈이 자주 피로해요", "장 건강이 걱정돼요"],
+    options: [
+      "쉽게 피로해요",
+      "잠을 푹 못 자요",
+      "눈이 자주 피로해요",
+      "장 건강이 걱정돼요",
+    ],
   },
   {
     title: "평소 식습관은 어떤 편인가요?",
     description: "가장 가까운 항목을 골라주세요.",
-    options: ["규칙적으로 골고루 먹어요", "외식과 배달이 잦아요", "채소를 잘 안 먹어요", "식사를 자주 거르는 편이에요"],
+    options: [
+      "규칙적으로 골고루 먹어요",
+      "외식과 배달이 잦아요",
+      "채소를 잘 안 먹어요",
+      "식사를 자주 거르는 편이에요",
+    ],
   },
   {
     title: "일주일에 운동을 얼마나 하나요?",
@@ -131,15 +149,16 @@ const recommendationMap: Record<string, Supplement[]> = {
     mySupplements[2],
   ],
   "잠을 푹 못 자요": [mySupplements[2], mySupplements[1]],
-  "눈이 자주 피로해요": [friends[0].supplements[2], mySupplements[1]],
-  "장 건강이 걱정돼요": [friends[1].supplements[1], mySupplements[0]],
+  // "눈이 자주 피로해요": [friends[0].supplements[2], mySupplements[1]],
+  // "장 건강이 걱정돼요": [friends[1].supplements[1], mySupplements[0]],
 };
 
 export function SurveyModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const isResult = step === surveyQuestions.length;
-  const recommendations = recommendationMap[answers[0]] ?? recommendationMap["쉽게 피로해요"];
+  const recommendations =
+    recommendationMap[answers[0]] ?? recommendationMap["쉽게 피로해요"];
 
   const choose = (answer: string) => {
     setAnswers((current) => [...current.slice(0, step), answer]);
@@ -155,14 +174,24 @@ export function SurveyModal({ onClose }: { onClose: () => void }) {
         aria-labelledby="survey-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className="modal-close" aria-label="닫기" onClick={onClose}>×</button>
+        <button className="modal-close" aria-label="닫기" onClick={onClose}>
+          ×
+        </button>
         {!isResult ? (
           <>
             <div className="survey-progress">
-              <span style={{ width: `${((step + 1) / surveyQuestions.length) * 100}%` }} />
+              <span
+                style={{
+                  width: `${((step + 1) / surveyQuestions.length) * 100}%`,
+                }}
+              />
             </div>
-            <span className="survey-step">STEP {step + 1} / {surveyQuestions.length}</span>
-            <span className="survey-symbol"><Icon name="sparkles" size={25} /></span>
+            <span className="survey-step">
+              STEP {step + 1} / {surveyQuestions.length}
+            </span>
+            <span className="survey-symbol">
+              <Icon name="sparkles" size={25} />
+            </span>
             <h2 id="survey-title">{surveyQuestions[step].title}</h2>
             <p>{surveyQuestions[step].description}</p>
             <div className="survey-options">
@@ -174,18 +203,24 @@ export function SurveyModal({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             {step > 0 && (
-              <button className="survey-back" onClick={() => setStep((current) => current - 1)}>
+              <button
+                className="survey-back"
+                onClick={() => setStep((current) => current - 1)}
+              >
                 이전 질문
               </button>
             )}
           </>
         ) : (
           <div className="survey-result">
-            <span className="survey-symbol result"><Icon name="check" size={27} /></span>
+            <span className="survey-symbol result">
+              <Icon name="check" size={27} />
+            </span>
             <span className="section-label">PERSONAL RESULT</span>
             <h2 id="survey-title">민지님께 필요한 영양소를 찾았어요</h2>
             <p>
-              <strong>{answers[0]}</strong>라고 답해주신 내용을 중심으로 추천했어요.
+              <strong>{answers[0]}</strong>라고 답해주신 내용을 중심으로
+              추천했어요.
             </p>
             <div className="result-list">
               {recommendations.map((item) => (
@@ -201,9 +236,12 @@ export function SurveyModal({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             <div className="result-notice">
-              본 결과는 임시 추천이며, 질환이나 복용 중인 약이 있다면 전문가와 상담해주세요.
+              본 결과는 임시 추천이며, 질환이나 복용 중인 약이 있다면 전문가와
+              상담해주세요.
             </div>
-            <button className="result-button" onClick={onClose}>추천 결과 확인 완료</button>
+            <button className="result-button" onClick={onClose}>
+              추천 결과 확인 완료
+            </button>
           </div>
         )}
       </div>
