@@ -45,7 +45,7 @@ public class NutritionService {
         // 1. 먹고 있는 제품의 성분 함량을 성분별로 더한다
         Map<Nutrient, Integer> totals = new EnumMap<>(Nutrient.class);
         boolean sample = false;
-        for (UserProduct userProduct : userProductRepository.findByUserIdAndIsActiveTrue(userId)) {
+        for (UserProduct userProduct : userProductRepository.findActiveWithCatalogByUserId(userId)) {
             CatalogProduct product = userProduct.getCatalogProduct();
             if (product == null) {
                 continue; // 직접 입력한 처방약 등은 성분 정보가 없음
@@ -55,8 +55,9 @@ public class NutritionService {
                 continue;
             }
             sample = true;
-            for (Map.Entry<Nutrient, Integer> entry : amounts.entrySet()) {
-                totals.merge(entry.getKey(), entry.getValue(), Integer::sum);
+            for (Nutrient nutrient : amounts.keySet()) {
+                int before = totals.getOrDefault(nutrient, 0);  // 지금까지 더한 양 (없으면 0)
+                totals.put(nutrient, before + amounts.get(nutrient));
             }
         }
 

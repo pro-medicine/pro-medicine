@@ -2,11 +2,25 @@ package com.ucamp.app.domain.product.repository;
 
 import com.ucamp.app.domain.product.entity.UserProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface UserProductRepository extends JpaRepository<UserProduct, Long> {
 
-    // 유저가 지금 먹고 있는(is_active = true) 제품 목록
-    List<UserProduct> findByUserIdAndIsActiveTrue(Long userId);
+    /**
+     * 마이페이지 "내가 먹는 영양제" 목록용
+     * - catalogProduct 를 같이 가져와서 카드마다 추가 쿼리 나가는 것(N+1) 방지
+     * - left join fetch: 직접 입력 제품(catalog_product_id = null)도 빠지지 않게
+     */
+    @Query("""
+            select up
+            from UserProduct up
+            left join fetch up.catalogProduct
+            where up.user.id = :userId
+              and up.isActive = true
+            order by up.createdAt asc, up.userProductId asc
+            """)
+    List<UserProduct> findActiveWithCatalogByUserId(@Param("userId") Long userId);
 }
