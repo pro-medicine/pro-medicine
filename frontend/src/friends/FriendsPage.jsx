@@ -23,9 +23,9 @@ function toFriend(item, index) {
   };
 }
 
-export default function FreindsPage({ onNotifications }) {
+export default function FriendsPage({ onNotifications }) {
   // TODO: 로그인 연동 후 실제 사용자 id
-  const userId = 3;
+  const userId = 1;
 
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");
