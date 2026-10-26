@@ -101,7 +101,7 @@ public class FollowService {
     }
 
     private Follow getFollow(Long followId) {
-        return followRepository.findById(followId)
+        return followRepository.findByFollowIdAndDeletedAtIsNull(followId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
     }
 
