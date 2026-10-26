@@ -116,6 +116,11 @@ public class AiQuestionSession {
         this.questionCount++;
     }
 
+    // 그만하기로 답하지 않은 질문을 버릴 때
+    public void uncountQuestion() {
+        this.questionCount = Math.max(0, this.questionCount - 1);
+    }
+
     public void markReady(boolean stoppedByUser) {
         this.status = READY;
         this.stoppedByUser = stoppedByUser;

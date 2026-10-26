@@ -68,6 +68,44 @@ public class RecommendationInputAssembler {
         return b.build();
     }
 
+    /**
+     * V2 정밀 추천·맞춤 질문용: 설문 없이 회원 프로필 스냅샷 + 회차의 임신 답으로 조립한다 (설계 7-1).
+     * 프로필에 없는 값(수면, 피로, 목표, 현재 섭취 영양제)은 비워 둔다. 맞춤 답변(personalizedAnswers)이 이 역할을 한다.
+     */
+    public RecommendationInput assembleForMember(Long userId, String pregnancy) {
+        HealthProfileSnapshot profile = healthProfileService.getSnapshot(userId);
+        return RecommendationInput.builder()
+                .respondentType(RecommendationInput.MEMBER)
+                .gender(profileCode(profile, HealthProfile.KEY_GENDER))
+                .birthYear(profile.value(HealthProfile.KEY_BIRTH_YEAR) == null ? null
+                        : ((BigDecimal) profile.value(HealthProfile.KEY_BIRTH_YEAR)).intValue())
+                .smoking(profileCode(profile, HealthProfile.KEY_SMOKING))
+                .drinking(profileCode(profile, HealthProfile.KEY_DRINKING))
+                .caffeine(profileCode(profile, HealthProfile.KEY_CAFFEINE))
+                .dietType(profileCode(profile, HealthProfile.KEY_DIET_TYPE))
+                .sunExposure(profileCode(profile, HealthProfile.KEY_SUN_EXPOSURE))
+                .height((BigDecimal) profile.value(HealthProfile.KEY_HEIGHT))
+                .weight((BigDecimal) profile.value(HealthProfile.KEY_WEIGHT))
+                .pregnancy(pregnancy)
+                .conditions(profile.conditions())
+                .medications(profileMedications(profile))
+                .goals(List.of())
+                .currentIntake(List.of())
+                .build();
+    }
+
+    private static String profileCode(HealthProfileSnapshot profile, String key) {
+        Object v = profile.value(key);
+        return v == null ? null : v.toString();
+    }
+
+    private static List<RecommendationInput.Medication> profileMedications(HealthProfileSnapshot profile) {
+        return profile.medications().stream()
+                .map(m -> new RecommendationInput.Medication(m.drugId(), m.drugClass(),
+                        m.drugId() != null ? m.drugName() : m.unmatchedName()))
+                .toList();
+    }
+
     private static String code(SurveyResponseDetail detail, String questionCode, HealthProfileSnapshot profile,
                                String profileKey) {
         AnswerValue a = detail.answer(questionCode);
@@ -106,10 +144,7 @@ public class RecommendationInputAssembler {
     private List<RecommendationInput.Medication> medications(SurveyResponseDetail detail, HealthProfileSnapshot profile) {
         AnswerValue a = detail.answer(SurveyCodes.MEDICATIONS);
         if (a == null || a.valueText() == null) {
-            return profile.medications().stream()
-                    .map(m -> new RecommendationInput.Medication(m.drugId(), m.drugClass(),
-                            m.drugId() != null ? m.drugName() : m.unmatchedName()))
-                    .toList();
+            return profileMedications(profile);
         }
         List<MedicationEntry> entries = surveyAnswerParser.parseMedications(a.valueText());
         Map<String, Drug> drugs = drugService.findByIds(entries.stream()
