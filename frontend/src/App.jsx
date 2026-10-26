@@ -1,10 +1,10 @@
 import { useState } from "react";
-import HomePage from "./home";
-import { BottomNav } from "./common/AppChrome"; // 실제 파일 경로에 맞게 수정
-// import { NotificationPanel } from "./NotificationPanel"; // 실제 파일 경로에 맞게 수정
-import FriendScreen from "./friends/FriendsPage";
-import DisposalMapScreen from "./disposal/DisposalMapPage";
-import ProfileScreen from "./mypage/MyPage";
+import { BottomNav, NotificationPanel } from "./common/AppChrome";
+import DisposalMapPage from "./disposal/DisposalMapPage";
+import FriendsPage from "./friends/FriendsPage";
+import { SurveyModal } from "./home/HomeFeature";
+import HomePage from "./home/HomePage";
+import MyPage from "./mypage/MyPage";
 
 export default function App() {
   const userId = 1; // TODO: 로그인 연동 후 실제 사용자 id
