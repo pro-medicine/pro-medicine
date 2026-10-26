@@ -2,11 +2,11 @@ import { requestFollow } from "../api/followApi";
 import { useState } from "react";
 import { useModalFocus } from "../common/useModalFocus";
 
-export default function AddFriendModal({ userId, onClose }) {
+export default function AddFriendModal({ userId, onClose, openerRef }) {
   const [nickname, setNickname] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { type: "success" | "error", text }
-  const dialogRef = useModalFocus(onClose);
+  const dialogRef = useModalFocus(onClose, openerRef);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

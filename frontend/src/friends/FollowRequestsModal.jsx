@@ -11,13 +11,18 @@ const TABS = [
   { id: "sent", label: "보낸 신청" },
 ];
 
-export default function FollowRequestsModal({ userId, onClose, onAccepted }) {
+export default function FollowRequestsModal({
+  userId,
+  onClose,
+  onAccepted,
+  openerRef,
+}) {
   const [tab, setTab] = useState("received");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState(null);
-  const dialogRef = useModalFocus(onClose);
+  const dialogRef = useModalFocus(onClose, openerRef);
 
   useEffect(() => {
     let ignore = false;

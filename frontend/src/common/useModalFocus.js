@@ -3,13 +3,14 @@ import { useEffect, useRef } from "react";
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function useModalFocus(onClose) {
+// openerRef: 모달을 연 버튼을 담은 ref (부모가 클릭 시점에 저장)
+export function useModalFocus(onClose, openerRef) {
   const ref = useRef(null);
+
   useEffect(() => {
-    const prev = document.activeElement; // 모달을 연 버튼
     const node = ref.current;
 
-    // 최초 포커스: autoFocus 요소가 있으면 유지, 없으면 첫 포커스 가능 요소
+    // 최초 포커스: 내부에 이미 포커스(autoFocus)가 있으면 유지
     if (node && !node.contains(document.activeElement)) {
       (node.querySelector(FOCUSABLE) ?? node).focus();
     }
@@ -37,11 +38,13 @@ export function useModalFocus(onClose) {
         first.focus();
       }
     };
+
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      prev?.focus?.(); // 닫힐 때 복원
+      openerRef?.current?.focus?.(); // 저장해둔 여는 버튼으로 복원
     };
   }, []);
+
   return ref;
 }

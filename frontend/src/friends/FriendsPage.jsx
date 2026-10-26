@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
 import "./friends.css";
@@ -35,6 +35,12 @@ export default function FriendsPage({ onNotifications }) {
   const [addOpen, setAddOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const openerRef = useRef(null);
+
+  const openModal = (setter) => (e) => {
+    openerRef.current = e.currentTarget;
+    setter(true);
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -114,13 +120,13 @@ export default function FriendsPage({ onNotifications }) {
           <div className="friend-header-actions">
             <button
               className="add-friend-button"
-              onClick={() => setRequestsOpen(true)}
+              onClick={openModal(setRequestsOpen)}
             >
               친구 신청
             </button>
             <button
               className="add-friend-button"
-              onClick={() => setAddOpen(true)}
+              onClick={openModal(setAddOpen)}
             >
               <Icon name="plus" size={16} />
               친구 추가
@@ -180,10 +186,15 @@ export default function FriendsPage({ onNotifications }) {
           userId={userId}
           onClose={() => setRequestsOpen(false)}
           onAccepted={() => setReloadKey((k) => k + 1)}
+          openerRef={openerRef}
         />
       )}
       {addOpen && (
-        <AddFriendModal userId={userId} onClose={() => setAddOpen(false)} />
+        <AddFriendModal
+          userId={userId}
+          onClose={() => setAddOpen(false)}
+          openerRef={openerRef}
+        />
       )}
     </div>
   );
