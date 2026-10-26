@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ucamp.app.domain.notification.event.FollowAcceptedEvent;
+import com.ucamp.app.domain.notification.event.FollowRequestedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 
@@ -22,6 +25,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
     // TODO: User 정보 가져오기
 
     @Transactional
@@ -39,7 +43,7 @@ public class FollowService {
 
         try {
             Follow saved = followRepository.saveAndFlush(Follow.request(followerId, followingId));
-            // TODO: 상대(followingId)에게 알림
+            eventPublisher.publishEvent(new FollowRequestedEvent(followerId, followingId));
             return FollowResponse.from(saved);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
@@ -73,7 +77,10 @@ public class FollowService {
             throw new BusinessException(ErrorCode.COMPLETED_FOLLOW_REQUEST);
         }
 
-        // TODO: 요청한 사람에게 알림
+        if (status == FollowStatus.ACCEPTED) {
+            eventPublisher.publishEvent(
+                    new FollowAcceptedEvent(follow.getFollowerId(), follow.getFollowingId()));
+        }
         return FollowResponse.from(follow);
     }
 
