@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BottomNav, NotificationPanel } from "./common/AppChrome";
+import { BottomNav } from "./common/AppChrome";
+import NotificationPanel from "./common/NotificationPanel";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
 import { SurveyModal } from "./home/HomeFeature";
@@ -52,7 +53,10 @@ export default function App() {
       {surveyOpen && <SurveyModal onClose={() => setSurveyOpen(false)} />}
 
       {notificationsOpen && (
-        <NotificationPanel onClose={() => setNotificationsOpen(false)} />
+          <NotificationPanel
+              userId={userId}
+              onClose={() => setNotificationsOpen(false)}
+          />
       )}
     </div>
   );

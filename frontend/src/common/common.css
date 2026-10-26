@@ -219,3 +219,11 @@
 .active .nav-icon {
   background: var(--yellow-soft);
 }
+
+/* 알림 패널: 불러오는 중 / 빈 목록 / 오류 문구 */
+.notification-state {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 40px 0;
+  text-align: center;
+}
