@@ -131,4 +131,17 @@ public class HealthProfile {
             default -> null;
         };
     }
+
+    public void update(Integer birthYear, String gender, BigDecimal height, BigDecimal weight,
+                       String smoking, String drinking, String caffeine, String dietType, String sunExposure) {
+        this.birthYear = birthYear;
+        this.gender = gender;
+        this.height = height;
+        this.weight = weight;
+        this.smoking = smoking;
+        this.drinking = drinking;
+        this.caffeine = caffeine;
+        this.dietType = dietType;
+        this.sunExposure = sunExposure;
+    }
 }

@@ -1,57 +1,63 @@
 package com.ucamp.app.domain.friend.entity;
 
-import com.ucamp.app.domain.user.entity.User;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.ucamp.app.domain.friend.enums.FollowStatus;
+import com.ucamp.app.global.common.Timestamped;
+import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.global.exception.ErrorCode;
+import jakarta.persistence.*;
+import lombok.*;
 
-import java.time.LocalDateTime;
-
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "follows")
-@EntityListeners(AuditingEntityListener.class)
-public class Follow {
-
+@Getter
+@Builder(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Table(name = "follows",
+uniqueConstraints = @UniqueConstraint(
+        name = "uq_follow_pair",
+        columnNames = {"follower_id", "following_id"}
+))
+public class Follow extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "follow_id")
     private Long followId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "follower_id", nullable = false)
-    private User follower;
+    @Column(nullable = false)
+    private Long followerId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "following_id", nullable = false)
-    private User following;
+    @Column(nullable = false)
+    private Long followingId;
 
-    // TODO: enum 전환
-    @Column(name = "status", nullable = false, length = 10)
-    private String status;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private FollowStatus status;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Follow(Long followerId, Long followingId) {
+        this.followerId = followerId;
+        this.followingId = followingId;
+        this.status = FollowStatus.PENDING;
+    }
 
-    @Builder
-    public Follow(User follower, User following, String status) {
-        this.follower = follower;
-        this.following = following;
-        this.status = status != null ? status : "PENDING";
+    public static Follow request(Long followerId, Long followingId) {
+        if (followerId.equals(followingId)) {
+            throw new BusinessException(ErrorCode.INVALID_FOLLOW);
+        }
+        return new Follow(followerId, followingId);
+    }
+
+    public void accept() {
+        requirePending();
+        this.status = FollowStatus.ACCEPTED;
+    }
+
+    public void reject() {
+        requirePending();
+        this.status = FollowStatus.REJECTED;
+    }
+
+    private void requirePending() {
+        if (this.status != FollowStatus.PENDING) {
+            throw new BusinessException(ErrorCode.COMPLETED_FOLLOW_REQUEST);
+        }
     }
 }

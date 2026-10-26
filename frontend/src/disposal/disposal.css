@@ -511,3 +511,265 @@
   gap: 3px;
 }
 
+.map-screen .disposal-search-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.map-screen .disposal-search-form label {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-search-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.map-screen .disposal-search-form button {
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #665619;
+  font-weight: 700;
+}
+
+.map-screen .kakao-map-frame {
+  height: 520px;
+  min-height: 520px;
+  border: 1px solid #e1e4dc;
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  background: #eef0e9;
+}
+
+.map-screen .kakao-map-canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.map-screen .map-overlay-state {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.85);
+  color: #555;
+  font-size: 13px;
+}
+
+.map-screen .map-selected-card {
+  z-index: 3;
+}
+
+.map-screen .map-detail-link {
+  border-radius: 8px;
+  background: var(--yellow-soft);
+  padding: 8px;
+  color: #826d23;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-state {
+  padding: 15px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .map-screen .disposal-search-form {
+    flex-wrap: wrap;
+  }
+
+  .map-screen .disposal-search-form label {
+    width: 100%;
+  }
+
+  .map-screen .kakao-map-frame {
+    height: 390px;
+    min-height: 390px;
+  }
+}
+
+
+/* 폐의약품 지도 옆 약국 목록: 지도 높이만큼 표시하고 내부 스크롤 */
+.map-screen .pharmacy-list-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-screen .pharmacy-list-wrap .section-title-row {
+  flex-shrink: 0;
+}
+
+.map-screen .pharmacy-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-content: start;
+  grid-auto-rows: max-content;
+  padding-right: 6px;
+}
+
+@media (max-width: 600px) {
+  .map-screen .pharmacy-list-wrap {
+    height: 390px;
+  }
+}
+
+/* 이 파일의 내용만 기존 frontend/src/disposal/disposal.css 맨 아래에 추가하세요. */
+.map-screen .disposal-location-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -4px 0 18px;
+}
+
+.map-screen .disposal-nearby-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid #d9d5bd;
+  border-radius: 10px;
+  background: var(--yellow-soft);
+  color: #665619;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-screen .disposal-nearby-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.map-screen .disposal-radius-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b6e65;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-screen .disposal-radius-label select {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: #444;
+  font-size: 12px;
+}
+
+.map-screen .disposal-search-mode {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.map-screen .disposal-location-error {
+  margin: -5px 0 15px;
+  color: #a33b32;
+  font-size: 12px;
+}
+
+.map-screen .kakao-radius-badge {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 3;
+  border-radius: 10px;
+  padding: 8px 11px;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid #cddfeb;
+  box-shadow: 0 2px 9px rgba(30,50,80,0.1);
+  color: #285b88;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.map-screen .kakao-my-location {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(46, 125, 215, 0.18);
+  box-sizing: border-box;
+}
+
+.map-screen .kakao-my-location span {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #277ace;
+  box-shadow: 0 1px 8px rgba(30,70,120,0.38);
+  box-sizing: content-box;
+}
+
+@media (max-width: 600px) {
+  .map-screen .disposal-location-controls {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .map-screen .disposal-search-mode {
+    width: 100%;
+  }
+}
+
+/* 기존 CodeRabbit 목록 스크롤 수정이 아직 적용되지 않은 경우에도 동작하도록 포함 */
+.map-screen .pharmacy-list-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-screen .pharmacy-list-wrap .section-title-row {
+  flex-shrink: 0;
+}
+
+.map-screen .pharmacy-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-content: start;
+  grid-auto-rows: max-content;
+  padding-right: 6px;
+}
+
+@media (max-width: 600px) {
+  .map-screen .pharmacy-list-wrap {
+    height: 390px;
+  }
+}

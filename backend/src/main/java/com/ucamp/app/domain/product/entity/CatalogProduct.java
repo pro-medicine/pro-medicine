@@ -49,13 +49,28 @@ public class CatalogProduct {
     @Column(name = "image_url", length = 1000)
     private String imageUrl;
 
+    // 영양제 카드 표기용 (식약처 데이터에 없는 항목이라 비어 있을 수 있음)
+    @Column(name = "category", length = 50)
+    private String category;
+
+    @Column(name = "ingredient_summary", length = 255)
+    private String ingredientSummary;
+
+    @Column(name = "package_size", length = 100)
+    private String packageSize;
+
+    // 참고 가격(원)
+    @Column(name = "price")
+    private Integer price;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
     public CatalogProduct(String mfdsItemNo, String productName, String manufacturer, String mainFunction,
-                          String intakeMethod, String intakeCaution, String imageUrl) {
+                          String intakeMethod, String intakeCaution, String imageUrl,
+                          String category, String ingredientSummary, String packageSize, Integer price) {
         this.mfdsItemNo = mfdsItemNo;
         this.productName = productName;
         this.manufacturer = manufacturer;
@@ -63,5 +78,9 @@ public class CatalogProduct {
         this.intakeMethod = intakeMethod;
         this.intakeCaution = intakeCaution;
         this.imageUrl = imageUrl;
+        this.category = category;
+        this.ingredientSummary = ingredientSummary;
+        this.packageSize = packageSize;
+        this.price = price;
     }
 }

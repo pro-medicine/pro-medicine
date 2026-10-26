@@ -1,0 +1,27 @@
+### 1. 전체 알림 목록 → 민지의 알림 3개
+GET http://localhost:8080/api/v1/notifications
+X-User-Id: 1
+
+### 2. 내 복용 탭 → INTAKE_REMINDER 1개
+GET http://localhost:8080/api/v1/notifications?category=INTAKE
+X-User-Id: 1
+
+### 3. 친구 소식 탭 → FRIEND_GOAL_ACHIEVED, NEW_FOLLOWER 2개
+GET http://localhost:8080/api/v1/notifications?category=FRIEND
+X-User-Id: 1
+
+### 4. 안 읽은 개수 → 2
+GET http://localhost:8080/api/v1/notifications/unread-count
+X-User-Id: 1
+
+### 5. 1번 알림 읽음 처리 → read: true
+PATCH http://localhost:8080/api/v1/notifications/1/read
+X-User-Id: 1
+
+### 6. 남의 알림(철수의 4번) 읽음 시도 → 404, N001
+PATCH http://localhost:8080/api/v1/notifications/4/read
+X-User-Id: 1
+
+### 7. 모두 읽음 → 이후 4번 요청 시 0
+PATCH http://localhost:8080/api/v1/notifications/read-all
+X-User-Id: 1
