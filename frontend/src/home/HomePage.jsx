@@ -27,10 +27,15 @@ export default function HomePage({
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
+    let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     getHome(userId).then(({ data, isSample }) => {
+      if (ignore) return;
       setHome(data);
       setIsSample(isSample);
     });
+    return () => {
+      ignore = true;
+    };
   }, [userId, refreshKey]);
 
   // 2) 데이터 오기 전에는 로딩 화면

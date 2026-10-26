@@ -89,6 +89,7 @@ export default function App() {
         <NotificationPanel
           userId={userId}
           anchor={notificationAnchor}
+          onRead={() => setHomeRefreshKey((key) => key + 1)}
           onClose={closeNotifications}
         />
       )}

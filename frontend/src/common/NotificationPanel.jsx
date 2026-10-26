@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getNotifications,
   getUnreadCount,
@@ -46,20 +46,23 @@ function timeAgo(createdAt, now = new Date()) {
  * 알림 패널 (종 아이콘을 누르면 열림)
  * - userId: 로그인 연동 전까지 App에서 임시 id를 넘겨받는다.
  * - anchor: 패널을 띄울 위치 { top, right } (종 버튼 바로 아래). 없으면 화면 오른쪽 위
+ * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, onClose }) {
+export default function NotificationPanel({ userId = 1, anchor, onRead, onClose }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
   const [unreadCount, setUnreadCount] = useState(0);
+  const pendingIdsRef = useRef(new Set()); // 읽음 요청 중인 알림 id (같은 알림 중복 클릭 방지)
+  const countChangedRef = useRef(false); // 읽음 처리로 개수를 직접 바꿨으면, 늦게 온 개수 응답은 무시
 
   // 안 읽은 개수: 패널이 열릴 때 한 번 불러오고, 읽음 처리할 때는 화면에서 직접 줄인다.
   useEffect(() => {
     let ignore = false;
     getUnreadCount(userId)
       .then((data) => {
-        if (!ignore) setUnreadCount(data?.unreadCount ?? 0);
+        if (!ignore && !countChangedRef.current) setUnreadCount(data?.unreadCount ?? 0);
       })
       .catch((err) => console.error(err));
     return () => {
@@ -102,13 +105,19 @@ export default function NotificationPanel({ userId = 1, anchor, onClose }) {
 
   // 알림 하나 클릭 → 안 읽은 알림이면 읽음 처리
   const handleItemClick = async (item) => {
-    if (item.read) return;
+    const id = item.notificationId;
+    if (item.read || pendingIdsRef.current.has(id)) return; // 이미 읽음 또는 요청 중
+    pendingIdsRef.current.add(id);
     try {
-      await markNotificationRead(userId, item.notificationId);
-      markItemsRead([item.notificationId]);
+      await markNotificationRead(userId, id);
+      markItemsRead([id]);
+      countChangedRef.current = true;
       setUnreadCount((count) => Math.max(0, count - 1));
+      onRead?.();
     } catch (err) {
       console.error(err);   // 실패하면 화면은 그대로 둔다 (다음에 다시 시도 가능)
+    } finally {
+      pendingIdsRef.current.delete(id);
     }
   };
 
@@ -117,7 +126,9 @@ export default function NotificationPanel({ userId = 1, anchor, onClose }) {
     try {
       await markAllNotificationsRead(userId);
       markItemsRead(null);
+      countChangedRef.current = true;
       setUnreadCount(0);
+      onRead?.();
     } catch (err) {
       console.error(err);
     }
@@ -176,7 +187,10 @@ export default function NotificationPanel({ userId = 1, anchor, onClose }) {
                   tabIndex={0}
                   onClick={() => handleItemClick(item)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") handleItemClick(item);
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault(); // Space로 페이지가 스크롤되지 않게
+                      handleItemClick(item);
+                    }
                   }}
                 >
                   <span className={`notification-type-icon ${view.icon}`}>
@@ -196,7 +210,7 @@ export default function NotificationPanel({ userId = 1, anchor, onClose }) {
         <button
           className="read-all"
           onClick={handleReadAll}
-          disabled={unreadCount === 0}
+          disabled={loading || unreadCount === 0}
         >
           모두 읽음으로 표시
         </button>
