@@ -203,6 +203,44 @@
 .friend-meta span b {
   font-size: 16px;
 }
+.friend-meta {
+  min-width: 84px;
+  text-align: right;
+}
+
+.friend-streak {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+  color: #8c7b36;
+  font-size: 10px;
+}
+
+.friend-streak > span {
+  display: inline;
+  white-space: nowrap;
+}
+
+.friend-streak b {
+  font-size: 16px;
+}
+
+.friend-encourage {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #a0a199;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.friend-encourage .icon {
+  color: #aaaca5;
+  flex-shrink: 0;
+}
 
 .friend-meta small {
   color: #a0a199;

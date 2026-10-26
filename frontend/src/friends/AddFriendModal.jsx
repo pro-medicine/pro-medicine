@@ -1,17 +1,12 @@
 import { requestFollow } from "../api/followApi";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useModalFocus } from "../common/useModalFocus";
 
 export default function AddFriendModal({ userId, onClose }) {
   const [nickname, setNickname] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { type: "success" | "error", text }
-
-  // ESC로 닫기
-  useEffect(() => {
-    const onKeyDown = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  const dialogRef = useModalFocus(onClose);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,8 +37,10 @@ export default function AddFriendModal({ userId, onClose }) {
   return (
     <div className="modal-layer" role="presentation" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="modal-card"
         role="dialog"
+        aria-modal="true"
         aria-label="친구 추가"
         onMouseDown={(e) => e.stopPropagation()}
       >

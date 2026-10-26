@@ -4,6 +4,7 @@ import {
   cancelFollow,
 } from "../api/followApi";
 import { useEffect, useState } from "react";
+import { useModalFocus } from "../common/useModalFocus";
 
 const TABS = [
   { id: "received", label: "받은 신청" },
@@ -16,13 +17,7 @@ export default function FollowRequestsModal({ userId, onClose, onAccepted }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState(null);
-
-  // ESC로 닫기
-  useEffect(() => {
-    const onKeyDown = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  const dialogRef = useModalFocus(onClose);
 
   useEffect(() => {
     let ignore = false;
@@ -91,7 +86,9 @@ export default function FollowRequestsModal({ userId, onClose, onAccepted }) {
   return (
     <div className="modal-layer" role="presentation" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="modal-card"
+        aria-modal="true"
         role="dialog"
         aria-label="친구 신청 목록"
         onMouseDown={(e) => e.stopPropagation()}

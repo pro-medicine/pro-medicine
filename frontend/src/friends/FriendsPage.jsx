@@ -156,22 +156,21 @@ export default function FriendsPage({ onNotifications }) {
                     <small>{friend.relation}</small>
                   </span>
                 </span>
-                <span className="friend-meta">
-                  {friend.streak > 0 ? (
-                    <span>
-                      <b>{friend.streak}</b>일째
-                    </span>
-                  ) : (
-                    <small>친구를 응원해보세요.</small>
-                  )}
-                </span>
                 <span className="friend-status">{friend.status}</span>
                 <span className="friend-meta">
-                  <span>
-                    <b>{friend.streak}</b>일째
-                  </span>
+                  {friend.streak === 0 ? (
+                    <span className="friend-encourage">
+                      친구를 응원해보세요 <Icon name="chevron" size={18} />
+                    </span>
+                  ) : (
+                    <span className="friend-streak">
+                      <span>
+                        <b>{friend.streak}</b>일째
+                      </span>
+                      <Icon name="chevron" size={18} />
+                    </span>
+                  )}
                 </span>
-                <Icon name="chevron" size={18} />
               </button>
             ))}
         </div>
