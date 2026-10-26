@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
-import ProfileScreen from "../mypage/MyPage";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
+import FriendDetailPage from "./FriendDetailPage";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
 const COLORS = ["mint", "blue", "yellow", "pink"];
@@ -63,8 +63,10 @@ export default function FriendsScreen({ onNotifications }) {
   const filtered = friends.filter((friend) => friend.name.includes(query));
   if (selectedFriend) {
     return (
-      <ProfileScreen
-        friend={selectedFriend}
+      <FriendDetailPage
+        userId={userId}
+        friendUserId={selectedFriend.userId}
+        fallback={selectedFriend}
         onBack={() => setSelectedFriend(null)}
         onNotifications={onNotifications}
       />

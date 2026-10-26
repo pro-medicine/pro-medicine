@@ -10,37 +10,23 @@ export default function App() {
   const userId = 1; // TODO: 로그인 연동 후 실제 사용자 id
 
   const [tab, setTab] = useState("home");
-  const [selectedFriend, setSelectedFriend] = useState(null);
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [friendsKey, setFriendsKey] = useState(0);
 
   const openNotifications = () => setNotificationsOpen(true);
 
   const changeTab = (nextTab) => {
-    setSelectedFriend(null);
+    if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const renderContent = () => {
-    // 친구 상세 (친구 탭에서 선택했을 때)
-    if (selectedFriend) {
-      return (
-        <MyPage
-          friend={selectedFriend}
-          onBack={() => setSelectedFriend(null)}
-          onNotifications={openNotifications}
-        />
-      );
-    }
-
     switch (tab) {
       case "friends":
         return (
-          <FriendsPage
-            onSelect={setSelectedFriend}
-            onNotifications={openNotifications}
-          />
+          <FriendsPage key={friendsKey} onNotifications={openNotifications} />
         );
       case "my":
         return <MyPage onNotifications={openNotifications} />;
@@ -61,7 +47,7 @@ export default function App() {
     <div className="app-shell">
       <main>{renderContent()}</main>
 
-      {!selectedFriend && <BottomNav tab={tab} onChange={changeTab} />}
+      <BottomNav tab={tab} onChange={changeTab} />
 
       {surveyOpen && <SurveyModal onClose={() => setSurveyOpen(false)} />}
 
