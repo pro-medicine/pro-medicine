@@ -45,9 +45,10 @@ function timeAgo(createdAt, now = new Date()) {
 /**
  * 알림 패널 (종 아이콘을 누르면 열림)
  * - userId: 로그인 연동 전까지 App에서 임시 id를 넘겨받는다.
+ * - anchor: 패널을 띄울 위치 { top, right } (종 버튼 바로 아래). 없으면 화면 오른쪽 위
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, onClose }) {
+export default function NotificationPanel({ userId = 1, anchor, onClose }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
@@ -126,6 +127,7 @@ export default function NotificationPanel({ userId = 1, onClose }) {
     <div className="notification-layer" role="presentation" onMouseDown={onClose}>
       <aside
         className="notification-panel"
+        style={anchor ? { top: anchor.top, right: anchor.right } : undefined}
         aria-label="알림 목록"
         onMouseDown={(event) => event.stopPropagation()}
       >

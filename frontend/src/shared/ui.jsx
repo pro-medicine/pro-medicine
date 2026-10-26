@@ -1,3 +1,6 @@
+import { useContext } from "react";
+import { UnreadNotificationContext } from "../common/unreadNotificationContext";
+
 /**
  * SVG 아이콘
  * @param {{ name: "arrow"|"bell"|"check"|"chevron"|"clock"|"home"|"people"|"plus"|"pin"|"search"|"sparkles"|"trash"|"user", size?: number }} props
@@ -331,6 +334,7 @@ export function SupplementCard({ supplement }) {
  * @param {{ title: string, subtitle?: string, back?: () => void, onNotifications: () => void }} props
  */
 export function TopBar({ title, subtitle, back, onNotifications }) {
+    const hasUnread = useContext(UnreadNotificationContext); // 안 읽은 알림이 있을 때만 빨간 점
     return (
         <header className="app-header">
             <div className="header-title">
@@ -350,7 +354,7 @@ export function TopBar({ title, subtitle, back, onNotifications }) {
                 onClick={onNotifications}
             >
                 <Icon name="bell" size={21} />
-                <span />
+                {hasUnread && <span />}
             </button>
         </header>
     );
