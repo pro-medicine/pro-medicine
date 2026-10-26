@@ -92,10 +92,11 @@ export default function FriendsPage({ onNotifications }) {
         </div>
         <div className="stacked-avatars">
           {friends.slice(0, 3).map((friend) => (
-            <span className={`avatar ${friend.color}`} key={friend.id}>
-              {friend.initial}
+            <span className="avatar mint" key={friend.followId}>
+              {friend.nickname?.charAt(0) ?? "?"}
             </span>
           ))}
+
           {friends.length > 3 && (
             <span className="avatar more">+{friends.length - 3}</span>
           )}
