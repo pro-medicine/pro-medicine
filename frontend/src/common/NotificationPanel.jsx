@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getNotifications } from "../api/notificationApi";
+import {
+  getNotifications,
+  getUnreadCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../api/notificationApi";
 import { Icon } from "../shared/ui";
 
 // 탭: 전체 / 내 복용 / 친구 소식 (백엔드 NotificationCategory와 같은 값)
@@ -19,7 +24,7 @@ const CATEGORY_VIEW = {
  * 알림 시각을 "방금", "10분 전", "3시간 전", "어제", "3일 전", "10월 20일"로 바꾼다.
  * createdAt은 서버가 보내는 한국 시간 문자열 (예: "2026-10-26T14:05:00")
  */
-export function timeAgo(createdAt, now = new Date()) {
+function timeAgo(createdAt, now = new Date()) {
   const created = new Date(createdAt);
   const minutes = Math.floor((now - created) / 60000);
 
@@ -46,6 +51,20 @@ export default function NotificationPanel({ userId = 1, onClose }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 안 읽은 개수: 패널이 열릴 때 한 번 불러오고, 읽음 처리할 때는 화면에서 직접 줄인다.
+  useEffect(() => {
+    let ignore = false;
+    getUnreadCount(userId)
+      .then((data) => {
+        if (!ignore) setUnreadCount(data?.unreadCount ?? 0);
+      })
+      .catch((err) => console.error(err));
+    return () => {
+      ignore = true;
+    };
+  }, [userId]);
 
   // 패널이 열릴 때와 탭이 바뀔 때 목록을 불러온다.
   useEffect(() => {
@@ -69,6 +88,39 @@ export default function NotificationPanel({ userId = 1, onClose }) {
   }, [userId, tab]);
 
   const loading = result.tab !== tab;
+
+  // 화면에 있는 알림의 읽음 상태만 바꾼다. (ids가 없으면 전부)
+  const markItemsRead = (ids) => {
+    setResult((prev) => ({
+      ...prev,
+      items: prev.items.map((item) =>
+        !ids || ids.includes(item.notificationId) ? { ...item, read: true } : item,
+      ),
+    }));
+  };
+
+  // 알림 하나 클릭 → 안 읽은 알림이면 읽음 처리
+  const handleItemClick = async (item) => {
+    if (item.read) return;
+    try {
+      await markNotificationRead(userId, item.notificationId);
+      markItemsRead([item.notificationId]);
+      setUnreadCount((count) => Math.max(0, count - 1));
+    } catch (err) {
+      console.error(err);   // 실패하면 화면은 그대로 둔다 (다음에 다시 시도 가능)
+    }
+  };
+
+  // 모두 읽음
+  const handleReadAll = async () => {
+    try {
+      await markAllNotificationsRead(userId);
+      markItemsRead(null);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="notification-layer" role="presentation" onMouseDown={onClose}>
@@ -95,6 +147,7 @@ export default function NotificationPanel({ userId = 1, onClose }) {
               onClick={() => setTab(t.id)}
             >
               {t.label}
+              {t.id === "ALL" && unreadCount > 0 && <span>{unreadCount}</span>}
             </button>
           ))}
         </div>
@@ -117,6 +170,12 @@ export default function NotificationPanel({ userId = 1, onClose }) {
                 <article
                   className={unread ? "notification-item unread" : "notification-item"}
                   key={item.notificationId}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleItemClick(item)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleItemClick(item);
+                  }}
                 >
                   <span className={`notification-type-icon ${view.icon}`}>
                     <Icon name={view.icon} size={19} />
@@ -132,7 +191,13 @@ export default function NotificationPanel({ userId = 1, onClose }) {
               );
             })}
         </div>
-        {/* TODO(#48 커밋 ③): 모두 읽음, 알림 클릭 시 읽음, 안 읽은 개수 */}
+        <button
+          className="read-all"
+          onClick={handleReadAll}
+          disabled={unreadCount === 0}
+        >
+          모두 읽음으로 표시
+        </button>
       </aside>
     </div>
   );

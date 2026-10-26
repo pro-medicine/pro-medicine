@@ -227,3 +227,13 @@
   padding: 40px 0;
   text-align: center;
 }
+
+/* 알림 클릭 가능 표시, 읽을 알림이 없을 때 "모두 읽음" 버튼 흐리게 */
+.notification-item[role="button"] {
+  cursor: pointer;
+}
+
+.read-all:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
