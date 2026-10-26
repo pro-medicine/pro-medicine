@@ -57,7 +57,8 @@ public class RecommendationStore {
     @Transactional
     public Optional<Long> markProcessing(Long recommendationId) {
         return recommendationRepository.findById(recommendationId)
-                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()))
+                // 큐에는 V1(설문 기반) 추천만 들어온다. V2 정밀 추천(response 없음)은 항상 동기로 만든다
+                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()) && r.getResponse() != null)
                 .map(r -> {
                     r.markProcessing();
                     return r.getResponse().getResponseId();

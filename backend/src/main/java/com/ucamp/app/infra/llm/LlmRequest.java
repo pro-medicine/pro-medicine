@@ -23,6 +23,7 @@ public record LlmRequest(
         String promptVersion,
         Long responseId,
         String evalRunId,
+        Long sessionId,
         int attemptNo
 ) {
     public static final String TAG_RECOMMEND = "RECOMMEND";

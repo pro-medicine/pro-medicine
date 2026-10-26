@@ -44,6 +44,7 @@ public class LoggingLlmClient implements LlmClient {
         return LlmCallLog.builder()
                 .responseId(request.responseId())
                 .evalRunId(request.evalRunId())
+                .sessionId(request.sessionId())
                 .pipelineVersion(request.pipelineVersion() == null ? "-" : request.pipelineVersion())
                 .callTag(request.callTag() == null ? LlmRequest.TAG_RECOMMEND : request.callTag())
                 .model(model == null ? "unknown" : truncate(model, LlmCallLog.MODEL_LENGTH))

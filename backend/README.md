@@ -31,6 +31,8 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 
 **기존 팀원 DB**(예전 `schema.sql`로 만든 DB)는 `docs/sql/STEP13_ai_survey_setup.sql` 하나만 실행하면 된다 (MySQL Workbench 가능). AI 테이블·컬럼과 PK AUTO_INCREMENT를 맞추고, 예전 예시 설문(CONCERN 등)과 그 응답·추천을 지운 뒤 STEP02·06·07(STEP12 포함) 시드를 넣는다. STEP02·06·07·12 시드를 따로 실행할 필요 없고, 여러 번 실행해도 안전하다. 다른 팀원 테이블 데이터는 바꾸지 않는다.
 
+V2 회원 맞춤 질문(STEP 14)을 쓰려면 기존 DB에 이어서 `docs/sql/STEP14_personalized_questions.sql`을 실행한다. **순서: STEP13 → STEP14** (맞춤 질문 회차 테이블 2개, `ai_recommendations.response_id` NULL 허용·`session_id`, `llm_call_logs.session_id`). 여러 번 실행해도 안전하다. 새 DB는 `schema.sql`에 이미 들어 있다.
+
 테이블·컬럼은 `ddl-auto: update`로 자동 반영된다. 공유 DB용 DDL은 `docs/sql/STEPxx_*.sql`, 변경 목록은 [docs/schema-changes.md](docs/schema-changes.md).
 
 ### 서버
