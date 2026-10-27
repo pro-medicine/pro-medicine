@@ -20,6 +20,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.List;
+
 import java.util.Base64;
 
 @Configuration
@@ -30,6 +34,7 @@ public class SecurityConfig {
             HttpSecurity http
     ) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 // Bearer 헤더 기반 무상태 인증
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
@@ -45,6 +50,14 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/signup"
                         ).permitAll()
+
+                        // 폐의약품 약국 검색은 로그인 없이 허용
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/disposal/**"
+                        ).permitAll()
+
+                        // 그 외 API는 기존대로 JWT 인증 필요
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
@@ -88,5 +101,42 @@ public class SecurityConfig {
         );
 
         return decoder;
+    }
+
+    @Bean
+    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // React 개발 서버 주소
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+        ));
+
+        // 허용할 HTTP 메서드
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        // JWT 인증 헤더 허용
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type"
+        ));
+
+        // 현재는 쿠키 인증이 아닌 Bearer 토큰 사용
+        config.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 }
