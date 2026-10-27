@@ -24,6 +24,7 @@ export default function HomePage({
   const [error, setError] = useState(""); // 저장 실패 메시지
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
+  const [dayKey, setDayKey] = useState(0); // KST 자정마다 +1 → 홈 데이터 다시 불러옴
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
@@ -36,9 +37,18 @@ export default function HomePage({
     return () => {
       ignore = true;
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, dayKey]);   // dayKey 추가
 
-  // 2) 데이터 오기 전에는 로딩 화면
+  // 2) KST 자정이 되면 홈 데이터를 다시 불러와 날짜를 넘긴다
+  useEffect(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const KST_OFFSET = 9 * 60 * 60 * 1000; // 한국은 서머타임이 없어서 항상 UTC+9
+    const msToMidnight = DAY - ((Date.now() + KST_OFFSET) % DAY); // 다음 KST 자정까지 남은 시간
+    const timer = setTimeout(() => setDayKey((k) => k + 1), msToMidnight + 1000); // 1초 여유
+    return () => clearTimeout(timer); // 화면을 떠나면 타이머 정리
+  }, [dayKey]);
+
+  // 데이터 오기 전에는 로딩 화면
   if (!home) {
     return <div className="home-page home-loading">불러오는 중...</div>;
   }
@@ -74,7 +84,7 @@ export default function HomePage({
     setPendingIds((prev) => [...prev, id]);
 
     try {
-      await updateIntake(userId, id, next);
+      await updateIntake(userId, id, next, home.today);
     } catch (e) {
       setTaken(id, !next);
       setError("복용 체크를 저장하지 못했어요. 잠시 후 다시 시도해주세요.", e);

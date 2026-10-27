@@ -19,10 +19,12 @@ async function request(path, options) {
 
 // 오늘 날짜 "yyyy-MM-dd" (toISOString은 UTC라 한국 날짜가 하루 밀릴 수 있어서 직접 만듦)
 function todayString() {
-    const d = new Date();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${d.getFullYear()}-${mm}-${dd}`;
+    // const d = new Date();
+    // const mm = String(d.getMonth() + 1).padStart(2, "0");
+    // const dd = String(d.getDate()).padStart(2, "0");
+    // return `${d.getFullYear()}-${mm}-${dd}`;
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+
 }
 
 /** 홈 화면 데이터: user + 알림 + 오늘 복용 목록을 합쳐서 예전 /api/home 모양으로 */
@@ -53,11 +55,15 @@ export async function getHome(userId) {
     }
 }
 
-/** POST /api/v1/intakes : 복용 체크 저장 */
-export async function updateIntake(userId, scheduleId, taken) {
-    return request(`/api/v1/intakes?userId=${userId}`, {
+/** POST /api/v1/intakes : 복용 체크 저장 (화면에 표시 중인 날짜로 저장) */
+export async function updateIntake(userId, scheduleId, taken, date) {
+    return request(`/api/v1/intakes`, {
         method: "POST",
-        body: JSON.stringify({ scheduleId, taken, date: HOME_DATE }),
+        headers: {
+            "Content-Type": "application/json",
+            "X-User-Id": String(userId),
+        },
+        body: JSON.stringify({ scheduleId, taken, date }),
     });
 }
 
