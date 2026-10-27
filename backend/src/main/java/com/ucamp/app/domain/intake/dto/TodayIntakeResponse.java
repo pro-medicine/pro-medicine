@@ -1,10 +1,11 @@
-package com.ucamp.app.home.dto;
+package com.ucamp.app.domain.intake.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
+// 홈 화면 "오늘 먹을 영양제" 한 줄
 @Getter @Setter
-public class HomeSupplementResponse {
+public class TodayIntakeResponse {
     private Long id;        // schedule_id (복용 체크는 '일정' 단위)
     private String timing;  // "아침 식후"
     private String name;

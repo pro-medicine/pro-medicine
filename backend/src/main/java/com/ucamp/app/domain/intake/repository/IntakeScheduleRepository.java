@@ -85,4 +85,61 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
               )
             """)
     long countTodayTakenSchedules(@Param("userId") Long userId, @Param("today") LocalDate today);
-}
+
+    // ===== 여기부터 home에서 옮겨온 것 =====
+
+    // ① native query 결과를 받는 그릇 (SQL의 AS 별칭 = getter 이름)
+    interface SupplementRow {
+        Long getId();
+        String getTiming();
+        String getName();
+        String getDesc();
+        Number getTaken();   // MySQL은 true/false를 1/0으로 줌
+    }
+
+    // ② 그날 먹어야 할 일정 + 그날 복용 기록
+    @Query(value = """
+            SELECT s.schedule_id AS id,
+                   CONCAT(
+                       CASE s.meal_slot WHEN 'BREAKFAST' THEN '아침' WHEN 'LUNCH' THEN '점심'
+                                        WHEN 'DINNER' THEN '저녁' ELSE s.meal_slot END,
+                       ' ',
+                       CASE s.meal_relation WHEN 'BEFORE' THEN '식전' WHEN 'AFTER' THEN '식후'
+                                            ELSE s.meal_relation END
+                   ) AS timing,
+                   COALESCE(cp.product_name, up.manual_product_name) AS name,
+                   COALESCE(cp.main_function, '') AS `desc`,
+                   IFNULL(ir.status = 'TAKEN', 0) AS taken
+            FROM intake_schedules s
+            JOIN user_products up ON up.user_product_id = s.user_product_id
+            LEFT JOIN catalog_products cp ON cp.catalog_product_id = up.catalog_product_id
+            LEFT JOIN intake_records ir ON ir.schedule_id = s.schedule_id
+                                       AND ir.intake_date = :date
+            WHERE up.user_id = :userId
+              AND up.is_active = TRUE
+              AND s.is_enabled = TRUE
+              AND (up.start_date IS NULL OR up.start_date <= :date)
+            ORDER BY s.remind_at
+            """, nativeQuery = true)
+    List<SupplementRow> findTodaySupplements(@Param("userId") Long userId, @Param("date") LocalDate date);
+
+    // ③ 남의 일정은 체크 못 하게
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM intake_schedules s
+            JOIN user_products up ON up.user_product_id = s.user_product_id
+            WHERE s.schedule_id = :scheduleId AND up.user_id = :userId
+            """, nativeQuery = true)
+    long countMySchedule(@Param("userId") Long userId, @Param("scheduleId") Long scheduleId);
+
+    // 복용 중인 제품의 켜져 있는 일정 (복용 시작일 계산을 위해 제품도 함께 조회)
+    @Query("""
+            SELECT s FROM IntakeSchedule s
+            JOIN FETCH s.userProduct up
+            WHERE up.user.id = :userId
+              AND up.isActive = true
+              AND s.isEnabled = true
+            """)
+    List<IntakeSchedule> findActiveSchedules(@Param("userId") Long userId);
+
+}   // 끝

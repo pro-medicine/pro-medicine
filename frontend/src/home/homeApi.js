@@ -17,27 +17,47 @@ async function request(path, options) {
     return res.status === 204 ? null : res.json();
 }
 
-/** GET /home : 홈 화면 데이터 */
+// 오늘 날짜 "yyyy-MM-dd" (toISOString은 UTC라 한국 날짜가 하루 밀릴 수 있어서 직접 만듦)
+function todayString() {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** 홈 화면 데이터: user + 알림 + 오늘 복용 목록을 합쳐서 예전 /api/home 모양으로 */
 export async function getHome(userId) {
     try {
-        const dateQuery = HOME_DATE ? `&date=${HOME_DATE}` : "";
-        const data = await request(`/api/home?userId=${userId}${dateQuery}`);
-        data.supplements = (data.supplements ?? []).map((s, i) => ({
-            ...s,
-            color: s.color ?? COLORS[i % COLORS.length],
-        }));
+        const date = HOME_DATE ?? todayString();
+        const [user, unread, supplements] = await Promise.all([
+            request(`/api/v1/users/${userId}`),
+            request(`/api/v1/notifications/unread-count`, {
+                headers: { "X-User-Id": String(userId) },
+            }),
+            request(`/api/v1/intakes/today?userId=${userId}&date=${date}`),
+        ]);
+
+        const data = {
+            userName: user.data.nickname,                       // ApiResponse로 감싸져 있어서 .data
+            today: date,
+            hasUnreadNotifications: unread.data.unreadCount > 0, // ApiResponse로 감싸져 있어서 .data
+            supplements: (supplements ?? []).map((s, i) => ({
+                ...s,
+                color: s.color ?? COLORS[i % COLORS.length],
+            })),
+        };
         return { data, isSample: false };
     } catch (e) {
-        console.warn("[home] /home 호출 실패 → 예시 데이터 사용", e);
+        console.warn("[home] 홈 데이터 호출 실패 → 예시 데이터 사용", e);
         return { data: SAMPLE_HOME, isSample: true };
     }
 }
 
-/** PATCH /home/intake/{scheduleId} : 복용 체크 저장 */
+/** POST /api/v1/intakes : 복용 체크 저장 */
 export async function updateIntake(userId, scheduleId, taken) {
-    return request(`/api/home/intake/${scheduleId}?userId=${userId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ taken, date: HOME_DATE }),
+    return request(`/api/v1/intakes?userId=${userId}`, {
+        method: "POST",
+        body: JSON.stringify({ scheduleId, taken, date: HOME_DATE }),
     });
 }
 

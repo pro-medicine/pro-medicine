@@ -11,10 +11,9 @@ import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -50,14 +49,14 @@ public class IntakeService {
         List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
         LocalDate from = today.minusDays(MAX_STREAK_DAYS);
         Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
-        for (TakenIntake taken : intakeScheduleRepository.findTakenIntakes(userId, from, today)) {
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, from, today)) { //intakeRecordRepository로 수정
             takenByDate.computeIfAbsent(taken.intakeDate(), date -> new HashSet<>()).add(taken.scheduleId());
         }
 
         return new IntakeStatsResponse(
                 userId,
                 streakDays(schedules, takenByDate, today),
-                intakeScheduleRepository.countActiveSupplements(userId),
+                intakeRecordRepository.countActiveSupplements(userId), //수정
                 monthlyRate(schedules, takenByDate, today)
         );
     }
@@ -120,11 +119,15 @@ public class IntakeService {
     }
 
     @Transactional
-    public void updateIntake(Long userId, Long scheduleId, LocalDate date, boolean taken) {
+    public void updateIntake(Long userId, Long scheduleId, LocalDate date, boolean taken) { //수정
         // TODO: 만약 복용체크를 복용 스케줄 기준으로 할 거라면
-        if (intakeScheduleRepository.countMySchedule(userId, scheduleId) == 0) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "내 복용 일정이 아님: " + scheduleId);
+        if (scheduleId == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
             // TODO: 커스텀 비즈니스 에러로 수정
+        }
+        //남을 일정 체크하지 못하도록
+        if (intakeScheduleRepository.countMySchedule(userId, scheduleId) == 0) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         if (taken) {
             if (intakeRecordRepository.updateTaken(scheduleId, date) == 0) {
@@ -132,7 +135,28 @@ public class IntakeService {
             }
             eventPublisher.publishEvent(new IntakeCheckedEvent(userId, date));
         } else {
-            intakeRecordRepository.deleteRecord(scheduleId, date);   // 체크 해제 = 기록 삭제
+            intakeRecordRepository.deleteRecord(scheduleId, date);
         }
     }
+
+    // 홈 화면 "오늘 먹을 영양제" 목록
+    public List<TodayIntakeResponse> getTodayIntakes(Long userId, LocalDate date) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return intakeScheduleRepository.findTodaySupplements(userId, date)
+                .stream()
+                .map(row -> {
+                    TodayIntakeResponse dto = new TodayIntakeResponse();
+                    dto.setId(row.getId());
+                    dto.setTiming(row.getTiming());
+                    dto.setName(row.getName());
+                    dto.setDesc(row.getDesc());
+                    dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1);
+                    return dto;
+                })
+                .toList();
+    }
+
+
 }
