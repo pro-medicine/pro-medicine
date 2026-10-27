@@ -36,7 +36,9 @@ export async function getHome(userId) {
             request(`/api/v1/notifications/unread-count`, {
                 headers: { "X-User-Id": String(userId) },
             }),
-            request(`/api/v1/intakes/today?userId=${userId}&date=${date}`),
+            request(`/api/v1/intakes/today?date=${date}`, {
+                headers: { "X-User-Id": String(userId) },
+            }),
         ]);
 
         const data = {
