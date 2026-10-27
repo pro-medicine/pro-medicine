@@ -44,3 +44,18 @@ export function markNotificationRead(userId, notificationId) {
 export function markAllNotificationsRead(userId) {
     return api.patch("/api/v1/notifications/read-all", null, userHeader(userId));
 }
+
+/**
+ * 실시간 알림 구독 (SSE). 새 알림이 생기면 onNotification이 호출된다.
+ * - 브라우저 EventSource는 헤더를 붙일 수 없어서 로그인 연동 전까지 userId를 쿼리로 보낸다.
+ * - 연결이 끊기면 EventSource가 자동으로 다시 연결한다.
+ * @returns 구독 해제 함수 (컴포넌트가 사라질 때 호출)
+ */
+export function subscribeNotifications(userId, onNotification) {
+    const baseUrl = import.meta.env.VITE_API_URL || "";   // client.js와 같은 기준 주소 (기본: Vite 프록시)
+    const source = new EventSource(
+        `${baseUrl}/api/v1/notifications/subscribe?userId=${encodeURIComponent(userId)}`,
+    );
+    source.addEventListener("notification", onNotification);
+    return () => source.close();
+}
