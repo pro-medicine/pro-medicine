@@ -1,0 +1,442 @@
+{
+  "failAfterRepair" : {
+    "callLogs" : [ {
+      "attemptNo" : 1,
+      "cacheCreationTokens" : 0,
+      "cacheReadTokens" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "httpStatus" : 200,
+      "inputTokens" : 160,
+      "model" : "gpt-6.1-sol-fake",
+      "outcome" : "PARSE_FAIL",
+      "outputTokens" : 54,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "responseId" : 7001
+    } ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=llm)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=parse)}" : 1.0
+    },
+    "requests" : [ {
+      "attemptNo" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "maxTokens" : 2000,
+      "messages" : [ {
+        "role" : "user",
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+      } ],
+      "model" : "gpt-6.1-sol",
+      "pipelineVersion" : "V0",
+      "promptCache" : false,
+      "promptVersion" : "v0.1",
+      "responseId" : 7001,
+      "schemaName" : null,
+      "schemas" : [ ],
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과, 현재 섭취량을 뺀 하루 추가 섭취량을 추천해라.\namount는 현재 복용 중인 영양제 함량을 뺀 하루 추가 섭취량이다. 아래 JSON 형식으로만 답해라.\n\n{\"recommendations\":[{\"name\":\"비타민 C\",\"reason\":\"추천 이유\",\"amount\":100,\"unit\":\"mg\"}],\"summary\":\"전체 요약\"}",
+      "temperature" : null
+    } ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : "NO_JSON_OBJECT",
+      "fallback" : false,
+      "items" : [ ],
+      "llmCallLogCount" : 1,
+      "model" : "gpt-6.1-sol-fake",
+      "parseSuccess" : false,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "summary" : null
+    }
+  },
+  "guest" : {
+    "callLogs" : [ {
+      "attemptNo" : 1,
+      "cacheCreationTokens" : 0,
+      "cacheReadTokens" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "httpStatus" : 200,
+      "inputTokens" : 120,
+      "model" : "gpt-6.1-sol-fake",
+      "outcome" : "SUCCESS",
+      "outputTokens" : 140,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "responseId" : 7002
+    } ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=llm)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=parse)}" : 1.0
+    },
+    "requests" : [ {
+      "attemptNo" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "maxTokens" : 2000,
+      "messages" : [ {
+        "role" : "user",
+        "text" : "사용자 정보:\n- 응답자: 비회원 (질환·복용 약·임신 여부는 묻지 않음)\n- 성별: 여성\n- 나이: 40세\n- 식단: 비건\n- 햇빛 노출: 거의 실내\n- 원하는 효과: 수면\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_D 10 mcg"
+      } ],
+      "model" : "gpt-6.1-sol",
+      "pipelineVersion" : "V0",
+      "promptCache" : false,
+      "promptVersion" : "v0.1",
+      "responseId" : 7002,
+      "schemaName" : null,
+      "schemas" : [ ],
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과, 현재 섭취량을 뺀 하루 추가 섭취량을 추천해라.\namount는 현재 복용 중인 영양제 함량을 뺀 하루 추가 섭취량이다. 아래 JSON 형식으로만 답해라.\n\n{\"recommendations\":[{\"name\":\"비타민 C\",\"reason\":\"추천 이유\",\"amount\":100,\"unit\":\"mg\"}],\"summary\":\"전체 요약\"}",
+      "temperature" : null
+    } ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : false,
+      "items" : [ {
+        "amount" : "100.0",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 C",
+        "intakeStatus" : null,
+        "reason" : "흡연",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : "25",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 D",
+        "intakeStatus" : null,
+        "reason" : "햇빛",
+        "sortOrder" : 2,
+        "unit" : "mcg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "베타카로틴",
+        "intakeStatus" : null,
+        "reason" : "눈",
+        "sortOrder" : 3,
+        "unit" : null,
+        "warnings" : null
+      }, {
+        "amount" : "1000",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "칼륨",
+        "intakeStatus" : null,
+        "reason" : "혈압",
+        "sortOrder" : 4,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 B12",
+        "intakeStatus" : null,
+        "reason" : "비건",
+        "sortOrder" : 5,
+        "unit" : null,
+        "warnings" : null
+      } ],
+      "llmCallLogCount" : 1,
+      "model" : "gpt-6.1-sol-fake",
+      "parseSuccess" : true,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "summary" : "요약입니다"
+    }
+  },
+  "member" : {
+    "callLogs" : [ {
+      "attemptNo" : 1,
+      "cacheCreationTokens" : 0,
+      "cacheReadTokens" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "httpStatus" : 200,
+      "inputTokens" : 160,
+      "model" : "gpt-6.1-sol-fake",
+      "outcome" : "SUCCESS",
+      "outputTokens" : 140,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "responseId" : 7001
+    } ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=llm)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=parse)}" : 1.0
+    },
+    "requests" : [ {
+      "attemptNo" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "maxTokens" : 2000,
+      "messages" : [ {
+        "role" : "user",
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+      } ],
+      "model" : "gpt-6.1-sol",
+      "pipelineVersion" : "V0",
+      "promptCache" : false,
+      "promptVersion" : "v0.1",
+      "responseId" : 7001,
+      "schemaName" : null,
+      "schemas" : [ ],
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과, 현재 섭취량을 뺀 하루 추가 섭취량을 추천해라.\namount는 현재 복용 중인 영양제 함량을 뺀 하루 추가 섭취량이다. 아래 JSON 형식으로만 답해라.\n\n{\"recommendations\":[{\"name\":\"비타민 C\",\"reason\":\"추천 이유\",\"amount\":100,\"unit\":\"mg\"}],\"summary\":\"전체 요약\"}",
+      "temperature" : null
+    } ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : false,
+      "items" : [ {
+        "amount" : "100.0",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 C",
+        "intakeStatus" : null,
+        "reason" : "흡연",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : "25",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 D",
+        "intakeStatus" : null,
+        "reason" : "햇빛",
+        "sortOrder" : 2,
+        "unit" : "mcg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "베타카로틴",
+        "intakeStatus" : null,
+        "reason" : "눈",
+        "sortOrder" : 3,
+        "unit" : null,
+        "warnings" : null
+      }, {
+        "amount" : "1000",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "칼륨",
+        "intakeStatus" : null,
+        "reason" : "혈압",
+        "sortOrder" : 4,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 B12",
+        "intakeStatus" : null,
+        "reason" : "비건",
+        "sortOrder" : 5,
+        "unit" : null,
+        "warnings" : null
+      } ],
+      "llmCallLogCount" : 1,
+      "model" : "gpt-6.1-sol-fake",
+      "parseSuccess" : true,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "summary" : "요약입니다"
+    }
+  },
+  "repair" : {
+    "callLogs" : [ {
+      "attemptNo" : 1,
+      "cacheCreationTokens" : 0,
+      "cacheReadTokens" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "httpStatus" : 200,
+      "inputTokens" : 160,
+      "model" : "gpt-6.1-sol-fake",
+      "outcome" : "PARSE_FAIL",
+      "outputTokens" : 54,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "responseId" : 7001
+    } ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=llm)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=parse)}" : 1.0
+    },
+    "requests" : [ {
+      "attemptNo" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : "golden",
+      "maxTokens" : 2000,
+      "messages" : [ {
+        "role" : "user",
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+      } ],
+      "model" : "gpt-6.1-sol",
+      "pipelineVersion" : "V0",
+      "promptCache" : false,
+      "promptVersion" : "v0.1",
+      "responseId" : 7001,
+      "schemaName" : null,
+      "schemas" : [ ],
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과, 현재 섭취량을 뺀 하루 추가 섭취량을 추천해라.\namount는 현재 복용 중인 영양제 함량을 뺀 하루 추가 섭취량이다. 아래 JSON 형식으로만 답해라.\n\n{\"recommendations\":[{\"name\":\"비타민 C\",\"reason\":\"추천 이유\",\"amount\":100,\"unit\":\"mg\"}],\"summary\":\"전체 요약\"}",
+      "temperature" : null
+    } ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : "NO_JSON_OBJECT",
+      "fallback" : false,
+      "items" : [ ],
+      "llmCallLogCount" : 1,
+      "model" : "gpt-6.1-sol-fake",
+      "parseSuccess" : false,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "summary" : null
+    }
+  },
+  "simple" : {
+    "callLogs" : [ {
+      "attemptNo" : 1,
+      "cacheCreationTokens" : 0,
+      "cacheReadTokens" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : null,
+      "httpStatus" : 200,
+      "inputTokens" : 105,
+      "model" : "gpt-6.1-sol-fake",
+      "outcome" : "SUCCESS",
+      "outputTokens" : 140,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "responseId" : 7004
+    } ],
+    "metrics" : {
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=llm)}" : 1.0,
+      "recommendation.stage{tag(pipeline_version=V0),tag(stage=parse)}" : 1.0
+    },
+    "requests" : [ {
+      "attemptNo" : 0,
+      "callTag" : "RECOMMEND",
+      "evalRunId" : null,
+      "maxTokens" : 2000,
+      "messages" : [ {
+        "role" : "user",
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 여성\n- 나이: 40세\n- 진단받은 질환: 없음\n- 복용 중인 약: 없음\n- 현재 복용 중인 영양제 성분(하루 함량): 없음"
+      } ],
+      "model" : "gpt-6.1-sol",
+      "pipelineVersion" : "V0",
+      "promptCache" : false,
+      "promptVersion" : "v0.1",
+      "responseId" : 7004,
+      "schemaName" : null,
+      "schemas" : [ ],
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과, 현재 섭취량을 뺀 하루 추가 섭취량을 추천해라.\namount는 현재 복용 중인 영양제 함량을 뺀 하루 추가 섭취량이다. 아래 JSON 형식으로만 답해라.\n\n{\"recommendations\":[{\"name\":\"비타민 C\",\"reason\":\"추천 이유\",\"amount\":100,\"unit\":\"mg\"}],\"summary\":\"전체 요약\"}",
+      "temperature" : null
+    } ],
+    "result" : {
+      "cacheHit" : false,
+      "failureReason" : null,
+      "fallback" : false,
+      "items" : [ {
+        "amount" : "100.0",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 C",
+        "intakeStatus" : null,
+        "reason" : "흡연",
+        "sortOrder" : 1,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : "25",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 D",
+        "intakeStatus" : null,
+        "reason" : "햇빛",
+        "sortOrder" : 2,
+        "unit" : "mcg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "베타카로틴",
+        "intakeStatus" : null,
+        "reason" : "눈",
+        "sortOrder" : 3,
+        "unit" : null,
+        "warnings" : null
+      }, {
+        "amount" : "1000",
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "칼륨",
+        "intakeStatus" : null,
+        "reason" : "혈압",
+        "sortOrder" : 4,
+        "unit" : "mg",
+        "warnings" : null
+      }, {
+        "amount" : null,
+        "appliedRuleIds" : null,
+        "currentIntake" : null,
+        "doseNote" : null,
+        "excluded" : false,
+        "ingredient" : "비타민 B12",
+        "intakeStatus" : null,
+        "reason" : "비건",
+        "sortOrder" : 5,
+        "unit" : null,
+        "warnings" : null
+      } ],
+      "llmCallLogCount" : 1,
+      "model" : "gpt-6.1-sol-fake",
+      "parseSuccess" : true,
+      "pipelineVersion" : "V0",
+      "promptVersion" : "v0.1",
+      "summary" : "요약입니다"
+    }
+  }
+}
