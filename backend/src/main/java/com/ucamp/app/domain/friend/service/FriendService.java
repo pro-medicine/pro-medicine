@@ -42,11 +42,21 @@ public class FriendService {
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
-        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
-            throw new BusinessException(ErrorCode.NOT_FRIEND);
-        }
+        getAcceptedFollow(userId, friendUserId);
         User friend = userRepository.findById(friendUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         return FriendDetailResponse.from(friend);
+    }
+
+    @Transactional
+    public void deleteFriend(Long userId, Long friendId) {
+        Follow follow = getAcceptedFollow(userId, friendId);
+        follow.markDeleted(userId);
+    }
+
+    private Follow getAcceptedFollow(Long userId, Long friendUserId) {
+        return followRepository
+                .findByFollowerIdAndFollowingIdAndStatusAndDeletedAtIsNull(userId, friendUserId, FollowStatus.ACCEPTED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FRIEND));
     }
 }
