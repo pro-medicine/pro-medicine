@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.6'
+	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -19,19 +19,82 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	// 추천 단계별 지연 측정 (STEP 04): /actuator/prometheus
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	// 추천 결과 캐시 (STEP 08). recommendation.cache.store=redis 일 때만 사용, 기본은 메모리
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	// LLM 장애 대응 (STEP 10): 재시도 · 서킷 브레이커 · 동시 호출 제한. llm.resilience.enabled=true 일 때만 사용
+	implementation 'io.github.resilience4j:resilience4j-spring-boot4:2.4.0'
+	// LLM 호출 (OpenAI, Spring AI 2.0 = 공식 openai-java SDK). 자동 설정 starter 대신 모듈만 쓰고 LlmConfig에서 직접 조립한다
+	// (llm.provider=openai일 때만 만들어서 키 없이도 서버·테스트가 뜬다)
+	implementation platform('org.springframework.ai:spring-ai-bom:2.0.1')
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-//	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-//	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	// /actuator/prometheus 테스트용 (Boot 4에서 @AutoConfigureObservability → @AutoConfigureMetrics)
+	testImplementation 'org.springframework.boot:spring-boot-starter-micrometer-metrics-test'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	// 테스트 전용 DB (MySQL 모드). 실제 MySQL 없이 테스트를 돌리기 위해 사용
+	testRuntimeOnly 'com.h2database:h2'
+	// LLM HTTP 클라이언트 테스트·장애 주입용 가짜 서버 (부하 테스트용 standalone 실행은 docs/perf 문서 참고)
+	testImplementation 'org.wiremock:wiremock-standalone:3.13.2'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// backend/.env(Git 제외)의 OPENAI_API_KEY를 liveTest JVM에 넘긴다. OS 환경변수가 있으면 그것을 우선한다.
+// 테스트용 application.yml은 .env를 불러오지 않기 때문에 Gradle에서 넘겨준다.
+def openAiApiKey = {
+	def fromEnv = System.getenv('OPENAI_API_KEY')
+	if (fromEnv) {
+		return fromEnv
+	}
+	def dotenv = file('.env')
+	if (!dotenv.exists()) {
+		return null
+	}
+	def line = dotenv.readLines('UTF-8').collect { it.trim() }.find { it.startsWith('OPENAI_API_KEY=') }
+	def value = line?.substring('OPENAI_API_KEY='.length())?.trim()?.replaceAll(/^["']|["']$/, '')
+	return value ?: null
+}
+
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		// 실제 API(live), 성능 측정(perf), 평가 실행(eval)은 기본 테스트에서 제외
+		excludeTags 'live', 'perf', 'eval'
+	}
+}
+
+// 아래 태그별 테스트 태스크(liveTest) 공통: 테스트 클래스 공유, 콘솔 출력, 매번 실행
+def taggedTestTasks = ['liveTest']
+tasks.withType(Test).matching { it.name in taggedTestTasks }.configureEach {
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	testLogging { showStandardStreams = true }
+	outputs.upToDateWhen { false }
+}
+
+// 실제 API를 쓰는 태스크에 OPENAI_API_KEY(환경변수 또는 backend/.env)를 넘긴다
+def passOpenAiApiKey = { Test task ->
+	task.doFirst {
+		def key = openAiApiKey()
+		if (key) {
+			task.environment 'OPENAI_API_KEY', key
+		}
+	}
+}
+
+// 실제 OpenAI API 테스트: ./gradlew liveTest (backend/.env 또는 환경변수의 OPENAI_API_KEY 필요, 비용 발생)
+tasks.register('liveTest', Test) {
+	description = '실제 OpenAI API 호출 테스트 (비용 발생)'
+	useJUnitPlatform { includeTags 'live' }
+	passOpenAiApiKey(it)
 }

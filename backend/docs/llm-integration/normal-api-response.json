@@ -1,0 +1,31 @@
+{
+  "code" : "S000",
+  "data" : {
+    "recommendationId" : 1,
+    "responseId" : 2,
+    "status" : "DONE",
+    "errorCode" : null,
+    "modelName" : "gpt-6.1-sol",
+    "summary" : "WireMock 응답",
+    "createdAt" : "2026-10-22T11:43:41.3096396",
+    "items" : [ {
+      "ingredient" : "VITAMIN_D",
+      "reason" : "햇빛 노출이 적어요",
+      "sortOrder" : 1,
+      "doseNote" : "기준값 미등록",
+      "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ],
+      "appliedRuleIds" : [ "R-06" ]
+    } ],
+    "excludedItems" : [ {
+      "ingredient" : "BETA_CAROTENE",
+      "reason" : "항산화",
+      "sortOrder" : 2,
+      "doseNote" : "기준값 미등록",
+      "warnings" : [ "흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요", "흡연 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요" ],
+      "appliedRuleIds" : [ "R-02", "R-G4" ]
+    } ],
+    "fallback" : false
+  },
+  "message" : "성공",
+  "success" : true
+}

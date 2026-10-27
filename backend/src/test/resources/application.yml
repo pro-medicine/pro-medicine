@@ -1,0 +1,32 @@
+# 테스트 전용 설정. 메인 application.yml 대신 이 파일이 로드된다 (같은 이름이라 클래스패스에서 우선).
+# 실제 MySQL 없이 H2(MySQL 모드)로 테스트를 돌린다.
+spring:
+  application:
+    name: pro-medicine-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    defer-datasource-initialization: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # 테스트 픽스처 (예시 데이터). 운영 시드는 backend/docs/sql/ 에 있고 앱 시작 시 자동으로 넣지 않는다.
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      data-locations:
+        - classpath:sql/seed-survey-v1.sql
+        - classpath:sql/seed-drugs.sql
+        - classpath:sql/seed-ingredient-standards.sql
+        - classpath:sql/seed-recommendation-rules.sql

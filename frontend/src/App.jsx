@@ -5,7 +5,7 @@ import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
-import { SurveyModal } from "./home/HomeFeature";
+import RecommendationModal from "./recommendation";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 
@@ -83,7 +83,7 @@ export default function App() {
 
       <BottomNav tab={tab} onChange={changeTab} />
 
-      {surveyOpen && <SurveyModal onClose={() => setSurveyOpen(false)} />}
+      {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
 
       {notificationsOpen && (
         <NotificationPanel

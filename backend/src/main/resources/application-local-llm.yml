@@ -1,0 +1,14 @@
+# 실제 OpenAI API를 쓰는 프로필 (Spring AI). 실행: --spring.profiles.active=local-llm
+# API 키는 여기에 쓰지 않는다. backend/.env(Git 제외)에 OPENAI_API_KEY=... 한 줄, 또는 OS 환경변수로 설정한다.
+# 다른 회사 모델로 바꿀 때: Spring AI starter(build.gradle) + 아래 spring.ai.* + ChatProviderSupport 빈(LlmConfig)
+spring:
+  ai:
+    model:
+      chat: openai
+    # 추론 강도를 바꾸려면: spring.ai.openai.chat.reasoning-effort (low|medium|high|xhigh|max). 지정하지 않으면 모델 기본값(medium)
+llm:
+  provider: spring-ai
+  model: gpt-6.1-sol
+  small-model: gpt-6-luna
+  timeout-ms: 30000
+  max-tokens: 2000
