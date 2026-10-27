@@ -52,14 +52,14 @@ public class GuardianController {
     public ResponseEntity<ApiResponse<GuardianResponse>> changeDays(
             @RequestParam Long userId, @PathVariable Long id,
             @Valid @RequestBody GuardianDaysRequest req) {
-        return ResponseEntity.ok(ApiResponse.success(
-                guardianService.changeDays(userId, id, req.inactivityDays())));
+        GuardianResponse response = guardianService.changeDays(userId, id, req.inactivityDays());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> remove(
             @RequestParam Long userId, @PathVariable Long id) {
         guardianService.remove(userId, id);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.noContent().build();
     }
 }
