@@ -1,5 +1,7 @@
 import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
 // 개인 PC 주소를 코드에 넣지 않기 위해 환경변수 사용
+import { getAccessToken } from "../auth/authToken";
+
 // 로컬: frontend/.env.local 에 VITE_API_BASE_URL=http://localhost:8080
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 // 팀 예시 데이터 기준일(2026-10-21) 확인용. 비워두면 서버가 오늘 날짜 사용
@@ -7,15 +9,31 @@ const HOME_DATE = import.meta.env.VITE_HOME_DATE;
 // DB에 색상 컬럼이 없어서 화면에서 순서대로 지정
 const COLORS = ["#d6b44c", "#6f99a1", "#a68fb8"];
 
+
 // 공통 fetch 함수: 실패하면 에러를 던진다
-async function request(path, options) {
+
+async function request(path, options = {}) {
+    // API 요청할 때마다 현재 JWT 가져오기
+    const token = getAccessToken();
+
     const res = await fetch(`${BASE_URL}${path}`, {
-        headers: { "Content-Type": "application/json" },
         ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers ?? {}),
+            ...(token
+                ? { Authorization: `Bearer ${token}` }
+                : {}),
+        },
     });
-    if (!res.ok) throw new Error(`${res.status} ${path}`);
+
+    if (!res.ok) {
+        throw new Error(`${res.status} ${path}`);
+    }
+
     return res.status === 204 ? null : res.json();
 }
+
 
 /** GET /home : 홈 화면 데이터 */
 export async function getHome(userId) {
