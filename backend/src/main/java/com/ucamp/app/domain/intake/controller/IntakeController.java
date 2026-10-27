@@ -17,6 +17,11 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/intakes")
+@CrossOrigin(
+        origins = "${app.cors.allowed-origins:http://localhost:5173}",
+        methods = {RequestMethod.GET, RequestMethod.POST},
+        allowedHeaders = {"Content-Type"}
+)
 public class IntakeController {
     private final IntakeService intakeService;
 
