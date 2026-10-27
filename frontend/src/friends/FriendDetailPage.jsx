@@ -15,7 +15,7 @@ function toFriendDetail(data, fallback) {
     name: data.nickname ?? "",
     initial: data.nickname?.charAt(0) ?? "?",
     color: fallback?.color ?? "mint",
-    relation: data.relation ?? "친구",
+    relation: fallback?.relation ?? "친구",
     status: data.status ?? "아직 복용 기록이 없어요",
     streak: data.streak ?? 0,
     supplements: data.supplements ?? [],

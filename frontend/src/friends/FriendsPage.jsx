@@ -19,7 +19,7 @@ function toFriend(item, index) {
     name: item.nickname ?? "",
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
-    relation: item.relation ?? "친구",
+    relation: item.mutual ? "친구" : "팔로우",
     streak: item.streak ?? 0,
   };
 }
@@ -171,7 +171,15 @@ export default function FriendsPage({ onNotifications }) {
                 <span className="friend-copy">
                   <span>
                     <strong>{friend.name}</strong>
-                    {watchingIds.has(friend.userId) && <span>🕵</span>}
+                    {watchingIds.has(friend.userId) && (
+                      <span
+                        className="guardian-badge"
+                        title="안부지킴이"
+                        aria-label="안부지킴이"
+                      >
+                        <Icon name="shield" size={14} />
+                      </span>
+                    )}
                     <small>{friend.relation}</small>
                   </span>
                 </span>
