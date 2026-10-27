@@ -76,4 +76,13 @@ public class User {
     public void changeShareIntakeStatus(boolean shareIntakeStatus) {
         this.shareIntakeStatus = shareIntakeStatus;
     }
+
+    // 민감정보(건강 설문) 수집 동의. 이미 동의했으면 처음 동의 시각을 유지
+    public void agreeSensitiveConsent() {
+        if (this.sensitiveConsent) {
+            return;
+        }
+        this.sensitiveConsent = true;
+        this.sensitiveConsentAt = LocalDateTime.now();
+    }
 }

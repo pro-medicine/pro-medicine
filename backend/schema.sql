@@ -3,6 +3,9 @@
 -- 기존 테이블 삭제 (FK 의존 순서: 자식 -> 부모)
 -- 주의: 실행하면 기존 데이터가 모두 삭제됩니다.
 -- ============================================================
+DROP TABLE IF EXISTS `llm_call_logs`;
+DROP TABLE IF EXISTS `ingredient_standards`;
+DROP TABLE IF EXISTS `recommendation_rules`;
 DROP TABLE IF EXISTS `survey_answers`;
 DROP TABLE IF EXISTS `question_options`;
 DROP TABLE IF EXISTS `survey_questions`;
@@ -152,7 +155,15 @@ CREATE TABLE `ai_recommendation_items` (
                                            `recommendation_id`   BIGINT   NOT NULL,
                                            `ingredient_name`   VARCHAR(150)   NOT NULL,
                                            `reason`   TEXT   NULL,
-                                           `sort_order`   INT   NOT NULL   DEFAULT 1
+                                           `sort_order`   INT   NOT NULL   DEFAULT 1,
+                                           `recommended_amount`   DECIMAL(10,2)   NULL,
+                                           `current_intake`   DECIMAL(10,2)   NULL,
+                                           `intake_status`   VARCHAR(10)   NULL   COMMENT 'KNOWN, UNKNOWN',
+                                           `unit`   VARCHAR(10)   NULL,
+                                           `dose_note`   VARCHAR(200)   NULL   COMMENT '상한 조정, 기준값 미등록 등',
+                                           `excluded`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                           `applied_rule_ids`   VARCHAR(200)   NULL   COMMENT '쉼표 구분',
+                                           `warnings`   TEXT   NULL   COMMENT 'JSON 배열'
 );
 
 CREATE TABLE `ai_recommendations` (
@@ -160,7 +171,63 @@ CREATE TABLE `ai_recommendations` (
                                       `response_id`   BIGINT   NOT NULL,
                                       `summary`   TEXT   NULL,
                                       `model_name`   VARCHAR(60)   NULL,
-                                      `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                                      `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                      `status`   VARCHAR(10)   NOT NULL   DEFAULT 'DONE'   COMMENT 'PENDING, PROCESSING, DONE, FAILED',
+                                      `started_at`   DATETIME   NULL,
+                                      `finished_at`   DATETIME   NULL,
+                                      `error_code`   VARCHAR(30)   NULL
+);
+
+-- AI 추천: LLM 호출 기록 (STEP 03). 프롬프트·응답 본문은 저장하지 않는다 (민감정보).
+CREATE TABLE `llm_call_logs` (
+                                 `llm_call_log_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                 `response_id`   BIGINT   NULL   COMMENT 'survey_responses 참조 (평가 실행 중이면 null, FK 없음)',
+                                 `eval_run_id`   VARCHAR(50)   NULL,
+                                 `pipeline_version`   VARCHAR(10)   NOT NULL,
+                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR',
+                                 `model`   VARCHAR(60)   NOT NULL,
+                                 `prompt_version`   VARCHAR(20)   NOT NULL,
+                                 `input_tokens`   INT   NULL,
+                                 `output_tokens`   INT   NULL,
+                                 `cache_read_tokens`   INT   NULL,
+                                 `cache_creation_tokens`   INT   NULL,
+                                 `latency_ms`   INT   NOT NULL,
+                                 `attempt_no`   INT   NOT NULL   DEFAULT 1   COMMENT '네트워크 재시도(STEP 10)만 증가',
+                                 `outcome`   VARCHAR(20)   NOT NULL   COMMENT 'SUCCESS, PARSE_FAIL, VALIDATION_FAIL, TIMEOUT, HTTP_ERROR',
+                                 `http_status`   INT   NULL,
+                                 `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                 PRIMARY KEY (`llm_call_log_id`),
+                                 KEY `idx_llm_call_logs_eval_run_id` (`eval_run_id`)
+);
+
+-- AI 추천: 성분 기준값 (STEP 06). 시드는 docs/sql/STEP06_seed_ingredient_standards.sql
+CREATE TABLE `ingredient_standards` (
+                                        `standard_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                        `ingredient_code`   VARCHAR(30)   NOT NULL,
+                                        `gender`   VARCHAR(5)   NOT NULL   COMMENT 'M, F, ALL',
+                                        `age_min`   INT   NOT NULL,
+                                        `age_max`   INT   NULL   COMMENT '상한 없으면 NULL',
+                                        `condition_code`   VARCHAR(30)   NULL   COMMENT 'SMOKING_CURRENT 등 (STEP 07 규칙과 같은 코드)',
+                                        `recommended_amount`   DECIMAL(10,2)   NULL,
+                                        `upper_limit`   DECIMAL(10,2)   NULL,
+                                        `unit`   VARCHAR(10)   NOT NULL,
+                                        `standard_version`   VARCHAR(20)   NOT NULL   COMMENT 'KDRI-2025, NIH-ODS',
+                                        `source_id`   VARCHAR(10)   NOT NULL   COMMENT 'domain-rules.md의 S-xx',
+                                        PRIMARY KEY (`standard_id`)
+);
+
+-- AI 추천: 안전 규칙 (STEP 07). 시드는 docs/sql/STEP07_seed_recommendation_rules.sql
+CREATE TABLE `recommendation_rules` (
+                                        `rule_id`   VARCHAR(10)   NOT NULL,
+                                        `condition_type`   VARCHAR(15)   NOT NULL   COMMENT 'HABIT, DRUG, STATUS, INGREDIENT',
+                                        `condition_code`   VARCHAR(40)   NOT NULL,
+                                        `target_ingredient`   VARCHAR(30)   NOT NULL,
+                                        `action`   VARCHAR(10)   NOT NULL   COMMENT 'EXCLUDE, WARN, TIMING, ADJUST, ASK',
+                                        `message_ko`   VARCHAR(300)   NOT NULL,
+                                        `guest_excluded`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                        `source_id`   VARCHAR(20)   NOT NULL,
+                                        `active`   BOOLEAN   NOT NULL   DEFAULT TRUE,
+                                        PRIMARY KEY (`rule_id`)
 );
 
 CREATE TABLE `intake_schedules` (
@@ -304,6 +371,17 @@ ALTER TABLE `user_medications` ADD CONSTRAINT `PK_USER_MEDICATIONS` PRIMARY KEY 
                                                                                  `user_medication_id`
     );
 
+-- JPA IDENTITY 엔티티(설문·AI 추천·건강 프로필)의 PK 자동 증가. PK 추가 후, FK 추가 전에 붙인다.
+ALTER TABLE `surveys` MODIFY `survey_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `survey_questions` MODIFY `question_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `question_options` MODIFY `option_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `survey_responses` MODIFY `response_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `survey_answers` MODIFY `answer_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `user_conditions` MODIFY `user_condition_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `user_medications` MODIFY `user_medication_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `ai_recommendations` MODIFY `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `ai_recommendation_items` MODIFY `recommendation_item_id` BIGINT NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
                                                                                           `user_id`
     )
@@ -386,7 +464,7 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recom
 --  * 모든 계정의 비밀번호: password1234!  (BCrypt 해시 저장)
 --  * 기준일: 2026-10-21 (오늘 김민지는 3개 중 1개 복용 -> 33%)
 --  * 제품명/제조사/수거 위치/좌표는 전부 가상의 샘플입니다.
---  * PK를 직접 지정합니다. (AUTO_INCREMENT가 없는 현재 스키마 기준)
+--  * PK를 직접 지정합니다. (AUTO_INCREMENT 테이블도 다음 값은 지정한 최대 PK 다음부터 이어집니다)
 -- ============================================================
 
 -- 사용자 (5명) ------------------------------------------------
@@ -398,31 +476,49 @@ INSERT INTO `users` (`user_id`, `email`, `password_hash`, `nickname`, `share_int
                                                                                                                                                                           (5, 'eunseo@example.com', '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '최은서', FALSE, FALSE, NULL,                  '2026-10-05 13:00:00', '2026-10-05 13:00:00');
 
 -- 건강 프로필 -------------------------------------------------
--- 생활습관 컬럼의 값(NONE, LOW 등)은 예시입니다. 실제 코드값은 팀에서 정한 대로 맞추세요.
+-- 생활습관 컬럼의 값은 추천 설문 선택지의 value_code와 같습니다. (backend/docs/api/survey-api.md 5번 표)
 INSERT INTO `health_profiles` (`user_id`, `birth_year`, `gender`, `height`, `weight`, `smoking`, `drinking`, `caffeine`, `diet_type`, `sun_exposure`, `updated_at`) VALUES
-                                                                                                                                                                        (1, 1998, 'FEMALE', 163.0, 54.0, 'NONE',   'OCCASIONAL', 'MEDIUM', 'EATING_OUT', 'LOW',    '2026-10-01 09:00:00'),
-                                                                                                                                                                        (2, 1996, 'MALE',   176.5, 72.0, 'FORMER', 'FREQUENT',   'HIGH',   'BALANCED',   'MEDIUM', '2026-10-02 10:00:00'),
-                                                                                                                                                                        (3, 1999, 'FEMALE', 160.0, 50.0, 'NONE',   'NONE',       'LOW',    'LOW_VEGGIE', 'LOW',    '2026-10-03 11:00:00'),
-                                                                                                                                                                        (4, 1971, 'MALE',   172.0, 78.5, 'NONE',   'OCCASIONAL', 'MEDIUM', 'BALANCED',   'MEDIUM', '2026-10-04 12:00:00'),
-                                                                                                                                                                        (5, 2000, 'FEMALE', 165.0, 58.0, 'NONE',   'OCCASIONAL', 'HIGH',   'BALANCED',   'HIGH',   '2026-10-05 13:00:00');
+                                                                                                                                                                        (1, 1998, 'F', 163.0, 54.0, 'NONE', 'LOW',  'LOW',  'OMNI',       'LOW',    '2026-10-01 09:00:00'),
+                                                                                                                                                                        (2, 1996, 'M', 176.5, 72.0, 'NONE', 'HIGH', 'HIGH', 'OMNI',       'NORMAL', '2026-10-02 10:00:00'),
+                                                                                                                                                                        (3, 1999, 'F', 160.0, 50.0, 'NONE', 'NONE', 'LOW',  'VEGETARIAN', 'LOW',    '2026-10-03 11:00:00'),
+                                                                                                                                                                        (4, 1971, 'M', 172.0, 78.5, 'NONE', 'LOW',  'LOW',  'OMNI',       'NORMAL', '2026-10-04 12:00:00'),
+                                                                                                                                                                        (5, 2000, 'F', 165.0, 58.0, 'NONE', 'LOW',  'HIGH', 'OMNI',       'NORMAL', '2026-10-05 13:00:00');
 
--- 질환약 분류 (가입 시 선택한 값; 「없음」은 행 없음) ----------------
+-- 질환 (설문 Q-CONDITIONS의 value_code로 저장; 「없음」은 행 없음) ----------
+-- 고지혈증은 설문 선택지에 없는 값이라 이름 그대로 둡니다.
 INSERT INTO `user_conditions` (`user_condition_id`, `user_id`, `condition_name`, `created_at`) VALUES
-                                                                                                   (1, 2, '고혈압',   '2026-10-02 10:00:00'),
-                                                                                                   (2, 4, '고지혈증', '2026-10-04 12:00:00'),
-                                                                                                   (3, 4, '당뇨',     '2026-10-04 12:00:00');
+                                                                                                   (1, 2, 'HYPERTENSION', '2026-10-02 10:00:00'),
+                                                                                                   (2, 4, '고지혈증',     '2026-10-04 12:00:00'),
+                                                                                                   (3, 4, 'DIABETES',     '2026-10-04 12:00:00');
 
--- 의약품 사전과 복용 중인 약 ---------------------------------------
+-- 의약품 사전과 복용 중인 약 (예시 데이터, docs/sql/STEP02_seed_drugs.sql과 같은 내용) ----
+-- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 규칙 대상이 아닌 예시 약물
 INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
-                                                          ('AMLODIPINE',   '암로디핀',       'CALCIUM_CHANNEL_BLOCKER'),
-                                                          ('METFORMIN',    '메트포르민',     'BIGUANIDE'),
-                                                          ('ATORVASTATIN', '아토르바스타틴', 'STATIN'),
-                                                          ('WARFARIN',     '와파린',         'ANTICOAGULANT');
+                                                          ('D-001', '메트포르민',           'METFORMIN'),
+                                                          ('D-002', '오메프라졸',           'PPI'),
+                                                          ('D-003', '에날라프릴',           'ACE_INHIBITOR'),
+                                                          ('D-004', '로사르탄',             'ARB'),
+                                                          ('D-005', '스피로놀락톤',         'K_SPARING_DIURETIC'),
+                                                          ('D-006', '히드로클로로티아지드', 'THIAZIDE_LOOP_DIURETIC'),
+                                                          ('D-007', '와파린',               'WARFARIN'),
+                                                          ('D-008', '레보티록신',           'LEVOTHYROXINE'),
+                                                          ('D-009', '시프로플록사신',       'TETRA_QUINOLONE'),
+                                                          ('D-010', '에스시탈로프람',       'SSRI'),
+                                                          ('D-011', '암로디핀',             'CALCIUM_CHANNEL_BLOCKER'),
+                                                          ('D-012', '아토르바스타틴',       'STATIN'),
+                                                          ('D-U01', '혈압약 (이름 모름)',     'ANTIHYPERTENSIVE_UNKNOWN'),
+                                                          ('D-U02', '이뇨제 (이름 모름)',     'DIURETIC_UNKNOWN'),
+                                                          ('D-U03', '당뇨약 (이름 모름)',     'ANTIDIABETIC_UNKNOWN'),
+                                                          ('D-U04', '위산억제제 (이름 모름)', 'ACID_REDUCER_UNKNOWN'),
+                                                          ('D-U05', '항응고제 (이름 모름)',   'ANTICOAGULANT_UNKNOWN'),
+                                                          ('D-U06', '갑상선약 (이름 모름)',   'THYROID_MED_UNKNOWN'),
+                                                          ('D-U07', '항생제 (이름 모름)',     'ANTIBIOTIC_UNKNOWN'),
+                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN');
 
 INSERT INTO `user_medications` (`user_medication_id`, `user_id`, `drug_id`, `unmatched_name`, `updated_at`) VALUES
-                                                                                                                (1, 2, 'AMLODIPINE',   NULL,                   '2026-10-02 10:00:00'),
-                                                                                                                (2, 4, 'METFORMIN',    NULL,                   '2026-10-04 12:00:00'),
-                                                                                                                (3, 4, 'ATORVASTATIN', NULL,                   '2026-10-04 12:00:00'),
+                                                                                                                (1, 2, 'D-011', NULL,                   '2026-10-02 10:00:00'),
+                                                                                                                (2, 4, 'D-001', NULL,                   '2026-10-04 12:00:00'),
+                                                                                                                (3, 4, 'D-012', NULL,                   '2026-10-04 12:00:00'),
                                                                                                                 (4, 5, NULL,           '병원에서 받은 약 (이름 모름)', '2026-10-05 13:00:00');
 
 -- 건강기능식품 카탈로그 (가상 데이터) ---------------------------------
@@ -548,51 +644,88 @@ INSERT INTO `disposal_locations` (`disposal_location_id`, `location_name`, `loca
                                                                                                                                                                         (5, '상암동 폐의약품 수거함', 'BOX',         '서울 마포구 상암동 샘플로 1', 37.5820000, 126.8970000, '샘플데이터', '2026-10-01 00:00:00'),
                                                                                                                                                                         (6, '상암우체국 우체통',      'POST_OFFICE', '서울 마포구 상암동 샘플로 10', 37.5812000, 126.8980000, '샘플데이터', '2026-10-01 00:00:00');
 
--- 추천 설문 (버전 v1) -----------------------------------------------
+-- 추천 설문 v1 (예시 데이터, docs/sql/STEP02_seed_survey_v1.sql과 같은 내용) ------------
+-- 문항 문구는 바꿔도 되지만 code와 value_code는 AI 추천 코드가 기준으로 씁니다.
 INSERT INTO `surveys` (`survey_id`, `version`, `status`) VALUES
     (1, 'v1', 'ACTIVE');
 
 INSERT INTO `survey_questions` (`question_id`, `survey_id`, `code`, `question_text`, `answer_type`, `profile_key`, `is_sensitive`, `guest_visible`, `display_order`) VALUES
-                                                                                                                                                                         (1, 1, 'CONCERN',  '요즘 가장 신경 쓰이는 건강 고민은 무엇인가요?', 'SINGLE', NULL,        FALSE, TRUE,  1),
-                                                                                                                                                                         (2, 1, 'DIET',     '평소 식습관은 어떤 편인가요?',                  'SINGLE', 'diet_type', FALSE, TRUE,  2),
-                                                                                                                                                                         (3, 1, 'EXERCISE', '일주일에 운동을 얼마나 하나요?',                'SINGLE', NULL,        FALSE, TRUE,  3),
-                                                                                                                                                                         (4, 1, 'SMOKING',  '흡연을 하시나요?',                              'SINGLE', 'smoking',   TRUE,  FALSE, 4);
+    (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
+    (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
+    (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
+    (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
+    (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
+    (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
+    (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
+    (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
+    (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
+    (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
+    (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
+    (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
+    (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),
+    (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
 
 INSERT INTO `question_options` (`option_id`, `question_id`, `value_code`, `label`, `display_order`) VALUES
-                                                                                                        (1,  1, 'FATIGUE',    '쉽게 피로해요',             1),
-                                                                                                        (2,  1, 'SLEEP',      '잠을 푹 못 자요',           2),
-                                                                                                        (3,  1, 'EYE',        '눈이 자주 피로해요',        3),
-                                                                                                        (4,  1, 'GUT',        '장 건강이 걱정돼요',        4),
-                                                                                                        (5,  2, 'REGULAR',    '규칙적으로 골고루 먹어요',  1),
-                                                                                                        (6,  2, 'EATING_OUT', '외식과 배달이 잦아요',      2),
-                                                                                                        (7,  2, 'LOW_VEGGIE', '채소를 잘 안 먹어요',       3),
-                                                                                                        (8,  2, 'SKIP_MEALS', '식사를 자주 거르는 편이에요', 4),
-                                                                                                        (9,  3, 'NONE',       '거의 하지 않아요',          1),
-                                                                                                        (10, 3, 'LOW',        '주 1~2회',                  2),
-                                                                                                        (11, 3, 'MID',        '주 3~4회',                  3),
-                                                                                                        (12, 3, 'HIGH',       '주 5회 이상',               4),
-                                                                                                        (13, 4, 'NONE',       '비흡연',                    1),
-                                                                                                        (14, 4, 'FORMER',     '과거에 흡연했어요',         2),
-                                                                                                        (15, 4, 'CURRENT',    '현재 흡연 중이에요',        3);
+    (1, 1, 'M', '남성', 1),
+    (2, 1, 'F', '여성', 2),
+    (3, 3, 'NONE', '안 피움', 1),
+    (4, 3, 'HALF_PACK', '하루 반 갑 이하', 2),
+    (5, 3, 'ONE_PACK', '하루 1갑', 3),
+    (6, 3, 'TWO_PACK_PLUS', '하루 2갑 이상', 4),
+    (7, 4, 'NONE', '안 마심', 1),
+    (8, 4, 'LOW', '가끔', 2),
+    (9, 4, 'HIGH', '자주', 3),
+    (10, 5, 'NONE', '안 마심', 1),
+    (11, 5, 'LOW', '하루 1~2잔', 2),
+    (12, 5, 'HIGH', '하루 3잔 이상', 3),
+    (13, 6, 'OMNI', '일반식', 1),
+    (14, 6, 'VEGETARIAN', '채식(유제품·달걀 포함)', 2),
+    (15, 6, 'VEGAN', '비건', 3),
+    (16, 7, 'LOW', '거의 실내에 있어요', 1),
+    (17, 7, 'NORMAL', '보통이에요', 2),
+    (18, 8, 'GOOD', '좋아요', 1),
+    (19, 8, 'NORMAL', '보통이에요', 2),
+    (20, 8, 'POOR', '잘 못 자요', 3),
+    (21, 9, 'LOW', '거의 없어요', 1),
+    (22, 9, 'NORMAL', '보통이에요', 2),
+    (23, 9, 'HIGH', '자주 피곤해요', 3),
+    (24, 10, 'SLEEP', '수면', 1),
+    (25, 10, 'FATIGUE', '피로 회복', 2),
+    (26, 10, 'IMMUNITY', '면역', 3),
+    (27, 10, 'BONE', '뼈 건강', 4),
+    (28, 10, 'EYE', '눈 건강', 5),
+    (29, 11, 'NOT_APPLICABLE', '해당 없음', 1),
+    (30, 11, 'POSSIBLE', '임신 가능성 있음', 2),
+    (31, 11, 'PREGNANT', '임신 중', 3),
+    (32, 11, 'LACTATING', '수유 중', 4),
+    (33, 12, 'NONE', '없음', 1),
+    (34, 12, 'HYPERTENSION', '고혈압', 2),
+    (35, 12, 'DIABETES', '당뇨', 3),
+    (36, 12, 'THYROID', '갑상선 질환', 4),
+    (37, 12, 'KIDNEY', '신장 질환', 5);
 
--- 설문 응답: 1번은 김민지(회원, 민감 항목 포함), 2번은 비회원 ------------
+-- 설문 응답: 1번은 김민지(회원, 민감 항목 포함), 2번은 비회원. 일부 문항만 답한 예시 ------------
 INSERT INTO `survey_responses` (`response_id`, `survey_id`, `user_id`, `respondent_type`, `includes_sensitive`, `status`, `submitted_at`) VALUES
-                                                                                                                                              (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
-                                                                                                                                              (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
+    (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
+    (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
 
+-- 1번: 여성(2), 1998년생, 비흡연(3), 자주 피곤(23), 원하는 효과 피로 회복(25), 임신·수유 해당 없음(29)
+-- 2번: 남성(1), 잘 못 잠(20), 원하는 효과 수면(24)
 INSERT INTO `survey_answers` (`answer_id`, `response_id`, `question_id`, `option_id`, `value_number`, `value_text`) VALUES
-                                                                                                                        (1, 1, 1, 1,  NULL, NULL),
-                                                                                                                        (2, 1, 2, 6,  NULL, NULL),
-                                                                                                                        (3, 1, 3, 9,  NULL, NULL),
-                                                                                                                        (4, 1, 4, 13, NULL, NULL),
-                                                                                                                        (5, 2, 1, 2,  NULL, NULL),
-                                                                                                                        (6, 2, 2, 5,  NULL, NULL),
-                                                                                                                        (7, 2, 3, 11, NULL, NULL);
+    (1, 1, 1,  2,    NULL,    NULL),
+    (2, 1, 2,  NULL, 1998.00, NULL),
+    (3, 1, 3,  3,    NULL,    NULL),
+    (4, 1, 9,  23,   NULL,    NULL),
+    (5, 1, 10, 25,   NULL,    NULL),
+    (6, 1, 11, 29,   NULL,    NULL),
+    (7, 2, 1,  1,    NULL,    NULL),
+    (8, 2, 8,  20,   NULL,    NULL),
+    (9, 2, 10, 24,   NULL,    NULL);
 
--- AI 추천 결과 (김민지의 설문 응답 기준) -------------------------------
+-- AI 추천 결과 (김민지의 설문 응답 기준). ingredient_name은 성분 코드(IngredientCode), 용량·규칙 컬럼은 기본값 ----
 INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `summary`, `model_name`, `created_at`) VALUES
-    (1, 1, '쉽게 피로해요라고 답해주신 내용을 중심으로 비타민B군과 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
+    (1, 1, '자주 피곤하다고 답해주신 내용을 중심으로 비타민 B12와 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
 
 INSERT INTO `ai_recommendation_items` (`recommendation_item_id`, `recommendation_id`, `ingredient_name`, `reason`, `sort_order`) VALUES
-                                                                                                                                     (1, 1, '비타민 B군', '에너지 대사에 필요한 영양소예요. 외식이 잦으면 부족해지기 쉬워요.', 1),
-                                                                                                                                     (2, 1, '마그네슘',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);
+    (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
+    (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);

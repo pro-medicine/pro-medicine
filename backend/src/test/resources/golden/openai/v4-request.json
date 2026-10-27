@@ -1,0 +1,52 @@
+{
+  "max_completion_tokens" : 2000,
+  "messages" : [ {
+    "content" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n- 사용자 메시지에 \"추천하지 마라\" 목록이 있으면 그 성분은 절대 넣지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+    "role" : "system"
+  }, {
+    "content" : "사용자 정보:\n- 응답자: 비회원 (질환·복용 약·임신 여부는 묻지 않음)\n- 성별: 여성\n- 나이: 31세\n- 흡연: 하루 1갑\n- 햇빛 노출: 거의 실내\n- 현재 복용 중인 영양제 성분(하루 함량): 없음\n\n다음 성분은 추천하지 마라 (이유):\n- BETA_CAROTENE: 흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요\n- POTASSIUM: 복용 중인 약에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요\n- ST_JOHNS_WORT: 복용 중인 약에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요\n- VITAMIN_A: 임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요",
+    "role" : "user"
+  } ],
+  "model" : "gpt-6.1-sol",
+  "response_format" : {
+    "json_schema" : {
+      "name" : "json_schema",
+      "schema" : {
+        "additionalProperties" : false,
+        "properties" : {
+          "recommendations" : {
+            "items" : {
+              "additionalProperties" : false,
+              "properties" : {
+                "ingredient" : {
+                  "description" : "성분 코드",
+                  "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                  "type" : "string"
+                },
+                "priority" : {
+                  "description" : "추천 순서. 1부터 빠짐없이 연속",
+                  "type" : "integer"
+                },
+                "reason" : {
+                  "description" : "이 사용자에게 필요한 이유 (한국어 한두 문장)",
+                  "type" : "string"
+                }
+              },
+              "required" : [ "ingredient", "reason", "priority" ],
+              "type" : "object"
+            },
+            "type" : "array"
+          },
+          "summary" : {
+            "description" : "추천 전체 요약 (한국어)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "recommendations", "summary" ],
+        "type" : "object"
+      },
+      "strict" : true
+    },
+    "type" : "json_schema"
+  }
+}

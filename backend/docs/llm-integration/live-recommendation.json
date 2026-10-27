@@ -1,0 +1,39 @@
+{
+  "calls" : [ {
+    "cacheReadTokens" : "0",
+    "outputTokens" : "274",
+    "latencyMs" : "12885",
+    "inputTokens" : "906",
+    "model" : "gpt-6.1-sol",
+    "outcome" : "SUCCESS",
+    "callTag" : "RECOMMEND"
+  } ],
+  "apiResponse" : {
+    "recommendationId" : 1,
+    "responseId" : 1,
+    "status" : "DONE",
+    "errorCode" : null,
+    "modelName" : "gpt-6.1-sol",
+    "summary" : "햇빛 노출 부족과 흡연을 고려해 비타민 D와 비타민 C를 우선 검토했습니다. 영양제가 흡연의 해를 상쇄하지는 않으므로 금연이 가장 중요합니다. 질환·복용 약·임신 여부가 확인되지 않았으므로 복용 전 의사나 약사에게 적합성을 확인하세요.",
+    "createdAt" : "2026-10-22T11:45:00.3914312",
+    "items" : [ {
+      "ingredient" : "VITAMIN_D",
+      "reason" : "실내 생활이 대부분이고 햇빛 노출이 적어 비타민 D가 부족할 가능성이 있습니다. 뼈 건강과 칼슘 흡수에 필요한 성분으로, 식사 섭취와 필요시 혈액검사를 고려해 보충 여부를 결정하세요.",
+      "sortOrder" : 1,
+      "doseNote" : "기준값 미등록",
+      "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ],
+      "appliedRuleIds" : [ "R-06" ]
+    }, {
+      "ingredient" : "VITAMIN_C",
+      "reason" : "흡연자는 산화 스트레스가 증가하고 비타민 C 필요량이 높아질 수 있습니다. 채소와 과일로 충분히 섭취하는 것을 우선하고, 식사로 부족하면 보충을 고려하세요.",
+      "sortOrder" : 2,
+      "amount" : 110.0,
+      "unit" : "mg",
+      "intakeStatus" : "UNKNOWN",
+      "doseNote" : "현재 섭취량 미반영",
+      "appliedRuleIds" : [ "R-01" ]
+    } ],
+    "excludedItems" : [ ],
+    "fallback" : false
+  }
+}
