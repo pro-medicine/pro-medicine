@@ -3,7 +3,7 @@ import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
-import FollowRequestModal from "./FollowRequestsModal";
+import FollowRequestModal from "./FollowRequestModal";
 import FriendDetailPage from "./FriendDetailPage";
 import { getWatching } from "../api/guardianApi";
 
@@ -46,6 +46,8 @@ export default function FriendsPage({ onNotifications }) {
 
   useEffect(() => {
     let ignore = false;
+    setLoading(true);
+    setError("");
     getWatching(userId)
       .then((data) => {
         if (ignore) return;
@@ -83,7 +85,14 @@ export default function FriendsPage({ onNotifications }) {
         userId={userId}
         friendUserId={selectedFriend.userId}
         fallback={selectedFriend}
-        onBack={() => setSelectedFriend(null)}
+        onBack={() => {
+          setSelectedFriend(null);
+          setReloadKey((k) => k + 1);
+        }}
+        onDeleted={() => {
+          setSelectedFriend(null);
+          setReloadKey((k) => k + 1);
+        }}
         onNotifications={onNotifications}
       />
     );
