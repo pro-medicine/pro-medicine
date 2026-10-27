@@ -16,6 +16,8 @@ public enum ErrorCode {
 
     // PRODUCT
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "영양제를 찾을 수 없습니다."),
+    PRODUCT_ALREADY_ADDED(HttpStatus.CONFLICT, "P002", "이미 등록한 영양제입니다."),
+    USER_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "P003", "등록한 영양제를 찾을 수 없습니다."),
 
     // NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),

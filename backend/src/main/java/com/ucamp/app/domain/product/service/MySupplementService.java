@@ -2,9 +2,13 @@ package com.ucamp.app.domain.product.service;
 
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import com.ucamp.app.domain.intake.repository.IntakeScheduleRepository;
+import com.ucamp.app.domain.product.dto.MySupplementAddRequest;
 import com.ucamp.app.domain.product.dto.MySupplementResponse;
+import com.ucamp.app.domain.product.entity.CatalogProduct;
 import com.ucamp.app.domain.product.entity.UserProduct;
+import com.ucamp.app.domain.product.repository.CatalogProductRepository;
 import com.ucamp.app.domain.product.repository.UserProductRepository;
+import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
@@ -12,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +34,7 @@ public class MySupplementService {
     private final UserProductRepository userProductRepository;
     private final IntakeScheduleRepository intakeScheduleRepository;
     private final UserRepository userRepository;
+    private final CatalogProductRepository catalogProductRepository;
 
     public List<MySupplementResponse> getMySupplements(Long userId) {
         // 0. 없는 유저면 404 (U001)
@@ -70,5 +77,51 @@ public class MySupplementService {
             result.add(MySupplementResponse.of(product, schedules));
         }
         return result;
+    }
+
+    // 등록 흐름: 값 검사 → 유저·제품 확인 → 중복 확인 → 저장
+    @Transactional
+    public MySupplementResponse addMySupplement(Long userId, MySupplementAddRequest request) {
+        // 1. 제품 id가 없으면 400
+        if (request == null || request.catalogProductId() == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        // 2. 유저가 없으면 404 (U001), 제품이 없으면 404 (P001)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        CatalogProduct product = catalogProductRepository.findById(request.catalogProductId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        // 3. 이미 먹고 있는 제품이면 409 (P002)
+        boolean alreadyAdded = userProductRepository
+                .existsByUserIdAndCatalogProductCatalogProductIdAndIsActiveTrue(userId, product.getCatalogProductId());
+        if (alreadyAdded) {
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_ADDED);
+        }
+        // 4. 저장 (검색해서 등록한 영양제, 오늘부터 복용)
+        UserProduct userProduct = UserProduct.builder()
+                .user(user)
+                .catalogProduct(product)
+                .productKind("SUPPLEMENT")
+                .registeredVia("SEARCH")
+                .startDate(LocalDate.now(ZoneId.of("Asia/Seoul")))
+                .isActive(true)
+                .build();
+        UserProduct saved = userProductRepository.save(userProduct);
+        // 방금 등록해서 복용 일정은 아직 없음
+        return MySupplementResponse.of(saved, List.of());
+    }
+
+    // 삭제 흐름: 등록한 영양제 찾기 → 내 것인지 확인 → 복용 중단으로 바꾸기
+    @Transactional
+    public void removeMySupplement(Long userId, Long userProductId) {
+        UserProduct userProduct = userProductRepository.findById(userProductId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_PRODUCT_NOT_FOUND));
+        // 다른 사람 것이거나 이미 삭제한 것도 404 (P003)
+        boolean isMine = userProduct.getUser().getId().equals(userId);
+        if (!isMine || !userProduct.getIsActive()) {
+            throw new BusinessException(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        }
+        // 값만 바꾸면 트랜잭션이 끝날 때 JPA가 UPDATE (save 불필요)
+        userProduct.deactivate();
     }
 }

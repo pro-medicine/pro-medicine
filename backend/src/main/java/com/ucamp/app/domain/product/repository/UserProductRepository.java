@@ -23,4 +23,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
             order by up.createdAt asc, up.userProductId asc
             """)
     List<UserProduct> findActiveWithCatalogByUserId(@Param("userId") Long userId);
+
+    // 이 유저가 이 제품을 이미 복용 중으로 등록했는지 (중복 등록 확인)
+    boolean existsByUserIdAndCatalogProductCatalogProductIdAndIsActiveTrue(Long userId, Long catalogProductId);
 }
