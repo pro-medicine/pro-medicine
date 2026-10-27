@@ -509,3 +509,56 @@
     animation: none;
   }
 }
+
+.days-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 20px;
+}
+
+.days-picker button {
+  padding: 12px 0;
+  border: 1px solid #d9dde3;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.days-picker button.active {
+  border-color: #2f9e8f; /* 메인 컬러로 교체 */
+  background: #e6f6f3;
+  color: #1f7a6e;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-actions .danger {
+  background: #f1f3f5;
+  color: #d64545;
+}
+
+.modal-actions .primary {
+  background: #2f9e8f; /* 메인 컬러로 교체 */
+  color: #fff;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

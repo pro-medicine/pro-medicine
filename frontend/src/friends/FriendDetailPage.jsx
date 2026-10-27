@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriendDetail, deleteFriend } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
@@ -8,7 +8,9 @@ import {
   getWatching,
   requestGuardian,
   removeGuardian,
+  changeGuardianDays,
 } from "../api/guardianApi";
+import GuardianDaysModal from "../friends/GuardianModal";
 
 function toFriendDetail(data, fallback) {
   return {
@@ -40,6 +42,8 @@ export default function FriendDetailPage({
   const [guardianBusy, setGuardianBusy] = useState(false);
   const [guardianMsg, setGuardianMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [daysOpen, setDaysOpen] = useState(false);
+  const openerRef = useRef(null);
 
   // 친구 상세 조회
   useEffect(() => {
@@ -108,6 +112,23 @@ export default function FriendDetailPage({
     }
   };
 
+  const handleChangeDays = async (days) => {
+    await runGuardian(
+      () => changeGuardianDays(userId, guardian.guardianSettingId, days),
+      `${days}일 이상 접속하지 않으면 알림을 받아요.`,
+    );
+    setDaysOpen(false);
+  };
+
+  const handleCancelGuardian = async () => {
+    if (!window.confirm("안부지킴이를 취소할까요?")) return;
+    await runGuardian(
+      () => removeGuardian(userId, guardian.guardianSettingId),
+      "안부지킴이를 취소했어요.",
+    );
+    setDaysOpen(false);
+  };
+
   const pendingIncoming = incoming && !incoming.active; // 상대가 보낸 신청 대기
   const isMutual = fallback?.mutual === true;
   const needsMutual = !guardian && !incoming; // 새 신청만 상호 친구 필요
@@ -122,7 +143,7 @@ export default function FriendDetailPage({
         : !guardian
           ? "안부지킴이 신청"
           : guardian.active
-            ? "안부지킴이 해지"
+            ? "안부지킴이 설정 (일수 변경 / 취소)"
             : "신청 취소 (수락 대기 중)";
 
   const handleGuardianClick = () => {
@@ -140,6 +161,7 @@ export default function FriendDetailPage({
       }
       return;
     }
+
     if (incoming?.active) {
       if (window.confirm(`${name}님의 안부지킴이를 해지할까요?`)) {
         runGuardian(() => removeGuardian(userId, incoming.guardianSettingId));
@@ -156,9 +178,17 @@ export default function FriendDetailPage({
       }
       return;
     }
-    if (window.confirm(`${guardianLabel}할까요?`)) {
-      runGuardian(() => removeGuardian(userId, guardian.guardianSettingId));
+
+    if (!guardian.active) {
+      if (window.confirm("안부지킴이 신청을 취소할까요?")) {
+        runGuardian(() => removeGuardian(userId, guardian.guardianSettingId));
+      }
+      return;
     }
+
+    // 지키는 중 → 설정 모달
+    openerRef.current = document.activeElement; // 닫을 때 버튼으로 복원
+    setDaysOpen(true);
   };
 
   const handleDeleteFriend = async () => {
@@ -252,6 +282,17 @@ export default function FriendDetailPage({
         }
       />
       {guardianMsg && <p className="guardian-toast">{guardianMsg}</p>}
+      {daysOpen && guardian?.active && (
+        <GuardianDaysModal
+          name={friend.name}
+          currentDays={guardian.inactivityDays}
+          busy={guardianBusy}
+          openerRef={openerRef}
+          onClose={() => setDaysOpen(false)}
+          onChange={handleChangeDays}
+          onCancelGuardian={handleCancelGuardian}
+        />
+      )}
     </>
   );
 }
