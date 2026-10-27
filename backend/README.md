@@ -42,7 +42,7 @@ V2 회원 맞춤 질문(STEP 14)을 쓰려면 기존 DB에 이어서 `docs/sql/S
 .\gradlew.bat bootRun
 
 # 실제 OpenAI API (application-local-llm.yml)
-.\gradlew.bat bootRun --args='--spring.profiles.active=local-llm --recommendation.pipeline-version=V4'
+.\gradlew.bat bootRun --args='--spring.profiles.active=local-llm'
 ```
 
 주요 설정 (기본값은 `src/main/resources/config/recommendation-defaults.properties`와 각 `*Properties` 클래스):
@@ -53,7 +53,7 @@ V2 회원 맞춤 질문(STEP 14)을 쓰려면 기존 DB에 이어서 `docs/sql/S
 | `spring.ai.model.chat` | none | `openai`면 Spring AI가 ChatModel을 만든다 (`local-llm` 프로필). 연결 설정은 `spring.ai.openai.*` (키 `${OPENAI_API_KEY}`, 재시도 0, 타임아웃 = `llm.timeout-ms`) |
 | `llm.model` / `llm.small-model` | gpt-6.1-sol / gpt-6-luna | 모델 ID는 OpenAI 모델 표 기준 |
 | `spring.ai.openai.chat.reasoning-effort` | (모델 기본값 medium) | low·medium·high·xhigh·max |
-| `recommendation.pipeline-version` | V0 | V0~V4, V6~V8, RULE_ONLY |
+| `recommendation.pipeline-version` | V4 | V0~V4, V6~V8, RULE_ONLY (2026-10-27 V0 → V4: 설정이 없어도 안전 규칙 적용) |
 | `recommendation.api-mode` | sync | `queue`면 202 접수 + 워커 |
 | `recommendation.worker.concurrency` | 4 | 큐 워커 = LLM 동시 호출 상한 (계정 rate limit에 맞춤) |
 | `recommendation.cache.store` / `recommendation.queue.store` | memory | `redis` |
