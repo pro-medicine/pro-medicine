@@ -32,6 +32,7 @@ public class FriendService {
         Map<Long, User> users = userRepository
                 .findAllById(follows.stream()
                         .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        // 나를 팔로우하는 사람 -> 서로 팔로우 하는지 판단하기 위해서
         Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
                 .map(Follow::getFollowerId)
                 .collect(Collectors.toSet());
@@ -41,7 +42,7 @@ public class FriendService {
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
-        if (followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
+        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
             throw new BusinessException(ErrorCode.NOT_FRIEND);
         }
         User friend = userRepository.findById(friendUserId)
