@@ -48,6 +48,7 @@ export default function FriendsPage({ onNotifications }) {
     let ignore = false;
     setLoading(true);
     setError("");
+    setWatchingIds(new Set());
     getWatching(userId)
       .then((data) => {
         if (ignore) return;
