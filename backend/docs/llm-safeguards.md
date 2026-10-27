@@ -182,4 +182,6 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 | 질문 검증 + 1회 재요청 | 선택지 2~5개, UNKNOWN 정확히 1개, NONE 0~1개, 라벨 20자·질문 60자, 이전 질문 반복, 금지어(중단, 끊으세요, 진단, 처방, 복용을 멈추), answerType 일치. 재요청까지 실패하면 PQ005 | `domain/personalized/question/PersonalizedQuestionValidator.java`, `PersonalizedQuestionGenerator.java` |
 | 안전 규칙은 프로필 기준 | 정밀 추천의 조건 코드·금지 목록·사후 규칙·용량 계산은 프로필·임신 답만 본다. 맞춤 답변은 프롬프트 텍스트 블록으로만 들어간다. 규칙이 없는 V0~V3 설정이면 V4로 실행 | `PersonalizedRecommendationService.java`, `InputFormatter.java` |
 | 맞춤 답변 비저장 | 맞춤 답은 프로필에 저장하지 않고 회차 기록에만, 90일 뒤 삭제 | `PersonalizedSessionCleanupScheduler.java` |
-| 남은 빈틈 | 임신 고정 질문 전에 "그만하기"를 하면 임신 답 없이 추천 (임신 규칙 미적용) | 협의 필요: 임신 질문은 그만하기 전에 필수로 할지 |
+| 결과 보기 조건 (10-27) | "여기까지 답하고 결과 보기"는 임신 고정 질문 대상자가 그 질문에 답하고 LLM 질문도 1개 이상 답했을 때만 (서버도 PQ003). ✕ 닫기는 추천 없이 ABANDONED | `PersonalizedSessionStore.stop`, `close` |
+| 질문 미리 만들기 (10-27) | `pq.prefetch-strategy`. 묶음도 질문마다 같은 검증, 쓰기 직전 반복 검사 다시, 실패·미완료는 단건 생성 | `domain/personalized/prefetch/QuestionPrefetcher.java`, `question/QuestionBatchGenerator.java` |
+| 이중 요청 (10-27) | `pq.hedge-enabled`. 질문 첫 시도만, 먼저 온 검증 통과 응답 사용, 진 쪽은 DISCARDED(비용 기록) | `domain/personalized/question/QuestionHedge.java` |

@@ -25,6 +25,7 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,6 +35,7 @@ import java.util.stream.IntStream;
  * - 첫 호출 검증 실패: 그 로그 행 outcome = VALIDATION_FAIL, 재요청은 call_tag = PQ_QUESTION_REPAIR
  * - 재요청도 실패: 재요청 로그 행 outcome = PARSE_FAIL → QuestionGenerationException (PQ005)
  * 모델은 추천과 같은 모델(llm.model), 추론 강도 low, 출력 한도 500 토큰. DB 트랜잭션 밖에서 부른다.
+ * 첫 시도가 늦으면 이중 요청 (QuestionHedge, 기본 꺼짐).
  */
 @Slf4j
 @Component
@@ -52,6 +54,7 @@ public class PersonalizedQuestionGenerator {
     private final InputFormatter inputFormatter;
     private final PersonalizedQuestionValidator validator;
     private final MeterRegistry meterRegistry;
+    private final QuestionHedge hedge;
 
     /** 이 회차에서 이미 낸 질문과 고른 답 (프롬프트의 "이전 질문과 답") */
     public record PastQuestion(String question, List<String> selectedLabels) {
@@ -85,7 +88,9 @@ public class PersonalizedQuestionGenerator {
         String answerType = ctx.topic().answerType();
         List<GeneratedQuestion.Attempt> attempts = new ArrayList<>();
 
-        LlmResponse first = call(ctx, system, user, LlmRequest.TAG_PQ_QUESTION, attempts);
+        // 첫 시도만 이중 요청 대상 (pq.hedge-enabled). 먼저 온 검증 통과 응답을 쓴다
+        LlmResponse first = call(ctx, system, user, LlmRequest.TAG_PQ_QUESTION, attempts,
+                r -> validator.validate(r.output(), answerType, previous).isEmpty());
         List<Violation> errors = validator.validate(first.output(), answerType, previous);
         attempts.add(attempt(LlmRequest.TAG_PQ_QUESTION, first, errors));
         if (errors.isEmpty()) {
@@ -94,7 +99,7 @@ public class PersonalizedQuestionGenerator {
         llmCallLogService.markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
         String repairUser = user + "\n\n" + promptTemplates.render("pq/repair.txt",
                 Map.of("errors", PromptTemplates.bulletList(errors.stream().map(Violation::message).toList())));
-        LlmResponse repair = call(ctx, system, repairUser, LlmRequest.TAG_PQ_QUESTION_REPAIR, attempts);
+        LlmResponse repair = call(ctx, system, repairUser, LlmRequest.TAG_PQ_QUESTION_REPAIR, attempts, null);
         List<Violation> repairErrors = validator.validate(repair.output(), answerType, previous);
         attempts.add(attempt(LlmRequest.TAG_PQ_QUESTION_REPAIR, repair, repairErrors));
         if (!repairErrors.isEmpty()) {
@@ -106,8 +111,9 @@ public class PersonalizedQuestionGenerator {
         return accepted(repair.output(), answerType, repair.callLogId(), attempts);
     }
 
+    // hedgeValid != null이면 이중 요청(QuestionHedge)으로 부른다
     private LlmResponse call(Context ctx, String system, String user, String tag,
-                             List<GeneratedQuestion.Attempt> attempts) {
+                             List<GeneratedQuestion.Attempt> attempts, Predicate<LlmResponse> hedgeValid) {
         LlmRequest request = LlmRequest.builder()
                 .model(llmProperties.getModel())
                 .system(system)
@@ -121,7 +127,7 @@ public class PersonalizedQuestionGenerator {
                 .sessionId(ctx.sessionId())
                 .build();
         try {
-            return llmClient.call(request);
+            return hedgeValid == null ? llmClient.call(request) : hedge.call(request, hedgeValid);
         } catch (LlmUnavailableException e) {
             log.warn("personalized question LLM unavailable: reason={}, session={}", e.getReason(), ctx.sessionId());
             throw new QuestionGenerationException(QuestionGenerationException.LLM_UNAVAILABLE, attempts, e);
