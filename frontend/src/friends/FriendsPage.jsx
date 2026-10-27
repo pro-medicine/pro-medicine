@@ -26,7 +26,7 @@ function toFriend(item, index) {
 
 export default function FriendsPage({ onNotifications }) {
   // TODO: 로그인 연동 후 실제 사용자 id
-  const userId = 5;
+  const userId = 1;
 
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");

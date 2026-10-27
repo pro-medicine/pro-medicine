@@ -13,7 +13,8 @@ export function useModalFocus(onClose, openerRef) {
     if (node && !node.contains(document.activeElement)) {
       const target =
         node.querySelector("[data-autofocus]") ??
-        (node.querySelector(FOCUSABLE) ?? node).focus();
+        node.querySelector(FOCUSABLE) ??
+        node;
       target.focus();
     }
 
