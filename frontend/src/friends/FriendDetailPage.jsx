@@ -87,6 +87,12 @@ export default function FriendDetailPage({
     loadGuardian();
   }, [loadGuardian]);
 
+  useEffect(() => {
+    if (!guardianMsg) return;
+    const timer = setTimeout(() => setGuardianMsg(""), 3000);
+    return () => clearTimeout(timer);
+  }, [guardianMsg]);
+
   const runGuardian = async (action, successMsg) => {
     if (guardianBusy) return;
     setGuardianBusy(true);

@@ -368,6 +368,17 @@
   color: #fff;
   font-size: 13px;
   z-index: 50;
+  animation: toast-fade 5s ease forwards;
+}
+
+@keyframes toast-fade {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .guardian-badge {
