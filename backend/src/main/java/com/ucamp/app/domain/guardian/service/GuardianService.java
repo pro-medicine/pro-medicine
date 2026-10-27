@@ -30,8 +30,10 @@ public class GuardianService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(guardianUserId, targetId, FollowStatus.ACCEPTED)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+        boolean mutual = followRepository.existsByFollowerIdAndFollowingIdAndStatus(guardianUserId, targetId, FollowStatus.ACCEPTED)
+                && followRepository.existsByFollowerIdAndFollowingIdAndStatus(targetId, guardianUserId, FollowStatus.ACCEPTED);
+        if (!mutual) {
+            throw new BusinessException(ErrorCode.NOT_FRIEND);
         }
         if (guardianSettingRepository.existsByUserIdAndGuardianUserId(targetId, guardianUserId)) {
             throw new BusinessException(ErrorCode.ALREADY_GUARDIAN);

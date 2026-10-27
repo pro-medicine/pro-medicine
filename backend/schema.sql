@@ -72,7 +72,7 @@ CREATE TABLE `users` (
                          `sensitive_consent_at`   DATETIME   NULL,
                          `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                          `updated_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
-                         `last_active_at` DATETIME
+                         `last_active_at` DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE `user_products` (
@@ -129,8 +129,8 @@ CREATE TABLE `guardian_settings` (
                                      `consented_at`   DATETIME   NULL,
                                      `is_active`   BOOLEAN   NOT NULL   DEFAULT FALSE,
                                      `last_notified_at`   DATETIME   NULL,
-
-    PRIMARY KEY (`guardian_setting_id`)
+                                     PRIMARY KEY (`guardian_setting_id`),
+                                     UNIQUE KEY `uq_guardian_pair` (`user_id`, `guardian_user_id`)
 );
 
 CREATE TABLE `follows` (
