@@ -36,6 +36,7 @@ export default function FriendsPage({ onNotifications }) {
   const [addOpen, setAddOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [watchingIds, setWatchingIds] = useState(new Set());
   const openerRef = useRef(null);
 
   const openModal = (setter) => (e) => {
