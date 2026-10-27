@@ -223,7 +223,7 @@ CREATE TABLE `ingredient_standards` (
 -- AI 추천: 안전 규칙 (STEP 07). 시드는 docs/sql/STEP07_seed_recommendation_rules.sql
 CREATE TABLE `recommendation_rules` (
                                         `rule_id`   VARCHAR(10)   NOT NULL,
-                                        `condition_type`   VARCHAR(15)   NOT NULL   COMMENT 'HABIT, DRUG, STATUS, INGREDIENT',
+                                        `condition_type`   VARCHAR(15)   NOT NULL   COMMENT 'HABIT, DRUG, STATUS, INGREDIENT, DISEASE',
                                         `condition_code`   VARCHAR(40)   NOT NULL,
                                         `target_ingredient`   VARCHAR(30)   NOT NULL,
                                         `action`   VARCHAR(10)   NOT NULL   COMMENT 'EXCLUDE, WARN, TIMING, ADJUST, ASK',

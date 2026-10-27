@@ -96,8 +96,15 @@
 | R-U06b | DRUG | THYROID_MED_UNKNOWN | CALCIUM | TIMING | 갑상선약과 칼슘은 시간 간격을 두고 드세요. 간격은 의사·약사와 상담하세요 | S-17 |
 | R-U07 | DRUG | ANTIBIOTIC_UNKNOWN | MAGNESIUM | TIMING | 일부 항생제는 마그네슘과 시간 간격을 두고 드셔야 해요. 의사·약사와 상담하세요 | S-13 |
 | R-U08 | DRUG | ANTIDEPRESSANT_UNKNOWN | ST_JOHNS_WORT | EXCLUDE | 항우울제와 세인트존스워트는 함께 드시면 안 돼요. 의사·약사와 상담하세요 | S-18 |
+| R-K01 | DISEASE | KIDNEY | POTASSIUM | WARN | 신장 질환이 있으면 칼륨 보충제는 먼저 의사·약사와 상담하세요 | S-19 |
+| R-K02 | DISEASE | KIDNEY | MAGNESIUM | WARN | 신장 기능이 떨어져 있으면 마그네슘이 몸에 쌓일 수 있어요. 의사·약사와 상담하세요 | S-20 |
 
-규칙은 회원용 35개(기본 23 + 계열 모름 12) + 비회원용 4개, 총 39개다.
+규칙은 회원용 37개(기본 23 + 계열 모름 12 + 진단 질환 2) + 비회원용 4개, 총 41개다.
+
+진단 질환 규칙(DISEASE, 2026-10-27): 조건 코드는 회원 프로필의 진단 질환 코드(KIDNEY 등) 그대로다. 출처에 "상담" 수준으로만 나와 있어 WARN으로 두었다 ("피해야 한다"가 명확한 경우만 EXCLUDE).
+아직 규칙이 없는 질환·성분 (출처 미확인 또는 질환 대상 문구 없음, 약사 검토 후 추가):
+- KIDNEY: 비타민 D·칼슘·비타민 C는 MedlinePlus에 "과다 섭취 시 신장 결석·신장 손상" 언급만 있고 신장 질환자 대상 문구는 확인하지 못함. 비타민 A는 신장 관련 문구 없음. NIH ODS 팩트시트는 자동 접근이 막혀(403) 원문을 확인하지 못함
+- HYPERTENSION, DIABETES, THYROID: 질환 자체 조건 규칙 없음 (약 계열 규칙 R-13·R-13b·R-11·R-17·R-U01~R-U06으로만 다룸)
 
 ## 4. 출처
 
@@ -120,3 +127,5 @@
 | S-16 | NIH ODS Iron Fact Sheet: https://ods.od.nih.gov/factsheets/Iron-Consumer/ |
 | S-17 | Calcium 상호작용: https://www.rxreasoner.com/substances/calcium/precautions |
 | S-18 | NCCIH St. John's Wort: https://www.nccih.nih.gov/health/tips/things-to-know-about-st-johns-wort-and-depression |
+| S-19 | MedlinePlus Potassium in diet ("If you have kidney disease ... talk to your provider before taking potassium supplements"): https://medlineplus.gov/ency/article/002413.htm, 칼륨 제제 라벨 S-14 |
+| S-20 | MedlinePlus Magnesium in diet ("Side effects from high magnesium intake are not common, except in people with significantly reduced kidney function"): https://medlineplus.gov/ency/article/002423.htm |

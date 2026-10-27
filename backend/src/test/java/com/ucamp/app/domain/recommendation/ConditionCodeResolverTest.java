@@ -35,6 +35,12 @@ class ConditionCodeResolverTest {
     }
 
     @Test
+    void 진단_질환은_질환_코드_그대로_모르는_값은_무시() {
+        assertThat(resolver.resolve(member().conditions(List.of("KIDNEY", "HYPERTENSION", "DIABETES", "THYROID", "NONE"))
+                .build())).containsExactly("KIDNEY", "HYPERTENSION", "DIABETES", "THYROID");
+    }
+
+    @Test
     void 복용_약은_drug_class_그대로_마스터에_없는_약은_무시() {
         assertThat(resolver.resolve(member().medications(List.of(
                 new RecommendationInput.Medication("D-003", "ACE_INHIBITOR", "에날라프릴"),
