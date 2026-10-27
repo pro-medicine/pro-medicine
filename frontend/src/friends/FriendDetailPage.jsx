@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
-import { getFriendDetail } from "../api/friendApi";
+import { getFriendDetail, deleteFriend } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
 import {
   getWatching,
@@ -28,6 +28,7 @@ export default function FriendDetailPage({
   friendUserId,
   fallback,
   onBack,
+  onDeleted,
   onNotifications,
 }) {
   const [friend, setFriend] = useState(null);
@@ -35,6 +36,7 @@ export default function FriendDetailPage({
   const [guardian, setGuardian] = useState(null);
   const [guardianBusy, setGuardianBusy] = useState(false);
   const [guardianMsg, setGuardianMsg] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // 친구 상세 조회
   useEffect(() => {
@@ -124,6 +126,23 @@ export default function FriendDetailPage({
     }
   };
 
+  const handleDeleteFriend = async () => {
+    if (deleting) return;
+    if (
+      !window.confirm(`${friend?.name ?? "이 친구"}님을 친구에서 삭제할까요?`)
+    )
+      return;
+    setDeleting(true);
+    setGuardianMsg("");
+    try {
+      await deleteFriend(userId, friendUserId);
+      onDeleted?.();
+    } catch (err) {
+      setGuardianMsg(err.message || "친구를 삭제하지 못했어요.");
+      setDeleting(false);
+    }
+  };
+
   const guardianButton = (
     <button
       type="button"
@@ -165,13 +184,32 @@ export default function FriendDetailPage({
     );
   }
 
+  const deleteButton = (
+    <button
+      type="button"
+      className="round-button"
+      aria-label="친구 삭제"
+      title="친구 삭제"
+      disabled={deleting}
+      onClick={handleDeleteFriend}
+    >
+      <Icon name="trash" size={20} />
+    </button>
+  );
+
   return (
     <>
       <ProfileScreen
         friend={friend}
         onBack={onBack}
         onNotifications={onNotifications}
-        topBarActions={guardianButton}
+        topBarActions={
+          <>
+            {deleteButton}
+
+            {guardianButton}
+          </>
+        }
       />
       {guardianMsg && <p className="guardian-toast">{guardianMsg}</p>}
     </>
