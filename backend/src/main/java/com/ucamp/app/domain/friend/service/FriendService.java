@@ -27,7 +27,7 @@ public class FriendService {
     private final UserRepository userRepository;
 
     public List<FriendResponse> getFriends(Long userId) {
-        List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        List<Follow> follows = followRepository.findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
         Map<Long, User> users = userRepository
                 .findAllById(follows.stream()
                         .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
