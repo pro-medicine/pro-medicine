@@ -24,6 +24,7 @@ import java.util.Set;
  * 버전별 차이는 Options(프롬프트 + 기능 목록)로만 둔다. 각 버전 클래스는 Options 하나만 정한다.
  * - 첫 호출 검증 실패: 그 로그 행 outcome = VALIDATION_FAIL, 재요청은 call_tag = RECOMMEND_REPAIR
  * - 재요청도 실패: 재요청 로그 행 outcome = PARSE_FAIL, 결과 parseSuccess = false (빈 결과)
+ * - v4 프롬프트는 요약·성분 수 품질도 검사한다 (RecommendationQualityCheck, 재요청 뒤 남으면 고정 문구·그대로 저장)
  */
 public abstract class StructuredPipeline implements RecommendationPipeline {
 
@@ -31,7 +32,7 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
     protected record Prompt(String dir, String version) {
         static final Prompt V1 = new Prompt("v1", "v1.1");
         static final Prompt V2 = new Prompt("v2", "v2.1");
-        static final Prompt V4 = new Prompt("v4", "v4.1");
+        static final Prompt V4 = new Prompt("v4", "v4.2");
     }
 
     /** 버전마다 켜는 기능 */
@@ -104,7 +105,7 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
                 .build();
     }
 
-    /** 기록용 프롬프트 버전. V2 정밀 추천(맞춤 질문 답 포함)은 뒤에 -p를 붙여 구분한다 (예: v4.1-p) */
+    /** 기록용 프롬프트 버전. V2 정밀 추천(맞춤 질문 답 포함)은 뒤에 -p를 붙여 구분한다 (예: v4.2-p) */
     private String promptVersion(RecommendationInput input) {
         return input.isPersonalized() ? options.prompt().version() + "-p" : options.prompt().version();
     }
@@ -127,39 +128,59 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
 
     // ---------- LLM 호출 ----------
 
+    /**
+     * 형식 오류(강한 오류)와 품질 오류(약한 오류, v4 프롬프트만: RecommendationQualityCheck)를 함께 모아 1회 재요청한다.
+     * 재요청 뒤에 약한 오류만 남으면 실패로 보지 않는다 (요약은 고정 문구, 성분 0개는 그대로).
+     * 재요청이 형식 오류면 약한 오류만 있던 첫 응답을 같은 방식으로 고쳐 쓴다
+     */
     private LlmPart callLlm(RecommendationInput input, String model) {
         String system = deps.getPromptTemplates().render(options.prompt().dir() + "/system.txt",
                 Map.of("ingredients", ingredientList()));
-        String user = userMessage(input);
+        List<RuleEngine.Banned> banned = options.has(Feature.BANNED_LIST)
+                ? deps.getStageTimer().record(StageTimer.RULE_PRE, version(), () -> deps.getRuleService().preFilter(input))
+                : List.of();
+        List<String> bannedCodes = banned.stream().map(RuleEngine.Banned::ingredient).toList();
+        String user = userMessage(input, banned);
 
         List<Long> logIds = new ArrayList<>();
         LlmResponse first = call(input, system, user, model, LlmRequest.TAG_RECOMMEND);
         logIds.add(first.callLogId());
         List<String> errors = validate(first);
-        if (errors.isEmpty()) {
-            return parsed(first, logIds);
+        RecommendationQualityCheck.Result firstQuality = errors.isEmpty() ? quality(first, bannedCodes) : null;
+        if (errors.isEmpty() && firstQuality.ok()) {
+            return parsed(first, logIds, firstQuality);
         }
         deps.getLlmCallLogService().markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
+        List<String> repairErrors = new ArrayList<>(errors);
+        if (firstQuality != null) {
+            repairErrors.addAll(firstQuality.all());
+        }
         String repairUser = user + "\n\n" + deps.getPromptTemplates().render("common/repair.txt",
-                Map.of("errors", PromptTemplates.bulletList(errors)));
+                Map.of("errors", PromptTemplates.bulletList(repairErrors)));
         LlmResponse repair = call(input, system, repairUser, model, LlmRequest.TAG_RECOMMEND_REPAIR);
         logIds.add(repair.callLogId());
-        if (!validate(repair).isEmpty()) {
-            deps.getLlmCallLogService().markOutcome(repair.callLogId(), LlmCallLog.PARSE_FAIL);
-            return new LlmPart(false, List.of(), null, repair.model(), logIds, "VALIDATION_FAIL_AFTER_REPAIR");
+        if (validate(repair).isEmpty()) {
+            return parsed(repair, logIds, quality(repair, bannedCodes));
         }
-        return parsed(repair, logIds);
+        deps.getLlmCallLogService().markOutcome(repair.callLogId(), LlmCallLog.PARSE_FAIL);
+        if (firstQuality != null) {
+            return parsed(first, logIds, firstQuality);
+        }
+        return new LlmPart(false, List.of(), null, repair.model(), logIds, "VALIDATION_FAIL_AFTER_REPAIR");
+    }
+
+    // 요약·성분 수 같은 품질 기준은 v4 프롬프트(V4·V6·V7·V8)에만 적혀 있어서 그 버전만 검사한다
+    private RecommendationQualityCheck.Result quality(LlmResponse response, List<String> bannedCodes) {
+        if (!Prompt.V4.equals(options.prompt())) {
+            return new RecommendationQualityCheck.Result(List.of(), List.of());
+        }
+        return RecommendationQualityCheck.check(response.output(), bannedCodes);
     }
 
     /** 사용자 입력. 금지 목록은 사용자마다 달라서 고정 부분(시스템 프롬프트) 뒤인 여기에 붙인다 (프롬프트 캐싱) */
-    private String userMessage(RecommendationInput input) {
+    private String userMessage(RecommendationInput input, List<RuleEngine.Banned> banned) {
         String user = deps.getPromptTemplates().render(options.prompt().dir() + "/user.txt",
                 Map.of("input", deps.getInputFormatter().format(input)));
-        if (!options.has(Feature.BANNED_LIST)) {
-            return user;
-        }
-        List<RuleEngine.Banned> banned = deps.getStageTimer().record(StageTimer.RULE_PRE, version(),
-                () -> deps.getRuleService().preFilter(input));
         if (banned.isEmpty()) {
             return user;
         }
@@ -182,9 +203,12 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
                 () -> deps.getValidator().validate(response.output(), options.llmDose()));
     }
 
-    private LlmPart parsed(LlmResponse response, List<Long> logIds) {
+    // 재요청 뒤에도 요약에 약한 오류가 남으면 서버가 자르지 않고 고정 문구로 바꾼다
+    private LlmPart parsed(LlmResponse response, List<Long> logIds, RecommendationQualityCheck.Result quality) {
         JsonNode output = response.output();
-        return new LlmPart(true, toItems(output), output.path("summary").asString(null), response.model(), logIds, null);
+        String summary = quality.summaryErrors().isEmpty()
+                ? output.path("summary").asString(null) : RecommendationQualityCheck.FALLBACK_SUMMARY;
+        return new LlmPart(true, toItems(output), summary, response.model(), logIds, null);
     }
 
     private List<RecommendationItem> toItems(JsonNode output) {

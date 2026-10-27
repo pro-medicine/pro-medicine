@@ -91,7 +91,7 @@ class PersonalizedRecommendationApiTest {
                 .filter(r -> LlmRequest.TAG_RECOMMEND.equals(r.callTag())).findFirst().orElseThrow();
         assertThat(recommend.messages().get(0).text()).contains("## 맞춤 질문 답변")
                 .contains("- [불편한 점] 가짜 질문: 요즘 불편한 점을 골라주세요 (최대 2개) → 쉽게 피곤해요, 잠을 잘 못 자요")
-                .contains("현재 복용 중인 영양제 성분(하루 함량): 모름");
+                .contains("현재 복용 중인 영양제 성분(하루 함량): 알 수 없음 (이 경우 서버가 기준 권장량으로 계산함)");
         assertThat(recommend.promptVersion()).endsWith("-p");
         assertThat(recommend.pipelineVersion()).isEqualTo("V4");
         assertThat(recommend.sessionId()).isEqualTo(sessionId);

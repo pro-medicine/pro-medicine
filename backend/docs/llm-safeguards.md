@@ -38,6 +38,7 @@ GPT 답이 정해진 JSON 구조로 오도록 강제하고, 그래도 깨지면 
 | 파싱 | 응답 문자열 → `JsonNode`. 실패하면 null로 넘겨 재요청 | `infra/llm/SpringAiLlmClient.java` (`parse()`) |
 | 검증 | 성분 코드, 중복, priority 연속, amount/unit 짝 | `domain/recommendation/pipeline/RecommendationOutputValidator.java` |
 | 재요청 | 틀린 이유를 붙여 1회 재요청. 또 실패하면 실패 처리 | `domain/recommendation/pipeline/StructuredPipeline.java`, `src/main/resources/prompts/common/repair.txt` |
+| 품질 검사 (v4.2~, V4·V6·V7·V8) | 요약 100자·2문장 이내, 진료·처방·검사 지시·제외·금지 성분 언급 금지, 성분 1개 이상. 형식 오류와 함께 1회 재요청에 붙이고, 재요청 뒤에도 남으면 실패로 보지 않음 (요약은 고정 문구, 0개는 그대로) | `domain/recommendation/pipeline/RecommendationQualityCheck.java` |
 
 - strict 모드는 OpenAI가 답을 생성하는 단계에서 스키마에 맞지 않는 토큰을 막는다. 프롬프트의 "JSON으로 답해라"는 안내일 뿐 강제가 아니다.
 - strict로도 막지 못하는 것: 출력 한도에 걸려 잘린 답, 답변 거부, 스키마로 표현할 수 없는 규칙(중복·연속성). 그래서 서버 검증을 남겨 둔다.
@@ -165,7 +166,7 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 
 | 빈틈 | 영향 | 제안 |
 | --- | --- | --- |
-| `reason`·`summary` 문장 검사 없음 | 설명 문장에 숫자 용량, 금지 성분 이름, 과장 표현이 들어가도 그대로 나감 | `RecommendationOutputValidator`에 숫자+단위 패턴, 금지 성분 이름 검사 추가 → 실패 시 재요청 |
+| `reason` 문장 검사 없음 (summary는 v4.2부터 길이·지시·금지 성분 언급 검사) | 설명 문장에 숫자 용량, 금지 성분 이름, 과장 표현이 들어가도 그대로 나감 | `RecommendationOutputValidator`에 숫자+단위 패턴, 금지 성분 이름 검사 추가 → 실패 시 재요청 |
 | ~~응답 숫자 표기 `1E+2`~~ | 해결 (c11a960, `RecommendationMapper.plain()`) | - |
 | 실제 GPT 품질 (평가셋 검토 전) | 2026-10-22 실제 측정: 위반율 0, V2 이후 용량 오류율 0. 평가셋이 `reviewed=false`라 기대값은 확정 전 | 평가셋 검토(`reviewed = true`) 후 재측정 (32건 약 $0.16) |
 | 타임아웃 미적용 | `llm.timeout-ms`가 HTTP 클라이언트에 연결되지 않아 약 60초에 끊김 | RestClient 읽기 시간 제한 연결 후 25~30초 |

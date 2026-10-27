@@ -12,6 +12,8 @@ import java.util.Map;
  */
 @Component
 public class InputFormatter {
+    /** V2 정밀 추천의 현재 영양제 섭취 (묻지 않음). 섭취량을 모르면 서버가 기준 권장량으로 용량을 계산한다 */
+    static final String UNKNOWN_INTAKE = "알 수 없음 (이 경우 서버가 기준 권장량으로 계산함)";
     private static final Map<String, String> SMOKING = Map.of("NONE", "안 피움", "HALF_PACK", "하루 반 갑 이하",
             "ONE_PACK", "하루 1갑", "TWO_PACK_PLUS", "하루 2갑 이상");
     private static final Map<String, String> LEVEL = Map.of("NONE", "안 함", "LOW", "적음", "HIGH", "많음",
@@ -53,9 +55,9 @@ public class InputFormatter {
         if (!in.goalsOrEmpty().isEmpty()) {
             lines.add("- 원하는 효과: " + String.join(", ", in.goalsOrEmpty().stream().map(g -> GOAL.getOrDefault(g, g)).toList()));
         }
-        // V2 정밀 추천은 영양제 섭취를 묻지 않으므로 "모름" (V1은 설문 답 그대로 "없음")
+        // V2 정밀 추천은 영양제 섭취를 묻지 않으므로 "알 수 없음". 보류 근거로 쓰지 않도록 서버 동작을 같이 알린다 (V1은 설문 답 그대로 "없음")
         lines.add("- 현재 복용 중인 영양제 성분(하루 함량): " + (in.currentIntakeOrEmpty().isEmpty()
-                ? (in.isPersonalized() ? "모름" : "없음")
+                ? (in.isPersonalized() ? UNKNOWN_INTAKE : "없음")
                 : String.join(", ", in.currentIntakeOrEmpty().stream()
                 .map(i -> i.ingredient() + " " + i.amount().stripTrailingZeros().toPlainString() + " " + i.unit())
                 .toList())));

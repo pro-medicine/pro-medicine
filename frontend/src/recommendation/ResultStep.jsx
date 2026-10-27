@@ -1,5 +1,8 @@
 // 추천 결과 (담당: 영준) — 추천 성분 카드, 제외 성분, 안내 문구
 
+const EMPTY_TEXT =
+  "입력하신 건강 정보로는 지금 바로 권할 성분이 없어요. 복용 중인 약이나 질환이 있다면 의사·약사와 상담해 주세요.";
+
 // 숫자 표시 (100.00 → 100, 2.5 → 2.5)
 function formatNumber(value) {
   const n = Number(value);
@@ -40,10 +43,13 @@ export default function ResultStep({
             "AI 맞춤 추천을 잠시 사용할 수 없어 기본 안내를 보여드려요"}
         </p>
       )}
-      {result.summary && <p className="rec-summary">{result.summary}</p>}
+      {/* 최종 추천이 0개면 AI 요약 대신 고정 안내 (제외 성분 목록은 아래에 그대로) */}
+      {items.length > 0 && result.summary && (
+        <p className="rec-summary">{result.summary}</p>
+      )}
 
       {items.length === 0 ? (
-        <div className="rec-empty">지금 추천할 성분이 없어요</div>
+        <div className="rec-empty">{EMPTY_TEXT}</div>
       ) : (
         <ul className="rec-cards">
           {items.map((item) => {
@@ -84,7 +90,7 @@ export default function ResultStep({
       )}
 
       {excluded.length > 0 && (
-        <details className="rec-excluded">
+        <details className="rec-excluded" open={items.length === 0}>
           <summary>안전을 위해 제외한 성분 ({excluded.length})</summary>
           <ul>
             {excluded.map((item) => (

@@ -40,7 +40,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class PersonalizedQuestionGenerator {
     public static final String PIPELINE_VERSION = "PQ";
-    public static final String PROMPT_VERSION = "pq1.0";
+    public static final String PROMPT_VERSION = "pq1.1";
     public static final String REASONING_EFFORT = "low";
     public static final int MAX_TOKENS = 500;
     public static final String MULTI_SUFFIX = "(최대 2개)";
