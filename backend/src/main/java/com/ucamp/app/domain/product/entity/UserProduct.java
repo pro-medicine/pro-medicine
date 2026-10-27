@@ -73,9 +73,4 @@ public class UserProduct {
         this.startDate = startDate;
         this.isActive = isActive != null ? isActive : true;
     }
-
-    // 복용 중단 (삭제 대신 is_active를 false로)
-    public void deactivate() {
-        this.isActive = false;
-    }
 }

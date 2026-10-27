@@ -84,14 +84,4 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
               )
             """)
     long countTodayTakenSchedules(@Param("userId") Long userId, @Param("today") LocalDate today);
-
-    // [마이페이지] 여러 제품의 켜진 일정을 한 번에 조회 (빈 목록으로 호출하지 말 것)
-    // IN :userProductIds → 제품 id 목록 [1, 2, 3]에 속한 일정만, 알림 시각 순서로
-    @Query("""
-            SELECT s FROM IntakeSchedule s
-            WHERE s.userProduct.userProductId IN :userProductIds
-              AND s.isEnabled = true
-            ORDER BY s.remindAt, s.scheduleId
-            """)
-    List<IntakeSchedule> findEnabledByUserProductIds(@Param("userProductIds") List<Long> userProductIds);
 }

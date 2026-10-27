@@ -1,0 +1,373 @@
+import { useEffect, useState } from "react";
+import { Icon, SupplementCard, TopBar } from "../shared/ui";
+import {
+  fetchIntakeStats,
+  fetchMySupplements,
+  fetchNutrition,
+  fetchUser,
+  MY_USER_ID,
+  removeMySupplement,
+} from "./mypageApi";
+import ProfileEditPage from "./ProfileEditPage";
+import SupplementAddPage from "./SupplementAddPage";
+
+// 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
+const cardColors = ["sun", "ocean", "lilac"];
+
+// 끼니 / 식전·식후 코드 → 화면 문구 (ANY = 식사와 상관없음 → 끼니만 표시)
+const mealSlotLabels = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
+const mealRelationLabels = { BEFORE: "식전", AFTER: "식후", ANY: "" };
+
+// 복용 일정 목록 → "아침 식후 · 저녁 식전"
+function scheduleText(schedules) {
+  if (schedules.length === 0) return "복용 일정 없음";
+  return schedules
+    .map((schedule) => {
+      const slot = mealSlotLabels[schedule.mealSlot] ?? schedule.mealSlot;
+      const relation =
+        mealRelationLabels[schedule.mealRelation] ?? schedule.mealRelation;
+      return relation ? `${slot} ${relation}` : slot;
+    })
+    .join(" · ");
+}
+
+// API 응답 1개 → SupplementCard 가 받는 모양으로 변환
+// 직접 입력한 제품은 제품 정보가 없어서 이름만 보여줌
+function toSupplementCard(item, index) {
+  const isManual = item.catalogProductId === null;
+  return {
+    id: item.userProductId,
+    name: item.productName,
+    brand: item.manufacturer ?? "",
+    ingredient: item.ingredientSummary ?? "-",
+    amount: item.packageSize ?? "-",
+    price:
+      item.price === null ? "-" : `${item.price.toLocaleString("ko-KR")}원`,
+    category: item.category ?? (isManual ? "직접 입력" : "영양제"),
+    color: cardColors[index % cardColors.length],
+    time: scheduleText(item.schedules ?? []),
+    // 복용 일정 수정 페이지에 넘길 원래 응답
+    raw: item,
+  };
+}
+
+export default function ProfileScreen({ friend, onBack, onNotifications }) {
+  const isMine = !friend;
+  const [user, setUser] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [stats, setStats] = useState(null);
+  // 내 영양제 카드 목록, null 이면 아직 불러오는 중
+  const [mySupplementList, setMySupplementList] = useState(null);
+  const [supplementError, setSupplementError] = useState(false);
+  // 등록·삭제 후 숫자를 올려서 통계·영양관리·영양제 목록을 다시 불러옴
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [adding, setAdding] = useState(false);
+  // 복용 일정을 수정할 내 영양제 (API 응답 1개), null 이면 수정 안 함
+  const [scheduleTarget, setScheduleTarget] = useState(null);
+  // 삭제 중인 카드 id (중복 클릭 방지)
+  const [removingId, setRemovingId] = useState(null);
+
+  useEffect(() => {
+    if (!isMine) return;
+    fetchUser(MY_USER_ID)
+      .then(setUser)
+      .catch(() => setUser(null));
+    fetchIntakeStats(MY_USER_ID)
+      .then(setStats)
+      .catch(() => setStats(null));
+    fetchMySupplements(MY_USER_ID)
+      .then((list) => {
+        setMySupplementList(list.map(toSupplementCard));
+        setSupplementError(false);
+      })
+      .catch(() => setSupplementError(true));
+  }, [isMine, refreshKey]);
+
+  const reload = () => setRefreshKey((prev) => prev + 1);
+
+  // 내 화면은 API 값, 친구 화면은 기존 예시 데이터
+  const supplements = isMine ? (mySupplementList ?? []) : friend.supplements;
+  // 내 정보 API를 못 불러오면 기존 예시 이름을 보여줌
+  const name = friend?.name ?? user?.nickname ?? "김민지";
+  const initial = friend?.initial ?? name.charAt(0);
+  const avatarColor = friend?.color ?? "yellow";
+  // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
+  const streak = isMine ? (stats?.streakDays ?? "-") : friend.streak;
+  const productCount = isMine
+    ? (stats?.activeProductCount ?? "-")
+    : supplements.length;
+  const monthlyRate = isMine ? (stats?.monthlyRate ?? "-") : 92;
+
+  if (isMine && editing) {
+    return (
+      <ProfileEditPage
+        onBack={() => setEditing(false)}
+        onSaved={setUser}
+        onNotifications={onNotifications}
+      />
+    );
+  }
+
+  // 영양제 등록 페이지: 등록에 성공하면 마이페이지로 돌아와서 목록·통계·영양관리를 다시 불러옴
+  if (isMine && adding) {
+    return (
+      <SupplementAddPage
+        onBack={() => setAdding(false)}
+        onSaved={() => {
+          setAdding(false);
+          reload();
+        }}
+        onNotifications={onNotifications}
+      />
+    );
+  }
+
+  // 같은 페이지를 수정 모드로 사용 (제품은 고정, 복용 일정만 수정)
+  if (isMine && scheduleTarget) {
+    return (
+      <SupplementAddPage
+        target={scheduleTarget}
+        onBack={() => setScheduleTarget(null)}
+        onSaved={() => {
+          setScheduleTarget(null);
+          reload();
+        }}
+        onNotifications={onNotifications}
+      />
+    );
+  }
+
+  const openEdit = () => {
+    setEditing(true);
+    window.scrollTo({ top: 0 });
+  };
+
+  const openAdd = () => {
+    setAdding(true);
+    window.scrollTo({ top: 0 });
+  };
+
+  // 삭제: 확인 → 서버에서 복용 중단 처리 → 목록 다시 불러오기
+  const removeSupplement = async (supplement) => {
+    if (!window.confirm(`'${supplement.name}'을(를) 내 영양제에서 삭제할까요?`))
+      return;
+    setRemovingId(supplement.id);
+    try {
+      await removeMySupplement(MY_USER_ID, supplement.id);
+      reload();
+    } catch (e) {
+      window.alert(e.message || "삭제하지 못했어요.");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <div className="screen profile-screen">
+      <TopBar
+        back={onBack}
+        title={isMine ? "마이페이지" : `${name}님의 영양정보`}
+        subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
+        onNotifications={onNotifications}
+      />
+
+      <section
+        className={isMine ? "profile-hero clickable" : "profile-hero"}
+        onClick={isMine ? openEdit : undefined}
+      >
+        <span className={`avatar xlarge ${avatarColor}`}>{initial}</span>
+        <div className="profile-name">
+          <span>{isMine ? "건강한 하루를 만드는 중" : friend?.relation}</span>
+          <h2>{name}</h2>
+          <p>{isMine ? "꾸준함이 최고의 영양제예요" : friend?.status}</p>
+        </div>
+        {isMine && (
+          <button className="edit-button" type="button">
+            프로필 편집
+          </button>
+        )}
+      </section>
+
+      <section className="stats-grid">
+        <div>
+          <span>연속 복용</span>
+          <strong>
+            {streak}
+            <small>일</small>
+          </strong>
+        </div>
+        <div>
+          <span>복용 영양제</span>
+          <strong>
+            {productCount}
+            <small>개</small>
+          </strong>
+        </div>
+        <div>
+          <span>이번 달 달성률</span>
+          <strong>
+            {monthlyRate}
+            <small>%</small>
+          </strong>
+        </div>
+      </section>
+
+      {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
+      {isMine && <NutritionManagement key={refreshKey} />}
+
+      <section className="section-block products-section">
+        <div className="section-title-row">
+          <div>
+            <span className="section-label">SUPPLEMENTS</span>
+            <h2>{isMine ? "내가 먹는 영양제" : `${name}님이 먹는 영양제`}</h2>
+          </div>
+          {isMine && (
+            <button
+              className="add-friend-button"
+              type="button"
+              onClick={openAdd}
+            >
+              <Icon name="plus" size={16} />
+              영양제 등록
+            </button>
+          )}
+        </div>
+        <p className="section-description">
+          상품명과 주요 영양성분, 함량 및 구매 가격을 확인할 수 있어요.
+        </p>
+        {isMine && supplementError && (
+          <p className="section-description">
+            영양제 정보를 불러오지 못했어요.
+          </p>
+        )}
+        {isMine && !supplementError && mySupplementList?.length === 0 && (
+          <p className="section-description">아직 등록된 영양제가 없어요.</p>
+        )}
+        <div className="product-grid">
+          {supplements.map((supplement) =>
+            isMine ? (
+              // 공용 SupplementCard 는 그대로 두고, 바깥을 감싸서 삭제 버튼만 얹음
+              <div className="supplement-card-wrap" key={supplement.id}>
+                <SupplementCard supplement={supplement} />
+                {/* 카드 오른쪽 위: 수정(복용 일정) / 삭제 */}
+                <div className="supplement-card-actions">
+                  <button
+                    type="button"
+                    aria-label={`${supplement.name} 복용 일정 수정`}
+                    onClick={() => {
+                      setScheduleTarget(supplement.raw);
+                      window.scrollTo({ top: 0 });
+                    }}
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${supplement.name} 삭제`}
+                    disabled={removingId === supplement.id}
+                    onClick={() => removeSupplement(supplement)}
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <SupplementCard key={supplement.id} supplement={supplement} />
+            ),
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ───────────── 나의 영양관리 ─────────────
+
+// 성분 순서대로 게이지 색상
+const nutritionTones = ["yellow", "green", "purple", "orange", "blue"];
+
+// 권장량에 가장 못 미치는 성분 안내
+function nutritionNoticeText(nutrients) {
+  if (nutrients.length === 0) {
+    return "영양 정보를 불러오지 못했어요.";
+  }
+  let lowest = nutrients[0];
+  for (const item of nutrients) {
+    if (item.percent < lowest.percent) lowest = item;
+  }
+  const message =
+    lowest.percent < 100
+      ? `${lowest.name} 섭취가 권장량보다 부족해요.`
+      : "모든 성분이 권장량을 채웠어요.";
+  return `${message} 식품 섭취량은 포함되지 않은 참고용 수치예요.`;
+}
+
+function NutritionManagement() {
+  const [nutrition, setNutrition] = useState(null);
+
+  useEffect(() => {
+    fetchNutrition(MY_USER_ID)
+      .then(setNutrition)
+      .catch(() => setNutrition(null));
+  }, []);
+
+  const nutrients = nutrition?.nutrients ?? [];
+
+  // 섭취량이 모두 0이면 계산할 영양제가 없는 것 → 게이지 대신 안내
+  let hasIntake = false;
+  for (const item of nutrients) {
+    if (item.intakeAmount > 0) hasIntake = true;
+  }
+
+  return (
+    <section className="nutrition-management">
+      <div className="nutrition-heading">
+        <div>
+          <span className="section-label">DAILY NUTRITION</span>
+          <h2>나의 영양관리</h2>
+          <p>복용 중인 영양제를 기준으로 성인 하루 권장량과 비교했어요.</p>
+        </div>
+        <span className="nutrition-date">
+          {nutrition?.sample ? "오늘 기준 · 예시 데이터" : "오늘 기준"}
+        </span>
+      </div>
+
+      {nutrition && !hasIntake ? (
+        <p className="nutrition-empty">
+          영양제를 등록하면 성분별 하루 섭취량을 권장량과 비교해 보여드려요.
+        </p>
+      ) : (
+        <>
+          <div className="nutrition-list">
+            {nutrients.map((item, index) => (
+              <div className="nutrition-row" key={item.name}>
+                <div className="nutrition-name">
+                  <strong>{item.name}</strong>
+                  <span>
+                    {item.intakeAmount}
+                    {item.unit} / 권장 {item.recommendedAmount}
+                    {item.unit}
+                  </span>
+                </div>
+                <div className="nutrition-gauge">
+                  <span
+                    className={nutritionTones[index % nutritionTones.length]}
+                    style={{ width: `${Math.min(item.percent, 100)}%` }}
+                  />
+                </div>
+                <div className="nutrition-percent">
+                  <strong>{item.percent}%</strong>
+                  {item.percent > 100 && <span>충분</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="nutrition-notice">
+            <Icon name="sparkles" size={17} />
+            <p>{nutritionNoticeText(nutrients)}</p>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
