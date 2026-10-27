@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 // 마이페이지 복용 통계용 조회 (읽기 전용)
-public interface IntakeStatsRepository extends Repository<IntakeRecord, Long> {
+public interface IntakeRecordRepository extends Repository<IntakeRecord, Long> {
 
     @Query("""
             SELECT COUNT(up) FROM UserProduct up

@@ -3,13 +3,18 @@ package com.ucamp.app.domain.intake.service;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.dto.TakenIntake;
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
-import com.ucamp.app.domain.intake.repository.IntakeStatsRepository;
+import com.ucamp.app.domain.intake.repository.IntakeRecordRepository;
+import com.ucamp.app.domain.intake.repository.IntakeScheduleRepository;
+import com.ucamp.app.domain.notification.event.IntakeCheckedEvent;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -22,13 +27,15 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class IntakeStatsService {
+public class IntakeService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     // 연속 복용일은 최근 1년까지만 계산
     private static final int MAX_STREAK_DAYS = 365;
 
-    private final IntakeStatsRepository intakeStatsRepository;
+    private final IntakeScheduleRepository intakeScheduleRepository;
+    private final IntakeRecordRepository intakeRecordRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public IntakeStatsResponse getStats(Long userId) {
         return getStats(userId, LocalDate.now(KST));
@@ -40,17 +47,17 @@ public class IntakeStatsService {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        List<IntakeSchedule> schedules = intakeStatsRepository.findActiveSchedules(userId);
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
         LocalDate from = today.minusDays(MAX_STREAK_DAYS);
         Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
-        for (TakenIntake taken : intakeStatsRepository.findTakenIntakes(userId, from, today)) {
+        for (TakenIntake taken : intakeScheduleRepository.findTakenIntakes(userId, from, today)) {
             takenByDate.computeIfAbsent(taken.intakeDate(), date -> new HashSet<>()).add(taken.scheduleId());
         }
 
         return new IntakeStatsResponse(
                 userId,
                 streakDays(schedules, takenByDate, today),
-                intakeStatsRepository.countActiveSupplements(userId),
+                intakeScheduleRepository.countActiveSupplements(userId),
                 monthlyRate(schedules, takenByDate, today)
         );
     }
@@ -110,5 +117,22 @@ public class IntakeStatsService {
             begin = startDate;
         }
         return !day.isBefore(begin);
+    }
+
+    @Transactional
+    public void updateIntake(Long userId, Long scheduleId, LocalDate date, boolean taken) {
+        // TODO: 만약 복용체크를 복용 스케줄 기준으로 할 거라면
+        if (intakeScheduleRepository.countMySchedule(userId, scheduleId) == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "내 복용 일정이 아님: " + scheduleId);
+            // TODO: 커스텀 비즈니스 에러로 수정
+        }
+        if (taken) {
+            if (intakeRecordRepository.updateTaken(scheduleId, date) == 0) {
+                intakeRecordRepository.insertTaken(scheduleId, date);
+            }
+            eventPublisher.publishEvent(new IntakeCheckedEvent(userId, date));
+        } else {
+            intakeRecordRepository.deleteRecord(scheduleId, date);   // 체크 해제 = 기록 삭제
+        }
     }
 }

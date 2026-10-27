@@ -28,15 +28,7 @@ public class HomeController {
     }
 
     // 복용 체크 저장: PATCH /home/intake/{scheduleId}?userId=1
-    @PatchMapping("/intake/{scheduleId}")
-    public ResponseEntity<Void> updateIntake(
-            @PathVariable Long scheduleId,
-            @RequestParam Long userId,
-            @RequestBody HomeIntakeRequest req
-    ) {
-        homeService.updateIntake(userId, scheduleId, orToday(req.getDate()), req.isTaken());
-        return ResponseEntity.noContent().build();   // 204
-    }
+
 
     private LocalDate orToday(LocalDate date) {
         return date != null ? date : LocalDate.now(ZoneId.of("Asia/Seoul"));

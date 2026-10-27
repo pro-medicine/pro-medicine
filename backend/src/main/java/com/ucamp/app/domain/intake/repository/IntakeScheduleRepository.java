@@ -2,6 +2,7 @@ package com.ucamp.app.domain.intake.repository;
 
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
