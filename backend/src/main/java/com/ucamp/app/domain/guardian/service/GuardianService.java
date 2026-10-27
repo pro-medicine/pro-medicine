@@ -30,7 +30,7 @@ public class GuardianService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(guardianUserId, targetId, FollowStatus.ACCEPTED)) {
+        if (followRepository.existsByFollowerIdAndFollowingIdAndStatus(guardianUserId, targetId, FollowStatus.ACCEPTED)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         if (guardianSettingRepository.existsByUserIdAndGuardianUserId(targetId, guardianUserId)) {

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,13 +32,16 @@ public class FriendService {
         Map<Long, User> users = userRepository
                 .findAllById(follows.stream()
                         .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        return follows.stream().filter(follow -> users.containsKey(follow.getFollowingId()))
-                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()))).toList();
-
+        Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
+                .map(Follow::getFollowerId)
+                .collect(Collectors.toSet());
+        return follows.stream()
+                .filter(follow -> users.containsKey(follow.getFollowingId()))
+                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()))).toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
-        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
+        if (followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
             throw new BusinessException(ErrorCode.NOT_FRIEND);
         }
         User friend = userRepository.findById(friendUserId)
