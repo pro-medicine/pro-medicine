@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
+import FollowRequestModal from "./FollowRequestsModal";
 import FriendDetailPage from "./FriendDetailPage";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
@@ -32,13 +33,24 @@ export default function FriendsPage({ onNotifications }) {
   const [error, setError] = useState("");
   const [selectedFriend, setSelectedFriend] = useState(null); // 추가
   const [addOpen, setAddOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const openerRef = useRef(null);
+
+  const openModal = (setter) => (e) => {
+    openerRef.current = e.currentTarget;
+    setter(true);
+  };
 
   useEffect(() => {
     let ignore = false;
-
+    setError("");
     getFriends(userId)
       .then((data) => {
-        if (!ignore) setFriends((data ?? []).map(toFriend));
+        if (!ignore) {
+          setFriends((data ?? []).map(toFriend));
+          setError("");
+        }
       })
       .catch((err) => {
         console.error(err);
@@ -52,7 +64,7 @@ export default function FriendsPage({ onNotifications }) {
     return () => {
       ignore = true;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   const filtered = friends.filter((friend) => friend.name.includes(query));
   if (selectedFriend) {
@@ -108,13 +120,21 @@ export default function FriendsPage({ onNotifications }) {
             <span className="section-label">MY FRIENDS</span>
             <h2>친구들의 오늘</h2>
           </div>
-          <button
-            className="add-friend-button"
-            onClick={() => setAddOpen(true)}
-          >
-            <Icon name="plus" size={16} />
-            친구 추가
-          </button>
+          <div className="friend-header-actions">
+            <button
+              className="add-friend-button"
+              onClick={openModal(setRequestsOpen)}
+            >
+              친구 신청
+            </button>
+            <button
+              className="add-friend-button"
+              onClick={openModal(setAddOpen)}
+            >
+              <Icon name="plus" size={16} />
+              친구 추가
+            </button>
+          </div>
         </div>
 
         <div className="friend-list">
@@ -145,22 +165,39 @@ export default function FriendsPage({ onNotifications }) {
                     <small>{friend.relation}</small>
                   </span>
                 </span>
+                <span className="friend-status">{friend.status}</span>
                 <span className="friend-meta">
-                  {friend.streak > 0 ? (
-                    <span>
-                      <b>{friend.streak}</b>일째
+                  {friend.streak === 0 ? (
+                    <span className="friend-encourage">
+                      친구를 응원해보세요 <Icon name="chevron" size={18} />
                     </span>
                   ) : (
-                    <small>친구를 응원해보세요.</small>
+                    <span className="friend-streak">
+                      <span>
+                        <b>{friend.streak}</b>일째
+                      </span>
+                      <Icon name="chevron" size={18} />
+                    </span>
                   )}
                 </span>
-                <Icon name="chevron" size={18} />
               </button>
             ))}
         </div>
       </section>
+      {requestsOpen && (
+        <FollowRequestModal
+          userId={userId}
+          onClose={() => setRequestsOpen(false)}
+          onAccepted={() => setReloadKey((k) => k + 1)}
+          openerRef={openerRef}
+        />
+      )}
       {addOpen && (
-        <AddFriendModal userId={userId} onClose={() => setAddOpen(false)} />
+        <AddFriendModal
+          userId={userId}
+          onClose={() => setAddOpen(false)}
+          openerRef={openerRef}
+        />
       )}
     </div>
   );
