@@ -81,20 +81,18 @@ export default function App() {
 
         try {
             await logout();
-
-            setUser(null);
-            setAuthMode("login");
-
-            // 열려 있는 화면 초기화
-            setTab("home");
-            setSurveyOpen(false);
-            setNotificationsOpen(false);
         } catch (err) {
             setError(err.message || "로그아웃에 실패했습니다.");
         } finally {
+            setUser(null);
+            setAuthMode("login");
+            setTab("home");
+            setSurveyOpen(false);
+            setNotificationsOpen(false);
             setLoggingOut(false);
         }
     };
+
     const renderSessionActions = () => (
         <div className="auth-session-actions">
     <span className="auth-session-name">
