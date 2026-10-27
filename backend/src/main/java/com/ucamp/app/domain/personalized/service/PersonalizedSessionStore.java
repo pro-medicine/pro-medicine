@@ -43,8 +43,8 @@ public class PersonalizedSessionStore {
     /** V1 대비 변화를 비교할 V1 추천의 최대 경과 일수 */
     public static final int BASELINE_DAYS = 30;
 
-    /** 새 회차 시작 결과. abandoned = 이번에 ABANDONED로 바꾼 이전 회차 수 */
-    public record Started(SessionState state, int abandoned) {
+    /** 새 회차 시작 결과. abandonedIds = 이번에 ABANDONED로 바꾼 이전 회차 */
+    public record Started(SessionState state, List<Long> abandonedIds) {
     }
 
     /** 끝나지 않은 이전 회차는 ABANDONED (D17: 다시 시작하면 처음부터). 대상이면 임신 고정 질문(turn 0)을 넣는다 */
@@ -61,7 +61,7 @@ public class PersonalizedSessionStore {
                     .optionsJson(codec.encodeOptions(PregnancyQuestion.OPTIONS))
                     .build());
         }
-        return new Started(state(session), unfinished.size());
+        return new Started(state(session), unfinished.stream().map(AiQuestionSession::getSessionId).toList());
     }
 
     @Transactional(readOnly = true)

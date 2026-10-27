@@ -89,7 +89,7 @@ public class PersonalizedQuestionGenerator {
         List<Violation> errors = validator.validate(first.output(), answerType, previous);
         attempts.add(attempt(LlmRequest.TAG_PQ_QUESTION, first, errors));
         if (errors.isEmpty()) {
-            return accepted(first, answerType, attempts);
+            return accepted(first.output(), answerType, first.callLogId(), attempts);
         }
         llmCallLogService.markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
         String repairUser = user + "\n\n" + promptTemplates.render("pq/repair.txt",
@@ -103,7 +103,7 @@ public class PersonalizedQuestionGenerator {
                     ctx.topic().code(), repairErrors.stream().map(Violation::code).toList());
             throw new QuestionGenerationException(QuestionGenerationException.VALIDATION_FAIL_AFTER_REPAIR, attempts, null);
         }
-        return accepted(repair, answerType, attempts);
+        return accepted(repair.output(), answerType, repair.callLogId(), attempts);
     }
 
     private LlmResponse call(Context ctx, String system, String user, String tag,
@@ -144,7 +144,7 @@ public class PersonalizedQuestionGenerator {
                 "history", history(ctx.history())));
     }
 
-    private static String history(List<PastQuestion> history) {
+    static String history(List<PastQuestion> history) {
         if (history.isEmpty()) {
             return "없음 (이 회차의 첫 질문)";
         }
@@ -155,9 +155,8 @@ public class PersonalizedQuestionGenerator {
     }
 
     // 검증을 통과한 출력 → 질문. MULTI인데 "(최대 2개)" 안내가 빠졌으면 붙인다 (설계 D4)
-    private static GeneratedQuestion accepted(LlmResponse response, String answerType,
-                                              List<GeneratedQuestion.Attempt> attempts) {
-        JsonNode out = response.output();
+    static GeneratedQuestion accepted(JsonNode out, String answerType, Long callLogId,
+                                      List<GeneratedQuestion.Attempt> attempts) {
         String question = out.get("question").asString().strip();
         if (Topic.MULTI.equals(answerType) && !question.contains("최대 2개")) {
             question = question + " " + MULTI_SUFFIX;
@@ -167,12 +166,15 @@ public class PersonalizedQuestionGenerator {
             options.add(new GeneratedQuestion.Option(o.get("label").asString().strip(),
                     OptionKind.valueOf(o.get("kind").asString())));
         }
-        return new GeneratedQuestion(question, answerType, List.copyOf(options), response.callLogId(),
-                List.copyOf(attempts));
+        return new GeneratedQuestion(question, answerType, List.copyOf(options), callLogId, List.copyOf(attempts));
     }
 
-    private static GeneratedQuestion.Attempt attempt(String tag, LlmResponse r, List<Violation> violations) {
-        return new GeneratedQuestion.Attempt(tag, r.output(), List.copyOf(violations), r.callLogId(), r.model(),
+    static GeneratedQuestion.Attempt attempt(String tag, LlmResponse r, List<Violation> violations) {
+        return attempt(tag, r, r.output(), violations);
+    }
+
+    static GeneratedQuestion.Attempt attempt(String tag, LlmResponse r, JsonNode output, List<Violation> violations) {
+        return new GeneratedQuestion.Attempt(tag, output, List.copyOf(violations), r.callLogId(), r.model(),
                 r.latencyMs(), r.usage());
     }
 

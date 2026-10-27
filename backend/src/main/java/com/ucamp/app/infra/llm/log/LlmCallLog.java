@@ -30,6 +30,8 @@ public class LlmCallLog {
     public static final String VALIDATION_FAIL = "VALIDATION_FAIL";
     public static final String TIMEOUT = "TIMEOUT";
     public static final String HTTP_ERROR = "HTTP_ERROR";
+    /** 응답은 받았지만 쓰지 않음 (V2 질문 이중 요청에서 진 쪽). 비용은 그대로 기록 */
+    public static final String DISCARDED = "DISCARDED";
     public static final int MODEL_LENGTH = 60;
 
     @Id

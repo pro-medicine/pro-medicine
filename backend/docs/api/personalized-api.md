@@ -158,6 +158,17 @@ PQ001 응답 예:
 - **질문 수**: 새 주제는 5문항 전까지만, 같은 주제 추가 질문은 7문항 전까지만
 - **LLM 질문 검증**: 선택지 2~5개, "잘 모르겠어요" 1개, 라벨 20자 이내, 질문 60자 이내, 이전 질문 반복·금지어(중단, 끊으세요, 진단, 처방, 복용을 멈추) 없음 → 실패하면 이유를 붙여 1회 재요청
 
+## 7b. 질문 미리 만들기 설정 (`pq.*`, 응답 형식은 같음)
+
+| 설정 | 기본 | 내용 |
+|---|---|---|
+| `pq.prefetch-strategy` | `NONE` | `NONE` 질문마다 그때 생성 / `BACKGROUND` 첫 질문은 바로, 프로필 주제 1단계는 백그라운드 묶음 1회 / `UPFRONT` 시작 때 불편한 점 + 프로필 주제를 한 번에 / `UPFRONT_FOLLOWUP` UPFRONT + 불편한 점 파생 주제 묶음 + CONCERN일 때 이어질 2단계까지 |
+| `pq.prefetch-topics` | 4 | 묶음에 넣을 프로필 주제 수 (계획 순서: 약 → 질환 → 생활습관) |
+| `pq.prefetch-wait-ms` | 6000 | 미리 만드는 중인 질문을 기다리는 최대 시간. 넘으면 단건 생성 |
+
+- 미리 만든 질문은 단건과 같은 검증을 통과한 것만 쓰고, 쓰기 직전에 이 회차의 이전 질문과 반복 검사를 다시 한다. 걸리거나 없으면 단건 생성
+- 보관은 서버 메모리 (재시작하면 잃고 단건 생성으로 대신). 회차가 끝나면 비우고 쓰지 않은 질문은 `pq.prefetch{result=wasted}`로 센다
+
 ## 8. 기록·운영
 
 | 테이블 | 내용 |
@@ -165,10 +176,10 @@ PQ001 응답 예:
 | `ai_question_sessions` | 회차 상태, 임신 답, 질문 수, 그만하기 여부, 추천 ID, V1 대비 변화(`diff_json`, 모니터링 전용) |
 | `ai_question_turns` | 질문·선택지(kind 포함)·고른 답 |
 | `ai_recommendations` | 정밀 추천 결과 (`response_id = NULL`, `session_id`) |
-| `llm_call_logs` | `call_tag` = PQ_QUESTION, PQ_QUESTION_REPAIR, RECOMMEND(정밀 추천), `session_id` |
+| `llm_call_logs` | `call_tag` = PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH·PQ_QUESTION_FOLLOWUP_BATCH(미리 만들기), PQ_QUESTION_HEDGE(이중 요청), RECOMMEND(정밀 추천), `session_id`. outcome `DISCARDED` = 이중 요청에서 쓰지 않은 응답 |
 
 - 90일 지난 회차는 매일 04:00 삭제 (질문은 함께 삭제, 추천 결과는 남고 `session_id`만 NULL)
-- 메트릭: `pq.question.generate{outcome}`, `pq.question.latency`, `pq.session{status,stopped}`, `pq.session.questions`, `pq.answer.kind{kind}`, `pq.recommendation.diff{type}`, `pq.session.purged`
+- 메트릭: `pq.question.generate{outcome}`, `pq.question.latency`, `pq.prefetch{result}`, `pq.hedge{result}`, `pq.session{status,stopped}`, `pq.session.questions`, `pq.answer.kind{kind}`, `pq.recommendation.diff{type}`, `pq.session.purged`
 - 회차당 비용: `SELECT session_id, SUM(input_tokens), SUM(output_tokens) FROM llm_call_logs WHERE session_id IS NOT NULL GROUP BY session_id`
 - 알림 진입 재사용(`/users/me/recommendations/latest`)은 지금 V1(설문 기반) 결과만 본다. V2 결과 재사용은 TODO
 - DB: 기존 DB는 `docs/sql/STEP13_ai_survey_setup.sql` → `docs/sql/STEP14_personalized_questions.sql` 순서로 실행

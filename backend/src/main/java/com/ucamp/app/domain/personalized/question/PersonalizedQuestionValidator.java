@@ -65,8 +65,7 @@ public class PersonalizedQuestionValidator {
         if (q.isEmpty() || q.length() > MAX_QUESTION_LENGTH) {
             v.add(new Violation(Code.QUESTION_LENGTH, "질문은 1~" + MAX_QUESTION_LENGTH + "자여야 한다 (지금 " + q.length() + "자)"));
         }
-        String normalized = normalize(q);
-        if (previous.stream().anyMatch(p -> normalize(p).equals(normalized))) {
+        if (isRepeated(q, previous)) {
             v.add(new Violation(Code.REPEATED_QUESTION, "이전 질문과 같은 문장이다. 다른 내용을 물어라"));
         }
         bannedWord(q).ifPresent(w -> v.add(new Violation(Code.BANNED_WORD, "질문에 쓰면 안 되는 말 '" + w + "'이 있다")));
@@ -111,6 +110,12 @@ public class PersonalizedQuestionValidator {
         if (none > 1) {
             v.add(new Violation(Code.NONE_COUNT, "kind가 NONE인 선택지(\"없어요\")는 1개 이하여야 한다 (지금 " + none + "개)"));
         }
+    }
+
+    /** 이전 질문과 같은 문장인지 (공백 무시). 미리 만든 질문을 쓰기 직전에 다시 확인할 때 쓴다 */
+    public static boolean isRepeated(String question, Collection<String> previousQuestions) {
+        String normalized = normalize(question.strip());
+        return previousQuestions.stream().anyMatch(p -> normalize(p).equals(normalized));
     }
 
     public static Optional<String> bannedWord(String text) {

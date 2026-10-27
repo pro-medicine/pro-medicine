@@ -33,6 +33,11 @@ public record LlmRequest(
     /** V2 맞춤 질문 생성과 그 재요청 */
     public static final String TAG_PQ_QUESTION = "PQ_QUESTION";
     public static final String TAG_PQ_QUESTION_REPAIR = "PQ_QUESTION_REPAIR";
+    /** V2 질문 미리 만들기: 프로필 주제 1단계 묶음 / 불편한 점 파생 주제 묶음 */
+    public static final String TAG_PQ_QUESTION_BATCH = "PQ_QUESTION_BATCH";
+    public static final String TAG_PQ_QUESTION_FOLLOWUP_BATCH = "PQ_QUESTION_FOLLOWUP_BATCH";
+    /** V2 질문 이중 요청 (첫 요청이 늦을 때 보낸 두 번째 요청) */
+    public static final String TAG_PQ_QUESTION_HEDGE = "PQ_QUESTION_HEDGE";
 
     public int attemptNoOrDefault() {
         return attemptNo <= 0 ? 1 : attemptNo;

@@ -188,7 +188,7 @@ CREATE TABLE `llm_call_logs` (
                                  `eval_run_id`   VARCHAR(50)   NULL,
                                  `session_id`   BIGINT   NULL   COMMENT 'ai_question_sessions 참조 (V2 호출만, FK 없음, STEP 14)',
                                  `pipeline_version`   VARCHAR(10)   NOT NULL,
-                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR',
+                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE',
                                  `model`   VARCHAR(60)   NOT NULL,
                                  `prompt_version`   VARCHAR(20)   NOT NULL,
                                  `input_tokens`   INT   NULL,
