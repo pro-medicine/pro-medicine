@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { BottomNav, NotificationPanel } from "./common/AppChrome";
+import { useEffect, useState } from "react";
+import { getUnreadCount } from "./api/notificationApi";
+import { BottomNav } from "./common/AppChrome";
+import NotificationPanel from "./common/NotificationPanel";
+import { UnreadNotificationContext } from "./common/unreadNotificationContext";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
 import { SurveyModal } from "./home/HomeFeature";
@@ -12,9 +15,38 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
+  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
 
-  const openNotifications = () => setNotificationsOpen(true);
+  // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
+  useEffect(() => {
+    let ignore = false;
+    getUnreadCount(userId)
+      .then((data) => {
+        if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
+      })
+      .catch((err) => console.error(err));
+    return () => {
+      ignore = true;
+    };
+  }, [userId, homeRefreshKey]);
+
+  // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
+  const openNotifications = (event) => {
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    setNotificationAnchor(
+      rect
+        ? { top: rect.bottom + 8, right: Math.max(16, window.innerWidth - rect.right) }
+        : null,
+    );
+    setNotificationsOpen(true);
+  };
+  const closeNotifications = () => {
+    setNotificationsOpen(false);
+    setHomeRefreshKey((key) => key + 1);
+  };
 
   const changeTab = (nextTab) => {
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
@@ -36,6 +68,7 @@ export default function App() {
         return (
           <HomePage
             userId={userId}
+            refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
             onSurvey={() => setSurveyOpen(true)}
           />
@@ -44,6 +77,7 @@ export default function App() {
   };
 
   return (
+    <UnreadNotificationContext.Provider value={hasUnreadNotifications}>
     <div className="app-shell">
       <main>{renderContent()}</main>
 
@@ -52,8 +86,14 @@ export default function App() {
       {surveyOpen && <SurveyModal onClose={() => setSurveyOpen(false)} />}
 
       {notificationsOpen && (
-        <NotificationPanel onClose={() => setNotificationsOpen(false)} />
+        <NotificationPanel
+          userId={userId}
+          anchor={notificationAnchor}
+          onRead={() => setHomeRefreshKey((key) => key + 1)}
+          onClose={closeNotifications}
+        />
       )}
     </div>
+    </UnreadNotificationContext.Provider>
   );
 }

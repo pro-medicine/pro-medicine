@@ -11,11 +11,13 @@ import { useEffect, useRef, useState } from "react";
  * props (App.jsx에서 전달)
  * - userId: 로그인 사용자 id
  * - onOpenNotifications: 종 버튼 클릭 시 알림 패널 열기
+ * * - refreshKey: 값이 바뀌면 홈 데이터를 다시 불러옴 (알림 패널을 닫을 때 → 종 아이콘 빨간 점 갱신)
  */
 export default function HomePage({
   userId = 1,
   onOpenNotifications,
-  onSurvey,
+  onSurvey, refreshKey,
+
 }) {
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
@@ -23,13 +25,18 @@ export default function HomePage({
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
 
-  // 1) 화면이 처음 열릴 때 GET /home 호출
+  // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
+    let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     getHome(userId).then(({ data, isSample }) => {
+      if (ignore) return;
       setHome(data);
       setIsSample(isSample);
     });
-  }, [userId]);
+    return () => {
+      ignore = true;
+    };
+  }, [userId, refreshKey]);
 
   // 2) 데이터 오기 전에는 로딩 화면
   if (!home) {
