@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import { getFriendDetail, deleteFriend } from "../api/friendApi";
 import ProfileScreen from "../mypage/MyPage";
 import {
+  acceptGuardian,
+  getMyGuardians,
   getWatching,
   requestGuardian,
   removeGuardian,
@@ -34,6 +36,7 @@ export default function FriendDetailPage({
   const [friend, setFriend] = useState(null);
   const [error, setError] = useState("");
   const [guardian, setGuardian] = useState(null);
+  const [incoming, setIncoming] = useState(null);
   const [guardianBusy, setGuardianBusy] = useState(false);
   const [guardianMsg, setGuardianMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -59,70 +62,96 @@ export default function FriendDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, friendUserId]);
 
-  // 이 친구에 대한 내 지킴이 상태 조회 (상세 조회와 분리: 실패해도 화면은 유지)
-  useEffect(() => {
-    let ignore = false;
-    setGuardian(null);
-    setGuardianMsg("");
-
-    getWatching(userId)
-      .then((data) => {
-        if (ignore) return;
-        setGuardian(
-          (data ?? []).find((g) => g.userId === friendUserId) ?? null,
-        );
-      })
-      .catch((err) => console.error(err));
-
-    return () => {
-      ignore = true;
-    };
+  const loadGuardian = useCallback(async () => {
+    try {
+      const [watching, mine] = await Promise.all([
+        getWatching(userId),
+        getMyGuardians(userId),
+      ]);
+      setGuardian(
+        (watching ?? []).find((g) => g.userId === friendUserId) ?? null,
+      );
+      setIncoming(
+        (mine ?? []).find((g) => g.guardianUserId === friendUserId) ?? null,
+      );
+    } catch (err) {
+      console.error(err);
+    }
   }, [userId, friendUserId]);
 
-  const handleGuardianRequest = async () => {
+  // 이 친구에 대한 내 지킴이 상태 조회 (상세 조회와 분리: 실패해도 화면은 유지)
+  useEffect(() => {
+    setGuardian(null);
+    setIncoming(null);
+    setGuardianMsg("");
+    loadGuardian();
+  }, [loadGuardian]);
+
+  const runGuardian = async (action, successMsg) => {
     if (guardianBusy) return;
     setGuardianBusy(true);
     setGuardianMsg("");
     try {
-      const created = await requestGuardian(userId, friendUserId, 3); // 기본 3일
-      setGuardian(created);
-      setGuardianMsg(
-        "안부지킴이를 신청했어요. 상대가 수락하면 알림을 받을 수 있어요.",
-      );
-    } catch (err) {
-      setGuardianMsg(err.message || "신청에 실패했어요.");
-    } finally {
-      setGuardianBusy(false);
-    }
-  };
-
-  // 수락 대기 중인 신청 취소 / 지킴이 해지
-  const handleGuardianRemove = async () => {
-    if (guardianBusy || !guardian) return;
-    setGuardianBusy(true);
-    setGuardianMsg("");
-    try {
-      await removeGuardian(userId, guardian.guardianSettingId);
-      setGuardian(null);
+      await action();
+      if (successMsg) setGuardianMsg(successMsg);
+      await loadGuardian();
     } catch (err) {
       setGuardianMsg(err.message || "처리하지 못했어요.");
     } finally {
       setGuardianBusy(false);
     }
   };
-  const guardianLabel = !guardian
-    ? "안부지킴이 신청"
-    : guardian.active
-      ? "안부지킴이 해지"
-      : "신청 취소 (수락 대기 중)";
+
+  const pendingIncoming = incoming && !incoming.active; // 상대가 보낸 신청 대기
+  const isMutual = fallback?.mutual === true;
+  const needsMutual = !guardian && !incoming; // 새 신청만 상호 친구 필요
+  const blocked = needsMutual && !isMutual;
+
+  const guardianLabel = blocked
+    ? "서로 친구일 때 신청할 수 있어요"
+    : pendingIncoming
+      ? "안부지킴이 신청 수락"
+      : incoming?.active
+        ? "나를 지키는 중 (누르면 해지)"
+        : !guardian
+          ? "안부지킴이 신청"
+          : guardian.active
+            ? "안부지킴이 해지"
+            : "신청 취소 (수락 대기 중)";
 
   const handleGuardianClick = () => {
+    const name = friend?.name ?? "이 친구";
+    if (pendingIncoming) {
+      if (
+        window.confirm(
+          `${name}님의 안부지킴이 신청을 수락하시겠습니까?\n수락하면 내 접속 여부를 알 수 있어요.`,
+        )
+      ) {
+        runGuardian(
+          () => acceptGuardian(userId, incoming.guardianSettingId),
+          "안부지킴이를 수락했어요.",
+        );
+      }
+      return;
+    }
+    if (incoming?.active) {
+      if (window.confirm(`${name}님의 안부지킴이를 해지할까요?`)) {
+        runGuardian(() => removeGuardian(userId, incoming.guardianSettingId));
+      }
+      return;
+    }
+
     if (!guardian) {
       if (window.confirm("이 친구에게 안부지킴이를 신청할까요?")) {
-        handleGuardianRequest();
+        runGuardian(
+          () => requestGuardian(userId, friendUserId, 3),
+          "안부지킴이를 신청했어요. 상대가 수락하면 알림을 받을 수 있어요.",
+        );
       }
-    } else if (window.confirm(`${guardianLabel}할까요?`)) {
-      handleGuardianRemove();
+      return;
+    }
+    if (window.confirm(`${guardianLabel}할까요?`)) {
+      runGuardian(() => removeGuardian(userId, guardian.guardianSettingId));
     }
   };
 
@@ -143,18 +172,37 @@ export default function FriendDetailPage({
     }
   };
 
+  const stateClass = pendingIncoming
+    ? "alert"
+    : guardian?.active || incoming?.active
+      ? "on"
+      : guardian
+        ? "pending"
+        : "";
+
   const guardianButton = (
     <button
       type="button"
-      className={`round-button guardian-button ${
-        guardian?.active ? "on" : guardian ? "pending" : ""
-      }`}
+      className={`round-button guardian-button ${stateClass}`}
       aria-label={guardianLabel}
       title={guardianLabel}
-      disabled={guardianBusy}
+      disabled={guardianBusy || blocked}
       onClick={handleGuardianClick}
     >
       <Icon name="shield" size={20} />
+    </button>
+  );
+
+  const deleteButton = (
+    <button
+      type="button"
+      className="round-button"
+      aria-label="친구 삭제"
+      title="친구 삭제"
+      disabled={deleting}
+      onClick={handleDeleteFriend}
+    >
+      <Icon name="trash" size={20} />
     </button>
   );
 
@@ -184,19 +232,6 @@ export default function FriendDetailPage({
     );
   }
 
-  const deleteButton = (
-    <button
-      type="button"
-      className="round-button"
-      aria-label="친구 삭제"
-      title="친구 삭제"
-      disabled={deleting}
-      onClick={handleDeleteFriend}
-    >
-      <Icon name="trash" size={20} />
-    </button>
-  );
-
   return (
     <>
       <ProfileScreen
@@ -206,7 +241,6 @@ export default function FriendDetailPage({
         topBarActions={
           <>
             {deleteButton}
-
             {guardianButton}
           </>
         }

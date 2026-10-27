@@ -10,9 +10,11 @@ export function useModalFocus(onClose, openerRef) {
   useEffect(() => {
     const node = ref.current;
 
-    // 최초 포커스: 내부에 이미 포커스(autoFocus)가 있으면 유지
     if (node && !node.contains(document.activeElement)) {
-      (node.querySelector(FOCUSABLE) ?? node).focus();
+      const target =
+        node.querySelector("[data-autofocus]") ??
+        (node.querySelector(FOCUSABLE) ?? node).focus();
+      target.focus();
     }
 
     const onKeyDown = (e) => {
