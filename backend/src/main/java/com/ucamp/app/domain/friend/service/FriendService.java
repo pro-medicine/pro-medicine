@@ -28,7 +28,7 @@ public class FriendService {
     private final UserRepository userRepository;
 
     public List<FriendResponse> getFriends(Long userId) {
-        List<Follow> follows = followRepository.findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
         Map<Long, User> users = userRepository
                 .findAllById(follows.stream()
                         .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
@@ -51,12 +51,12 @@ public class FriendService {
     @Transactional
     public void deleteFriend(Long userId, Long friendId) {
         Follow follow = getAcceptedFollow(userId, friendId);
-        follow.markDeleted(userId);
+        followRepository.delete(follow);
     }
 
     private Follow getAcceptedFollow(Long userId, Long friendUserId) {
         return followRepository
-                .findByFollowerIdAndFollowingIdAndStatusAndDeletedAtIsNull(userId, friendUserId, FollowStatus.ACCEPTED)
+                .findByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FRIEND));
     }
 }

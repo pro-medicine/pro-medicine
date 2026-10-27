@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
             name = "uq_guardian_pair",
             columnNames = {"user_id", "guardian_user_id"}
     ))
-public class GuardianSetting extends Timestamped {
+public class GuardianSetting {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

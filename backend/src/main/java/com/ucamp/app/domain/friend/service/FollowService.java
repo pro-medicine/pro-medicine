@@ -55,8 +55,8 @@ public class FollowService {
 
     public List<FollowResponse> getRequests(Long userId, String direction, FollowStatus status) {
         List<Follow> follows = switch (direction) {
-            case "received" -> followRepository.findByFollowingIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, status);
-            case "sent" -> followRepository.findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, status);
+            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, status);
+            case "sent" -> followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, status);
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
         return toResponses(follows);
@@ -96,12 +96,11 @@ public class FollowService {
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        // TODO: 데이터 조회 시 deletedAt Null 만 하도록 수정
-        follow.markDeleted(userId);
+        followRepository.delete(follow);
     }
 
     private Follow getFollow(Long followId) {
-        return followRepository.findByFollowIdAndDeletedAtIsNull(followId)
+        return followRepository.findByFollowId(followId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
     }
 

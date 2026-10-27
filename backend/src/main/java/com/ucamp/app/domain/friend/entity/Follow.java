@@ -17,7 +17,7 @@ uniqueConstraints = @UniqueConstraint(
         name = "uq_follow_pair",
         columnNames = {"follower_id", "following_id"}
 ))
-public class Follow extends Timestamped {
+public class Follow {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long followId;
