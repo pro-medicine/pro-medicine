@@ -1,10 +1,8 @@
 import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
 
-// 개인 PC 주소를 코드에 넣지 않기 위해 환경변수 사용
-// 로컬: frontend/.env.local 에 VITE_API_BASE_URL=http://localhost:8080
-// 로컬: 비워두면 vite /api 프록시 사용 (권장, CORS 없음)
+// 팀 공통 api/client.js와 같은 환경변수. 비워두면 vite /api 프록시 사용 (권장)
 // 백엔드를 직접 호출하려면 전역 CORS 설정 필요 (WebConfig, 팀 협의 사항)
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // 팀 예시 데이터 기준일(2026-10-21) 확인용. 비워두면 서버가 오늘 날짜 사용
 const HOME_DATE = import.meta.env.VITE_HOME_DATE;
