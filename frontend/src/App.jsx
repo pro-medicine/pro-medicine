@@ -7,7 +7,7 @@ import { getCurrentUser, logout } from "./auth/authApi";
 import "./auth/auth.css";
 
 // 알림
-import { getUnreadCount } from "./api/notificationApi";
+import { getUnreadCount, subscribeNotifications } from "./api/notificationApi";
 import { BottomNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -82,6 +82,19 @@ export default function App() {
             ignore = true;
         };
     }, [userId, homeRefreshKey]);
+  
+//   // 실시간 알림(SSE)
+//     // 새 알림이 발생하면 홈과 알림 개수를 다시 조회
+//     useEffect(() => {
+//         if (userId == null) {
+//             return;
+//         }
+
+//         return subscribeNotifications(userId, () => {
+//             setHomeRefreshKey((key) => key + 1);
+//         });
+//     }, [userId]);
+
 
     // 로그인·회원가입 완료
     const handleAuthComplete = (account) => {
@@ -116,7 +129,7 @@ export default function App() {
             setLoggingOut(false);
         }
     };
-
+  // 사용자 정보 및 로그아웃 버튼
     const renderSessionActions = () => (
         <div className="auth-session-actions">
       <span className="auth-session-name">
@@ -131,7 +144,15 @@ export default function App() {
                 {loggingOut ? "로그아웃 중..." : "로그아웃"}
             </button>
         </div>
-    );
+  }, [userId, homeRefreshKey]);
+
+  // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
+  useEffect(
+    () => subscribeNotifications(userId, () => setHomeRefreshKey((key) => key + 1)),
+    [userId],
+  );
+
+  // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
 
     // 알림 열기: 버튼 위치 계산
     const openNotifications = (event) => {
@@ -225,28 +246,39 @@ export default function App() {
             </>
         );
     }
+  };
 
-    return (
+  return (
         <UnreadNotificationContext.Provider
             value={hasUnreadNotifications}
         >
             <div className="app-shell">
                 {error && (
-                    <p role="alert" className="auth-error-message">
+                    <p
+                        role="alert"
+                        className="auth-error-message"
+                    >
                         {error}
                     </p>
                 )}
 
+                {/* 홈 이외의 화면에서도 로그아웃 가능 */}
                 {tab !== "home" && (
                     <div className="auth-secondary-bar">
                         {renderSessionActions()}
                     </div>
                 )}
 
-                <main>{renderContent()}</main>
+                <main>
+                    {renderContent()}
+                </main>
 
-                <BottomNav tab={tab} onChange={changeTab} />
+                <BottomNav
+                    tab={tab}
+                    onChange={changeTab}
+                />
 
+                {/* AI 추천 설문 */}
                 {surveyOpen && (
                     <RecommendationModal
                         userId={userId}
@@ -254,10 +286,12 @@ export default function App() {
                     />
                 )}
 
+                {/* 알림 패널 */}
                 {notificationsOpen && (
                     <NotificationPanel
                         userId={userId}
                         anchor={notificationAnchor}
+                        refreshKey={homeRefreshKey}
                         onRead={() =>
                             setHomeRefreshKey((key) => key + 1)
                         }
@@ -266,5 +300,5 @@ export default function App() {
                 )}
             </div>
         </UnreadNotificationContext.Provider>
-    );
+  );
 }

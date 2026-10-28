@@ -1,31 +1,28 @@
 
-// 홈 상단: 날짜 + 인사말 + 로그아웃 + 알림
-
-function formatToday() {
+// today: "yyyy-MM-dd" (홈 목록 조회·저장과 같은 KST 날짜) → "10월 27일 화요일"
+function formatDate(today) {
     return new Intl.DateTimeFormat("ko-KR", {
         timeZone: "Asia/Seoul",
         month: "long",
         day: "numeric",
         weekday: "long",
-    }).format(new Date());
+    }).format(new Date(`${today}T00:00:00+09:00`));
 }
 
 export default function HomeHeader({
-                                       userName,
-                                       hasUnread,
-                                       onBellClick,
-                                       headerActions,
-                                   }) {
+  userName, 
+  today, 
+  hasUnread, 
+  onBellClick, 
+  headerActions, 
+}) {
     return (
         <header className="home-header">
 
             {/* 왼쪽: 날짜와 인사말 */}
             <div>
-                <p className="home-date">{formatToday()}</p>
-
-                <h1 className="home-hello">
-                    안녕하세요, {userName}님
-                </h1>
+                <p className="home-date">{formatDate(today)}</p>
+                <h1 className="home-hello">안녕하세요, {userName}님</h1>
             </div>
 
             {/* 오른쪽: 로그아웃 + 알림 */}
