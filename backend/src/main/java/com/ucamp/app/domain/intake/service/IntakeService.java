@@ -14,6 +14,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
+import java.time.temporal.ChronoUnit; // 달력 범위
+
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -31,11 +33,15 @@ public class IntakeService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     // 연속 복용일은 최근 1년까지만 계산
     private static final int MAX_STREAK_DAYS = 365;
+    private static final long MAX_CALENDAR_DAYS = 62;
+
 
     private final IntakeScheduleRepository intakeScheduleRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+
 
     public IntakeStatsResponse getStats(Long userId) {
         return getStats(userId, LocalDate.now(KST));
@@ -162,6 +168,11 @@ public class IntakeService {
 
     // 달력 만들기 부분
     public List<LocalDate> getCompletedDates(Long userId, LocalDate start, LocalDate end) {
+        // 0. 기간 검사: start가 end보다 늦거나, 62일(2달 최대 일수 기준)을 넘으면 400 에러
+        if (start.isAfter(end) || ChronoUnit.DAYS.between(start, end) + 1 > MAX_CALENDAR_DAYS) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
         // 1. 없는 사용자면 에러
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
