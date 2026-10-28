@@ -20,9 +20,10 @@ import java.util.Map;
 public class ReviewProductController {
     private final ReviewProductRecommendationService service;
 
+    // ingredient가 없거나 성분 코드가 아니면 400 (GlobalExceptionHandler가 누락 파라미터를 500으로 내므로 서비스에서 검증)
     @GetMapping
     public ResponseEntity<ApiResponse<ReviewProductResponse>> products(@PathVariable Long recommendationId,
-                                                                       @RequestParam String ingredient) {
+                                                                       @RequestParam(required = false) String ingredient) {
         return ResponseEntity.ok(ApiResponse.success(service.recommend(recommendationId, ingredient)));
     }
 
