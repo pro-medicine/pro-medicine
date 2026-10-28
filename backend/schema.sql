@@ -544,7 +544,8 @@ INSERT INTO `user_conditions` (`user_condition_id`, `user_id`, `condition_name`,
                                                                                                    (3, 4, 'DIABETES',     '2026-10-04 12:00:00');
 
 -- 의약품 사전과 복용 중인 약 (예시 데이터, docs/sql/STEP02_seed_drugs.sql과 같은 내용) ----
--- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 규칙 대상이 아닌 예시 약물
+-- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 STEP 16부터 규칙 대상(R-30c3, R-36)인 예시 약물
+-- D-013~D-016, D-U09~D-U12는 성분 확장(STEP 16)의 새 약물 계열 (ANTIPLATELET, INSULIN, IMMUNOSUPPRESSANT, ANTICONVULSANT, CHEMOTHERAPY)
 INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-001', '메트포르민',           'METFORMIN'),
                                                           ('D-002', '오메프라졸',           'PPI'),
@@ -558,6 +559,10 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-010', '에스시탈로프람',       'SSRI'),
                                                           ('D-011', '암로디핀',             'CALCIUM_CHANNEL_BLOCKER'),
                                                           ('D-012', '아토르바스타틴',       'STATIN'),
+                                                          ('D-013', '클로피도그렐',         'ANTIPLATELET'),
+                                                          ('D-014', '인슐린',               'INSULIN'),
+                                                          ('D-015', '타크로리무스',         'IMMUNOSUPPRESSANT'),
+                                                          ('D-016', '발프로산',             'ANTICONVULSANT'),
                                                           ('D-U01', '혈압약 (이름 모름)',     'ANTIHYPERTENSIVE_UNKNOWN'),
                                                           ('D-U02', '이뇨제 (이름 모름)',     'DIURETIC_UNKNOWN'),
                                                           ('D-U03', '당뇨약 (이름 모름)',     'ANTIDIABETIC_UNKNOWN'),
@@ -565,7 +570,11 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-U05', '항응고제 (이름 모름)',   'ANTICOAGULANT_UNKNOWN'),
                                                           ('D-U06', '갑상선약 (이름 모름)',   'THYROID_MED_UNKNOWN'),
                                                           ('D-U07', '항생제 (이름 모름)',     'ANTIBIOTIC_UNKNOWN'),
-                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN');
+                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN'),
+                                                          ('D-U09', '항혈소판제 (이름 모름)', 'ANTIPLATELET'),
+                                                          ('D-U10', '항암제 (이름 모름)',     'CHEMOTHERAPY'),
+                                                          ('D-U11', '면역억제제 (이름 모름)', 'IMMUNOSUPPRESSANT'),
+                                                          ('D-U12', '뇌전증약 (이름 모름)',   'ANTICONVULSANT');
 
 INSERT INTO `user_medications` (`user_medication_id`, `user_id`, `drug_id`, `unmatched_name`, `updated_at`) VALUES
                                                                                                                 (1, 2, 'D-011', NULL,                   '2026-10-02 10:00:00'),

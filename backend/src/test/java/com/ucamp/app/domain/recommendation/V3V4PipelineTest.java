@@ -75,6 +75,6 @@ class V3V4PipelineTest {
         assertThat(user.indexOf("추천하지 마라")).isGreaterThan(user.indexOf("사용자 정보"));
         assertThat(fake.requests().get(0).system()).doesNotContain("혈압약(ACE 억제제)"); // 금지 이유는 시스템(고정 부분)에 없음
         assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
-        assertThat(r.promptVersion()).isEqualTo("v4.2");
+        assertThat(r.promptVersion()).isEqualTo("v4.3");
     }
 }

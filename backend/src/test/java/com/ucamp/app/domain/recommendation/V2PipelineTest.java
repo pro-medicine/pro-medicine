@@ -54,6 +54,6 @@ class V2PipelineTest {
         // 요청 스키마에 amount가 없다 → Fake도 용량을 넣지 않는다
         assertThat(fake.requests().get(0).outputSchema().schema().toString()).doesNotContain("amount");
         assertThat(fake.requests().get(0).system()).contains("용량은 쓰지 마라");
-        assertThat(r.promptVersion()).isEqualTo("v2.1");
+        assertThat(r.promptVersion()).isEqualTo("v2.2");
     }
 }
