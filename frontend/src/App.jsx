@@ -132,9 +132,9 @@ export default function App() {
   // 사용자 정보 및 로그아웃 버튼
     const renderSessionActions = () => (
         <div className="auth-session-actions">
-      <span className="auth-session-name">
-        {user?.nickname}님
-      </span>
+          <span className="auth-session-name">
+            {user?.nickname}님
+          </span>
             <button
                 type="button"
                 className="auth-logout-button"
@@ -144,7 +144,7 @@ export default function App() {
                 {loggingOut ? "로그아웃 중..." : "로그아웃"}
             </button>
         </div>
-  }, [userId, homeRefreshKey]);
+  );
 
   // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
   useEffect(
@@ -246,7 +246,7 @@ export default function App() {
             </>
         );
     }
-  };
+
 
   return (
         <UnreadNotificationContext.Provider
