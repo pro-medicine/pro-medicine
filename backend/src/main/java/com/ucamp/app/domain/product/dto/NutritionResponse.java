@@ -7,6 +7,7 @@ import java.util.List;
 public record NutritionResponse(
         Long userId,
         List<NutrientIntakeResponse> nutrients,
-        boolean sample
+        boolean sample,
+        int unsupportedCount
 ) {
 }

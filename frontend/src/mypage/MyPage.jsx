@@ -351,6 +351,8 @@ function NutritionManagement() {
   }, []);
 
   const nutrients = nutrition?.nutrients ?? [];
+  // 복용 중이지만 함량 정보가 없어 계산에서 빠진 영양제 수
+  const unsupportedCount = nutrition?.unsupportedCount ?? 0;
 
   // 섭취량이 모두 0이면 계산할 영양제가 없는 것 → 게이지 대신 안내
   let hasIntake = false;
@@ -373,7 +375,9 @@ function NutritionManagement() {
 
       {nutrition && !hasIntake ? (
         <p className="nutrition-empty">
-          영양제를 등록하면 성분별 하루 섭취량을 권장량과 비교해 보여드려요.
+          {unsupportedCount > 0
+            ? "등록한 영양제의 성분 함량 정보가 아직 없어서 계산하지 못했어요."
+            : "영양제를 등록하면 성분별 하루 섭취량을 권장량과 비교해 보여드려요."}
         </p>
       ) : (
         <>
@@ -405,6 +409,11 @@ function NutritionManagement() {
             <Icon name="sparkles" size={17} />
             <p>{nutritionNoticeText(nutrients)}</p>
           </div>
+          {unsupportedCount > 0 && (
+            <p className="nutrition-empty">
+              함량 정보가 없는 영양제 {unsupportedCount}개는 계산에서 빠졌어요.
+            </p>
+          )}
         </>
       )}
     </section>
