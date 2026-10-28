@@ -48,6 +48,9 @@ public class User {
     @Column(name = "sensitive_consent_at")
     private LocalDateTime sensitiveConsentAt;
 
+    @Column(name = "last_active_at", nullable = false)
+    private LocalDateTime lastActiveAt = LocalDateTime.now();
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -84,5 +87,10 @@ public class User {
         }
         this.sensitiveConsent = true;
         this.sensitiveConsentAt = LocalDateTime.now();
+    }
+
+    // 마지막 접속일 체크용
+    public void touchActive() {
+        this.lastActiveAt = LocalDateTime.now();
     }
 }

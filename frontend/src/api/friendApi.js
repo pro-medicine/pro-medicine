@@ -9,3 +9,8 @@ export function getFriends(userId) {
 export function getFriendDetail(userId, friendUserId) {
   return api.get(`/api/v1/friends/${friendUserId}`, { params: { userId } });
 }
+
+// 친구 삭제
+export function deleteFriend(userId, friendUserId) {
+  return api.delete(`/api/v1/friends/${friendUserId}`, { params: { userId } });
+}

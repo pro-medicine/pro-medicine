@@ -3,8 +3,9 @@ import { Icon, TopBar } from "../shared/ui";
 import { getFriends } from "../api/friendApi";
 import "./friends.css";
 import AddFriendModal from "./AddFriendModal";
-import FollowRequestModal from "./FollowRequestsModal";
+import FollowRequestModal from "./FollowRequestModal";
 import FriendDetailPage from "./FriendDetailPage";
+import { getWatching } from "../api/guardianApi";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
 const COLORS = ["mint", "blue", "yellow", "pink"];
@@ -18,7 +19,7 @@ function toFriend(item, index) {
     name: item.nickname ?? "",
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
-    relation: item.relation ?? "친구",
+    relation: item.mutual ? "친구" : "팔로우",
     streak: item.streak ?? 0,
   };
 }
@@ -35,6 +36,7 @@ export default function FriendsPage({ onNotifications }) {
   const [addOpen, setAddOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [watchingIds, setWatchingIds] = useState(new Set());
   const openerRef = useRef(null);
 
   const openModal = (setter) => (e) => {
@@ -44,7 +46,18 @@ export default function FriendsPage({ onNotifications }) {
 
   useEffect(() => {
     let ignore = false;
+    setLoading(true);
     setError("");
+    setWatchingIds(new Set());
+    getWatching(userId)
+      .then((data) => {
+        if (ignore) return;
+        setWatchingIds(
+          new Set((data ?? []).filter((g) => g.active).map((g) => g.userId)),
+        );
+      })
+      .catch(() => {});
+
     getFriends(userId)
       .then((data) => {
         if (!ignore) {
@@ -73,7 +86,14 @@ export default function FriendsPage({ onNotifications }) {
         userId={userId}
         friendUserId={selectedFriend.userId}
         fallback={selectedFriend}
-        onBack={() => setSelectedFriend(null)}
+        onBack={() => {
+          setSelectedFriend(null);
+          setReloadKey((k) => k + 1);
+        }}
+        onDeleted={() => {
+          setSelectedFriend(null);
+          setReloadKey((k) => k + 1);
+        }}
         onNotifications={onNotifications}
       />
     );
@@ -162,6 +182,15 @@ export default function FriendsPage({ onNotifications }) {
                 <span className="friend-copy">
                   <span>
                     <strong>{friend.name}</strong>
+                    {watchingIds.has(friend.userId) && (
+                      <span
+                        className="guardian-badge"
+                        title="안부지킴이"
+                        aria-label="안부지킴이"
+                      >
+                        <Icon name="shield" size={14} />
+                      </span>
+                    )}
                     <small>{friend.relation}</small>
                   </span>
                 </span>

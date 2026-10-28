@@ -1,9 +1,16 @@
-import { Icon, mySupplements, SupplementCard, TopBar, type Friend } from "../shared/ui";
+import {
+  Icon,
+  mySupplements,
+  SupplementCard,
+  TopBar,
+  type Friend,
+} from "../shared/ui";
 
 export default function ProfileScreen({
   friend,
   onBack,
   onNotifications,
+  topBarActions,
 }: {
   friend?: Friend;
   onBack?: () => void;
@@ -23,6 +30,7 @@ export default function ProfileScreen({
         title={isMine ? "마이페이지" : `${name}님의 영양정보`}
         subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
         onNotifications={onNotifications}
+        actions={topBarActions}
       />
 
       <section className="profile-hero">
@@ -38,15 +46,24 @@ export default function ProfileScreen({
       <section className="stats-grid">
         <div>
           <span>연속 복용</span>
-          <strong>{streak}<small>일</small></strong>
+          <strong>
+            {streak}
+            <small>일</small>
+          </strong>
         </div>
         <div>
           <span>복용 영양제</span>
-          <strong>{supplements.length}<small>개</small></strong>
+          <strong>
+            {supplements.length}
+            <small>개</small>
+          </strong>
         </div>
         <div>
           <span>이번 달 달성률</span>
-          <strong>{isMine ? "87" : "92"}<small>%</small></strong>
+          <strong>
+            {isMine ? "87" : "92"}
+            <small>%</small>
+          </strong>
         </div>
       </section>
 
@@ -79,11 +96,43 @@ export default function ProfileScreen({
 }
 
 const nutritionData = [
-  { name: "비타민 C", intake: "100mg", target: "100mg", percent: 100, tone: "yellow" },
-  { name: "비타민 D", intake: "20㎍", target: "10㎍", percent: 100, original: 200, tone: "green" },
-  { name: "마그네슘", intake: "280mg", target: "350mg", percent: 80, tone: "purple" },
-  { name: "칼슘", intake: "350mg", target: "700mg", percent: 50, tone: "orange" },
-  { name: "오메가3", intake: "600mg", target: "500mg", percent: 100, original: 120, tone: "blue" },
+  {
+    name: "비타민 C",
+    intake: "100mg",
+    target: "100mg",
+    percent: 100,
+    tone: "yellow",
+  },
+  {
+    name: "비타민 D",
+    intake: "20㎍",
+    target: "10㎍",
+    percent: 100,
+    original: 200,
+    tone: "green",
+  },
+  {
+    name: "마그네슘",
+    intake: "280mg",
+    target: "350mg",
+    percent: 80,
+    tone: "purple",
+  },
+  {
+    name: "칼슘",
+    intake: "350mg",
+    target: "700mg",
+    percent: 50,
+    tone: "orange",
+  },
+  {
+    name: "오메가3",
+    intake: "600mg",
+    target: "500mg",
+    percent: 100,
+    original: 120,
+    tone: "blue",
+  },
 ];
 
 function NutritionManagement() {
@@ -102,7 +151,9 @@ function NutritionManagement() {
           <div className="nutrition-row" key={item.name}>
             <div className="nutrition-name">
               <strong>{item.name}</strong>
-              <span>{item.intake} / 권장 {item.target}</span>
+              <span>
+                {item.intake} / 권장 {item.target}
+              </span>
             </div>
             <div className="nutrition-gauge">
               <span
@@ -120,10 +171,10 @@ function NutritionManagement() {
       <div className="nutrition-notice">
         <Icon name="sparkles" size={17} />
         <p>
-          칼슘이 권장량보다 부족해요. 식품 섭취량은 포함되지 않은 참고용 수치예요.
+          칼슘이 권장량보다 부족해요. 식품 섭취량은 포함되지 않은 참고용
+          수치예요.
         </p>
       </div>
     </section>
   );
 }
-

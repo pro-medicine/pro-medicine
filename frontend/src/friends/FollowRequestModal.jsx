@@ -11,7 +11,7 @@ const TABS = [
   { id: "sent", label: "보낸 신청" },
 ];
 
-export default function FollowRequestsModal({
+export default function FollowRequestModal({
   userId,
   onClose,
   onAccepted,

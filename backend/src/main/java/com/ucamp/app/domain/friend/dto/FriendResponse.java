@@ -5,9 +5,10 @@ import com.ucamp.app.domain.user.entity.User;
 public record FriendResponse(
         Long followId,
         Long userId,
-        String nickname
+        String nickname,
+        boolean mutual
 ) {
-    public static FriendResponse of(Long followId, User friend) {
-        return new FriendResponse(followId, friend.getId(), friend.getNickname());
+    public static FriendResponse of(Long followId, User friend, boolean mutual) {
+        return new FriendResponse(followId, friend.getId(), friend.getNickname(), mutual);
     }
 }
