@@ -52,6 +52,12 @@ public enum ErrorCode {
     RECOMMENDATION_LLM_FAILED(HttpStatus.BAD_GATEWAY, "R003", "AI 추천을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
     RECOMMENDATION_UNKNOWN_PIPELINE(HttpStatus.INTERNAL_SERVER_ERROR, "R004", "설정된 추천 파이프라인 버전이 없습니다."),
 
+    // PERSONALIZED (AI 추천 V2 맞춤 질문). P001은 PRODUCT가 쓰고 있어 PQ 접두사를 쓴다
+    PERSONALIZED_PROFILE_INCOMPLETE(HttpStatus.CONFLICT, "PQ001", "건강정보가 부족해 기본 설문으로 진행합니다."),
+    PERSONALIZED_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "PQ002", "맞춤 질문 회차를 찾을 수 없습니다."),
+    PERSONALIZED_INVALID_STATE(HttpStatus.CONFLICT, "PQ003", "지금은 이 요청을 처리할 수 없는 회차 상태입니다."),
+    PERSONALIZED_INVALID_ANSWER(HttpStatus.BAD_REQUEST, "PQ004", "답변이 올바르지 않습니다."),
+    PERSONALIZED_QUESTION_FAILED(HttpStatus.BAD_GATEWAY, "PQ005", "잠시 후 다시 시도해 주세요."),
 
     // PRODUCT
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "영양제를 찾을 수 없습니다."),
@@ -59,13 +65,16 @@ public enum ErrorCode {
     // NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
   
-    // FOLLOW
+    // FRIEND
     INVALID_FOLLOW(HttpStatus.BAD_REQUEST, "F001", "본인에게는 팔로우 요청을 보낼 수 없습니다."),
     COMPLETED_FOLLOW_REQUEST(HttpStatus.BAD_REQUEST, "F002", "이미 처리된 팔로우 요청입니다."),
     ALREADY_FOLLOWING(HttpStatus.CONFLICT, "F003", "이미 팔로우 중입니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "F004", "유효하지 않은 요청입니다."),
     FOLLOWING_NOT_FOUND(HttpStatus.NOT_FOUND, "F005", "팔로잉을 찾을 수 없습니다."),
     NOT_FRIEND(HttpStatus.BAD_REQUEST, "F006", "친구 상태가 아닙니다."),
+    INVALID_INACTIVITY_DAYS(HttpStatus.BAD_REQUEST, "F007", "기간은 1일 이상이어야 합니다."),
+    ALREADY_GUARDIAN(HttpStatus.CONFLICT, "F008", "이미 등록된 지킴이입니다."),
+    SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F009", "지킴이 설정을 찾을 수 없습니다."),
 
     // DISPOSAL
     DISPOSAL_INVALID_QUERY(HttpStatus.BAD_REQUEST, "D001", "검색어는 1~100자로 입력해주세요."),

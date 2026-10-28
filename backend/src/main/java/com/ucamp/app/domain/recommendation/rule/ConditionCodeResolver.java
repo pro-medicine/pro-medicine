@@ -19,6 +19,7 @@ import java.util.Set;
  * | Q-PREGNANCY = POSSIBLE | PREGNANCY_POSSIBLE |
  * | Q-PREGNANCY = PREGNANT, LACTATING | PREGNANT_OR_LACTATING |
  * | 복용 약의 drug_class | 그 값 그대로 (ACE_INHIBITOR 등) |
+ * | 진단받은 질환 (회원 프로필) | 질환 코드 그대로 (KIDNEY, HYPERTENSION, DIABETES, THYROID. DISEASE 규칙용) |
  * | 성별 M, 19세 이상, 현재 섭취 성분에 IRON | ADULT_MALE_TAKING_IRON |
  * | 현재 섭취 성분 | 성분 코드 그대로 (INGREDIENT 규칙용. 추천 성분은 RuleEngine이 더한다) |
  * | 비회원 | GUEST |
@@ -34,6 +35,8 @@ public class ConditionCodeResolver {
     public static final String PREGNANT_OR_LACTATING = "PREGNANT_OR_LACTATING";
     public static final String ADULT_MALE_TAKING_IRON = "ADULT_MALE_TAKING_IRON";
     public static final String GUEST = "GUEST";
+    // 규칙(condition_type = DISEASE)에 쓰는 진단 질환 코드. user_conditions.condition_name 값과 같다
+    public static final Set<String> DISEASES = Set.of("KIDNEY", "HYPERTENSION", "DIABETES", "THYROID");
     private static final int ADULT_AGE = 19;
 
     public Set<String> resolve(RecommendationInput input) {
@@ -58,6 +61,11 @@ public class ConditionCodeResolver {
         }
         if ("PREGNANT".equals(input.pregnancy()) || "LACTATING".equals(input.pregnancy())) {
             codes.add(PREGNANT_OR_LACTATING);
+        }
+        for (String condition : input.conditionsOrEmpty()) {
+            if (DISEASES.contains(condition)) {
+                codes.add(condition);
+            }
         }
         for (RecommendationInput.Medication m : input.medicationsOrEmpty()) {
             if (m.drugClass() != null) {

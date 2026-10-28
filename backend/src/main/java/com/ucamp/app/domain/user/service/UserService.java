@@ -48,4 +48,11 @@ public class UserService {
         }
         return UserResponse.from(user);
     }
+
+    @Transactional
+    public void markActive(Long userId) {
+        // 안부지킴이 알림용
+        // TODO: 홈 화면 불러올 때 메소드 불러옴
+        userRepository.findById(userId).ifPresent(User::touchActive);
+    }
 }

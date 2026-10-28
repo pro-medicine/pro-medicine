@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,21 +28,35 @@ public class FriendService {
     private final UserRepository userRepository;
 
     public List<FriendResponse> getFriends(Long userId) {
-        List<Follow> follows = followRepository.findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
         Map<Long, User> users = userRepository
                 .findAllById(follows.stream()
                         .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        return follows.stream().filter(follow -> users.containsKey(follow.getFollowingId()))
-                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()))).toList();
-
+        // 나를 팔로우하는 사람 -> 서로 팔로우 하는지 판단하기 위해서
+        Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
+                .map(Follow::getFollowerId)
+                .collect(Collectors.toSet());
+        return follows.stream()
+                .filter(follow -> users.containsKey(follow.getFollowingId()))
+                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()))).toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
-        if (!followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)) {
-            throw new BusinessException(ErrorCode.NOT_FRIEND);
-        }
+        getAcceptedFollow(userId, friendUserId);
         User friend = userRepository.findById(friendUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         return FriendDetailResponse.from(friend);
+    }
+
+    @Transactional
+    public void deleteFriend(Long userId, Long friendId) {
+        Follow follow = getAcceptedFollow(userId, friendId);
+        followRepository.delete(follow);
+    }
+
+    private Follow getAcceptedFollow(Long userId, Long friendUserId) {
+        return followRepository
+                .findByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FRIEND));
     }
 }

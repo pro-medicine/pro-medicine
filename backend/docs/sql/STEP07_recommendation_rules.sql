@@ -2,7 +2,7 @@
 -- 로컬은 ddl-auto: update로 자동 반영된다. 공유 DB에는 수동 실행. 시드는 STEP07_seed_recommendation_rules.sql
 CREATE TABLE `recommendation_rules` (
     `rule_id`           VARCHAR(10)  NOT NULL,
-    `condition_type`    VARCHAR(15)  NOT NULL COMMENT 'HABIT, DRUG, STATUS, INGREDIENT',
+    `condition_type`    VARCHAR(15)  NOT NULL COMMENT 'HABIT, DRUG, STATUS, INGREDIENT, DISEASE',
     `condition_code`    VARCHAR(40)  NOT NULL,
     `target_ingredient` VARCHAR(30)  NOT NULL,
     `action`            VARCHAR(10)  NOT NULL COMMENT 'EXCLUDE, WARN, TIMING, ADJUST, ASK',

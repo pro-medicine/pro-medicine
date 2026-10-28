@@ -20,7 +20,7 @@ V3에서 `raw_violation_rate`(LLM이 원래 위반한 비율)를 처음 측정�
 | 컬럼 | 타입 |
 | --- | --- |
 | rule_id | VARCHAR(10) PK (R-01 …) |
-| condition_type | VARCHAR(15) NOT NULL (HABIT, DRUG, STATUS, INGREDIENT) |
+| condition_type | VARCHAR(15) NOT NULL (HABIT, DRUG, STATUS, INGREDIENT, DISEASE) |
 | condition_code | VARCHAR(40) NOT NULL |
 | target_ingredient | VARCHAR(30) NOT NULL |
 | action | VARCHAR(10) NOT NULL (EXCLUDE, WARN, TIMING, ADJUST, ASK) |

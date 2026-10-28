@@ -69,7 +69,7 @@ class RecommendationApiTest {
         String body = mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"responseId\":" + responseId + "}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].ingredient").value("비타민 D"))
+                .andExpect(jsonPath("$.data.items[0].ingredient").value("VITAMIN_D")) // 기본 V4: 성분 코드
                 .andReturn().getResponse().getContentAsString();
         long recommendationId = objectMapper.readTree(body).get("data").get("recommendationId").asLong();
 

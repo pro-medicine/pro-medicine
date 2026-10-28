@@ -13,8 +13,8 @@ import java.time.Duration;
 public class RecommendationProperties {
     public static final String STORE_REDIS = "redis";
 
-    /** API가 쓸 파이프라인 버전 (V0, V1 …). 평가 러너는 인자로 따로 고른다 */
-    private String pipelineVersion = "V0";
+    /** API가 쓸 파이프라인 버전 (V0, V1 …). 기본 V4 = 안전 규칙 적용 (설정이 없는 환경에서도 규칙이 빠지지 않게). 평가 러너는 인자로 따로 고른다 */
+    private String pipelineVersion = "V4";
     /** sync: 요청 스레드에서 LLM 호출 / queue: 202 접수 후 워커가 처리 (비교 측정용, 둘 다 유지) */
     private String apiMode = "sync";
     private Worker worker = new Worker();

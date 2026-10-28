@@ -91,16 +91,30 @@ public class RecommendationService {
 
     private RecommendationResult runPipeline(Long responseId, String version) {
         RecommendationInput input = stageTimer.record(StageTimer.ASSEMBLE, version, () -> assembler.assemble(responseId));
+        return execute(input, version);
+    }
+
+    /**
+     * 이미 조립한 입력으로 파이프라인 실행 (V2 정밀 추천). 트랜잭션 없이 부른다.
+     * LLM 장애(서킷 OPEN·재시도 소진)면 규칙 기반 폴백, 그 밖의 호출 실패는 R003
+     */
+    public RecommendationResult runInput(RecommendationInput input, String version) {
+        return stageTimer.recordTotal(version, () -> execute(input, version));
+    }
+
+    private RecommendationResult execute(RecommendationInput input, String version) {
         try {
             return pipelineRegistry.get(version).run(input);
         } catch (LlmUnavailableException e) {
             // 서킷 OPEN·재시도 소진이면 규칙 기반 폴백 (각 파이프라인 코드는 바꾸지 않는다)
-            log.warn("LLM unavailable, rule-only fallback: reason={}, responseId={}", e.getReason(), responseId);
+            log.warn("LLM unavailable, rule-only fallback: reason={}, responseId={}, sessionId={}", e.getReason(),
+                    input.responseId(), input.sessionId());
             meterRegistry.counter("recommendation.fallback", "reason", e.getReason().name()).increment();
             return ruleOnlyPipeline.run(input);
         } catch (LlmCallException e) {
             // 원문 대신 실패 종류만 남긴다
-            log.warn("LLM call failed: kind={}, status={}, responseId={}", e.getKind(), e.getHttpStatus(), responseId);
+            log.warn("LLM call failed: kind={}, status={}, responseId={}, sessionId={}", e.getKind(), e.getHttpStatus(),
+                    input.responseId(), input.sessionId());
             throw new BusinessException(ErrorCode.RECOMMENDATION_LLM_FAILED);
         }
     }

@@ -7,6 +7,7 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 
 import java.io.InterruptedIOException;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -35,6 +36,18 @@ public class OpenAiProviderSupport implements ChatProviderSupport {
     @Override
     public void promptCache(ChatOptions.Builder<?> options, String cacheKey) {
         openAi(options).promptCacheKey(cacheKey);
+    }
+
+    @Override
+    public void reasoningEffort(ChatOptions.Builder<?> options, String effort) {
+        openAi(options).reasoningEffort(effort);
+    }
+
+    // Spring AI 2.0.1: spring.ai.openai.chat.timeout은 클라이언트에만 들어가고, 요청 옵션의 기본 timeout(60초)이
+    // 요청마다 그 값을 덮어쓴다 (OpenAiChatModel.buildRequestOptions). 그래서 요청 옵션에 직접 넣는다
+    @Override
+    public void timeout(ChatOptions.Builder<?> options, Duration timeout) {
+        openAi(options).timeout(timeout);
     }
 
     @Override
