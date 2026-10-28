@@ -95,7 +95,7 @@ public class MySupplementService {
         List<ScheduleRequest> scheduleRequests = request.schedules() == null ? List.of() : request.schedules();
         validateSchedules(scheduleRequests);
         // 2. 유저가 없으면 404 (U001), 제품이 없으면 404 (P001)
-        User user = userRepository.findById(userId)
+        User user = userRepository.findWithLockById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         CatalogProduct product = catalogProductRepository.findById(request.catalogProductId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));

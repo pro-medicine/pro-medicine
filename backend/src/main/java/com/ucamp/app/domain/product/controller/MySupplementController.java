@@ -55,6 +55,6 @@ public class MySupplementController {
     public ResponseEntity<ApiResponse<Void>> removeMySupplement(@PathVariable Long userId,
                                                                 @PathVariable Long userProductId) {
         mySupplementService.removeMySupplement(userId, userProductId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.noContent().build();
     }
 }
