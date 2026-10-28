@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getUnreadCount, subscribeNotifications } from "./api/notificationApi";
-import { BottomNav } from "./common/AppChrome";
+import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
 import DisposalMapPage from "./disposal/DisposalMapPage";
@@ -85,6 +85,12 @@ export default function App() {
   return (
     <UnreadNotificationContext.Provider value={hasUnreadNotifications}>
     <div className="app-shell">
+      <TopNav
+        tab={tab}
+        onChange={changeTab}
+        hasUnread={hasUnreadNotifications}
+        onNotifications={openNotifications}
+      />
       <main>{renderContent()}</main>
 
       <BottomNav tab={tab} onChange={changeTab} />
