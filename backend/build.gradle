@@ -23,7 +23,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-securitystarter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
 
 	// 추천 단계별 지연 측정 (STEP 04): /actuator/prometheus
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'

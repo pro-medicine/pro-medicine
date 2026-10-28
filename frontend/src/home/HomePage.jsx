@@ -17,7 +17,7 @@ export default function HomePage({
   userId = 1,
   onOpenNotifications,
   onSurvey, headerActions,
-  onSurvey, refreshKey,
+  refreshKey,
 
 }) {
   const [home, setHome] = useState(null); // 홈 데이터
