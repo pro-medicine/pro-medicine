@@ -22,7 +22,14 @@ const WAITING_TEXTS = [
   "다음 질문을 고르고 있어요",
   "거의 다 만들었어요",
 ];
+// 첫 질문 대기 문구 (서버가 질문을 미리 만드는 설정이면 10초 넘게 걸릴 수 있다)
+const START_WAITING_TEXTS = [
+  "건강정보를 살펴보고 있어요",
+  "나에게 맞는 질문을 고르고 있어요",
+  "질문을 준비하고 있어요",
+];
 const WAITING_INTERVAL_MS = 1700;
+const START_WAITING_INTERVAL_MS = 3000;
 
 /**
  * props (index.js의 RecommendationEntry에서 전달)
@@ -34,6 +41,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   const [step, setStep] = useState("loading"); // "loading" | "waiting" | "question" | "result" | "error"
   const [loadingText, setLoadingText] = useState(CHECK_LOADING_TEXT); // 로딩 화면 문구
   const [waitingIndex, setWaitingIndex] = useState(0); // 질문 생성 대기 문구 위치
+  const [firstWait, setFirstWait] = useState(true); // 첫 질문 대기인지 (문구가 다르다)
   const [session, setSession] = useState(null); // 회차 응답 { sessionId, status, question, progress, canStop }
   const [selected, setSelected] = useState([]); // 지금 질문에서 고른 선택지 index
   const [ingredients, setIngredients] = useState({}); // 성분 코드 → { name, unit }
@@ -70,15 +78,17 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   // 질문을 만드는 동안 대기 문구를 바꾼다
   useEffect(() => {
     if (step !== "waiting") return undefined;
+    const texts = firstWait ? START_WAITING_TEXTS : WAITING_TEXTS;
     const timer = setInterval(() => {
-      setWaitingIndex((i) => Math.min(i + 1, WAITING_TEXTS.length - 1));
-    }, WAITING_INTERVAL_MS);
+      setWaitingIndex((i) => Math.min(i + 1, texts.length - 1));
+    }, firstWait ? START_WAITING_INTERVAL_MS : WAITING_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [step]);
+  }, [step, firstWait]);
 
   // 질문 생성 대기 화면 (문구는 처음부터)
   const wait = () => {
     setWaitingIndex(0);
+    setFirstWait(false);
     setStep("waiting");
   };
 
@@ -126,6 +136,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   // 1) 회차 시작. 실패하면 모드를 다시 확인해서 건강정보가 부족해졌으면 기본 설문으로
   const start = useCallback(async () => {
     setWaitingIndex(0);
+    setFirstWait(true);
     setStep("waiting");
     setResult(null);
     setError(null);
@@ -234,10 +245,14 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
         {step === "waiting" && (
           <div className="rec-loading">
             <span className="rec-spinner" aria-hidden="true" />
-            <strong key={waitingIndex} className="rec-waiting-text">
-              {WAITING_TEXTS[waitingIndex]}
+            <strong key={`${firstWait}-${waitingIndex}`} className="rec-waiting-text">
+              {(firstWait ? START_WAITING_TEXTS : WAITING_TEXTS)[waitingIndex]}
             </strong>
-            <p>저장된 건강정보와 답변을 바탕으로 질문을 만들고 있어요.</p>
+            <p>
+              {firstWait
+                ? "저장된 건강정보로 맞춤 질문을 준비하고 있어요. 10초 정도 걸릴 수 있어요."
+                : "저장된 건강정보와 답변을 바탕으로 질문을 만들고 있어요."}
+            </p>
           </div>
         )}
 
