@@ -12,12 +12,14 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     Optional<Follow> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
 
     /** 내가 받은 요청 (following_id = 나) */
-    List<Follow> findByFollowingIdAndStatusOrderByFollowIdDesc(Long followingId, FollowStatus status);
+    List<Follow> findByFollowingIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(Long followingId, FollowStatus status);
 
     /** 내가 보낸 요청 (follower_id = 나) */
-    List<Follow> findByFollowerIdAndStatusOrderByFollowIdDesc(Long followerId, FollowStatus status);
+    List<Follow> findByFollowerIdAndStatusAndDeletedAtIsNullOrderByFollowIdDesc(Long followerId, FollowStatus status);
 
     boolean existsByFollowerIdAndFollowingId(Long followerId, Long followingId);
 
     boolean existsByFollowerIdAndFollowingIdAndStatus(Long userId, Long friendUserId, FollowStatus followStatus);
+
+    Optional<Follow> findByFollowIdAndDeletedAtIsNull(Long followId);
 }
