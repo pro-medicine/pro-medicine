@@ -421,6 +421,8 @@ ALTER TABLE `user_conditions` MODIFY `user_condition_id` BIGINT NOT NULL AUTO_IN
 ALTER TABLE `user_medications` MODIFY `user_medication_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `ai_recommendations` MODIFY `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `ai_recommendation_items` MODIFY `recommendation_item_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `user_products` MODIFY `user_product_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `intake_schedules` MODIFY `schedule_id` BIGINT NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
                                                                                           `user_id`

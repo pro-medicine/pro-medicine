@@ -2,6 +2,7 @@ package com.ucamp.app.domain.product.repository;
 
 import com.ucamp.app.domain.product.entity.UserProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,4 +24,13 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
             order by up.createdAt asc, up.userProductId asc
             """)
     List<UserProduct> findActiveWithCatalogByUserId(@Param("userId") Long userId);
+
+    // 이 유저가 이 제품을 이미 복용 중으로 등록했는지 (중복 등록 확인)
+    boolean existsByUserIdAndCatalogProductCatalogProductIdAndIsActiveTrue(Long userId, Long catalogProductId);
+
+    // 복용 중단 (삭제 대신 is_active를 false로, 복용 기록·통계가 이 제품을 가리키고 있어서)
+    // @Modifying: 조회가 아니라 값을 바꾸는 쿼리라는 표시
+    @Modifying
+    @Query("UPDATE UserProduct up SET up.isActive = false WHERE up.userProductId = :userProductId")
+    void deactivate(@Param("userProductId") Long userProductId);
 }
