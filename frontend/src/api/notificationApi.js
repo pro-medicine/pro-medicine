@@ -56,6 +56,12 @@ export function subscribeNotifications(userId, onNotification) {
     const source = new EventSource(
         `${baseUrl}/api/v1/notifications/subscribe?userId=${encodeURIComponent(userId)}`,
     );
+    // 재연결에 성공하면 끊겨 있는 동안 놓친 알림이 있을 수 있으니 한 번 다시 조회하게 한다. (첫 연결은 제외)
+    let opened = false;
+    source.onopen = () => {
+        if (opened) onNotification();
+        opened = true;
+    };
     source.addEventListener("notification", onNotification);
     return () => source.close();
 }

@@ -60,7 +60,13 @@ public class NotificationSseService {
 
     /** 연결을 보관하고, 연결이 끝나면 자동으로 지워지도록 콜백을 건다. */
     void register(Long userId, SseEmitter emitter) {
-        emitters.computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>()).add(emitter);
+        // compute: 같은 사용자에 대한 추가와 삭제(remove)가 동시에 일어나도 한 번에 하나씩 처리된다.
+        // (computeIfAbsent(...).add()는 목록을 꺼낸 뒤 add 사이에 remove가 끼어들면 연결이 누락될 수 있음)
+        emitters.compute(userId, (id, list) -> {
+            List<SseEmitter> target = (list == null) ? new CopyOnWriteArrayList<>() : list;
+            target.add(emitter);
+            return target;
+        });
         emitter.onCompletion(() -> remove(userId, emitter));
         emitter.onTimeout(() -> {
             remove(userId, emitter);
