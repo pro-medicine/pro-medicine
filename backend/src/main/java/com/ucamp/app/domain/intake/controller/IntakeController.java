@@ -65,4 +65,17 @@ public class IntakeController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
     }
+
+    //달력
+    // 응답: 그날 먹어야 할 일정을 전부 먹은 날짜 목록
+    @GetMapping("/calendar")
+    public ResponseEntity<ApiResponse<List<LocalDate>>> getCalendar(
+            @CurrentUserId Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start, //이 start 기간부터
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end //end 기간까지만 isCompleted 조회 (API 하나로 주간, 월간 처리)
+    ) {
+        requireLogin(userId);
+        return ResponseEntity.ok(ApiResponse.success(intakeService.getCompletedDates(userId, start, end)));
+    }
+
 }

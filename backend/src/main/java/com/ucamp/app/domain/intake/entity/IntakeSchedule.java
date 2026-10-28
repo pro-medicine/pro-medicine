@@ -31,7 +31,7 @@ public class IntakeSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "schedule_id")
-    private Long scheduleId;
+    private Long scheduleId; // 복용일정
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_product_id", nullable = false)

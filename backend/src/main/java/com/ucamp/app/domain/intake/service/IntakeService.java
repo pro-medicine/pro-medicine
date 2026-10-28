@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -94,6 +95,7 @@ public class IntakeService {
         return expected == 0 ? 0 : (int) Math.round(taken * 100.0 / expected);
     }
 
+    // 하루 동안 영양제를 다 섭취 했는지 여부 확인
     private boolean isCompleted(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate, LocalDate day) {
         Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
         boolean hasSchedule = false;
@@ -152,11 +154,39 @@ public class IntakeService {
                     dto.setTiming(row.getTiming());
                     dto.setName(row.getName());
                     dto.setDesc(row.getDesc());
-                    dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1);
+                    dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1); // 먹었으면 true
                     return dto;
                 })
                 .toList();
     }
+
+    // 달력 만들기 부분
+    public List<LocalDate> getCompletedDates(Long userId, LocalDate start, LocalDate end) {
+        // 1. 없는 사용자면 에러
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 2. 먹어야 할 일정 가져오기
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
+
+        // 3. 기간 안의 먹은 기록(TAKEN)을 날짜별로 묶기: { 날짜 → 그날 먹은 scheduleId 모음 }
+        Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, start, end)) {
+            takenByDate.computeIfAbsent(taken.intakeDate(), d -> new HashSet<>()).add(taken.scheduleId());
+        }
+
+        // 4. 하루씩 보면서 다 먹은 날(isCompleted == true)만 담기 (미래 날짜는 제외)
+        LocalDate today = LocalDate.now(KST);
+        List<LocalDate> completedDates = new ArrayList<>();
+        for (LocalDate day = start; !day.isAfter(end) && !day.isAfter(today); day = day.plusDays(1)) {
+            if (isCompleted(schedules, takenByDate, day)) {
+                completedDates.add(day);
+            }
+        }
+        return completedDates;
+    }
+
 
 
 }
