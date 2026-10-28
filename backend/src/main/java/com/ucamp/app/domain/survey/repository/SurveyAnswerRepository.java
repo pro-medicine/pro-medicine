@@ -13,4 +13,7 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long
     List<SurveyAnswer> findDetailByResponseId(@Param("responseId") Long responseId);
 
     long countByResponse_ResponseId(Long responseId);
+
+    // 회원이 이 문항(Q-CONDITIONS 등)에 한 번이라도 답했는지 ("없음" 선택 포함). V2 모드 판단용
+    boolean existsByResponse_User_IdAndQuestion_Code(Long userId, String questionCode);
 }

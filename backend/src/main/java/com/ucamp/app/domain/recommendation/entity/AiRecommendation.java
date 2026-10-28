@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.entity;
 
+import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.survey.entity.SurveyResponse;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,6 +16,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -32,9 +35,16 @@ public class AiRecommendation {
     @Column(name = "recommendation_id")
     private Long recommendationId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "response_id", nullable = false)
+    // V1(설문 기반) 추천. V2 정밀 추천은 null이고 session이 있다 (STEP 14)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "response_id")
     private SurveyResponse response;
+
+    // STEP 14 추가: V2 맞춤 질문 회차. 회차가 90일 뒤 삭제되면 null (추천 결과는 남는다)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private AiQuestionSession session;
 
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
@@ -67,14 +77,25 @@ public class AiRecommendation {
     public static final int ERROR_CODE_LENGTH = 30;
 
     @Builder
-    public AiRecommendation(SurveyResponse response, String summary, String modelName, String status) {
+    public AiRecommendation(SurveyResponse response, AiQuestionSession session, String summary, String modelName,
+                            String status) {
+        // 설문 응답(V1) 또는 맞춤 질문 회차(V2) 중 하나는 있어야 한다. DB CHECK는 90일 삭제(session SET NULL) 때문에 걸지 않는다
+        if (response == null && session == null) {
+            throw new IllegalArgumentException("response 또는 session이 필요합니다");
+        }
         this.response = response;
+        this.session = session;
         this.summary = summary;
         this.modelName = modelName;
         this.status = status != null ? status : DONE;
         if (DONE.equals(this.status)) {
             this.finishedAt = LocalDateTime.now();
         }
+    }
+
+    /** V1 설문 응답 ID. V2 정밀 추천이면 null */
+    public Long responseIdOrNull() {
+        return response == null ? null : response.getResponseId();
     }
 
     public void markProcessing() {

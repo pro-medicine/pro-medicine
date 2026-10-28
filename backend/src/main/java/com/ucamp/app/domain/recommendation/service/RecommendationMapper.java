@@ -27,7 +27,7 @@ public class RecommendationMapper {
 
     public RecommendationResponse toResponse(AiRecommendation rec, List<AiRecommendationItem> items) {
         boolean fallback = RuleOnlyPipeline.VERSION.equals(rec.getModelName());
-        return new RecommendationResponse(rec.getRecommendationId(), rec.getResponse().getResponseId(),
+        return new RecommendationResponse(rec.getRecommendationId(), rec.responseIdOrNull(),
                 rec.getStatus(), rec.getErrorCode(), rec.getModelName(), rec.getSummary(), rec.getCreatedAt(),
                 items.stream().filter(i -> !i.isExcluded()).map(this::toItem).toList(),
                 items.stream().filter(AiRecommendationItem::isExcluded).map(this::toItem).toList(),

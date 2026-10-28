@@ -5,6 +5,7 @@ import {
   getActiveSurvey,
   getIngredients,
   getRecommendation,
+  getRecommendationMode,
   submitSurvey,
 } from "../api/recommendationApi";
 import ConsentStep from "./ConsentStep";
@@ -106,11 +107,12 @@ function toSubmitAnswers(questions, answers) {
 }
 
 /**
- * props (App.jsx에서 전달)
+ * props (index.js의 RecommendationEntry에서 전달)
  * - userId: 로그인 사용자 id (없으면 비회원으로 설문)
  * - onClose: 모달 닫기
+ * - onPersonalized: 회원 결과 화면에서 맞춤 질문(V2)으로 넘어가기 (없으면 안내를 띄우지 않음)
  */
-export default function RecommendationModal({ userId, onClose }) {
+export default function RecommendationModal({ userId, onClose, onPersonalized }) {
   const [step, setStep] = useState("loading"); // "consent" | "survey" | "loading" | "result" | "error"
   const [loadingText, setLoadingText] = useState(SURVEY_LOADING_TEXT); // 로딩 화면 문구
   const [survey, setSurvey] = useState(null); // GET /surveys/active 응답
@@ -119,6 +121,7 @@ export default function RecommendationModal({ userId, onClose }) {
   const [result, setResult] = useState(null); // 추천 결과
   const [error, setError] = useState(null); // { message, code }
   const [sending, setSending] = useState(false); // 동의·제출 중 여부 (중복 클릭 방지)
+  const [canPersonalize, setCanPersonalize] = useState(false); // 회원 결과 뒤 맞춤 질문 안내 여부
   const timerRef = useRef(null); // 폴링 타이머
   const aliveRef = useRef(true); // 닫힌 뒤에는 화면을 바꾸지 않기 위한 표시
 
@@ -176,6 +179,7 @@ export default function RecommendationModal({ userId, onClose }) {
     setStep("loading");
     setLoadingText(SURVEY_LOADING_TEXT);
     setResult(null);
+    setCanPersonalize(false);
     setError(null);
     try {
       applySurvey(await requestSurvey(userId), afterConsent);
@@ -243,6 +247,14 @@ export default function RecommendationModal({ userId, onClose }) {
       setSending(false);
     }
   };
+
+  // 5) 회원 결과가 나오면 건강정보가 채워져 맞춤 질문(V2)이 가능한지 확인한다
+  useEffect(() => {
+    if (step !== "result" || !userId || !onPersonalized) return;
+    getRecommendationMode(userId)
+      .then((mode) => aliveRef.current && setCanPersonalize(mode.mode === "V2"))
+      .catch(() => {});
+  }, [step, userId, onPersonalized]);
 
   const changeAnswer = (questionId, value) => {
     setAnswers((current) => {
@@ -313,7 +325,21 @@ export default function RecommendationModal({ userId, onClose }) {
             ingredients={ingredients}
             onRestart={() => loadSurvey()}
             onClose={onClose}
-          />
+          >
+            {canPersonalize && (
+              <div className="rec-pq-guide">
+                <strong>맞춤 질문으로 더 정확하게 추천받아 보세요</strong>
+                <p>저장된 건강정보를 바탕으로 몇 가지 질문을 더 드릴게요.</p>
+                <button
+                  type="button"
+                  className="rec-button primary"
+                  onClick={onPersonalized}
+                >
+                  맞춤 질문 시작
+                </button>
+              </div>
+            )}
+          </ResultStep>
         )}
 
         {step === "error" && error && (

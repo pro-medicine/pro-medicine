@@ -30,6 +30,8 @@ public class LlmCallLog {
     public static final String VALIDATION_FAIL = "VALIDATION_FAIL";
     public static final String TIMEOUT = "TIMEOUT";
     public static final String HTTP_ERROR = "HTTP_ERROR";
+    /** 응답은 받았지만 쓰지 않음 (V2 질문 이중 요청에서 진 쪽). 비용은 그대로 기록 */
+    public static final String DISCARDED = "DISCARDED";
     public static final int MODEL_LENGTH = 60;
 
     @Id
@@ -43,6 +45,10 @@ public class LlmCallLog {
 
     @Column(name = "eval_run_id", length = 50)
     private String evalRunId;
+
+    // STEP 14 추가: V2 맞춤 질문 회차(ai_question_sessions) 참조. V2 호출은 response_id가 없다 (FK 없음: 기록용 테이블)
+    @Column(name = "session_id")
+    private Long sessionId;
 
     @Column(name = "pipeline_version", nullable = false, length = 10)
     private String pipelineVersion;
@@ -85,12 +91,13 @@ public class LlmCallLog {
     private LocalDateTime createdAt;
 
     @Builder
-    public LlmCallLog(Long responseId, String evalRunId, String pipelineVersion, String callTag, String model,
+    public LlmCallLog(Long responseId, String evalRunId, Long sessionId, String pipelineVersion, String callTag, String model,
                       String promptVersion, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
                       Integer cacheCreationTokens, Integer latencyMs, Integer attemptNo, String outcome,
                       Integer httpStatus) {
         this.responseId = responseId;
         this.evalRunId = evalRunId;
+        this.sessionId = sessionId;
         this.pipelineVersion = pipelineVersion;
         this.callTag = callTag;
         this.model = model;

@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 규칙 39개(회원 35 = 기본 23 + 계열 모름 12, 비회원 4) 각각 단위 테스트.
+ * 규칙 41개(회원 37 = 기본 23 + 계열 모름 12 + 진단 질환 2, 비회원 4) 각각 단위 테스트.
  * 규칙 데이터는 시드(sql/seed-recommendation-rules.sql = domain-rules.md 3번 표)에서 읽고, RuleEngine은 순수 클래스로 직접 호출한다.
  */
 @SpringBootTest
@@ -27,7 +27,8 @@ class RuleEngineTest {
     static final List<String> ALL_RULE_IDS = List.of("R-01", "R-02", "R-03", "R-04", "R-05", "R-06", "R-07", "R-08",
             "R-11", "R-12", "R-12b", "R-13", "R-13b", "R-14", "R-15", "R-16", "R-17", "R-17b", "R-18", "R-19",
             "R-21", "R-22", "R-23", "R-G1", "R-G2", "R-G3", "R-G4",
-            "R-U01", "R-U01b", "R-U02", "R-U02b", "R-U03", "R-U04", "R-U04b", "R-U05", "R-U06", "R-U06b", "R-U07", "R-U08");
+            "R-U01", "R-U01b", "R-U02", "R-U02b", "R-U03", "R-U04", "R-U04b", "R-U05", "R-U06", "R-U06b", "R-U07", "R-U08",
+            "R-K01", "R-K02");
 
     @Autowired
     RuleService ruleService;
@@ -43,11 +44,11 @@ class RuleEngineTest {
     }
 
     @Test
-    void 규칙은_회원_35개_비회원_4개_총_39개() {
+    void 규칙은_회원_37개_비회원_4개_총_41개() {
         List<Rule> rules = engine.rules();
         assertThat(rules).extracting(Rule::ruleId).containsExactlyInAnyOrderElementsOf(ALL_RULE_IDS);
         assertThat(rules.stream().filter(Rule::guestExcluded).count()).isEqualTo(4);
-        assertThat(rules.stream().filter(r -> !r.guestExcluded()).count()).isEqualTo(35);
+        assertThat(rules.stream().filter(r -> !r.guestExcluded()).count()).isEqualTo(37);
     }
 
     @ParameterizedTest(name = "{0}")

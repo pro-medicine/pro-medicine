@@ -9,6 +9,7 @@ import java.util.List;
  *
  * @param outputSchema 구조화 출력 스키마. null이면 텍스트 응답 (V0)
  * @param promptCache  true면 같은 고정 부분(시스템 프롬프트 + 스키마)끼리 캐시되도록 캐시 키를 보낸다 (V7~)
+ * @param reasoningEffort 추론 강도(low 등). null이면 설정 기본값(spring.ai.openai.chat.reasoning-effort). V2 질문 생성만 low를 쓴다
  */
 @Builder(toBuilder = true)
 public record LlmRequest(
@@ -18,15 +19,25 @@ public record LlmRequest(
         int maxTokens,
         LlmOutputSchema outputSchema,
         boolean promptCache,
+        String reasoningEffort,
         String callTag,
         String pipelineVersion,
         String promptVersion,
         Long responseId,
         String evalRunId,
+        Long sessionId,
         int attemptNo
 ) {
     public static final String TAG_RECOMMEND = "RECOMMEND";
     public static final String TAG_RECOMMEND_REPAIR = "RECOMMEND_REPAIR";
+    /** V2 맞춤 질문 생성과 그 재요청 */
+    public static final String TAG_PQ_QUESTION = "PQ_QUESTION";
+    public static final String TAG_PQ_QUESTION_REPAIR = "PQ_QUESTION_REPAIR";
+    /** V2 질문 미리 만들기: 프로필 주제 1단계 묶음 / 불편한 점 파생 주제 묶음 */
+    public static final String TAG_PQ_QUESTION_BATCH = "PQ_QUESTION_BATCH";
+    public static final String TAG_PQ_QUESTION_FOLLOWUP_BATCH = "PQ_QUESTION_FOLLOWUP_BATCH";
+    /** V2 질문 이중 요청 (첫 요청이 늦을 때 보낸 두 번째 요청) */
+    public static final String TAG_PQ_QUESTION_HEDGE = "PQ_QUESTION_HEDGE";
 
     public int attemptNoOrDefault() {
         return attemptNo <= 0 ? 1 : attemptNo;
