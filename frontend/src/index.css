@@ -363,3 +363,20 @@ button {
     padding: 24px 18px;
   }
 }
+
+/* 웹 상단 메뉴(#67)가 보이는 넓은 화면: 하단 탭 여백 제거, 화면별 헤더를 상단 메뉴 아래에 고정,
+   종 버튼은 상단 메뉴에만 남기고 화면별 종은 숨긴다 (좁은 화면은 기존 그대로) */
+@media (min-width: 769px) {
+  .app-shell {
+    padding-bottom: 48px;
+  }
+
+  .app-header {
+    top: 68px;
+  }
+
+  .app-header .notification-button,
+  .app-shell .home-page .home-bell {
+    display: none;
+  }
+}
