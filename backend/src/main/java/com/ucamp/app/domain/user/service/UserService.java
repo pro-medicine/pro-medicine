@@ -10,6 +10,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -52,7 +54,7 @@ public class UserService {
     @Transactional
     public void markActive(Long userId) {
         // 안부지킴이 알림용
-        // TODO: 홈 화면 불러올 때 메소드 불러옴
-        userRepository.findById(userId).ifPresent(User::touchActive);
+        LocalDateTime now = LocalDateTime.now();
+        userRepository.touchActive(userId, now, now.minusMinutes(10));
     }
 }
