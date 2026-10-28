@@ -1,0 +1,112 @@
+/* 흰색 둥근 카드 (.friend-list와 같은 규격) */
+.intake-calendar {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px 22px 20px;
+  margin: 20px 0;
+}
+
+.calendar-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.calendar-head h2 {
+  font-size: 16px;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.calendar-nav {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.calendar-nav button {
+  align-items: center;
+  background: var(--soft);
+  border: 0;
+  border-radius: 50%;
+  color: #777970;
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.calendar-nav button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.calendar-grid {
+  display: grid;
+  gap: 6px 0;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+  margin-top: 14px;
+}
+
+.calendar-weekdays {
+  color: #a0a199;
+  font-size: 10px;
+  margin-top: 18px;
+}
+
+.calendar-day {
+  align-items: center;
+  border-radius: 50%;
+  color: #4b4d45;
+  display: inline-flex;
+  font-size: 11px;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.calendar-day.future {
+  color: #c4c5be;
+}
+
+/* 오늘: 얇은 테두리 */
+.calendar-day.today {
+  box-shadow: inset 0 0 0 1.5px var(--yellow-deep);
+}
+
+/* 전체 복용 완료한 날: 노란 동그라미 */
+.calendar-day.done {
+  background: var(--yellow);
+  color: #68591c;
+  font-weight: 800;
+}
+
+.calendar-day.done.today {
+  box-shadow:
+    0 0 0 2px white,
+    0 0 0 3.5px var(--yellow-deep);
+}
+
+.calendar-summary {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.calendar-summary b {
+  color: #8c7b36;
+}
+
+.calendar-error {
+  color: #d64545;
+  font-size: 11px;
+  margin: 14px 0 0;
+  text-align: center;
+}
