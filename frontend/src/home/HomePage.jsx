@@ -89,9 +89,10 @@ export default function HomePage({
     <div className="home-page">
       <div className="home-inner">
         <HomeHeader
-          userName={home.userName}
-          hasUnread={home.hasUnreadNotifications}
-          onBellClick={onOpenNotifications}
+            userName={home.userName}
+            today={home.today}
+            hasUnread={home.hasUnreadNotifications}
+            onBellClick={onOpenNotifications}
         />
 
         {isSample && (

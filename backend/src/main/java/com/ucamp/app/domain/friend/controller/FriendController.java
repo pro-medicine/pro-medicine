@@ -18,13 +18,23 @@ public class FriendController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<FriendResponse>>> getFriends(@RequestParam Long userId) {
-        return ResponseEntity.ok(ApiResponse.success(friendService.getFriends(userId)));
+        List<FriendResponse> responses = friendService.getFriends(userId);
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     @GetMapping("/{friendUserId}")
     public ResponseEntity<ApiResponse<FriendDetailResponse>> getFriend(
             @RequestParam Long userId,
             @PathVariable Long friendUserId) {
-        return ResponseEntity.ok(ApiResponse.success(friendService.getFriend(userId, friendUserId)));
+        FriendDetailResponse response = friendService.getFriend(userId, friendUserId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{friendUserId}")
+    public ResponseEntity<ApiResponse<Void>> deleteFriend(
+            @RequestParam Long userId,
+            @PathVariable Long friendUserId) {
+        friendService.deleteFriend(userId, friendUserId);
+        return ResponseEntity.noContent().build();
     }
 }

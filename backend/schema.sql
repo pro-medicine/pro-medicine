@@ -17,11 +17,11 @@ DROP TABLE IF EXISTS `user_medications`;
 DROP TABLE IF EXISTS `drugs`;
 DROP TABLE IF EXISTS `health_profiles`;
 DROP TABLE IF EXISTS `user_conditions`;
+DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `intake_records`;
 DROP TABLE IF EXISTS `intake_schedules`;
 DROP TABLE IF EXISTS `user_products`;
 DROP TABLE IF EXISTS `catalog_products`;
-DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
@@ -71,7 +71,8 @@ CREATE TABLE `users` (
                          `sensitive_consent`   BOOLEAN   NOT NULL   DEFAULT FALSE,
                          `sensitive_consent_at`   DATETIME   NULL,
                          `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
-                         `updated_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                         `updated_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                         `last_active_at` DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE `user_products` (
@@ -121,13 +122,15 @@ CREATE TABLE `notifications` (
 );
 
 CREATE TABLE `guardian_settings` (
-                                     `guardian_setting_id`   BIGINT   NOT NULL,
+                                     `guardian_setting_id`   BIGINT   NOT NULL AUTO_INCREMENT,
                                      `user_id`   BIGINT   NOT NULL,
                                      `guardian_user_id`   BIGINT   NOT NULL,
                                      `inactivity_days`   INT   NOT NULL   DEFAULT 3,
                                      `consented_at`   DATETIME   NULL,
                                      `is_active`   BOOLEAN   NOT NULL   DEFAULT FALSE,
-                                     `last_notified_at`   DATETIME   NULL
+                                     `last_notified_at`   DATETIME   NULL,
+                                     PRIMARY KEY (`guardian_setting_id`),
+                                     UNIQUE KEY `uq_guardian_pair` (`user_id`, `guardian_user_id`)
 );
 
 CREATE TABLE `follows` (
@@ -321,10 +324,6 @@ ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
 
 ALTER TABLE `catalog_products` ADD CONSTRAINT `PK_CATALOG_PRODUCTS` PRIMARY KEY (
                                                                                  `catalog_product_id`
-    );
-
-ALTER TABLE `guardian_settings` ADD CONSTRAINT `PK_GUARDIAN_SETTINGS` PRIMARY KEY (
-                                                                                   `guardian_setting_id`
     );
 
 ALTER TABLE `disposal_locations` ADD CONSTRAINT `PK_DISPOSAL_LOCATIONS` PRIMARY KEY (

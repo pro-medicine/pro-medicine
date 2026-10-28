@@ -1,20 +1,20 @@
 // 홈 상단: 날짜 + 인사말 + 알림(종) 버튼
 
-// 항상 대한민국 현재 날짜와 요일을 표시 ("10월 22일 목요일")
-function formatToday() {
+// today: "yyyy-MM-dd" (홈 목록 조회·저장과 같은 KST 날짜) → "10월 27일 화요일"
+function formatDate(today) {
     return new Intl.DateTimeFormat("ko-KR", {
         timeZone: "Asia/Seoul",
         month: "long",
         day: "numeric",
         weekday: "long",
-    }).format(new Date());
+    }).format(new Date(`${today}T00:00:00+09:00`));
 }
 
-export default function HomeHeader({ userName, hasUnread, onBellClick }) {
+export default function HomeHeader({ userName, today, hasUnread, onBellClick }) {
     return (
         <header className="home-header">
             <div>
-                <p className="home-date">{formatToday()}</p>
+                <p className="home-date">{formatDate(today)}</p>
                 <h1 className="home-hello">안녕하세요, {userName}님</h1>
             </div>
 

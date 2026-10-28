@@ -62,7 +62,7 @@ export default function AddFriendModal({ userId, onClose, openerRef }) {
         <form className="modal-form" onSubmit={handleSubmit}>
           <input
             aria-label="닉네임"
-            autoFocus
+            data-autofocus
             onChange={(e) => setNickname(e.target.value)}
             placeholder="친구 닉네임을 입력해주세요"
             value={nickname}
