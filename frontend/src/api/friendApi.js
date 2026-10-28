@@ -14,3 +14,9 @@ export function getFriendDetail(userId, friendUserId) {
 export function deleteFriend(userId, friendUserId) {
   return api.delete(`/api/v1/friends/${friendUserId}`, { params: { userId } });
 }
+
+export function getFriendCalendar(userId, friendUserId, start, end) {
+  return api.get(`/api/v1/friends/${friendUserId}/calendar`, {
+    params: { userId, start, end },
+  });
+}
