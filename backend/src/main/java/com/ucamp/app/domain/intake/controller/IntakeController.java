@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.CacheControl; //달력 cache
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -75,7 +76,9 @@ public class IntakeController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end //end 기간까지만 isCompleted 조회 (API 하나로 주간, 월간 처리)
     ) {
         requireLogin(userId);
-        return ResponseEntity.ok(ApiResponse.success(intakeService.getCompletedDates(userId, start, end)));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())   // 건강 정보라 브라우저·중간 서버에 응답을 저장하지 않음
+                .body(ApiResponse.success(intakeService.getCompletedDates(userId, start, end)));
     }
 
 }
