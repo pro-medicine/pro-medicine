@@ -57,7 +57,14 @@ export default function AuthPage({ mode, onModeChange, onComplete, onClose }) {
     return (
         <div className="auth-page">
             <header className="auth-header">
-                <button className="auth-brand" onClick={onClose} type="button">
+                <button
+                    className="auth-brand"
+                    onClick={() => {
+                        setError("");
+                        onClose();
+                    }}
+                    type="button"
+                >
                     <span><Icon name="sparkles" size={20} /></span>
                     약쏙해줘
                 </button>
