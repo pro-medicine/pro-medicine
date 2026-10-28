@@ -5,7 +5,7 @@ import {
   MY_USER_ID,
   searchCatalogProducts,
   updateSupplementSchedules,
-} from "./mypageApi";
+} from "../api/mypageApi";
 
 // 끼니별 기본 알림 시각
 const mealSlotOptions = [
@@ -65,6 +65,8 @@ export default function SupplementAddPage({
   const [message, setMessage] = useState(null);
 
   const search = async () => {
+    // 검색 중이면 새 요청을 보내지 않는다 (Enter 연타로 요청이 겹치는 것 방지)
+    if (searching) return;
     const trimmed = keyword.trim();
     if (trimmed === "") {
       setMessage("제품명을 입력해 주세요.");
@@ -104,7 +106,7 @@ export default function SupplementAddPage({
         mealRelation: schedules[option.slot].relation,
         remindAt: schedules[option.slot].time,
       }));
-    if (picked.length === 0) {
+    if (!isEdit && picked.length === 0) {
       setMessage("복용할 끼니를 하나 이상 골라 주세요.");
       return;
     }
@@ -117,7 +119,11 @@ export default function SupplementAddPage({
     setMessage(null);
     try {
       if (isEdit) {
-        await updateSupplementSchedules(MY_USER_ID, target.userProductId, picked);
+        await updateSupplementSchedules(
+          MY_USER_ID,
+          target.userProductId,
+          picked,
+        );
       } else {
         await addMySupplement(MY_USER_ID, {
           catalogProductId: selected.catalogProductId,
@@ -153,56 +159,56 @@ export default function SupplementAddPage({
         )}
 
         {!isEdit && (
-        <section className="profile-edit-card">
-          <h2>1. 제품 검색</h2>
-          <div className="supplement-search-row">
-            <input
-              value={keyword}
-              maxLength={50}
-              placeholder="제품명을 입력해 주세요 (예: 비타민)"
-              onChange={(event) => setKeyword(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  search();
-                }
-              }}
-            />
-            <button type="button" onClick={search} disabled={searching}>
-              {searching ? "검색 중..." : "검색"}
-            </button>
-          </div>
+          <section className="profile-edit-card">
+            <h2>1. 제품 검색</h2>
+            <div className="supplement-search-row">
+              <input
+                value={keyword}
+                maxLength={50}
+                placeholder="제품명을 입력해 주세요 (예: 비타민)"
+                onChange={(event) => setKeyword(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    search();
+                  }
+                }}
+              />
+              <button type="button" onClick={search} disabled={searching}>
+                {searching ? "검색 중..." : "검색"}
+              </button>
+            </div>
 
-          {results && results.length === 0 && (
-            <p className="profile-edit-hint">검색 결과가 없어요.</p>
-          )}
-          {results && results.length > 0 && (
-            <ul className="supplement-search-results">
-              {results.map((product) => (
-                <li key={product.catalogProductId}>
-                  <button
-                    type="button"
-                    className={
-                      selected?.catalogProductId === product.catalogProductId
-                        ? "supplement-search-item selected"
-                        : "supplement-search-item"
-                    }
-                    onClick={() => {
-                      setSelected(product);
-                      setMessage(null);
-                    }}
-                  >
-                    <strong>{product.productName}</strong>
-                    <span>{product.manufacturer ?? "제조사 정보 없음"}</span>
-                    {product.intakeMethod && (
-                      <small>{product.intakeMethod}</small>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+            {results && results.length === 0 && (
+              <p className="profile-edit-hint">검색 결과가 없어요.</p>
+            )}
+            {results && results.length > 0 && (
+              <ul className="supplement-search-results">
+                {results.map((product) => (
+                  <li key={product.catalogProductId}>
+                    <button
+                      type="button"
+                      className={
+                        selected?.catalogProductId === product.catalogProductId
+                          ? "supplement-search-item selected"
+                          : "supplement-search-item"
+                      }
+                      onClick={() => {
+                        setSelected(product);
+                        setMessage(null);
+                      }}
+                    >
+                      <strong>{product.productName}</strong>
+                      <span>{product.manufacturer ?? "제조사 정보 없음"}</span>
+                      {product.intakeMethod && (
+                        <small>{product.intakeMethod}</small>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         )}
 
         <section className="profile-edit-card">

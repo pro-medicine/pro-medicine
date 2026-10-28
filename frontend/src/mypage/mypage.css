@@ -210,8 +210,6 @@
   margin: 0;
 }
 
-
-
 .profile-hero.clickable {
   cursor: pointer;
 }
@@ -469,7 +467,6 @@
   opacity: 0.5;
 }
 
-
 /* 마이페이지 섹션 제목 (공통 스타일에서 빠져서 마이페이지 안에서만 다시 지정) */
 .profile-screen .section-title-row {
   align-items: flex-end;
@@ -521,4 +518,21 @@
   color: var(--muted);
   font-size: 11px;
   margin: 22px 0 0;
+}
+
+/* 좁은 화면(410px 이하): 편집·복용 일정 칸이 카드 밖으로 넘치지 않게 열 수를 줄인다 */
+@media (max-width: 410px) {
+  /* 건강 정보: 2열 → 1열 */
+  .profile-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 복용 일정: 3열(끼니 | 식전후 | 시각) → 위에 끼니, 아래에 식전후·시각 2칸 */
+  .supplement-schedule-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .supplement-schedule-check {
+    grid-column: 1 / -1;
+  }
 }

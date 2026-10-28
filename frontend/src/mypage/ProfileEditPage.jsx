@@ -8,39 +8,74 @@ import {
   saveConditions,
   saveHealthProfile,
   updateNickname,
-} from "./mypageApi";
+} from "../api/mypageApi";
 
-// 선택지 값은 schema.sql 예시 데이터 기준
+// 선택지 값은 설문(STEP02_seed_survey_v1.sql)의 value_code와 같게 맞춤
+// 설문에서 저장한 값과 편집에서 저장한 값이 같아야 AI 추천도 같은 기준으로 읽는다
 const choiceFields = [
   {
     key: "smoking",
     label: "흡연",
-    options: [["NONE", "안 함"], ["FORMER", "과거 흡연"], ["CURRENT", "흡연 중"]],
+    options: [
+      ["NONE", "안 피움"],
+      ["HALF_PACK", "하루 반 갑 이하"],
+      ["ONE_PACK", "하루 1갑"],
+      ["TWO_PACK_PLUS", "하루 2갑 이상"],
+    ],
   },
   {
     key: "drinking",
     label: "음주",
-    options: [["NONE", "안 함"], ["OCCASIONAL", "가끔"], ["FREQUENT", "자주"]],
+    options: [
+      ["NONE", "안 마심"],
+      ["LOW", "가끔"],
+      ["HIGH", "자주"],
+    ],
   },
   {
     key: "caffeine",
-    label: "카페인",
-    options: [["LOW", "적음"], ["MEDIUM", "보통"], ["HIGH", "많음"]],
+    label: "커피·차",
+    options: [
+      ["NONE", "안 마심"],
+      ["LOW", "하루 1~2잔"],
+      ["HIGH", "하루 3잔 이상"],
+    ],
   },
   {
     key: "dietType",
     label: "식단",
-    options: [["BALANCED", "균형 잡힌 식사"], ["EATING_OUT", "외식 위주"], ["LOW_VEGGIE", "채소 적게"]],
+    options: [
+      ["OMNI", "일반식"],
+      ["VEGETARIAN", "채식(유제품·달걀 포함)"],
+      ["VEGAN", "비건"],
+    ],
   },
   {
     key: "sunExposure",
     label: "햇빛 노출",
-    options: [["LOW", "적음"], ["MEDIUM", "보통"], ["HIGH", "많음"]],
+    options: [
+      ["LOW", "거의 실내에 있어요"],
+      ["NORMAL", "보통이에요"],
+    ],
   },
 ];
 
-// 질환 추가 선택지 (schema.sql 예시 데이터 기준)
-const conditionOptions = ["고혈압", "고지혈증", "당뇨"];
+// 질환 선택지: [설문 value_code, 화면 문구]
+// 설문의 "없음"(NONE)은 빈 목록으로 저장되므로 여기서는 뺀다 (질환을 모두 지우면 "없음")
+const conditionOptions = [
+  ["HYPERTENSION", "고혈압"],
+  ["DIABETES", "당뇨"],
+  ["THYROID", "갑상선 질환"],
+  ["KIDNEY", "신장 질환"],
+];
+
+// 질환 코드 → 화면 문구 (예전에 한글 이름으로 저장된 값은 그대로 보여줌)
+function conditionLabel(code) {
+  for (const [value, text] of conditionOptions) {
+    if (value === code) return text;
+  }
+  return code;
+}
 
 const emptyForm = {
   nickname: "",
@@ -55,7 +90,8 @@ const emptyForm = {
   sunExposure: "",
 };
 
-const toText = (value) => (value === null || value === undefined ? "" : String(value));
+const toText = (value) =>
+  value === null || value === undefined ? "" : String(value);
 const toNumber = (value) => (value.trim() === "" ? null : Number(value));
 const toNullable = (value) => (value === "" ? null : value);
 
@@ -86,7 +122,11 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
-    Promise.all([fetchUser(MY_USER_ID), fetchHealthProfile(MY_USER_ID), fetchConditions(MY_USER_ID)])
+    Promise.all([
+      fetchUser(MY_USER_ID),
+      fetchHealthProfile(MY_USER_ID),
+      fetchConditions(MY_USER_ID),
+    ])
       .then(([loadedUser, profile, loadedConditions]) => {
         setUser(loadedUser);
         setForm(toForm(loadedUser, profile));
@@ -112,18 +152,29 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
     setMessage(null);
   };
 
-  const remainingConditions = conditionOptions.filter((name) => !conditions.includes(name));
+  // 아직 고르지 않은 질환만 추가 선택지로 보여줌
+  const remainingConditions = conditionOptions.filter(
+    ([value]) => !conditions.includes(value),
+  );
 
+  // 저장 흐름: 닉네임(바뀐 경우만) → 건강 정보 → 질환, API 3개를 순서대로 호출
+  // 중간에 실패하면 앞에서 저장된 항목은 서버에 남으므로, 화면에도 반영하고 어디까지 저장됐는지 알려준다
   const save = async () => {
     if (!user) return;
     setSaving(true);
     setMessage(null);
+    // 저장에 성공한 항목 이름, 지금 저장 중인 항목 이름
+    const savedItems = [];
+    let currentItem = "";
+    let savedUser = user;
     try {
-      let savedUser = user;
       if (form.nickname.trim() !== user.nickname) {
+        currentItem = "닉네임";
         savedUser = await updateNickname(MY_USER_ID, form.nickname);
         setUser(savedUser);
+        savedItems.push("닉네임");
       }
+      currentItem = "건강 정보";
       await saveHealthProfile(MY_USER_ID, {
         birthYear: toNumber(form.birthYear),
         gender: toNullable(form.gender),
@@ -135,11 +186,22 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
         dietType: toNullable(form.dietType),
         sunExposure: toNullable(form.sunExposure),
       });
+      savedItems.push("건강 정보");
+      currentItem = "질환";
       await saveConditions(MY_USER_ID, conditions);
       onSaved(savedUser);
       setMessage({ type: "success", text: "저장되었어요." });
     } catch (e) {
-      setMessage({ type: "error", text: e.message || "저장하지 못했어요." });
+      // 실패 전에 닉네임이 저장됐으면 마이페이지에도 새 닉네임이 보이게 반영
+      if (savedItems.includes("닉네임")) {
+        onSaved(savedUser);
+      }
+      const reason = e.message || "알 수 없는 오류";
+      let text = `${currentItem} 저장에 실패했어요. (${reason})`;
+      if (savedItems.length > 0) {
+        text = `${savedItems.join(", ")}은(는) 저장됐어요. ${text}`;
+      }
+      setMessage({ type: "error", text: text });
     } finally {
       setSaving(false);
     }
@@ -147,10 +209,17 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
 
   return (
     <div className="screen profile-screen">
-      <TopBar back={onBack} title="내 정보" subtitle="프로필 편집" onNotifications={onNotifications} />
+      <TopBar
+        back={onBack}
+        title="내 정보"
+        subtitle="프로필 편집"
+        onNotifications={onNotifications}
+      />
 
       {loadError && <p className="profile-edit-message error">{loadError}</p>}
-      {!loadError && !user && <p className="profile-edit-message">불러오는 중...</p>}
+      {!loadError && !user && (
+        <p className="profile-edit-message">불러오는 중...</p>
+      )}
 
       {user && (
         <form
@@ -188,14 +257,20 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
               </label>
               <label className="profile-edit-field">
                 <span>성별</span>
-                <select value={form.gender} onChange={(event) => change("gender", event.target.value)}>
+                <select
+                  value={form.gender}
+                  onChange={(event) => change("gender", event.target.value)}
+                >
                   <option value="">선택 안 함</option>
-                  <option value="FEMALE">여성</option>
-                  <option value="MALE">남성</option>
+                  {/* 설문 Q-GENDER 와 같은 값 (M / F) */}
+                  <option value="M">남성</option>
+                  <option value="F">여성</option>
                   {/* 예전에 다른 값으로 저장된 경우에도 그대로 보이게 */}
-                  {form.gender !== "" && form.gender !== "FEMALE" && form.gender !== "MALE" && (
-                    <option value={form.gender}>{form.gender}</option>
-                  )}
+                  {form.gender !== "" &&
+                    form.gender !== "M" &&
+                    form.gender !== "F" && (
+                      <option value={form.gender}>{form.gender}</option>
+                    )}
                 </select>
               </label>
               <label className="profile-edit-field">
@@ -221,15 +296,25 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
               {choiceFields.map((field) => (
                 <label className="profile-edit-field" key={field.key}>
                   <span>{field.label}</span>
-                  <select value={form[field.key]} onChange={(event) => change(field.key, event.target.value)}>
+                  <select
+                    value={form[field.key]}
+                    onChange={(event) => change(field.key, event.target.value)}
+                  >
                     <option value="">선택 안 함</option>
                     {field.options.map(([value, text]) => (
-                      <option key={value} value={value}>{text}</option>
+                      <option key={value} value={value}>
+                        {text}
+                      </option>
                     ))}
                     {/* 예전에 다른 값으로 저장된 경우에도 그대로 보이게 */}
-                    {form[field.key] !== "" && !field.options.some(([value]) => value === form[field.key]) && (
-                      <option value={form[field.key]}>{form[field.key]}</option>
-                    )}
+                    {form[field.key] !== "" &&
+                      !field.options.some(
+                        ([value]) => value === form[field.key],
+                      ) && (
+                        <option value={form[field.key]}>
+                          {form[field.key]}
+                        </option>
+                      )}
                   </select>
                 </label>
               ))}
@@ -244,8 +329,12 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
               <ul className="profile-edit-conditions">
                 {conditions.map((name) => (
                   <li key={name}>
-                    {name}
-                    <button type="button" aria-label={`${name} 삭제`} onClick={() => removeCondition(name)}>
+                    {conditionLabel(name)}
+                    <button
+                      type="button"
+                      aria-label={`${conditionLabel(name)} 삭제`}
+                      onClick={() => removeCondition(name)}
+                    >
                       ✕
                     </button>
                   </li>
@@ -264,8 +353,10 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
                 <option value="" disabled>
                   추가할 질환을 골라 주세요
                 </option>
-                {remainingConditions.map((name) => (
-                  <option key={name} value={name}>{name}</option>
+                {remainingConditions.map(([value, text]) => (
+                  <option key={value} value={value}>
+                    {text}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -280,7 +371,11 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
             )}
           </section>
 
-          {message && <p className={`profile-edit-message ${message.type}`}>{message.text}</p>}
+          {message && (
+            <p className={`profile-edit-message ${message.type}`}>
+              {message.text}
+            </p>
+          )}
 
           <button className="profile-edit-save" type="submit" disabled={saving}>
             {saving ? "저장 중..." : "저장"}

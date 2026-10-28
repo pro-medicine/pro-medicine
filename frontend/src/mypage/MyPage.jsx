@@ -7,7 +7,7 @@ import {
   fetchUser,
   MY_USER_ID,
   removeMySupplement,
-} from "./mypageApi";
+} from "../api/mypageApi";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 
@@ -69,18 +69,43 @@ export default function ProfileScreen({ friend, onBack, onNotifications }) {
 
   useEffect(() => {
     if (!isMine) return;
+    // 다시 불러오기(refreshKey 변경)로 이 effect가 다시 실행되면 true가 된다
+    // → 늦게 도착한 이전 요청의 응답은 화면에 반영하지 않는다
+    let ignore = false;
+
     fetchUser(MY_USER_ID)
-      .then(setUser)
-      .catch(() => setUser(null));
+      .then((loadedUser) => {
+        if (ignore) return;
+        setUser(loadedUser);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setUser(null);
+      });
     fetchIntakeStats(MY_USER_ID)
-      .then(setStats)
-      .catch(() => setStats(null));
+      .then((loadedStats) => {
+        if (ignore) return;
+        setStats(loadedStats);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setStats(null);
+      });
     fetchMySupplements(MY_USER_ID)
       .then((list) => {
+        if (ignore) return;
         setMySupplementList(list.map(toSupplementCard));
         setSupplementError(false);
       })
-      .catch(() => setSupplementError(true));
+      .catch(() => {
+        if (ignore) return;
+        setSupplementError(true);
+      });
+
+    // 정리 함수: 다음 effect가 실행되기 전(또는 화면을 떠날 때) 호출된다
+    return () => {
+      ignore = true;
+    };
   }, [isMine, refreshKey]);
 
   const reload = () => setRefreshKey((prev) => prev + 1);
@@ -147,13 +172,21 @@ export default function ProfileScreen({ friend, onBack, onNotifications }) {
     window.scrollTo({ top: 0 });
   };
 
-  // 삭제: 확인 → 서버에서 복용 중단 처리 → 목록 다시 불러오기
+  // 삭제: 확인 → 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
   const removeSupplement = async (supplement) => {
     if (!window.confirm(`'${supplement.name}'을(를) 내 영양제에서 삭제할까요?`))
       return;
     setRemovingId(supplement.id);
     try {
       await removeMySupplement(MY_USER_ID, supplement.id);
+      // 재조회가 실패해도 삭제한 카드가 남지 않도록 목록에서 먼저 뺀다
+      setMySupplementList((prev) => {
+        const next = [];
+        for (const item of prev ?? []) {
+          if (item.id !== supplement.id) next.push(item);
+        }
+        return next;
+      });
       reload();
     } catch (e) {
       window.alert(e.message || "삭제하지 못했어요.");
@@ -182,7 +215,7 @@ export default function ProfileScreen({ friend, onBack, onNotifications }) {
           <p>{isMine ? "꾸준함이 최고의 영양제예요" : friend?.status}</p>
         </div>
         {isMine && (
-          <button className="edit-button" type="button">
+          <button className="edit-button" type="button" onClick={openEdit}>
             프로필 편집
           </button>
         )}
