@@ -6,6 +6,7 @@ import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
+import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
 import com.ucamp.app.domain.product.dto.MySupplementResponse;
 import com.ucamp.app.domain.product.service.MySupplementService;
@@ -45,7 +46,7 @@ public class FriendService {
                 .collect(Collectors.toSet());
         return follows.stream()
                 .filter(follow -> users.containsKey(follow.getFollowingId()))
-                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()))).toList();
+                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()), streakOf(follow.getFollowingId()))).toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
@@ -60,6 +61,11 @@ public class FriendService {
         getAcceptedFollow(userId, friendUserId);
         // TODO: 친구 캘린터 공개/비공개 설정 기능 생기면 추가
         return intakeService.getCompletedDates(friendUserId, start, end);
+    }
+
+    public List<TodayIntakeResponse> getFriendIntakes(Long userId, Long friendUserId, LocalDate date) {
+        getAcceptedFollow(userId, friendUserId);
+        return intakeService.getTodayIntakes(friendUserId, date);
     }
 
     @Transactional
@@ -77,5 +83,13 @@ public class FriendService {
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private int streakOf(Long friendUserId) {
+        try {
+            return intakeService.getStats(friendUserId).streakDays();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

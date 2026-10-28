@@ -11,8 +11,8 @@ import {
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
-import { getMyCalendar } from "../api/intakeApi";
-import { getFriendCalendar } from "../api/friendApi";
+import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
+import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -258,7 +258,7 @@ export default function ProfileScreen({
         </div>
       </section>
       {isMine ? (
-        <IntakeCalendar fetchDates={getMyCalendar} />
+        <IntakeCalendar fetchDates={getMyCalendar} fetchDay={getMyDayIntakes} />
       ) : (
         <IntakeCalendar
           key={friend.userId}
@@ -266,6 +266,7 @@ export default function ProfileScreen({
           fetchDates={(s, e) =>
             getFriendCalendar(viewerId, friend.userId, s, e)
           }
+          fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
         />
       )}
       {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}

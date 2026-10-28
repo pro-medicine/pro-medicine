@@ -5,7 +5,11 @@ import "./calendar.css";
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
 
-export default function IntakeCalendar({ fetchDates, title = "복용 달력" }) {
+export default function IntakeCalendar({
+  fetchDates,
+  fetchDay,
+  title = "복용 달력",
+}) {
   const now = new Date();
   const [ym, setYm] = useState({
     year: now.getFullYear(),
@@ -13,6 +17,9 @@ export default function IntakeCalendar({ fetchDates, title = "복용 달력" }) 
   });
   const [dates, setDates] = useState([]);
   const [error, setError] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [dayItems, setDayItems] = useState(null);
+  const [dayError, setDayError] = useState("");
 
   const monthKey = `${ym.year}-${pad(ym.month)}`;
   const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -37,6 +44,31 @@ export default function IntakeCalendar({ fetchDates, title = "복용 달력" }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
 
+  useEffect(() => {
+    if (!selected || !fetchDay) return;
+    let ignore = false;
+    setDayItems(null);
+    setDayError("");
+    fetchDay(selected)
+      .then((list) => {
+        if (!ignore) setDayItems(list ?? []);
+      })
+      .catch((err) => {
+        if (!ignore) setDayError(err.message || "기록을 불러오지 못했어요.");
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [selected]);
+
+  const move = (delta) => {
+    setSelected(null);
+    setYm(({ year, month }) => {
+      const d = new Date(year, month - 1 + delta, 1);
+      return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    });
+  };
+
   const completed = new Set(dates);
   const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7; // 월요일 시작
   const cells = [
@@ -49,12 +81,6 @@ export default function IntakeCalendar({ fetchDates, title = "복용 달력" }) 
     : new Date(ym.year, ym.month - 1, 1) > now
       ? 0
       : daysInMonth;
-
-  const move = (delta) =>
-    setYm(({ year, month }) => {
-      const d = new Date(year, month - 1 + delta, 1);
-      return { year: d.getFullYear(), month: d.getMonth() + 1 };
-    });
 
   return (
     <section className="section-block intake-calendar">
@@ -95,20 +121,53 @@ export default function IntakeCalendar({ fetchDates, title = "복용 달력" }) 
             key > todayKey ? "future" : "",
           ].join(" ");
           return (
-            <span
+            <button
               key={key}
-              className={cls}
+              type="button"
+              disabled={!fetchDay || key > todayKey}
+              className={`${cls} ${selected === key ? "selected" : ""}`}
+              aria-pressed={selected === key}
               aria-label={
                 completed.has(key) ? `${day}일 복용 완료` : `${day}일`
               }
+              onClick={() => setSelected(selected === key ? null : key)}
             >
               {day}
-            </span>
+            </button>
           );
         })}
       </div>
 
       {error && <p className="calendar-error">{error}</p>}
+      {selected && (
+        <div className="calendar-day-detail">
+          <h3>
+            {Number(selected.slice(5, 7))}월 {Number(selected.slice(8))}일 복용
+            기록
+          </h3>
+          {dayError && <p className="calendar-error">{dayError}</p>}
+          {!dayError && dayItems === null && (
+            <p className="calendar-summary">불러오는 중...</p>
+          )}
+          {dayItems?.length === 0 && (
+            <p className="calendar-summary">이 날 먹을 영양제가 없었어요.</p>
+          )}
+          <ul>
+            {(dayItems ?? []).map((item) => (
+              <li key={item.id} className={item.taken ? "taken" : "missed"}>
+                <span className="day-mark">{item.taken ? "✓" : "–"}</span>
+                <span className="day-copy">
+                  <strong>{item.name}</strong>
+                  <small>{item.timing}</small>
+                </span>
+                <span className="day-status">
+                  {item.taken ? "복용" : "미복용"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {!error && (
         <p className="calendar-summary">
           {elapsed}일 중 <b>{completed.size}일</b> 완료
