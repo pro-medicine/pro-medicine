@@ -5,7 +5,10 @@ import com.ucamp.app.domain.friend.dto.FriendResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
+import com.ucamp.app.domain.product.dto.MySupplementResponse;
+import com.ucamp.app.domain.product.service.MySupplementService;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
@@ -29,6 +32,7 @@ public class FriendService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final IntakeService intakeService;
+    private final MySupplementService mySupplementService;
 
     public List<FriendResponse> getFriends(Long userId) {
         List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
@@ -46,16 +50,16 @@ public class FriendService {
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
         getAcceptedFollow(userId, friendUserId);
-        User friend = getUser(userId);
-        return FriendDetailResponse.from(friend);
+        User friend = getUser(friendUserId);
+        IntakeStatsResponse stats = intakeService.getStats(friendUserId);
+        List<MySupplementResponse> supplements = mySupplementService.getMySupplements(friendUserId);
+        return FriendDetailResponse.of(friend, stats, supplements);
     }
 
     public List<LocalDate> getFriendCalendar(Long userId, Long friendUserId, LocalDate start, LocalDate end) {
         getAcceptedFollow(userId, friendUserId);
-        User friendUser = getUser(friendUserId);
-        // TODO: 친구 캘린터 공개/비공개 설정 기능 생기면 수정
-        // if (!friendUser.gS)
-            return intakeService.getCompletedDates(friendUserId, start, end);
+        // TODO: 친구 캘린터 공개/비공개 설정 기능 생기면 추가
+        return intakeService.getCompletedDates(friendUserId, start, end);
     }
 
     @Transactional

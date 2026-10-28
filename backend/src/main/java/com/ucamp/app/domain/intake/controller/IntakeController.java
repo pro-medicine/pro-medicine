@@ -33,7 +33,7 @@ public class IntakeController {
 
     // 복용 체크 저장: POST /api/v1/intakes  (헤더 X-User-Id, body { scheduleId, taken, date })
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> updateIntake(
+    public ResponseEntity<Void> updateIntake(
             @CurrentUserId Long userId,
             @RequestBody IntakeRequest req
     ) {

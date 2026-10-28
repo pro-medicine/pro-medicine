@@ -46,7 +46,7 @@ public class FriendController {
     }
 
     @DeleteMapping("/{friendUserId}")
-    public ResponseEntity<ApiResponse<Void>> deleteFriend(
+    public ResponseEntity<Void> deleteFriend(
             @RequestParam Long userId,
             @PathVariable Long friendUserId) {
         friendService.deleteFriend(userId, friendUserId);
