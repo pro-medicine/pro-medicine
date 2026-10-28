@@ -1,6 +1,6 @@
 # V2 회원 맞춤 질문 API 명세 (STEP 14, 담당: 영준)
 
-회원 전용. 저장된 건강정보 + LLM이 만드는 객관식 맞춤 질문 → 정밀 성분 추천. 설계: [docs/design/V2-personalized-recommendation.md](../../../docs/design/V2-personalized-recommendation.md).
+회원 전용. 저장된 건강정보 + LLM이 만드는 객관식 맞춤 질문 → 정밀 성분 추천.
 응답은 공통 `ApiResponse`(`{ success, code, message, data }`)로 감싼다. 회원은 `X-User-Id` 헤더로 판단한다 (로그인 연동 시 교체). **모든 V2 API는 헤더가 없으면 401 (E003)**.
 비회원 V1 설문·추천은 [survey-api.md](survey-api.md), [recommendation-api.md](recommendation-api.md).
 
@@ -170,7 +170,7 @@ PQ001 응답 예:
 
 - 미리 만든 질문은 단건과 같은 검증을 통과한 것만 쓰고, 쓰기 직전에 이 회차의 이전 질문과 반복 검사를 다시 한다. 걸리거나 없으면 단건 생성
 - 보관은 서버 메모리 (재시작하면 잃고 단건 생성으로 대신). 회차가 끝나면 비우고 쓰지 않은 질문은 `pq.prefetch{result=wasted}`로 센다
-- A안(`NONE`)·B안(`UPFRONT_FOLLOWUP`, 프로필 `pq-upfront`) 비교와 사용자 조사 계획: `docs/design/V2-question-prefetch-options.md` (결정 전)
+- 기본은 `NONE`. `UPFRONT_FOLLOWUP`은 프로필 `pq-upfront`로 켤 수 있다 (사용자 조사 후 결정)
 
 ## 8. 기록·운영
 

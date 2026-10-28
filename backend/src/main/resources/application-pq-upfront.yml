@@ -1,5 +1,4 @@
 # V2 맞춤 질문 B안: 시작할 때 질문을 미리 만들어 두고, 답하면 다음 질문을 바로 보여 준다
 # 실행: --spring.profiles.active=local-llm,pq-upfront (A안은 이 프로필 없이 실행, 기본 NONE)
-# 비교·결정 기준: docs/design/V2-question-prefetch-options.md
 pq:
   prefetch-strategy: UPFRONT_FOLLOWUP
