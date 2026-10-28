@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getUnreadCount } from "./api/notificationApi";
+import { getUnreadCount, subscribeNotifications } from "./api/notificationApi";
 import { BottomNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -32,6 +32,12 @@ export default function App() {
       ignore = true;
     };
   }, [userId, homeRefreshKey]);
+
+  // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
+  useEffect(
+    () => subscribeNotifications(userId, () => setHomeRefreshKey((key) => key + 1)),
+    [userId],
+  );
 
   // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
   const openNotifications = (event) => {
@@ -89,6 +95,7 @@ export default function App() {
         <NotificationPanel
           userId={userId}
           anchor={notificationAnchor}
+          refreshKey={homeRefreshKey}
           onRead={() => setHomeRefreshKey((key) => key + 1)}
           onClose={closeNotifications}
         />

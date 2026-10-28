@@ -46,31 +46,32 @@ function timeAgo(createdAt, now = new Date()) {
  * 알림 패널 (종 아이콘을 누르면 열림)
  * - userId: 로그인 연동 전까지 App에서 임시 id를 넘겨받는다.
  * - anchor: 패널을 띄울 위치 { top, right } (종 버튼 바로 아래). 없으면 화면 오른쪽 위
+ * - refreshKey: 값이 바뀌면 목록과 안 읽은 개수를 다시 불러옴 (새 알림 신호, 읽음 처리 후)
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, onRead, onClose }) {
+export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
   const [unreadCount, setUnreadCount] = useState(0);
   const pendingIdsRef = useRef(new Set()); // 읽음 요청 중인 알림 id (같은 알림 중복 클릭 방지)
-  const countChangedRef = useRef(false); // 읽음 처리로 개수를 직접 바꿨으면, 늦게 온 개수 응답은 무시
 
-  // 안 읽은 개수: 패널이 열릴 때 한 번 불러오고, 읽음 처리할 때는 화면에서 직접 줄인다.
+  // 안 읽은 개수: 패널이 열릴 때와 refreshKey가 바뀔 때(새 알림, 읽음 처리 후) 서버에서 다시 조회한다.
+  // 이전 요청은 cleanup의 ignore로 버려서, 늦게 도착한 옛날 개수가 최신 값을 덮어쓰지 않는다.
   useEffect(() => {
     let ignore = false;
     getUnreadCount(userId)
       .then((data) => {
-        if (!ignore && !countChangedRef.current) setUnreadCount(data?.unreadCount ?? 0);
+        if (!ignore) setUnreadCount(data?.unreadCount ?? 0);
       })
       .catch((err) => console.error(err));
     return () => {
       ignore = true;
     };
-  }, [userId]);
+  }, [userId, refreshKey]);
 
-  // 패널이 열릴 때와 탭이 바뀔 때 목록을 불러온다.
+  // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때 목록을 불러온다.
   useEffect(() => {
     let ignore = false;   // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
     const category = TABS.find((t) => t.id === tab).category;
@@ -89,9 +90,11 @@ export default function NotificationPanel({ userId = 1, anchor, onRead, onClose 
     return () => {
       ignore = true;
     };
-  }, [userId, tab]);
+  }, [userId, tab, refreshKey]);
 
   const loading = result.tab !== tab;
+  // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.
+  const hasUnreadItem = result.items.some((item) => !item.read);
 
   // 화면에 있는 알림의 읽음 상태만 바꾼다. (ids가 없으면 전부)
   const markItemsRead = (ids) => {
@@ -111,8 +114,7 @@ export default function NotificationPanel({ userId = 1, anchor, onRead, onClose 
     try {
       await markNotificationRead(userId, id);
       markItemsRead([id]);
-      countChangedRef.current = true;
-      setUnreadCount((count) => Math.max(0, count - 1));
+      setUnreadCount((count) => Math.max(0, count - 1)); // 화면 먼저 반영, 정확한 값은 onRead → refreshKey로 다시 조회
       onRead?.();
     } catch (err) {
       console.error(err);   // 실패하면 화면은 그대로 둔다 (다음에 다시 시도 가능)
@@ -126,7 +128,6 @@ export default function NotificationPanel({ userId = 1, anchor, onRead, onClose 
     try {
       await markAllNotificationsRead(userId);
       markItemsRead(null);
-      countChangedRef.current = true;
       setUnreadCount(0);
       onRead?.();
     } catch (err) {
@@ -210,7 +211,7 @@ export default function NotificationPanel({ userId = 1, anchor, onRead, onClose 
         <button
           className="read-all"
           onClick={handleReadAll}
-          disabled={loading || unreadCount === 0}
+          disabled={loading || (unreadCount === 0 && !hasUnreadItem)}
         >
           모두 읽음으로 표시
         </button>
