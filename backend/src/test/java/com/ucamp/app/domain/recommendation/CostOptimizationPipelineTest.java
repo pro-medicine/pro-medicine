@@ -130,7 +130,7 @@ class CostOptimizationPipelineTest {
         System.out.println("[V7] fixed prefix chars = " + prefixChars + " (system " + req.system().length() + ")");
         List<LlmCallLog> logs = logRepository.findByResponseIdOrderByLlmCallLogIdAsc(2L);
         LlmCallLog second = logs.get(logs.size() - 1);
-        if (prefixChars / 3 >= 512) {
+        if (prefixChars / 3 >= 1024) { // FakeLlmClient.MIN_CACHEABLE_TOKENS (3글자 ≈ 1토큰)
             assertThat(second.getCacheReadTokens()).isPositive();
         } else {
             assertThat(second.getCacheReadTokens()).isZero();

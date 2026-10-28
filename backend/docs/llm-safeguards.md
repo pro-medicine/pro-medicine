@@ -38,6 +38,7 @@ GPT 답이 정해진 JSON 구조로 오도록 강제하고, 그래도 깨지면 
 | 파싱 | 응답 문자열 → `JsonNode`. 실패하면 null로 넘겨 재요청 | `infra/llm/SpringAiLlmClient.java` (`parse()`) |
 | 검증 | 성분 코드, 중복, priority 연속, amount/unit 짝 | `domain/recommendation/pipeline/RecommendationOutputValidator.java` |
 | 재요청 | 틀린 이유를 붙여 1회 재요청. 또 실패하면 실패 처리 | `domain/recommendation/pipeline/StructuredPipeline.java`, `src/main/resources/prompts/common/repair.txt` |
+| 품질 검사 (v4.2~, V4·V6·V7·V8) | 요약 100자·2문장 이내, 진료·처방·검사 지시·제외·금지 성분 언급 금지, 성분 1개 이상. 형식 오류와 함께 1회 재요청에 붙이고, 재요청 뒤에도 남으면 실패로 보지 않음 (요약은 고정 문구, 0개는 그대로) | `domain/recommendation/pipeline/RecommendationQualityCheck.java` |
 
 - strict 모드는 OpenAI가 답을 생성하는 단계에서 스키마에 맞지 않는 토큰을 막는다. 프롬프트의 "JSON으로 답해라"는 안내일 뿐 강제가 아니다.
 - strict로도 막지 못하는 것: 출력 한도에 걸려 잘린 답, 답변 거부, 스키마로 표현할 수 없는 규칙(중복·연속성). 그래서 서버 검증을 남겨 둔다.
@@ -165,10 +166,22 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 
 | 빈틈 | 영향 | 제안 |
 | --- | --- | --- |
-| `reason`·`summary` 문장 검사 없음 | 설명 문장에 숫자 용량, 금지 성분 이름, 과장 표현이 들어가도 그대로 나감 | `RecommendationOutputValidator`에 숫자+단위 패턴, 금지 성분 이름 검사 추가 → 실패 시 재요청 |
+| `reason` 문장 검사 없음 (summary는 v4.2부터 길이·지시·금지 성분 언급 검사) | 설명 문장에 숫자 용량, 금지 성분 이름, 과장 표현이 들어가도 그대로 나감 | `RecommendationOutputValidator`에 숫자+단위 패턴, 금지 성분 이름 검사 추가 → 실패 시 재요청 |
 | ~~응답 숫자 표기 `1E+2`~~ | 해결 (c11a960, `RecommendationMapper.plain()`) | - |
 | 실제 GPT 품질 (평가셋 검토 전) | 2026-10-22 실제 측정: 위반율 0, V2 이후 용량 오류율 0. 평가셋이 `reviewed=false`라 기대값은 확정 전 | 평가셋 검토(`reviewed = true`) 후 재측정 (32건 약 $0.16) |
 | 타임아웃 미적용 | `llm.timeout-ms`가 HTTP 클라이언트에 연결되지 않아 약 60초에 끊김 | RestClient 읽기 시간 제한 연결 후 25~30초 |
 | ~~출력 한도 2,000 검증~~ | 확인 완료: 284회 중 최대 1,064토큰, 잘림 0건 | 2,000 유지 |
 | 캐시 스탬피드 | 같은 조건 요청이 동시에 오면 캐시 전 중복 호출 | 다음 과제 (single-flight) |
 | 규칙 검토 | 규칙 27개 출처는 있으나 약사 검토 전 | 서비스 공개 전 검토 |
+
+## 11. V2 맞춤 질문 (STEP 14)
+
+| 장치 | 내용 | 위치 |
+| --- | --- | --- |
+| 서버 주제 계획 | 주제·깊이·종료(기본 5 / 최대 7문항)는 서버가 정한다. LLM은 질문 문장·선택지·kind만 만든다 | `domain/personalized/planner/TopicPlanner.java` |
+| 질문 검증 + 1회 재요청 | 선택지 2~5개, UNKNOWN 정확히 1개, NONE 0~1개, 라벨 20자·질문 60자, 이전 질문 반복, 금지어(중단, 끊으세요, 진단, 처방, 복용을 멈추), answerType 일치. 재요청까지 실패하면 PQ005 | `domain/personalized/question/PersonalizedQuestionValidator.java`, `PersonalizedQuestionGenerator.java` |
+| 안전 규칙은 프로필 기준 | 정밀 추천의 조건 코드·금지 목록·사후 규칙·용량 계산은 프로필·임신 답만 본다. 맞춤 답변은 프롬프트 텍스트 블록으로만 들어간다. 규칙이 없는 V0~V3 설정이면 V4로 실행 | `PersonalizedRecommendationService.java`, `InputFormatter.java` |
+| 맞춤 답변 비저장 | 맞춤 답은 프로필에 저장하지 않고 회차 기록에만, 90일 뒤 삭제 | `PersonalizedSessionCleanupScheduler.java` |
+| 결과 보기 조건 (10-27) | "여기까지 답하고 결과 보기"는 임신 고정 질문 대상자가 그 질문에 답하고 LLM 질문도 1개 이상 답했을 때만 (서버도 PQ003). ✕ 닫기는 추천 없이 ABANDONED | `PersonalizedSessionStore.stop`, `close` |
+| 질문 미리 만들기 (10-27) | `pq.prefetch-strategy`. 묶음도 질문마다 같은 검증, 쓰기 직전 반복 검사 다시, 실패·미완료는 단건 생성 | `domain/personalized/prefetch/QuestionPrefetcher.java`, `question/QuestionBatchGenerator.java` |
+| 이중 요청 (10-27) | `pq.hedge-enabled`. 질문 첫 시도만, 먼저 온 검증 통과 응답 사용, 진 쪽은 DISCARDED(비용 기록) | `domain/personalized/question/QuestionHedge.java` |

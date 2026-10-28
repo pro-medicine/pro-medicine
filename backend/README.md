@@ -31,6 +31,8 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 
 **기존 팀원 DB**(예전 `schema.sql`로 만든 DB)는 `docs/sql/STEP13_ai_survey_setup.sql` 하나만 실행하면 된다 (MySQL Workbench 가능). AI 테이블·컬럼과 PK AUTO_INCREMENT를 맞추고, 예전 예시 설문(CONCERN 등)과 그 응답·추천을 지운 뒤 STEP02·06·07(STEP12 포함) 시드를 넣는다. STEP02·06·07·12 시드를 따로 실행할 필요 없고, 여러 번 실행해도 안전하다. 다른 팀원 테이블 데이터는 바꾸지 않는다.
 
+V2 회원 맞춤 질문(STEP 14)을 쓰려면 기존 DB에 이어서 `docs/sql/STEP14_personalized_questions.sql`을 실행한다. **순서: STEP13 → STEP14** (맞춤 질문 회차 테이블 2개, `ai_recommendations.response_id` NULL 허용·`session_id`, `llm_call_logs.session_id`). 여러 번 실행해도 안전하다. 새 DB는 `schema.sql`에 이미 들어 있다.
+
 테이블·컬럼은 `ddl-auto: update`로 자동 반영된다. 공유 DB용 DDL은 `docs/sql/STEPxx_*.sql`, 변경 목록은 [docs/schema-changes.md](docs/schema-changes.md).
 
 ### 서버
@@ -40,7 +42,7 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 .\gradlew.bat bootRun
 
 # 실제 OpenAI API (application-local-llm.yml)
-.\gradlew.bat bootRun --args='--spring.profiles.active=local-llm --recommendation.pipeline-version=V4'
+.\gradlew.bat bootRun --args='--spring.profiles.active=local-llm'
 ```
 
 주요 설정 (기본값은 `src/main/resources/config/recommendation-defaults.properties`와 각 `*Properties` 클래스):
@@ -51,7 +53,7 @@ docs/sql/STEP07_seed_recommendation_rules.sql
 | `spring.ai.model.chat` | none | `openai`면 Spring AI가 ChatModel을 만든다 (`local-llm` 프로필). 연결 설정은 `spring.ai.openai.*` (키 `${OPENAI_API_KEY}`, 재시도 0, 타임아웃 = `llm.timeout-ms`) |
 | `llm.model` / `llm.small-model` | gpt-6.1-sol / gpt-6-luna | 모델 ID는 OpenAI 모델 표 기준 |
 | `spring.ai.openai.chat.reasoning-effort` | (모델 기본값 medium) | low·medium·high·xhigh·max |
-| `recommendation.pipeline-version` | V0 | V0~V4, V6~V8, RULE_ONLY |
+| `recommendation.pipeline-version` | V4 | V0~V4, V6~V8, RULE_ONLY (2026-10-27 V0 → V4: 설정이 없어도 안전 규칙 적용) |
 | `recommendation.api-mode` | sync | `queue`면 202 접수 + 워커 |
 | `recommendation.worker.concurrency` | 4 | 큐 워커 = LLM 동시 호출 상한 (계정 rate limit에 맞춤) |
 | `recommendation.cache.store` / `recommendation.queue.store` | memory | `redis` |

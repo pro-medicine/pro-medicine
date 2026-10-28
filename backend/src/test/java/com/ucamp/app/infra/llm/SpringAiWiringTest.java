@@ -34,6 +34,7 @@ import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +62,8 @@ class SpringAiWiringTest {
         r.add("OPENAI_API_KEY", () -> "key-from-dotenv");
         r.add("spring.ai.openai.base-url", () -> "http://localhost:" + WIREMOCK.port() + "/v1");
         r.add("recommendation.pipeline-version", () -> "V4");
+        // 운영과 같은 경로(llm.timeout-ms → spring.ai.openai.chat.timeout)로 타임아웃이 실제 적용되는지 확인용
+        r.add("llm.timeout-ms", () -> "1500");
     }
 
     @AfterAll
@@ -76,6 +79,8 @@ class SpringAiWiringTest {
     ChatModel chatModel;
     @Autowired
     LlmCallLogRepository logRepository;
+    @Autowired
+    LlmClient llmClient;
 
     @BeforeEach
     void reset() {
@@ -190,6 +195,23 @@ class SpringAiWiringTest {
         assertThat(logRepository.findByResponseIdOrderByLlmCallLogIdAsc(responseId))
                 .extracting(LlmCallLog::getHttpStatus).containsExactly(500);
         writeReport("error-500", null, body);
+    }
+
+    @Test
+    void llm_timeout_ms가_자동_설정_경로에서도_적용된다() {
+        // Spring AI 기본 요청 옵션(60초)이 설정값을 덮어쓰면 5초 지연 응답을 그대로 받는다
+        WIREMOCK.stubFor(post(urlEqualTo("/v1/chat/completions"))
+                .willReturn(OpenAiStubs.okResponse("{}", 1, 1, 0).withFixedDelay(5000)));
+        LlmRequest request = LlmRequest.builder().model("gpt-6.1-sol").system("시스템")
+                .messages(List.of(LlmMessage.user("안녕"))).maxTokens(100)
+                .callTag(LlmRequest.TAG_RECOMMEND).pipelineVersion("V4").promptVersion("test").build();
+
+        long start = System.nanoTime();
+        assertThatThrownBy(() -> llmClient.call(request))
+                .isInstanceOfSatisfying(LlmCallException.class,
+                        e -> assertThat(e.getKind()).isEqualTo(LlmCallException.Kind.TIMEOUT));
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+        assertThat(elapsedMs).isBetween(1400L, 4000L);
     }
 
     private long submit(List<Map<String, Object>> answers) throws Exception {
