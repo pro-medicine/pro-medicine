@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleValidation(
             MethodArgumentNotValidException ex
     ) {
-        log.debug("요청 데이터 검증 실패: {}", ex.getMessage());
+        log.debug("요청 데이터 검증 실패: 오류 {}건", ex.getBindingResult().getErrorCount());
 
         return ResponseEntity
                 .status(ErrorCode.INVALID_INPUT.getStatus())

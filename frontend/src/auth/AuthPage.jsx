@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Icon } from "../shared/ui";
 import { login, signup } from "./authApi";
 import "./auth.css";
@@ -16,7 +16,11 @@ export default function AuthPage({ mode, onModeChange, onComplete, onClose }) {
     const [busy, setBusy] = useState(false);
     const isSignup = mode === "signup";
 
-    useEffect(() => setError(""), [mode]);
+    // 로그인 / 회원가입 모드 전환 시 오류 메시지 초기화
+    const changeMode = (nextMode) => {
+        setError("");
+        onModeChange(nextMode);
+    };
 
     const submit = async (event) => {
         event.preventDefault();
@@ -58,8 +62,8 @@ export default function AuthPage({ mode, onModeChange, onComplete, onClose }) {
                     약쏙해줘
                 </button>
                 <div className="auth-header-tabs">
-                    <button type="button" disabled={busy} className={!isSignup ? "active" : ""} onClick={() => onModeChange("login")}>로그인</button>
-                    <button type="button" disabled={busy} className={isSignup ? "active" : ""} onClick={() => onModeChange("signup")}>회원가입</button>
+                    <button type="button" disabled={busy} className={!isSignup ? "active" : ""} onClick={() => changeMode("login")}>로그인</button>
+                    <button type="button" disabled={busy} className={isSignup ? "active" : ""} onClick={() => changeMode("signup")}>회원가입</button>
                 </div>
             </header>
 
@@ -75,8 +79,8 @@ export default function AuthPage({ mode, onModeChange, onComplete, onClose }) {
 
                 <section className="auth-card">
                     <div className="auth-card-tabs">
-                        <button type="button" disabled={busy} className={!isSignup ? "active" : ""} onClick={() => onModeChange("login")}>로그인</button>
-                        <button type="button" disabled={busy} className={isSignup ? "active" : ""} onClick={() => onModeChange("signup")}>회원가입</button>
+                        <button type="button" disabled={busy} className={!isSignup ? "active" : ""} onClick={() => changeMode("login")}>로그인</button>
+                        <button type="button" disabled={busy} className={isSignup ? "active" : ""} onClick={() => changeMode("signup")}>회원가입</button>
                     </div>
                     <form onSubmit={submit}>
                         {isSignup && (
@@ -133,7 +137,7 @@ export default function AuthPage({ mode, onModeChange, onComplete, onClose }) {
                     </form>
                     <p className="auth-switch">
                         {isSignup ? "이미 회원이신가요?" : "아직 회원이 아니신가요?"}
-                        <button type="button" onClick={() => onModeChange(isSignup ? "login" : "signup")}>{isSignup ? "로그인" : "회원가입"}</button>
+                        <button type="button" onClick={() => changeMode(isSignup ? "login" : "signup")}>{isSignup ? "로그인" : "회원가입"}</button>
                     </p>
                 </section>
             </main>
