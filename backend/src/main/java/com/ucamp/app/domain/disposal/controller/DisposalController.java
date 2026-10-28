@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.disposal.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.ucamp.app.domain.disposal.service.DisposalService;
 import com.ucamp.app.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +35,15 @@ public class DisposalController {
             throw new BusinessException(ErrorCode.DISPOSAL_INVALID_QUERY);
         }
 
-        return ResponseEntity.ok(
-                ApiResponse.success(disposalService.searchPlaces(query.trim())));
+        try {
+            JsonNode result = disposalService.searchPlaces(query.trim());
+
+            return ResponseEntity.ok(ApiResponse.success(result));
+
+        } catch (RuntimeException e) {
+            log.error("[DISPOSAL] 약국 검색 실패. query={}", query, e);
+            throw e;
+        }
     }
 
 

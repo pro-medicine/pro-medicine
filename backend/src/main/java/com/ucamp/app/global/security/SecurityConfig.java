@@ -45,12 +45,18 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // 서버 상태 확인 - 인증 불필요
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/actuator/health"
+                        ).permitAll()
+
+                        // 회원가입 / 로그인 - 인증 불필요
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/signup"
                         ).permitAll()
-
                         // 폐의약품 약국 검색은 로그인 없이 허용
                         .requestMatchers(
                                 HttpMethod.GET,

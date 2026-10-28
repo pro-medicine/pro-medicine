@@ -194,6 +194,7 @@ export default function App() {
                 return (
                     <FriendsPage
                         key={friendsKey}
+                        userId={userId}
                         onNotifications={openNotifications}
                     />
                 );
