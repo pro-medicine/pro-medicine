@@ -19,6 +19,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -26,6 +27,19 @@ import java.time.LocalDateTime;
 @Table(name = "health_profiles")
 @EntityListeners(AuditingEntityListener.class)
 public class HealthProfile {
+
+    // 설문 문항의 profile_key로 쓸 수 있는 컬럼명
+    public static final String KEY_GENDER = "gender";
+    public static final String KEY_BIRTH_YEAR = "birth_year";
+    public static final String KEY_SMOKING = "smoking";
+    public static final String KEY_DRINKING = "drinking";
+    public static final String KEY_CAFFEINE = "caffeine";
+    public static final String KEY_DIET_TYPE = "diet_type";
+    public static final String KEY_SUN_EXPOSURE = "sun_exposure";
+    public static final String KEY_HEIGHT = "height";
+    public static final String KEY_WEIGHT = "weight";
+    public static final Set<String> PROFILE_KEYS = Set.of(KEY_GENDER, KEY_BIRTH_YEAR, KEY_SMOKING, KEY_DRINKING,
+            KEY_CAFFEINE, KEY_DIET_TYPE, KEY_SUN_EXPOSURE, KEY_HEIGHT, KEY_WEIGHT);
 
     @Id
     @Column(name = "user_id")
@@ -80,6 +94,42 @@ public class HealthProfile {
         this.caffeine = caffeine;
         this.dietType = dietType;
         this.sunExposure = sunExposure;
+    }
+
+    public static HealthProfile create(User user) {
+        return HealthProfile.builder().user(user).build();
+    }
+
+    // 설문 답을 profile_key 컬럼에 반영한다. 선택형은 value_code, 숫자형은 value_number를 저장
+    public void applySurveyValue(String profileKey, String valueCode, BigDecimal valueNumber) {
+        switch (profileKey) {
+            case KEY_GENDER -> this.gender = valueCode;
+            case KEY_SMOKING -> this.smoking = valueCode;
+            case KEY_DRINKING -> this.drinking = valueCode;
+            case KEY_CAFFEINE -> this.caffeine = valueCode;
+            case KEY_DIET_TYPE -> this.dietType = valueCode;
+            case KEY_SUN_EXPOSURE -> this.sunExposure = valueCode;
+            case KEY_BIRTH_YEAR -> this.birthYear = valueNumber == null ? null : valueNumber.intValue();
+            case KEY_HEIGHT -> this.height = valueNumber;
+            case KEY_WEIGHT -> this.weight = valueNumber;
+            default -> throw new IllegalArgumentException("unknown profile key: " + profileKey);
+        }
+    }
+
+    // 설문 미리 채우기용. 선택형 컬럼은 value_code 문자열, 숫자형 컬럼은 BigDecimal
+    public Object getSurveyValue(String profileKey) {
+        return switch (profileKey) {
+            case KEY_GENDER -> gender;
+            case KEY_SMOKING -> smoking;
+            case KEY_DRINKING -> drinking;
+            case KEY_CAFFEINE -> caffeine;
+            case KEY_DIET_TYPE -> dietType;
+            case KEY_SUN_EXPOSURE -> sunExposure;
+            case KEY_BIRTH_YEAR -> birthYear == null ? null : BigDecimal.valueOf(birthYear);
+            case KEY_HEIGHT -> height;
+            case KEY_WEIGHT -> weight;
+            default -> null;
+        };
     }
 
     public void update(Integer birthYear, String gender, BigDecimal height, BigDecimal weight,

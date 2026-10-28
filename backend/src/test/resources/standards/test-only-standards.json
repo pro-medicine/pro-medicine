@@ -1,0 +1,89 @@
+{
+  "_comment": "TEST ONLY - DoseCalculator 계산 로직 확인용 가짜 기준값. 실제 기준값이 아니다 (실제 값: docs/sql/STEP06_seed_ingredient_standards.sql)",
+  "standards": [
+    {
+      "ingredientCode": "TEST_A",
+      "gender": "M",
+      "ageMin": 19,
+      "ageMax": null,
+      "conditionCode": null,
+      "recommendedAmount": 100,
+      "upperLimit": 300,
+      "unit": "mg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_A",
+      "gender": "F",
+      "ageMin": 19,
+      "ageMax": null,
+      "conditionCode": null,
+      "recommendedAmount": 80,
+      "upperLimit": 300,
+      "unit": "mg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_A",
+      "gender": "M",
+      "ageMin": 19,
+      "ageMax": null,
+      "conditionCode": "SMOKING_CURRENT",
+      "recommendedAmount": 140,
+      "upperLimit": 300,
+      "unit": "mg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_A",
+      "gender": "ALL",
+      "ageMin": 19,
+      "ageMax": 49,
+      "conditionCode": null,
+      "recommendedAmount": 90,
+      "upperLimit": null,
+      "unit": "mg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_B",
+      "gender": "ALL",
+      "ageMin": 19,
+      "ageMax": null,
+      "conditionCode": null,
+      "recommendedAmount": 50,
+      "upperLimit": null,
+      "unit": "mcg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_B",
+      "gender": "ALL",
+      "ageMin": 50,
+      "ageMax": 64,
+      "conditionCode": null,
+      "recommendedAmount": 60,
+      "upperLimit": null,
+      "unit": "mcg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    },
+    {
+      "ingredientCode": "TEST_C",
+      "gender": "ALL",
+      "ageMin": 19,
+      "ageMax": null,
+      "conditionCode": null,
+      "recommendedAmount": null,
+      "upperLimit": null,
+      "unit": "mg",
+      "standardVersion": "TEST_ONLY",
+      "sourceId": "TEST"
+    }
+  ]
+}

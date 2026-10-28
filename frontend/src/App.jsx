@@ -1,48 +1,50 @@
 
 import { useEffect, useState } from "react";
 
-// 인증 기능
+// 인증
 import AuthPage from "./auth/AuthPage";
 import { getCurrentUser, logout } from "./auth/authApi";
-
-// 기존 화면 및 공통 기능
-import { BottomNav, NotificationPanel } from "./common/AppChrome";
-import DisposalMapPage from "./disposal/DisposalMapPage";
-import FriendsPage from "./friends/FriendsPage";
-import { SurveyModal } from "./home/HomeFeature";
-import HomePage from "./home/HomePage";
-import MyPage from "./mypage/MyPage";
 import "./auth/auth.css";
 
+// 알림
+import { getUnreadCount } from "./api/notificationApi";
+import { BottomNav } from "./common/AppChrome";
+import NotificationPanel from "./common/NotificationPanel";
+import { UnreadNotificationContext } from "./common/unreadNotificationContext";
+
+// 기존 화면
+import DisposalMapPage from "./disposal/DisposalMapPage";
+import FriendsPage from "./friends/FriendsPage";
+import HomePage from "./home/HomePage";
+import MyPage from "./mypage/MyPage";
+import RecommendationModal from "./recommendation";
+
 export default function App() {
-    // ===========================
-    // 1. 사용자 인증 상태
-    // ===========================
+    // 인증 상태
     const [user, setUser] = useState(null);
     const [authMode, setAuthMode] = useState("login");
     const [loading, setLoading] = useState(true);
     const [loggingOut, setLoggingOut] = useState(false);
     const [error, setError] = useState("");
 
-    // ===========================
-    // 2. 기존 화면 상태
-    // ===========================
+    // 화면 상태
     const [tab, setTab] = useState("home");
     const [surveyOpen, setSurveyOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [notificationAnchor, setNotificationAnchor] = useState(null);
+    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [homeRefreshKey, setHomeRefreshKey] = useState(0);
     const [friendsKey, setFriendsKey] = useState(0);
 
-    // ===========================
-    // 3. 최초 로그인 상태 확인
-    // ===========================
+    const userId = user?.userId;
+
+    // 최초 로그인 확인
     useEffect(() => {
         let active = true;
 
         getCurrentUser()
             .then((currentUser) => {
-                if (active) {
-                    setUser(currentUser);
-                }
+                if (active) setUser(currentUser);
             })
             .catch(() => {
                 if (active) {
@@ -50,9 +52,7 @@ export default function App() {
                 }
             })
             .finally(() => {
-                if (active) {
-                    setLoading(false);
-                }
+                if (active) setLoading(false);
             });
 
         return () => {
@@ -60,19 +60,40 @@ export default function App() {
         };
     }, []);
 
-    // ===========================
-    // 4. 로그인 및 회원가입 성공
-    // ===========================
+    // 로그인 사용자 알림 조회
+    useEffect(() => {
+        if (userId == null) {
+            return;
+        }
+
+        let ignore = false;
+
+        getUnreadCount(userId)
+            .then((data) => {
+                if (!ignore) {
+                    setHasUnreadNotifications(
+                        (data?.unreadCount ?? 0) > 0
+                    );
+                }
+            })
+            .catch((err) => console.error(err));
+
+        return () => {
+            ignore = true;
+        };
+    }, [userId, homeRefreshKey]);
+
+    // 로그인·회원가입 완료
     const handleAuthComplete = (account) => {
         setUser(account);
         setAuthMode("login");
         setTab("home");
         setError("");
+        setHasUnreadNotifications(false);
+        setHomeRefreshKey(0);
     };
 
-    // ===========================
-    // 5. 로그아웃
-    // ===========================
+    // 로그아웃
     const handleLogout = async () => {
         if (loggingOut) return;
 
@@ -89,16 +110,18 @@ export default function App() {
             setTab("home");
             setSurveyOpen(false);
             setNotificationsOpen(false);
+            setNotificationAnchor(null);
+            setHasUnreadNotifications(false);
+            setHomeRefreshKey(0);
             setLoggingOut(false);
         }
     };
 
     const renderSessionActions = () => (
         <div className="auth-session-actions">
-    <span className="auth-session-name">
-      {user.nickname}님
-    </span>
-
+      <span className="auth-session-name">
+        {user?.nickname}님
+      </span>
             <button
                 type="button"
                 className="auth-logout-button"
@@ -110,11 +133,29 @@ export default function App() {
         </div>
     );
 
-    // ===========================
-    // 6. 기존 알림 및 탭 기능
-    // ===========================
-    const openNotifications = () => {
+    // 알림 열기: 버튼 위치 계산
+    const openNotifications = (event) => {
+        const rect =
+            event?.currentTarget?.getBoundingClientRect?.();
+
+        setNotificationAnchor(
+            rect
+                ? {
+                    top: rect.bottom + 8,
+                    right: Math.max(
+                        16,
+                        window.innerWidth - rect.right
+                    ),
+                }
+                : null
+        );
+
         setNotificationsOpen(true);
+    };
+
+    const closeNotifications = () => {
+        setNotificationsOpen(false);
+        setHomeRefreshKey((key) => key + 1);
     };
 
     const changeTab = (nextTab) => {
@@ -123,19 +164,10 @@ export default function App() {
         }
 
         setTab(nextTab);
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    // ===========================
-    // 7. 탭별 화면 표시
-    // ===========================
     const renderContent = () => {
-        const userId = user.userId;
-
         switch (tab) {
             case "friends":
                 return (
@@ -147,9 +179,7 @@ export default function App() {
 
             case "my":
                 return (
-                    <MyPage
-                        onNotifications={openNotifications}
-                    />
+                    <MyPage onNotifications={openNotifications} />
                 );
 
             case "disposal":
@@ -162,7 +192,8 @@ export default function App() {
             default:
                 return (
                     <HomePage
-                        userId={user.userId}
+                        userId={userId}
+                        refreshKey={homeRefreshKey}
                         onOpenNotifications={openNotifications}
                         onSurvey={() => setSurveyOpen(true)}
                         headerActions={renderSessionActions()}
@@ -171,9 +202,7 @@ export default function App() {
         }
     };
 
-    // ===========================
-    // 8. 인증 상태 확인 중
-    // ===========================
+    // 로그인 확인 중
     if (loading) {
         return (
             <div className="auth-page" role="status">
@@ -182,14 +211,11 @@ export default function App() {
         );
     }
 
-    // ===========================
-    // 9. 로그인하지 않은 사용자
-    // ===========================
+    // 비로그인 화면
     if (!user) {
         return (
             <>
                 {error && <p role="alert">{error}</p>}
-
                 <AuthPage
                     mode={authMode}
                     onModeChange={setAuthMode}
@@ -200,47 +226,45 @@ export default function App() {
         );
     }
 
-    // ===========================
-    // 10. 로그인한 사용자
-    // ===========================
     return (
-        <div className="app-shell">
-            {/* 인증 관련 오류 메시지 */}
-            {error && (
-                <p role="alert" className="auth-error-message">
-                    {error}
-                </p>
-            )}
+        <UnreadNotificationContext.Provider
+            value={hasUnreadNotifications}
+        >
+            <div className="app-shell">
+                {error && (
+                    <p role="alert" className="auth-error-message">
+                        {error}
+                    </p>
+                )}
 
-            {/* 홈이 아닌 다른 탭에서 로그아웃 표시 */}
-            {tab !== "home" && (
-                <div className="auth-secondary-bar">
-                    {renderSessionActions()}
-                </div>
-            )}
+                {tab !== "home" && (
+                    <div className="auth-secondary-bar">
+                        {renderSessionActions()}
+                    </div>
+                )}
 
-            {/* 구현한 기존 화면 */}
-            <main>{renderContent()}</main>
+                <main>{renderContent()}</main>
 
-            {/* 하단 탭 */}
-            <BottomNav
-                tab={tab}
-                onChange={changeTab}
-            />
+                <BottomNav tab={tab} onChange={changeTab} />
 
-            {/* 영양제 추천 설문 */}
-            {surveyOpen && (
-                <SurveyModal
-                    onClose={() => setSurveyOpen(false)}
-                />
-            )}
+                {surveyOpen && (
+                    <RecommendationModal
+                        userId={userId}
+                        onClose={() => setSurveyOpen(false)}
+                    />
+                )}
 
-            {/* 알림 패널 */}
-            {notificationsOpen && (
-                <NotificationPanel
-                    onClose={() => setNotificationsOpen(false)}
-                />
-            )}
-        </div>
+                {notificationsOpen && (
+                    <NotificationPanel
+                        userId={userId}
+                        anchor={notificationAnchor}
+                        onRead={() =>
+                            setHomeRefreshKey((key) => key + 1)
+                        }
+                        onClose={closeNotifications}
+                    />
+                )}
+            </div>
+        </UnreadNotificationContext.Provider>
     );
 }

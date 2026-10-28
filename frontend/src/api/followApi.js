@@ -4,9 +4,9 @@ export function requestFollow(userId, nickname) {
   return api.post("/api/v1/follows", { nickname }, { params: { userId } });
 }
 
-export function getFollowRequests(userId) {
+export function getFollowRequests(userId, direction = "received") {
   return api.get("/api/v1/follows/requests", {
-    params: { userId, direction: "received", status: "PENDING" },
+    params: { userId, direction, status: "PENDING" },
   });
 }
 
@@ -16,4 +16,8 @@ export function respondFollow(userId, followId, status) {
     { status },
     { params: { userId } },
   );
+}
+
+export function cancelFollow(userId, followId) {
+  return api.delete(`/api/v1/follows/${followId}`, { params: { userId } });
 }

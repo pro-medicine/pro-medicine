@@ -1,0 +1,66 @@
+{
+  "latestGuest" : {
+    "body" : {
+      "code" : "E003",
+      "message" : "인증이 필요합니다.",
+      "success" : false
+    },
+    "raw" : "{\"code\":\"E003\",\"message\":\"인증이 필요합니다.\",\"success\":false}",
+    "status" : 401
+  },
+  "noResponseId" : {
+    "body" : {
+      "code" : "R002",
+      "message" : "추천 요청이 올바르지 않습니다.",
+      "success" : false
+    },
+    "raw" : "{\"code\":\"R002\",\"message\":\"추천 요청이 올바르지 않습니다.\",\"success\":false}",
+    "status" : 400
+  },
+  "notFound" : {
+    "body" : {
+      "code" : "R001",
+      "message" : "추천 결과를 찾을 수 없습니다.",
+      "success" : false
+    },
+    "raw" : "{\"code\":\"R001\",\"message\":\"추천 결과를 찾을 수 없습니다.\",\"success\":false}",
+    "status" : 404
+  },
+  "post" : {
+    "body" : {
+      "code" : "S000",
+      "data" : {
+        "createdAt" : "<createdAt>",
+        "errorCode" : null,
+        "excludedItems" : [ ],
+        "fallback" : false,
+        "items" : [ {
+          "appliedRuleIds" : [ "R-06" ],
+          "doseNote" : "기준값 미등록",
+          "ingredient" : "VITAMIN_D",
+          "reason" : "가짜 응답: 햇빛 노출이 적은 경우를 가정",
+          "sortOrder" : 1,
+          "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
+        } ],
+        "modelName" : "gpt-6.1-sol-fake",
+        "recommendationId" : "<recommendationId>",
+        "responseId" : "<responseId>",
+        "status" : "DONE",
+        "summary" : "가짜 응답입니다"
+      },
+      "message" : "성공",
+      "success" : true
+    },
+    "raw" : "{\"code\":\"S000\",\"data\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"가짜 응답입니다\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_D\",\"reason\":\"가짜 응답: 햇빛 노출이 적은 경우를 가정\",\"sortOrder\":1,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]}],\"excludedItems\":[],\"fallback\":false},\"message\":\"성공\",\"success\":true}",
+    "status" : 200
+  },
+  "unknownResponse" : {
+    "body" : {
+      "code" : "S005",
+      "message" : "설문 응답을 찾을 수 없습니다.",
+      "success" : false
+    },
+    "raw" : "{\"code\":\"S005\",\"message\":\"설문 응답을 찾을 수 없습니다.\",\"success\":false}",
+    "status" : 404
+  }
+}

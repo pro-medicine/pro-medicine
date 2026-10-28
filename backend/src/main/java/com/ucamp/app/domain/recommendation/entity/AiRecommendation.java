@@ -39,17 +39,60 @@ public class AiRecommendation {
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
 
-    @Column(name = "model_name", length = 60)
+    @Column(name = "model_name", length = MODEL_NAME_LENGTH)
     private String modelName;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // STEP 09 추가: 비동기 처리 상태. 동기 API로 만든 결과는 DONE. 기존 행이 있어도 추가되도록 DB 기본값을 둔다
+    @Column(name = "status", nullable = false, length = 10, columnDefinition = "VARCHAR(10) NOT NULL DEFAULT 'DONE'")
+    private String status;
+
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
+
+    @Column(name = "error_code", length = ERROR_CODE_LENGTH)
+    private String errorCode;
+
+    public static final String PENDING = "PENDING";
+    public static final String PROCESSING = "PROCESSING";
+    public static final String DONE = "DONE";
+    public static final String FAILED = "FAILED";
+    public static final int MODEL_NAME_LENGTH = 60;
+    public static final int ERROR_CODE_LENGTH = 30;
+
     @Builder
-    public AiRecommendation(SurveyResponse response, String summary, String modelName) {
+    public AiRecommendation(SurveyResponse response, String summary, String modelName, String status) {
         this.response = response;
         this.summary = summary;
         this.modelName = modelName;
+        this.status = status != null ? status : DONE;
+        if (DONE.equals(this.status)) {
+            this.finishedAt = LocalDateTime.now();
+        }
+    }
+
+    public void markProcessing() {
+        this.status = PROCESSING;
+        this.startedAt = LocalDateTime.now();
+    }
+
+    public void markDone(String summary, String modelName) {
+        this.status = DONE;
+        this.summary = summary;
+        this.modelName = modelName;
+        this.finishedAt = LocalDateTime.now();
+        this.errorCode = null;
+    }
+
+    public void markFailed(String errorCode) {
+        this.status = FAILED;
+        this.errorCode = errorCode;
+        this.finishedAt = LocalDateTime.now();
     }
 }
