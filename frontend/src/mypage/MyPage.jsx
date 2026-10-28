@@ -51,7 +51,12 @@ function toSupplementCard(item, index) {
   };
 }
 
-export default function ProfileScreen({ friend, onBack, onNotifications }) {
+export default function ProfileScreen({
+  friend,
+  onBack,
+  onNotifications,
+  topBarActions,
+}) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -202,6 +207,7 @@ export default function ProfileScreen({ friend, onBack, onNotifications }) {
         title={isMine ? "마이페이지" : `${name}님의 영양정보`}
         subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
         onNotifications={onNotifications}
+        actions={topBarActions}
       />
 
       <section

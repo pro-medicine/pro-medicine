@@ -21,7 +21,7 @@ export function saveHealthProfile(userId, form) {
 
 // 연속 복용일, 복용 중인 영양제 수, 이번 달 달성률
 export function fetchIntakeStats(userId) {
-  return api.get(`/api/v1/users/${userId}/intake-stats`);
+  return api.get("/api/v1/intakes/stats", { params: { userId } });
 }
 
 export function fetchConditions(userId) {
