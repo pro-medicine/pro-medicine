@@ -57,7 +57,7 @@ class V1PipelineTest {
         assertThat(req.outputSchema()).isNotNull();
         assertThat(req.outputSchema().strict()).isTrue();
         assertThat(req.outputSchema().name()).isEqualTo("submit_recommendation");
-        assertThat(req.promptVersion()).isEqualTo("v1.1");
+        assertThat(req.promptVersion()).isEqualTo("v1.2");
         assertThat(req.system()).contains("VITAMIN_C: 비타민 C, mg").contains("현재 복용 중인 영양제 함량을 뺀");
     }
 
