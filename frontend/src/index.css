@@ -7,21 +7,35 @@
 @import "./common/common.css";
 
 :root {
-  color: #1f2421;
-  background: #fbfaf6;
+  color: #111714;
+  background: #ffffff;
   font-family: "Noto Sans KR", sans-serif;
   font-synthesis: none;
-  --ink: #1f2421;
-  --muted: #5e645e;
-  --soft: #f6f5f1;
-  --line: #e8e6df;
-  --yellow: #f2c94c;
-  --yellow-deep: #d9b23a;
-  --yellow-soft: #fff6d6;
-  --yellow-pale: #fffbea;
+
+  /* 디자인 기준 (#67 시안 B): 초록은 "누를 것"과 "완료"에만, 나머지는 흰색·검정·회색 */
+  --primary: #0e9f6e;
+  --primary-hover: #0b8a5f;
+  --primary-soft: #e7f6ef;
+  --primary-line: #b9e3cf;
+  --ink: #111714;
+  --muted: #6a736f;
+  --faint: #9aa29e;
+  --line: #eceeed;
+  --surface: #f7f9f8;
+  --alert: #e5484d;
   --white: #ffffff;
-  --green: #2f5d50;
-  --shadow: 0 14px 38px rgba(47, 48, 39, 0.07);
+  --radius-card: 18px;
+  --radius-modal: 20px;
+  --content-width: 1120px;
+
+  /* 기존 화면이 쓰던 변수 이름은 유지하고 새 색으로 연결 (화면별 작업에서 하나씩 정리) */
+  --soft: var(--surface);
+  --yellow: var(--primary);
+  --yellow-deep: var(--primary);
+  --yellow-soft: var(--primary-soft);
+  --yellow-pale: var(--surface);
+  --green: var(--primary);
+  --shadow: none;
 }
 
 * {
@@ -36,7 +50,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #fbfaf6;
+  background: #ffffff;
   color: var(--ink);
 }
 

@@ -44,6 +44,14 @@ export function TopNav({ tab, onChange, hasUnread, onNotifications }) {
                         <Icon name="bell" size={19} />
                         {hasUnread && <span className="top-nav-dot" />}
                     </button>
+                    <button
+                        type="button"
+                        className={`top-nav-avatar${tab === "my" ? " active" : ""}`}
+                        aria-label="마이페이지"
+                        onClick={() => onChange("my")}
+                    >
+                        <Icon name="user" size={18} />
+                    </button>
                 </div>
             </div>
         </header>
