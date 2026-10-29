@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +32,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "ai_chat_results")
+@Table(name = "ai_chat_results",
+        uniqueConstraints = @UniqueConstraint(name = "uq_chat_results_session", columnNames = "chat_session_id"))
 @EntityListeners(AuditingEntityListener.class)
 public class AiChatResult {
 
@@ -44,7 +46,7 @@ public class AiChatResult {
     private Long chatResultId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "chat_session_id", nullable = false, unique = true)
+    @JoinColumn(name = "chat_session_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private AiChatSession chatSession;
 
