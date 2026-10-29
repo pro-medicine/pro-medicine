@@ -54,19 +54,24 @@ public class NutritionService {
             CatalogProduct product = userProduct.getCatalogProduct();
             Map<Nutrient, Integer> amounts = null;
             if (product != null) {
+                // 예시 제품은 예시 함량, 식약처 제품은 성분 요약 글에서 함량을 읽음
                 amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
+                if(amounts != null) {
+                    sample = true;
+                } else {
+                    amounts = parseSummary(product.getIngredientSummary());
+                }
             }
-            // 함량을 모르는 영양제 (함량 목록에 없는 제품, 직접 입력한 영양제)
-            if (amounts == null) {
+            if(amounts == null || amounts.isEmpty()) {
                 unsupportedCount++;
                 continue;
             }
-            sample = true;
             for (Nutrient nutrient : amounts.keySet()) {
                 int before = totals.getOrDefault(nutrient, 0);  // 지금까지 더한 양 (없으면 0)
                 totals.put(nutrient, before + amounts.get(nutrient));
             }
         }
+
 
         // 2. 성분마다 권장량 대비 섭취율을 계산한다 (먹는 게 없으면 0)
         List<NutrientIntakeResponse> nutrients = new ArrayList<>();
@@ -83,4 +88,61 @@ public class NutritionService {
         }
         return new NutritionResponse(userId, nutrients, sample, unsupportedCount);
     }
+
+    // 식약처 성분 요약 글을 성분별 함량으로 바꿈
+    // 예: "EPA+DHA 530mg, 루테인 20mg" → 오메가3 530 (게이지에 없는 루테인은 건너뜀)
+    private Map<Nutrient, Integer> parseSummary(String summary) {
+        Map<Nutrient, Integer> amounts = new EnumMap<>(Nutrient.class);
+        if(summary == null) {
+            return amounts;
+        }
+        for (String part : summary.split(", ")) {
+            // 천 단위 쉼표 없애고 단위 표기 통일 (㎎ → mg, μg → ㎍), 공백은 숫자 구분용으로 남김
+            String text = part.trim().replace(",", "").replace("㎎", "mg").replace("μg", "㎍").replace("µg", "㎍");
+            // 성분 이름은 공백을 없앤 글로 찾음 ("비타민 C" → "비타민C")
+            Nutrient nutrient = findNutrient(text.replace(" ", ""));
+            // 게이지에 없는 성분이거나, 단위가 게이지 단위와 다르면 건너뜀
+            if (nutrient == null || !text.endsWith(nutrient.getUnit())) {
+                continue;
+            }
+
+            //단위 바로 앞의 숫자 부분 찾기 (뒤에서부터 숫자와 점이 이어지는 곳까지)
+            int end = text.length() - nutrient.getUnit().length();
+            int start = end;
+            while (start > 0 && (Character.isDigit(text.charAt(start-1)) || text.charAt(start - 1) == '.')) {
+                start--;
+            }
+            if (start == end) {
+                continue;
+            }
+            int amount = (int)Math.round(Double.parseDouble(text.substring(start, end)));
+
+            // EPA, DHA처럼 같은 성분이 두 번 나오면 더함
+            int before = amounts.getOrDefault(nutrient, 0);
+            amounts.put(nutrient, before + amount);
+        }
+        return amounts;
+    }
+
+    // 성분 이름으로 게이지 성분 찾기 (공백을 없앤 글 기준), 게이지에 없는 성분이면 null
+    private Nutrient findNutrient(String text) {
+        if (text.contains("비타민C")) {
+            return Nutrient.VITAMIN_C;
+        }
+        if (text.contains("비타민D")) {
+            return Nutrient.VITAMIN_D;
+        }
+        if (text.contains("마그네슘")) {
+            return Nutrient.MAGNESIUM;
+        }
+        if (text.contains("칼슘")) {
+            return Nutrient.CALCIUM;
+        }
+        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가")) {
+            return Nutrient.OMEGA3;
+        }
+        return null;
+    }
+
+
 }
