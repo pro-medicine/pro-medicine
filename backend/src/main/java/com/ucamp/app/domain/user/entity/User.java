@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-public class User extends Timestamped {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
