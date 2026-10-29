@@ -76,7 +76,7 @@ export default function HomePage({
     setPendingIds((prev) => [...prev, id]);
 
     try {
-      await updateIntake(userId, id, next);
+      await updateIntake(userId, id, next, home.today); // 화면에 표시 중인 날짜로 저장
       setIntakeSavedKey((k) => k + 1);
     } catch (e) {
       setTaken(id, !next);
