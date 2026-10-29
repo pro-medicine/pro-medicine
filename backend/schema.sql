@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS `catalog_products`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
+DROP TABLE IF EXISTS `calendar_event`;
 DROP TABLE IF EXISTS `users`;
 
 -- ============================================================
@@ -153,6 +154,42 @@ CREATE TABLE `disposal_locations` (
                                       `longitude`   DECIMAL(10,7)   NOT NULL,
                                       `source_name`   VARCHAR(100)   NULL,
                                       `source_updated_at`   DATETIME   NULL
+);
+
+CREATE TABLE `calendar_event` (
+                                  `event_id` BIGINT NOT NULL AUTO_INCREMENT,
+                                  `user_id` BIGINT NOT NULL,
+                                  `event_type` VARCHAR(30) NOT NULL,
+                                  `title` VARCHAR(100) NOT NULL,
+                                  `scheduled_at` DATETIME NOT NULL,
+                                  `end_at` DATETIME NULL,
+                                  `notes` VARCHAR(1000) NULL,
+                                  `status` VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
+                                  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                                  PRIMARY KEY (`event_id`),
+
+                                  CONSTRAINT `chk_calendar_event_type`
+                                      CHECK (`event_type` IN (
+                                                              'SUPPLEMENT',
+                                                              'INJECTION',
+                                                              'MEDICATION',
+                                                              'HOSPITAL',
+                                                              'OTHER'
+                                          )),
+
+                                  CONSTRAINT `chk_calendar_event_status`
+                                      CHECK (`status` IN (
+                                                          'PLANNED',
+                                                          'COMPLETED',
+                                                          'CANCELLED'
+                                          )),
+
+                                  CONSTRAINT `chk_calendar_event_time`
+                                      CHECK (
+                                          `end_at` IS NULL
+                                              OR `end_at` >= `scheduled_at`
+                                          )
 );
 
 CREATE TABLE `ai_recommendation_items` (
@@ -358,6 +395,11 @@ ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (
 ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
                                                            `user_id`
     );
+ALTER TABLE `calendar_event`
+    ADD CONSTRAINT `fk_calendar_event_user`
+        FOREIGN KEY (`user_id`)
+            REFERENCES `users` (`user_id`)
+            ON DELETE CASCADE;
 
 ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
                                                                            `user_product_id`
@@ -702,82 +744,82 @@ INSERT INTO `surveys` (`survey_id`, `version`, `status`) VALUES
     (1, 'v1', 'ACTIVE');
 
 INSERT INTO `survey_questions` (`question_id`, `survey_id`, `code`, `question_text`, `answer_type`, `profile_key`, `is_sensitive`, `guest_visible`, `display_order`) VALUES
-    (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
-    (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
-    (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
-    (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
-    (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
-    (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
-    (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
-    (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
-    (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
-    (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
-    (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
-    (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
-    (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),
-    (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
+                                                                                                                                                                         (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
+                                                                                                                                                                         (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
+                                                                                                                                                                         (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
+                                                                                                                                                                         (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
+                                                                                                                                                                         (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
+                                                                                                                                                                         (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
+                                                                                                                                                                         (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
+                                                                                                                                                                         (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
+                                                                                                                                                                         (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
+                                                                                                                                                                         (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
+                                                                                                                                                                         (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
+                                                                                                                                                                         (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
+                                                                                                                                                                         (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),
+                                                                                                                                                                         (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
 
 INSERT INTO `question_options` (`option_id`, `question_id`, `value_code`, `label`, `display_order`) VALUES
-    (1, 1, 'M', '남성', 1),
-    (2, 1, 'F', '여성', 2),
-    (3, 3, 'NONE', '안 피움', 1),
-    (4, 3, 'HALF_PACK', '하루 반 갑 이하', 2),
-    (5, 3, 'ONE_PACK', '하루 1갑', 3),
-    (6, 3, 'TWO_PACK_PLUS', '하루 2갑 이상', 4),
-    (7, 4, 'NONE', '안 마심', 1),
-    (8, 4, 'LOW', '가끔', 2),
-    (9, 4, 'HIGH', '자주', 3),
-    (10, 5, 'NONE', '안 마심', 1),
-    (11, 5, 'LOW', '하루 1~2잔', 2),
-    (12, 5, 'HIGH', '하루 3잔 이상', 3),
-    (13, 6, 'OMNI', '일반식', 1),
-    (14, 6, 'VEGETARIAN', '채식(유제품·달걀 포함)', 2),
-    (15, 6, 'VEGAN', '비건', 3),
-    (16, 7, 'LOW', '거의 실내에 있어요', 1),
-    (17, 7, 'NORMAL', '보통이에요', 2),
-    (18, 8, 'GOOD', '좋아요', 1),
-    (19, 8, 'NORMAL', '보통이에요', 2),
-    (20, 8, 'POOR', '잘 못 자요', 3),
-    (21, 9, 'LOW', '거의 없어요', 1),
-    (22, 9, 'NORMAL', '보통이에요', 2),
-    (23, 9, 'HIGH', '자주 피곤해요', 3),
-    (24, 10, 'SLEEP', '수면', 1),
-    (25, 10, 'FATIGUE', '피로 회복', 2),
-    (26, 10, 'IMMUNITY', '면역', 3),
-    (27, 10, 'BONE', '뼈 건강', 4),
-    (28, 10, 'EYE', '눈 건강', 5),
-    (29, 11, 'NOT_APPLICABLE', '해당 없음', 1),
-    (30, 11, 'POSSIBLE', '임신 가능성 있음', 2),
-    (31, 11, 'PREGNANT', '임신 중', 3),
-    (32, 11, 'LACTATING', '수유 중', 4),
-    (33, 12, 'NONE', '없음', 1),
-    (34, 12, 'HYPERTENSION', '고혈압', 2),
-    (35, 12, 'DIABETES', '당뇨', 3),
-    (36, 12, 'THYROID', '갑상선 질환', 4),
-    (37, 12, 'KIDNEY', '신장 질환', 5);
+                                                                                                        (1, 1, 'M', '남성', 1),
+                                                                                                        (2, 1, 'F', '여성', 2),
+                                                                                                        (3, 3, 'NONE', '안 피움', 1),
+                                                                                                        (4, 3, 'HALF_PACK', '하루 반 갑 이하', 2),
+                                                                                                        (5, 3, 'ONE_PACK', '하루 1갑', 3),
+                                                                                                        (6, 3, 'TWO_PACK_PLUS', '하루 2갑 이상', 4),
+                                                                                                        (7, 4, 'NONE', '안 마심', 1),
+                                                                                                        (8, 4, 'LOW', '가끔', 2),
+                                                                                                        (9, 4, 'HIGH', '자주', 3),
+                                                                                                        (10, 5, 'NONE', '안 마심', 1),
+                                                                                                        (11, 5, 'LOW', '하루 1~2잔', 2),
+                                                                                                        (12, 5, 'HIGH', '하루 3잔 이상', 3),
+                                                                                                        (13, 6, 'OMNI', '일반식', 1),
+                                                                                                        (14, 6, 'VEGETARIAN', '채식(유제품·달걀 포함)', 2),
+                                                                                                        (15, 6, 'VEGAN', '비건', 3),
+                                                                                                        (16, 7, 'LOW', '거의 실내에 있어요', 1),
+                                                                                                        (17, 7, 'NORMAL', '보통이에요', 2),
+                                                                                                        (18, 8, 'GOOD', '좋아요', 1),
+                                                                                                        (19, 8, 'NORMAL', '보통이에요', 2),
+                                                                                                        (20, 8, 'POOR', '잘 못 자요', 3),
+                                                                                                        (21, 9, 'LOW', '거의 없어요', 1),
+                                                                                                        (22, 9, 'NORMAL', '보통이에요', 2),
+                                                                                                        (23, 9, 'HIGH', '자주 피곤해요', 3),
+                                                                                                        (24, 10, 'SLEEP', '수면', 1),
+                                                                                                        (25, 10, 'FATIGUE', '피로 회복', 2),
+                                                                                                        (26, 10, 'IMMUNITY', '면역', 3),
+                                                                                                        (27, 10, 'BONE', '뼈 건강', 4),
+                                                                                                        (28, 10, 'EYE', '눈 건강', 5),
+                                                                                                        (29, 11, 'NOT_APPLICABLE', '해당 없음', 1),
+                                                                                                        (30, 11, 'POSSIBLE', '임신 가능성 있음', 2),
+                                                                                                        (31, 11, 'PREGNANT', '임신 중', 3),
+                                                                                                        (32, 11, 'LACTATING', '수유 중', 4),
+                                                                                                        (33, 12, 'NONE', '없음', 1),
+                                                                                                        (34, 12, 'HYPERTENSION', '고혈압', 2),
+                                                                                                        (35, 12, 'DIABETES', '당뇨', 3),
+                                                                                                        (36, 12, 'THYROID', '갑상선 질환', 4),
+                                                                                                        (37, 12, 'KIDNEY', '신장 질환', 5);
 
 -- 설문 응답: 1번은 김민지(회원, 민감 항목 포함), 2번은 비회원. 일부 문항만 답한 예시 ------------
 INSERT INTO `survey_responses` (`response_id`, `survey_id`, `user_id`, `respondent_type`, `includes_sensitive`, `status`, `submitted_at`) VALUES
-    (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
-    (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
+                                                                                                                                              (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
+                                                                                                                                              (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
 
 -- 1번: 여성(2), 1998년생, 비흡연(3), 자주 피곤(23), 원하는 효과 피로 회복(25), 임신·수유 해당 없음(29)
 -- 2번: 남성(1), 잘 못 잠(20), 원하는 효과 수면(24)
 INSERT INTO `survey_answers` (`answer_id`, `response_id`, `question_id`, `option_id`, `value_number`, `value_text`) VALUES
-    (1, 1, 1,  2,    NULL,    NULL),
-    (2, 1, 2,  NULL, 1998.00, NULL),
-    (3, 1, 3,  3,    NULL,    NULL),
-    (4, 1, 9,  23,   NULL,    NULL),
-    (5, 1, 10, 25,   NULL,    NULL),
-    (6, 1, 11, 29,   NULL,    NULL),
-    (7, 2, 1,  1,    NULL,    NULL),
-    (8, 2, 8,  20,   NULL,    NULL),
-    (9, 2, 10, 24,   NULL,    NULL);
+                                                                                                                        (1, 1, 1,  2,    NULL,    NULL),
+                                                                                                                        (2, 1, 2,  NULL, 1998.00, NULL),
+                                                                                                                        (3, 1, 3,  3,    NULL,    NULL),
+                                                                                                                        (4, 1, 9,  23,   NULL,    NULL),
+                                                                                                                        (5, 1, 10, 25,   NULL,    NULL),
+                                                                                                                        (6, 1, 11, 29,   NULL,    NULL),
+                                                                                                                        (7, 2, 1,  1,    NULL,    NULL),
+                                                                                                                        (8, 2, 8,  20,   NULL,    NULL),
+                                                                                                                        (9, 2, 10, 24,   NULL,    NULL);
 
 -- AI 추천 결과 (김민지의 설문 응답 기준). ingredient_name은 성분 코드(IngredientCode), 용량·규칙 컬럼은 기본값 ----
 INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `summary`, `model_name`, `created_at`) VALUES
     (1, 1, '자주 피곤하다고 답해주신 내용을 중심으로 비타민 B12와 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
 
 INSERT INTO `ai_recommendation_items` (`recommendation_item_id`, `recommendation_id`, `ingredient_name`, `reason`, `sort_order`) VALUES
-    (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
-    (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);
+                                                                                                                                     (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
+                                                                                                                                     (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);
