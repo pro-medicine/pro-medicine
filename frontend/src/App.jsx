@@ -8,10 +8,23 @@ import FriendsPage from "./friends/FriendsPage";
 import RecommendationModal from "./recommendation";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
+import LandingPage from "./landing/LandingPage";
+
+// 서비스 소개(첫 화면)를 지나 앱에 들어왔는지 (새로고침해도 같은 탭에서는 유지)
+// TODO: 로그인(#52) 연동 후에는 로그인 여부로 판단
+const STARTED_KEY = "yakssok-started";
+function readStarted() {
+  try {
+    return sessionStorage.getItem(STARTED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export default function App() {
   const userId = 1; // TODO: 로그인 연동 후 실제 사용자 id
 
+  const [started, setStarted] = useState(readStarted); // false면 서비스 소개 화면
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -99,6 +112,22 @@ export default function App() {
         );
     }
   };
+
+  // 서비스 소개 화면 → "시작하기"를 누르면 앱으로 (지금은 로그인 없이 바로 홈)
+  const start = (nextTab = "home") => {
+    try {
+      sessionStorage.setItem(STARTED_KEY, "1");
+    } catch {
+      // 저장이 안 되는 환경이면 이번 화면에서만 유지
+    }
+    setTab(nextTab);
+    setStarted(true);
+    window.scrollTo({ top: 0 });
+  };
+
+  if (!started) {
+    return <LandingPage onStart={start} />;
+  }
 
   return (
     <UnreadNotificationContext.Provider value={hasUnreadNotifications}>
