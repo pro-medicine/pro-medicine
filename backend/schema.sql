@@ -160,9 +160,8 @@ CREATE TABLE `calendar_events` (
                                   `event_id` BIGINT NOT NULL AUTO_INCREMENT,
                                   `user_id` BIGINT NOT NULL,
                                   `event_type` VARCHAR(30) NOT NULL,
-                                  `title` VARCHAR(100) NOT NULL,
+                                  `title` VARCHAR(150) NOT NULL,
                                   `scheduled_at` DATETIME NOT NULL,
-                                  `end_at` DATETIME NULL,
                                   `notes` VARCHAR(1000) NULL,
                                   `status` VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
                                   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -174,7 +173,8 @@ CREATE TABLE `calendar_events` (
                                                               'SUPPLEMENT',
                                                               'INJECTION',
                                                               'MEDICATION',
-                                                              'HOSPITAL',
+                                                              'ONE_TIME_INTAKE'
+                                                              'APPOINTMENT',
                                                               'OTHER'
                                           )),
 
@@ -182,14 +182,8 @@ CREATE TABLE `calendar_events` (
                                       CHECK (`status` IN (
                                                           'PLANNED',
                                                           'COMPLETED',
-                                                          'CANCELLED'
-                                          )),
-
-                                  CONSTRAINT `chk_calendar_event_time`
-                                      CHECK (
-                                          `end_at` IS NULL
-                                              OR `end_at` >= `scheduled_at`
-                                          )
+                                                          'CANCELED'
+                                          ))
 );
 
 CREATE TABLE `ai_recommendation_items` (

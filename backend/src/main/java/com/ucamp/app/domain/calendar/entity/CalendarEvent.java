@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "calendar_event")
+@Table(name = "calendar_events")
 @EntityListeners(AuditingEntityListener.class)
 public class CalendarEvent {
     @Id
@@ -32,9 +32,6 @@ public class CalendarEvent {
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
-
-    @Column(name = "end_at")
-    private LocalDateTime endAt;
 
     @Column(length = 1000)
     private String notes;
@@ -61,7 +58,6 @@ public class CalendarEvent {
         this.eventType = eventType;
         this.title = title;
         this.scheduledAt = scheduledAt;
-        this.endAt = endAt;
         this.notes = notes;
         this.status = status != null ? status : EventStatus.PLANNED;
     }
@@ -82,6 +78,5 @@ public class CalendarEvent {
 
     public void changeStatus(EventStatus status) {
         this.status = status;
-        if (status == EventStatus.COMPLETED) this.endAt = LocalDateTime.now();
     }
 }

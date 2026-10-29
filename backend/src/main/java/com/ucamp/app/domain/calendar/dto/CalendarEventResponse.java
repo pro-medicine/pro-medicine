@@ -11,7 +11,6 @@ public record CalendarEventResponse(
         EventType eventType,
         String title,
         LocalDateTime scheduledAt,
-        LocalDateTime endAt,
         String notes,
         EventStatus status
 ) {
@@ -21,7 +20,6 @@ public record CalendarEventResponse(
                 event.getEventType(),
                 event.getTitle(),
                 event.getScheduledAt(),
-                event.getEndAt(),
                 event.getNotes(),
                 event.getStatus()
         );
