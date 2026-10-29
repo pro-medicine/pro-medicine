@@ -44,6 +44,8 @@ services:
     volumes:
       # 빌드된 화면 파일을 이미지에 넣지 않고 연결만 해서, 배포 때 nginx를 재시작하지 않아도 됨
       - ./frontend/dist:/usr/share/nginx/html:ro
+      # 배포 스크립트가 nginx가 보낼 백엔드를 지정하는 폴더
+      - ./frontend/upstream:/etc/nginx/upstream:ro
     depends_on:
       - backend
 
