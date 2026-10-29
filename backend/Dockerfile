@@ -1,11 +1,6 @@
-#FROM eclipse-temurin:21-jdk AS build
-#WORKDIR /app
-#COPY . .
-#RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
-#RUN ./gradlew bootJar -x test --no-daemon
-
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY build/libs/*.jar app.jar
+COPY build/libs/ /tmp/libs/
+RUN cp "$(ls /tmp/libs/*.jar | grep -v -- '-plain.jar$')" /app/app.jar && rm -rf /tmp/libs
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
