@@ -55,7 +55,7 @@ class V3V4PipelineTest {
         assertThat(r.itemsOrEmpty()).hasSize(3);
         assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
         RecommendationItem c = r.finalItems().get(0);
-        assertThat(c.amount()).isEqualByComparingTo("125"); // R-01 ADJUST는 기준표 흡연 행으로 반영
+        assertThat(c.amount()).isEqualByComparingTo("135"); // R-01 ADJUST는 기준표 흡연 행(KDRI 100 + 35)으로 반영
         assertThat(c.appliedRuleIdsOrEmpty()).containsExactly("R-01");
         assertThat(r.itemsOrEmpty().stream().filter(RecommendationItem::excluded))
                 .extracting(RecommendationItem::appliedRuleIds)

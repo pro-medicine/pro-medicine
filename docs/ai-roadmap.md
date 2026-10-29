@@ -137,7 +137,7 @@
 ### 저장 구조 (STEP17)
 | 테이블 | 용도 |
 |---|---|
-| `catalog_products` (컬럼 추가) | `name_ko`, `brand`, `data_source`, `external_id`, `raw_materials`, `is_active`, `blocked_kr`, `image_key`, `updated_at` |
+| `catalog_products` (컬럼 추가) | `name_ko`, `brand`, `data_source`, `external_id`, `is_active`, `blocked_kr`, `image_key`, `updated_at` |
 | `product_ingredients` | 제품 라벨 성분 (안전 필터·같이 든 성분), 코드 없는 성분은 `OTHER` |
 | `review_mentions` | 언급 1건 = 1행 + context 임베딩 (V3 요청 경로에서는 읽지 않음) |
 | `review_product_scores` | 성분 x 제품 인기 점수 (import 때 통째로 다시 계산, 서버는 읽기만) |

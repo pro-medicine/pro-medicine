@@ -37,31 +37,82 @@ OMEGA3 ~ VITAMIN_B6 10개는 V2.5 성분 확장(2026-10-28, STEP 16)에서 추�
 
 ## 2. 기준값 (ingredient_standards 시드)
 
-1차 기준은 **2025 한국인 영양소 섭취기준(보건복지부·한국영양학회)**이다. 원문 수치는 사용자가 원문을 내려받아 채운다.
-아래는 출처를 확인한 값만 넣었고, 출처가 미국 기준(NIH)인 값은 `standard_version`을 구분한다.
+1차 기준은 **2025 한국인 영양소 섭취기준(보건복지부·한국영양학회, 2025.12, 발간등록번호 11-1352000-100416-13)**이다. 값은 요약본 요약표에서 옮겼고 쪽수를 남긴다.
+- 범위: 성인(19세 이상). 연속된 연령대의 값이 같으면 한 행으로 묶는다
+- 임신·수유: 서버 조건 코드가 하나(`PREGNANT_OR_LACTATING`)라 임신부·수유부 부가량 중 **낮은 값**을 쓴다 (상한도 낮은 값). 여성 19~49세 기준값 + 부가량. 기준값과 같으면 행을 만들지 않는다
+- `recommended` = 권장섭취량, 권장섭취량이 없는 성분(D, K, 칼륨, EPA+DHA)은 충분섭취량
+- `upper_limit` = 상한섭취량. **비어 있으면 기준에 상한섭취량이 없는 성분**(B1, B12, K, 칼륨)이다 ("기준값 미등록"과 다름: 미등록은 행이 없음)
+- 이전 NIH-ODS 행(비타민 C·흡연자 포함, 엽산, 철, 나이아신, B6, 오메가3)은 STEP18(`archive/STEP18_ingredient_standards_kdri2025.sql`)에서 지우고 이 표로 바꿨다. 지금은 `docs/sql/AI_SETUP.sql` 3)에 이 표 값만 들어 있다. KDRI-2025에는 흡연자 비타민 C 부가량이 없어, 흡연자 행만 KDRI 100mg + NIH-ODS 흡연자 부가량 35mg(S-03) = **135mg**으로 둔다 (`standard_version = KDRI-2025+NIH`, 규칙 R-01 "하루 35mg 많아요"와 맞추기 위함, 2026-10-29 결정)
+- 한계: 흡연자이면서 임신·수유이면 성별이 지정된 임신·수유 행(110mg)이 선택된다 (DoseCalculator는 조건 행을 하나만 고름). R-01 안내 문구는 그대로 나온다
 
-| ingredient | gender | age | condition | recommended | upper_limit | unit | standard_version | source |
+| ingredient | gender | age | condition | recommended | upper_limit | unit | 쪽 | source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| VITAMIN_C | M | 19+ | - | 90 | 2000 | mg | NIH-ODS | S-03 |
-| VITAMIN_C | F | 19+ | - | 75 | 2000 | mg | NIH-ODS | S-03 |
-| VITAMIN_C | M | 19+ | SMOKING_CURRENT | 125 (90+35) | 2000 | mg | NIH-ODS | S-03 |
-| VITAMIN_C | F | 19+ | SMOKING_CURRENT | 110 (75+35) | 2000 | mg | NIH-ODS | S-03 |
-| FOLATE | ALL | 19+ | - | 400 | (상한 비움: 상한 1000mcg은 합성 엽산(folic acid) 기준이라 DFE 단위 권장량과 섞지 않는다) | mcg DFE | NIH-ODS | S-11 |
-| IRON | M | 19-50 | - | 8 | TODO(출처 필요) | mg | NIH-ODS | S-16 |
-| NIACIN | M | 19+ | - | 16 | 35 (보충제 기준) | mg NE | NIH-ODS | S-26 |
-| NIACIN | F | 19+ | - | 14 | 35 (보충제 기준) | mg NE | NIH-ODS | S-26 |
-| VITAMIN_B6 | ALL | 19-50 | - | 1.3 | 100 | mg | NIH-ODS | S-28 |
-| VITAMIN_B6 | M | 51+ | - | 1.7 | 100 | mg | NIH-ODS | S-28 |
-| VITAMIN_B6 | F | 51+ | - | 1.5 | 100 | mg | NIH-ODS | S-28 |
-| OMEGA3 | ALL | 19+ | - | (비움: 권장량 출처 없음) | 5000 (EPA+DHA, 보충제) | mg | NIH-ODS | S-21 |
-| 그 외 성분 | | | | TODO(KDRI-2025 원문) | TODO | | KDRI-2025 | S-01 |
+| VITAMIN_A | M | 19-49 | - | 800 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_A | M | 50-64 | - | 750 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_A | M | 65+ | - | 700 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_A | F | 19-49 | - | 650 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_A | F | 50+ | - | 600 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_A | F | 19-49 | PREGNANT_OR_LACTATING | 720 | 3000 | mcg RAE | xv | S-01 |
+| VITAMIN_D | ALL | 19-64 | - | 10 | 100 | mcg | xv | S-01 |
+| VITAMIN_D | ALL | 65+ | - | 15 | 100 | mcg | xv | S-01 |
+| VITAMIN_K | M | 19+ | - | 75 | (없음) | mcg | xv | S-01 |
+| VITAMIN_K | F | 19+ | - | 65 | (없음) | mcg | xv | S-01 |
+| VITAMIN_C | ALL | 19+ | - | 100 | 2000 | mg | xvi | S-01 |
+| VITAMIN_C | F | 19-49 | PREGNANT_OR_LACTATING | 110 | 2000 | mg | xvi | S-01 |
+| VITAMIN_C | ALL | 19+ | SMOKING_CURRENT | 135 | 2000 | mg | - | S-01, S-03 |
+| VITAMIN_B1 | M | 19-64 | - | 1.2 | (없음) | mg | xvi | S-01 |
+| VITAMIN_B1 | M | 65+ | - | 1.1 | (없음) | mg | xvi | S-01 |
+| VITAMIN_B1 | F | 19-64 | - | 1.1 | (없음) | mg | xvi | S-01 |
+| VITAMIN_B1 | F | 65-74 | - | 1.0 | (없음) | mg | xvi | S-01 |
+| VITAMIN_B1 | F | 75+ | - | 0.8 | (없음) | mg | xvi | S-01 |
+| VITAMIN_B1 | F | 19-49 | PREGNANT_OR_LACTATING | 1.5 | (없음) | mg | xvi | S-01 |
+| NIACIN | M | 19-64 | - | 14 | 35 | mg NE | xvi | S-01 |
+| NIACIN | M | 65-74 | - | 13 | 35 | mg NE | xvi | S-01 |
+| NIACIN | M | 75+ | - | 12 | 35 | mg NE | xvi | S-01 |
+| NIACIN | F | 19-64 | - | 13 | 35 | mg NE | xvi | S-01 |
+| NIACIN | F | 65-74 | - | 12 | 35 | mg NE | xvi | S-01 |
+| NIACIN | F | 75+ | - | 11 | 35 | mg NE | xvi | S-01 |
+| NIACIN | F | 19-49 | PREGNANT_OR_LACTATING | 16 | 35 | mg NE | xvi | S-01 |
+| VITAMIN_B6 | M | 19+ | - | 1.5 | 50 | mg | xvii | S-01 |
+| VITAMIN_B6 | F | 19+ | - | 1.4 | 50 | mg | xvii | S-01 |
+| VITAMIN_B6 | F | 19-49 | PREGNANT_OR_LACTATING | 2.2 | 50 | mg | xvii | S-01 |
+| FOLATE | ALL | 19+ | - | 400 | (없음) | mcg DFE | xvii | S-01 |
+| FOLATE | F | 19-49 | PREGNANT_OR_LACTATING | 550 | (없음) | mcg DFE | xvii | S-01 |
+| VITAMIN_B12 | ALL | 19+ | - | 2.4 | (없음) | mcg | xvii | S-01 |
+| VITAMIN_B12 | F | 19-49 | PREGNANT_OR_LACTATING | 2.6 | (없음) | mcg | xvii | S-01 |
+| CALCIUM | M | 19-29 | - | 800 | 3000 | mg | xix | S-01 |
+| CALCIUM | M | 30+ | - | 800 | 2500 | mg | xix | S-01 |
+| CALCIUM | F | 19-29 | - | 650 | 2500 | mg | xix | S-01 |
+| CALCIUM | F | 30-49 | - | 650 | 2000 | mg | xix | S-01 |
+| CALCIUM | F | 50+ | - | 750 | 2000 | mg | xix | S-01 |
+| POTASSIUM | ALL | 19+ | - | 3500 | (없음) | mg | xix | S-01 |
+| MAGNESIUM | M | 19-29 | - | 360 | 350 | mg | xix | S-01 |
+| MAGNESIUM | M | 30+ | - | 380 | 350 | mg | xix | S-01 |
+| MAGNESIUM | F | 19+ | - | 280 | 350 | mg | xix | S-01 |
+| IRON | M | 19-74 | - | 8 | 45 | mg | xx | S-01 |
+| IRON | M | 75+ | - | 7 | 45 | mg | xx | S-01 |
+| IRON | F | 19-49 | - | 12 | 45 | mg | xx | S-01 |
+| IRON | F | 50-64 | - | 7 | 45 | mg | xx | S-01 |
+| IRON | F | 65+ | - | 6 | 45 | mg | xx | S-01 |
+| ZINC | M | 19-64 | - | 10 | 35 | mg | xx | S-01 |
+| ZINC | M | 65+ | - | 9 | 35 | mg | xx | S-01 |
+| ZINC | F | 19-64 | - | 8 | 35 | mg | xx | S-01 |
+| ZINC | F | 65+ | - | 7 | 35 | mg | xx | S-01 |
+| ZINC | F | 19-49 | PREGNANT_OR_LACTATING | 10.5 | 35 | mg | xx | S-01 |
+| OMEGA3 | ALL | 19+ | - | 250 | 5000 | mg | xii | S-01 |
+| OMEGA3 | F | 19-49 | PREGNANT_OR_LACTATING | 300 | 5000 | mg | xii | S-01 |
 
-V2.5 성분 확장 기준값 (2026-10-28):
-- 영양소(나이아신·비타민 B6)는 `recommended` = 권장섭취량, `upper_limit` = 상한섭취량. 기존 비타민 C처럼 NIH-ODS로 시작하고, KDRI-2025 원문을 확보하면 교체한다 (값이 다를 수 있음)
-- 나이아신 상한 35mg은 NIH ODS의 "dietary supplements" 기준(음식 제외)이다. 현재 섭취량 계산이 보충제 기준이라 맞다
-- 오메가3 상한 5000mg은 S-21에 인용된 FDA 권고(EPA+DHA 보충제 하루 5g 이하)다. 권장량 출처가 없어 `recommended`는 비운다
-- 기능성 원료(나머지 8개)는 식약처 건강기능식품 공전 원료별 1일 섭취량을 쓴다 (`recommended` = 섭취 범위 하한, `upper_limit` = 섭취 범위 상한, `standard_version` = `MFDS-FUNC`)
-- TODO(출처 확보 전, 행을 만들지 않음 → "기준값 미등록"): 프로바이오틱스, 커큐민, 코엔자임 Q10, 콜라겐, 글루코사민, 밀크씨슬, 루테인 (공전 원문 자동 접속 불가, PDF 확보 시 채움), 오메가3 권장 섭취 범위
+단위·적용 범위 주의:
+- 비타민 A 상한 3000 μg RAE는 레티놀(동물성) 기준이고 베타카로틴에는 적용하지 않는다. BETA_CAROTENE은 KDRI에 별도 기준이 없어 행을 만들지 않는다
+- 엽산 권장량은 μg DFE, 상한 1000은 합성 엽산(μg) 기준이라 섞지 않고 상한을 비운다
+- 나이아신 상한은 니코틴산 35 / 니코틴아마이드 850 중 보수적으로 35를 쓴다
+- 마그네슘 상한 350은 식품 외 급원(보충제) 기준이다. 남성 권장량(360·380)보다 낮아서, 보충제 추천량은 350으로 조정될 수 있다
+- 오메가3(EPA+DHA): 충분섭취량 250mg은 KDRI-2025(xii쪽), 상한 5000mg은 KDRI에 없어 S-21(FDA 권고)을 유지한다. 임신·수유는 부가량이 아닌 총량 300mg
+- 비타민 K는 K1·K2 구분 없이 총량 기준이다
+
+V2.5 기능성 원료 (변경 없음):
+- 기능성 원료는 식약처 건강기능식품 공전 원료별 1일 섭취량을 쓴다 (`standard_version` = `MFDS-FUNC`)
+- TODO(출처 확보 전, 행을 만들지 않음 → "기준값 미등록"): 프로바이오틱스, 커큐민, 코엔자임 Q10, 콜라겐, 글루코사민, 밀크씨슬, 루테인, 세인트존스워트(국내 건강기능식품 원료 아님)
 
 ## 3. 규칙 (recommendation_rules 시드)
 
@@ -212,7 +263,7 @@ R-G5~R-G12는 V2.5 성분 확장(STEP 16)에서 같은 기준으로 추가했다
 
 | id | 출처 |
 | --- | --- |
-| S-01 | 2025 한국인 영양소 섭취기준, 보건복지부·한국영양학회 (보도: https://www.foodtoday.or.kr/news/article.html?no=201397) |
+| S-01 | 2025 한국인 영양소 섭취기준 요약본, 보건복지부·한국영양학회, 2025.12, 발간등록번호 11-1352000-100416-13. 배포: 한국영양학회 자료실 https://kns.or.kr/fileroom/fileroom_view.asp?BoardID=Kdr&idx=167 (요약본 게시본: https://health.seoulmc.or.kr/uploadFiles/2025_%ED%95%9C%EA%B5%AD%EC%9D%B8%EC%98%81%EC%96%91%EC%86%8C%EC%84%AD%EC%B7%A8%EA%B8%B0%EC%A4%80_%ED%99%9C%EC%9A%A9.pdf) |
 | S-03 | NIH ODS Vitamin C Fact Sheet: https://ods.od.nih.gov/factsheets/vitaminc-consumer/ |
 | S-04 | DRI Vitamin C, National Academies: https://nap.edu/read/11537/chapter/21 |
 | S-05 | ATBC 연구 (흡연자 베타카로틴과 폐암): https://pmc.ncbi.nlm.nih.gov/articles/PMC6636175 |

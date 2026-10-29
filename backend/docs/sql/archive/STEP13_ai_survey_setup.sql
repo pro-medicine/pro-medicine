@@ -12,6 +12,10 @@
 -- ============================================================
 
 -- 1-1) AI 테이블 (STEP 03·06·07). 정의는 schema.sql·엔티티와 같다
+-- MySQL Workbench safe update 모드에서도 조건부 DELETE·UPDATE가 되도록 잠깐 끄고, 끝에 원래 값으로 되돌림
+SET @old_safe_updates = @@SQL_SAFE_UPDATES;
+SET SQL_SAFE_UPDATES = 0;
+
 CREATE TABLE IF NOT EXISTS `llm_call_logs` (
     `llm_call_log_id`       BIGINT      NOT NULL AUTO_INCREMENT,
     `response_id`           BIGINT      NULL COMMENT 'survey_responses 참조 (평가 실행 중이면 null, FK 없음)',
@@ -355,3 +359,5 @@ INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G10', 'STATUS', 'GUEST', 'MILK_THISTLE', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-27, S-30', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G11', 'STATUS', 'GUEST', 'LUTEIN', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-30', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G12', 'STATUS', 'GUEST', 'PROBIOTICS', 'EXCLUDE', '복용 중인 약에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-22', TRUE);
+
+SET SQL_SAFE_UPDATES = @old_safe_updates;

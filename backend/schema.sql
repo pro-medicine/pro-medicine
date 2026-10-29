@@ -111,7 +111,6 @@ CREATE TABLE `catalog_products` (
                                     `brand`   VARCHAR(255)   NULL,
                                     `data_source`   VARCHAR(20)   NOT NULL   DEFAULT 'SAMPLE'   COMMENT 'DSLD, MFDS, MANUAL, SAMPLE',
                                     `external_id`   VARCHAR(64)   NULL   COMMENT 'DSLD 라벨 ID / 품목제조신고번호',
-                                    `raw_materials`   TEXT   NULL   COMMENT '원재료 원문 (검수용)',
                                     `is_active`   BOOLEAN   NOT NULL   DEFAULT TRUE   COMMENT '단종·비노출이면 FALSE',
                                     `blocked_kr`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '국내 반입 차단 성분(멜라토닌 등) 포함',
                                     `image_key`   VARCHAR(500)   NULL   COMMENT 'S3 키 (리팩토링 때 사용)',
@@ -572,6 +571,10 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recom
         );
 
 -- STEP 14: 회원이 삭제되면 회차·질문도 삭제. 회차가 90일 뒤 삭제되면 추천 결과는 남기고 session_id만 비운다
+-- 엔티티 AiRecommendationItem.recommendation(@ManyToOne)과 같은 FK (2026-10-29 대조 때 빠진 것을 발견해 추가)
+ALTER TABLE `ai_recommendation_items` ADD CONSTRAINT `FK_ai_recommendations_TO_ai_recommendation_items_1` FOREIGN KEY (`recommendation_id`)
+    REFERENCES `ai_recommendations` (`recommendation_id`);
+
 ALTER TABLE `ai_question_sessions` ADD CONSTRAINT `fk_pq_sessions_user` FOREIGN KEY (`user_id`)
     REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
