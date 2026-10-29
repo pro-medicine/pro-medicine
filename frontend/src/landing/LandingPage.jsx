@@ -1,7 +1,7 @@
 // 서비스 소개(첫 화면) — 처음 접속하면 보이는 화면 (#67 시안 B)
 // 지금은 로그인이 없어서 "시작하기"를 누르면 바로 홈으로 들어간다.
 // TODO: 로그인(#52) 연동 후 "로그인" / "시작하기"를 로그인·회원가입 화면으로 연결
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
 import "./landing.css";
 
@@ -39,6 +39,28 @@ function todayLabel() {
  */
 export default function LandingPage({ onStart }) {
   const [checked, setChecked] = useState([1]);
+  const rootRef = useRef(null);
+
+  // 스크롤 등장 모션: .landing-reveal 요소가 화면에 들어오면 is-visible을 붙인다 (한 번만)
+  useEffect(() => {
+    const items = rootRef.current?.querySelectorAll(".landing-reveal") ?? [];
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((el) => el.classList.add("is-visible"));
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target); // 한 번 나타나면 다시 숨기지 않음
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
+    );
+    items.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
   const done = checked.length;
 
   const toggle = (id) =>
@@ -49,7 +71,7 @@ export default function LandingPage({ onStart }) {
   };
 
   return (
-    <div className="landing">
+    <div className="landing" ref={rootRef}>
       {/* 상단 메뉴 */}
       <header className="landing-nav">
         <div className="landing-nav-inner">
@@ -133,11 +155,13 @@ export default function LandingPage({ onStart }) {
 
         {/* 기능 */}
         <section className="landing-section" id="landing-features">
-          <p className="page-eyebrow">기능</p>
-          <h2>필요한 것만, 간단하게</h2>
+          <div className="landing-reveal">
+            <p className="page-eyebrow">기능</p>
+            <h2>필요한 것만, 간단하게</h2>
+          </div>
           <div className="landing-features">
-            {FEATURES.map((f) => (
-              <div key={f.title}>
+            {FEATURES.map((f, i) => (
+              <div key={f.title} className="landing-reveal" style={{ "--reveal-delay": `${i * 0.1}s` }}>
                 <span className="landing-feature-icon">
                   <Icon name={f.icon} size={22} />
                 </span>
@@ -151,7 +175,7 @@ export default function LandingPage({ onStart }) {
         {/* 이용 방법 */}
         <section className="landing-steps-band" id="landing-steps">
           <div className="landing-steps-inner">
-            <div>
+            <div className="landing-reveal">
               <p className="page-eyebrow">이용 방법</p>
               <h2>
                 세 단계면
@@ -161,7 +185,7 @@ export default function LandingPage({ onStart }) {
             </div>
             <ol className="landing-steps">
               {STEPS.map((s, i) => (
-                <li key={s.title}>
+                <li key={s.title} className="landing-reveal" style={{ "--reveal-delay": `${0.1 + i * 0.12}s` }}>
                   <span>{String(i + 1).padStart(2, "0")}</span>
                   <div>
                     <strong>{s.title}</strong>
@@ -174,7 +198,7 @@ export default function LandingPage({ onStart }) {
         </section>
 
         {/* 마지막 시작 버튼 */}
-        <section className="landing-cta">
+        <section className="landing-cta landing-reveal">
           <h2>오늘부터 약속처럼 챙겨볼까요?</h2>
           <button type="button" className="btn btn-primary btn-lg" onClick={() => onStart()}>
             무료로 시작하기

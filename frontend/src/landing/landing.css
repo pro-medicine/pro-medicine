@@ -458,3 +458,22 @@
     animation: landing-rise-big 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
   }
 }
+
+/* ───────── 스크롤 등장 모션 ─────────
+   기능·이용 방법·마지막 시작 버튼이 화면에 들어오면 첫 화면과 같은 페이드업으로 나타난다.
+   (LandingPage.jsx가 화면에 들어온 .landing-reveal에 is-visible을 붙임, --reveal-delay로 차례 지정) */
+@media (prefers-reduced-motion: no-preference) {
+  .landing-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0s);
+  }
+
+  .landing-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
