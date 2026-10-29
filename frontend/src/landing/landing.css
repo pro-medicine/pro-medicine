@@ -415,3 +415,46 @@
     gap: 16px;
   }
 }
+
+/* ───────── 첫 화면 순차 페이드업 ─────────
+   라벨 → 제목 → 설명 → 버튼 → 미리보기 카드 순서로 아래에서 살짝 올라오며 나타난다.
+   '동작 줄이기'를 켠 사용자는 모션 없이 바로 보인다. */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-rise-big {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-hero > .page-eyebrow,
+  .landing-hero > h1,
+  .landing-hero-sub,
+  .landing-hero-actions {
+    animation: landing-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .landing-hero > .page-eyebrow { animation-delay: 0s; }
+  .landing-hero > h1 { animation-delay: 0.1s; }
+  .landing-hero-sub { animation-delay: 0.25s; }
+  .landing-hero-actions { animation-delay: 0.4s; }
+
+  .landing-preview {
+    animation: landing-rise-big 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+  }
+}
