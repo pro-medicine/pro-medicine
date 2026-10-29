@@ -1,21 +1,23 @@
-/* 홈 화면 전용 스타일
+/* 홈 화면 전용 스타일 (#67 시안 B)
    - 모든 선택자는 .home- 접두사로만 작성 → 다른 화면에 영향 X
-   - 색상 변수도 :root가 아니라 .home-page 안에만 선언 */
+   - 색상은 공통 디자인 변수(index.css)를 사용하고, 기존 --h-* 이름은 유지해서 연결
+   - 넓은 화면: 왼쪽(오늘 먹을 영양제·추천 배너) + 오른쪽(오늘의 약속·복용 알림)
+     HomePage.jsx의 순서는 그대로 두고 grid-area로 자리만 정한다 */
 
 .home-page {
-  --h-bg: #f9f8f3;
-  --h-card: #ffffff;
-  --h-line: #ece9df;
-  --h-text: #2b2a26;
-  --h-sub: #8a877c;
-  --h-gold: #a68a2c;
-  --h-yellow: #f3dc76;
-  --h-yellow-soft: #fff8dc;
-  --h-yellow-line: #f0e2a3;
-  --h-ring: #d4a82a;
+  --h-bg: var(--white);
+  --h-card: var(--white);
+  --h-line: var(--line);
+  --h-text: var(--ink);
+  --h-sub: var(--muted);
+  --h-gold: var(--primary);
+  --h-yellow: var(--primary);
+  --h-yellow-soft: var(--primary-soft);
+  --h-yellow-line: var(--primary-line);
+  --h-ring: var(--primary);
 
   min-height: 100vh;
-  padding-bottom: 140px; /* 하단 탭바에 가리지 않도록 */
+  padding-bottom: 120px; /* 좁은 화면 하단 탭에 가리지 않도록 */
   background: var(--h-bg);
   color: var(--h-text);
 }
@@ -26,53 +28,96 @@
 .home-page p,
 .home-page h1,
 .home-page h2,
-.home-page h3 { margin: 0; }
+.home-page h3,
+.home-page ul { margin: 0; }
+.home-page ul { padding: 0; list-style: none; }
 
-.home-inner { max-width: 1040px; margin: 0 auto; padding: 28px 20px; }
+.home-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 352px;
+  grid-template-areas:
+    "header header"
+    "notice notice"
+    "today  promise"
+    "today  side"
+    "error  side"
+    "banner side";
+  grid-template-rows: auto auto auto 1fr auto auto;
+  column-gap: 24px;
+  max-width: calc(var(--content-width) + 64px);
+  margin: 0 auto;
+  padding: 56px 32px 40px;
+}
+.home-header { grid-area: header; }
+.home-sample-notice { grid-area: notice; }
+.home-today { grid-area: today; align-self: start; }
+.home-error { grid-area: error; }
+.home-banner { grid-area: banner; }
+.home-promise { grid-area: promise; align-self: start; }
+/* 오른쪽 아래 칸: 복용 알림 카드(#77) 등 오른쪽에 쌓을 요소 */
+.home-alarm { grid-area: side; align-self: start; }
+
 .home-loading { display: grid; place-items: center; color: var(--h-sub); }
-.home-sample-notice { margin-bottom: 12px !important; font-size: 12px; color: var(--h-sub); }
-.home-error { margin-top: 10px !important; font-size: 13px; color: #c95b45; }
-.home-empty { padding: 24px; border-radius: 18px; background: var(--h-card); border: 1px dashed var(--h-line); font-size: 13px; color: var(--h-sub); text-align: center; }
+.home-sample-notice { margin-bottom: 16px !important; font-size: 13px; color: var(--faint); }
+.home-error { margin-top: 10px !important; font-size: 13px; color: var(--alert); }
+.home-empty { padding: 28px 0 8px; font-size: 14px; color: var(--h-sub); text-align: center; }
 
-/* ===== 헤더 ===== */
-.home-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-.home-date { margin-bottom: 4px !important; font-size: 13px; color: var(--h-sub); }
-.home-hello { font-size: 24px; font-weight: 500; }
-.home-page .home-bell { position: relative; width: 42px; height: 42px; border-radius: 50%; background: var(--h-card); border: 1px solid var(--h-line); display: grid; place-items: center; }
-.home-bell-dot { position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #e8735a; }
+/* ===== 공통: 카드 머리 ===== */
+.home-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; }
+.home-card-title { font-size: 18px; font-weight: 700; letter-spacing: -0.03em; }
+.home-card-hint { font-size: 13px; color: var(--faint); }
+.home-card-label { font-size: 13px; color: var(--h-sub); }
 
-/* ===== 오늘의 약속 카드 ===== */
-.home-promise { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 48px 56px; border-radius: 28px; background: var(--h-yellow-soft); border: 1px solid var(--h-yellow-line); }
-.home-promise-label { margin-bottom: 12px !important; font-size: 14px; color: var(--h-gold); }
-.home-promise-title { margin-bottom: 16px !important; font-size: 40px; font-weight: 400; line-height: 1.3; }
-.home-promise-sub { color: var(--h-sub); }
+/* ===== 헤더: 날짜(초록 라벨) + 인사말(화면 제목) ===== */
+.home-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.home-date { margin-bottom: 8px !important; font-size: 14px; font-weight: 600; color: var(--primary); }
+.home-hello { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.3; }
+.home-page .home-bell { position: relative; width: 40px; height: 40px; border-radius: 50%; background: var(--white); border: 1px solid var(--line); display: grid; place-items: center; }
+.home-bell-dot { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--alert); border: 2px solid var(--white); }
 
-.home-ring { position: relative; flex-shrink: 0; width: 140px; height: 140px; border-radius: 50%; background: #fffef8; }
-.home-ring circle { fill: none; stroke-width: 10; }
-.home-ring-fg { stroke: var(--h-ring); stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
-.home-ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.home-ring-text strong { font-size: 34px; }
-.home-ring-text span { margin-top: 10px; font-size: 14px; color: var(--h-sub); }
+/* ===== 오늘의 약속 ===== */
+.home-promise { padding: 26px 28px; border-radius: var(--radius-card); background: var(--white); border: 1px solid var(--line); }
+.home-promise-count { display: flex; align-items: baseline; gap: 6px; margin: 14px 0 12px !important; }
+.home-promise-count strong { font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.home-promise-count span { font-size: 20px; color: var(--faint); }
+.home-promise-bar { height: 6px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.home-promise-bar span { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.4s ease; }
+.home-promise-sub { margin-top: 14px !important; font-size: 14px; color: var(--h-sub); }
 
 /* ===== 오늘 먹을 영양제 ===== */
-.home-today { margin-top: 40px; }
-.home-section-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
-.home-eyebrow { margin-bottom: 6px !important; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--h-gold); }
-.home-section-title { font-size: 22px; font-weight: 400; }
-.home-pill { padding: 7px 12px; border-radius: 999px; background: var(--h-yellow-soft); border: 1px solid var(--h-yellow-line); font-size: 12px; color: var(--h-gold); }
+.home-today { padding: 26px 28px 10px; border-radius: var(--radius-card); background: var(--white); border: 1px solid var(--line); }
+.home-supp-list li + li { border-top: 1px solid var(--line); }
+.home-page .home-supp-row { display: flex; align-items: center; gap: 16px; width: 100%; padding: 18px 0; }
+.home-page .home-supp-row:disabled { cursor: wait; opacity: 0.6; }
+.home-check { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid #d9dedb; display: grid; place-items: center; color: var(--white); transition: background 0.15s, border-color 0.15s; }
+.home-supp-row:hover .home-check { border-color: var(--primary); }
+.home-supp-row.is-taken .home-check { background: var(--primary); border-color: var(--primary); }
+.home-supp-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.home-supp-name { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.home-supp-desc { font-size: 13px; color: var(--faint); }
+.home-supp-row.is-taken .home-supp-name { text-decoration: line-through; color: var(--faint); }
+.home-supp-timing { flex-shrink: 0; font-size: 13px; color: var(--h-sub); }
 
-.home-supp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.home-page .home-supp-card { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 18px; background: var(--h-card); border: 1px solid var(--h-line); transition: background 0.2s, border-color 0.2s; }
-.home-page .home-supp-card.is-taken { background: #fffcef; border-color: var(--h-yellow-line); }
-.home-supp-info { flex: 1; min-width: 0; }
-.home-supp-timing { margin-bottom: 4px !important; font-size: 11px; color: var(--h-gold); }
-.home-supp-name { margin-bottom: 4px !important; font-size: 15px; }
-.home-supp-desc { font-size: 11px; color: var(--h-sub); }
-.home-supp-card.is-taken .home-supp-name { text-decoration: line-through; color: var(--h-sub); }
-.home-check { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--h-line); display: grid; place-items: center; font-size: 14px; }
-.home-supp-card.is-taken .home-check { background: var(--h-yellow); border-color: #d9bf4f; }
+/* ===== 추천 배너 ===== */
+.home-page .home-banner { display: flex; align-items: center; gap: 18px; width: 100%; margin-top: 24px; padding: 26px 28px; border-radius: var(--radius-card); background: var(--white); border: 1px solid var(--line); transition: border-color 0.15s; }
+.home-page .home-banner:hover { border-color: var(--primary-line); }
+.home-sparkle { width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; }
+.home-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.home-banner-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.home-banner-sub { font-size: 14px; color: var(--h-sub); }
+.home-banner-button { flex-shrink: 0; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line); font-size: 14px; font-weight: 700; }
 
-/* ===== 영양제 병 일러스트 ===== */
+/* ===== 오른쪽 칸 복용 알림 카드(#77 IntakeAlarmCard) =====
+   좁은 오른쪽 칸에 맞게 두 블록을 위아래로 쌓는다. (#77 merge 후 적용됨) */
+.home-section-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+.home-eyebrow { display: none; }
+.home-section-title { font-size: 18px; font-weight: 700; letter-spacing: -0.03em; }
+.home-inner .home-alarm { margin-top: 24px; }
+.home-inner .home-alarm-card { grid-template-columns: 1fr; border-radius: var(--radius-card); }
+.home-inner .home-alarm-block { padding: 22px 26px; }
+.home-inner .home-alarm-block + .home-alarm-block { border-left: 0; border-top: 1px solid var(--line); }
+
+/* ===== 영양제 병 일러스트 (현재 홈에서는 사용하지 않음, 다른 화면 재사용용으로 유지) ===== */
 .home-bottle { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
 .home-bottle-cap { width: 60%; height: 22%; border-radius: 3px 3px 0 0; background: repeating-linear-gradient(90deg, #d9d9d9 0 2px, #f4f4f4 2px 4px); }
 .home-bottle-body { flex: 1; width: 100%; display: flex; align-items: center; border-radius: 6px; background: var(--home-bottle); }
@@ -80,20 +125,25 @@
 .home-bottle-label-sub { font-size: 4px; color: #8a877c; letter-spacing: 0.05em; }
 .home-bottle-label-main { font-size: 6px; font-weight: 700; color: #2b2a26; }
 
-/* ===== 추천 배너 ===== */
-.home-page .home-banner { display: flex; align-items: center; gap: 16px; width: 100%; margin-top: 28px; padding: 30px 28px; border-radius: 24px; background: var(--h-card); border: 1px solid var(--h-line); }
-.home-sparkle { width: 50px; height: 50px; flex-shrink: 0; border-radius: 14px; background: var(--h-yellow); display: grid; place-items: center; font-size: 20px; }
-.home-banner-text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.home-banner-eyebrow { font-size: 11px; color: var(--h-gold); }
-.home-banner-title { font-size: 17px; }
-.home-banner-sub { font-size: 12px; color: var(--h-sub); }
-.home-arrow { width: 36px; height: 36px; border-radius: 50%; background: var(--h-yellow-soft); display: grid; place-items: center; font-size: 20px; }
+/* ===== 반응형: 좁은 화면은 한 줄로 (약속 → 영양제 → 배너 → 알림) ===== */
+@media (max-width: 900px) {
+  .home-inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "header" "notice" "promise" "today" "error" "banner" "side";
+    grid-template-rows: none;
+    padding: 28px 20px 40px;
+  }
+  .home-promise { margin-bottom: 16px; }
+  .home-alarm { margin-top: 24px; }
+}
 
-/* ===== 반응형 (모바일) ===== */
 @media (max-width: 760px) {
-  .home-promise { padding: 28px 24px; }
-  .home-promise-title { font-size: 28px; }
-  .home-ring { transform: scale(0.75); }
-  .home-supp-grid { grid-template-columns: 1fr; }
-  .home-page .home-supp-card:disabled { opacity: 0.6; cursor: wait; }
+  .home-hello { font-size: 24px; }
+  .home-header { margin-bottom: 24px; }
+  .home-today, .home-promise, .home-page .home-banner { padding-left: 20px; padding-right: 20px; }
+  .home-page .home-banner { flex-wrap: wrap; }
+  .home-banner-text { flex-basis: calc(100% - 64px); }
+  .home-banner-button { margin-left: 64px; }
+  .home-supp-row { flex-wrap: wrap; }
+  .home-supp-timing { width: 100%; margin-top: -8px; padding-left: 44px; font-size: 12px; }
 }
