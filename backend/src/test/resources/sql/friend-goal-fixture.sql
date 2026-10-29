@@ -3,13 +3,13 @@
 -- 테스트 트랜잭션 안에서 실행되어 테스트가 끝나면 롤백된다.
 
 -- 9301: 복용 현황 공유 O / 9305: 복용 현황 공유 X / 나머지: 팔로워
-INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at) VALUES
-    (9301, 'goal-test-9301@example.com', 'test-hash', '목표테스트9301', TRUE,  FALSE, NOW(), NOW()),
-    (9302, 'goal-test-9302@example.com', 'test-hash', '목표테스트9302', TRUE,  FALSE, NOW(), NOW()),
-    (9303, 'goal-test-9303@example.com', 'test-hash', '목표테스트9303', TRUE,  FALSE, NOW(), NOW()),
-    (9304, 'goal-test-9304@example.com', 'test-hash', '목표테스트9304', TRUE,  FALSE, NOW(), NOW()),
-    (9305, 'goal-test-9305@example.com', 'test-hash', '목표테스트9305', FALSE, FALSE, NOW(), NOW()),
-    (9306, 'goal-test-9306@example.com', 'test-hash', '목표테스트9306', TRUE,  FALSE, NOW(), NOW());
+INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at, last_active_at) VALUES
+    (9301, 'goal-test-9301@example.com', 'test-hash', '목표테스트9301', TRUE,  FALSE, NOW(), NOW(), NOW()),
+    (9302, 'goal-test-9302@example.com', 'test-hash', '목표테스트9302', TRUE,  FALSE, NOW(), NOW(), NOW()),
+    (9303, 'goal-test-9303@example.com', 'test-hash', '목표테스트9303', TRUE,  FALSE, NOW(), NOW(), NOW()),
+    (9304, 'goal-test-9304@example.com', 'test-hash', '목표테스트9304', TRUE,  FALSE, NOW(), NOW(), NOW()),
+    (9305, 'goal-test-9305@example.com', 'test-hash', '목표테스트9305', FALSE, FALSE, NOW(), NOW(), NOW()),
+    (9306, 'goal-test-9306@example.com', 'test-hash', '목표테스트9306', TRUE,  FALSE, NOW(), NOW(), NOW());
 
 INSERT INTO user_products (user_product_id, user_id, catalog_product_id, product_kind, manual_product_name, registered_via, start_date, is_active, created_at) VALUES
     (9301, 9301, NULL, 'SUPPLEMENT', '목표테스트 비타민', 'MANUAL', '2026-01-01', TRUE, NOW()),
