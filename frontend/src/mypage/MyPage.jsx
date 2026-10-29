@@ -8,6 +8,12 @@ import {
   MY_USER_ID,
   removeMySupplement,
 } from "../api/mypageApi";
+import {
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from "../api/calendarEventApi";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
@@ -258,7 +264,14 @@ export default function ProfileScreen({
         </div>
       </section>
       {isMine ? (
-        <IntakeCalendar fetchDates={getMyCalendar} fetchDay={getMyDayIntakes} />
+        <IntakeCalendar
+          fetchDates={getMyCalendar}
+          fetchDay={getMyDayIntakes}
+          fetchEvents={getCalendarEvents}
+          createEvent={createCalendarEvent}
+          updateEvent={updateCalendarEvent}
+          deleteEvent={deleteCalendarEvent}
+        />
       ) : (
         <IntakeCalendar
           key={friend.userId}
