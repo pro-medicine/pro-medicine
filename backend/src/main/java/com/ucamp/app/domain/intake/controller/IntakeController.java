@@ -4,6 +4,7 @@ import com.ucamp.app.domain.intake.dto.IntakeRequest;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
+import com.ucamp.app.domain.user.service.UserService;
 import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.CacheControl; //달력 cache
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -29,10 +31,11 @@ public class IntakeController {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final IntakeService intakeService;
+    private final UserService userService;
 
     // 복용 체크 저장: POST /api/v1/intakes  (헤더 X-User-Id, body { scheduleId, taken, date })
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> updateIntake(
+    public ResponseEntity<Void> updateIntake(
             @CurrentUserId Long userId,
             @RequestBody IntakeRequest req
     ) {
@@ -56,6 +59,7 @@ public class IntakeController {
     ) {
         requireLogin(userId);
         LocalDate target = date != null ? date : LocalDate.now(KST);
+        userService.markActive(userId);
         return ResponseEntity.ok(intakeService.getTodayIntakes(userId, target));
     }
 
@@ -65,4 +69,19 @@ public class IntakeController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
     }
+
+    //달력
+    // 응답: 그날 먹어야 할 일정을 전부 먹은 날짜 목록
+    @GetMapping("/calendar")
+    public ResponseEntity<ApiResponse<List<LocalDate>>> getCalendar(
+            @CurrentUserId Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start, //이 start 기간부터
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end //end 기간까지만 isCompleted 조회 (API 하나로 주간, 월간 처리)
+    ) {
+        requireLogin(userId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())   // 건강 정보라 브라우저·중간 서버에 응답을 저장하지 않음
+                .body(ApiResponse.success(intakeService.getCompletedDates(userId, start, end)));
+    }
+
 }

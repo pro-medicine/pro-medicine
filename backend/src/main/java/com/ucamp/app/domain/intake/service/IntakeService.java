@@ -14,14 +14,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
+import java.time.temporal.ChronoUnit; // 달력 범위
+
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +28,15 @@ public class IntakeService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     // 연속 복용일은 최근 1년까지만 계산
     private static final int MAX_STREAK_DAYS = 365;
+    private static final long MAX_CALENDAR_DAYS = 62;
+
 
     private final IntakeScheduleRepository intakeScheduleRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+
 
     public IntakeStatsResponse getStats(Long userId) {
         return getStats(userId, LocalDate.now(KST));
@@ -94,6 +96,7 @@ public class IntakeService {
         return expected == 0 ? 0 : (int) Math.round(taken * 100.0 / expected);
     }
 
+    // 하루 동안 영양제를 다 섭취 했는지 여부 확인
     private boolean isCompleted(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate, LocalDate day) {
         Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
         boolean hasSchedule = false;
@@ -152,11 +155,75 @@ public class IntakeService {
                     dto.setTiming(row.getTiming());
                     dto.setName(row.getName());
                     dto.setDesc(row.getDesc());
-                    dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1);
+                    dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1); // 먹었으면 true
                     return dto;
                 })
                 .toList();
     }
 
+    // 달력 만들기 부분
+    public List<LocalDate> getCompletedDates(Long userId, LocalDate start, LocalDate end) {
+        // 0. 기간 검사: start가 end보다 늦거나, 62일(2달 최대 일수 기준)을 넘으면 400 에러
+        if (start.isAfter(end) || ChronoUnit.DAYS.between(start, end) + 1 > MAX_CALENDAR_DAYS) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
 
+        // 1. 없는 사용자면 에러
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 2. 먹어야 할 일정 가져오기
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
+
+        // 3. 기간 안의 먹은 기록(TAKEN)을 날짜별로 묶기: { 날짜 → 그날 먹은 scheduleId 모음 }
+        Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, start, end)) {
+            takenByDate.computeIfAbsent(taken.intakeDate(), d -> new HashSet<>()).add(taken.scheduleId());
+        }
+
+        // 4. 하루씩 보면서 다 먹은 날(isCompleted == true)만 담기 (미래 날짜는 제외)
+        LocalDate today = LocalDate.now(KST);
+        List<LocalDate> completedDates = new ArrayList<>();
+        for (LocalDate day = start; !day.isAfter(end) && !day.isAfter(today); day = day.plusDays(1)) {
+            if (isCompleted(schedules, takenByDate, day)) {
+                completedDates.add(day);
+            }
+        }
+        return completedDates;
+    }
+
+    public Map<Long, Integer> getStreakDays(Collection<Long> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        LocalDate today = LocalDate.now(KST);
+        LocalDate from = today.minusDays(MAX_STREAK_DAYS);
+        // 1. 사용자별 일정, 일정 id → 사용자 id
+        Map<Long, List<IntakeSchedule>> schedulesByUser = new HashMap<>();
+        Map<Long, Long> ownerBySchedule = new HashMap<>();
+        for (IntakeSchedule schedule : intakeScheduleRepository.findActiveSchedulesByUserIds(userIds)) {
+            Long ownerId = schedule.getUserProduct().getUser().getId();
+            schedulesByUser.computeIfAbsent(ownerId, id -> new ArrayList<>()).add(schedule);
+            ownerBySchedule.put(schedule.getScheduleId(), ownerId);
+        }
+
+        // 2. 사용자별 { 날짜 → 먹은 scheduleId }
+        Map<Long, Map<LocalDate, Set<Long>>> takenByUser = new HashMap<>();
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakesByUserIds(userIds, from, today)) {
+            Long ownerId = ownerBySchedule.get(taken.scheduleId());
+            if (ownerId == null) continue;   // 꺼진 일정의 기록은 계산에서 제외 (단일 조회와 동일)
+            takenByUser
+                    .computeIfAbsent(ownerId, id -> new HashMap<>())
+                    .computeIfAbsent(taken.intakeDate(), d -> new HashSet<>())
+                    .add(taken.scheduleId());
+        }
+
+        // 3. 사용자별 스트릭 (일정이 없으면 0)
+        Map<Long, Integer> result = new HashMap<>();
+        for (Long userId : userIds) {
+            List<IntakeSchedule> schedules = schedulesByUser.getOrDefault(userId, List.of());
+            Map<LocalDate, Set<Long>> takenByDate = takenByUser.getOrDefault(userId, Map.of());
+            result.put(userId, streakDays(schedules, takenByDate, today));
+        }
+        return result;
+    }
 }

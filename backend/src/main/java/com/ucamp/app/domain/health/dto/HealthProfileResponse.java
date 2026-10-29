@@ -5,6 +5,7 @@ import com.ucamp.app.domain.health.entity.HealthProfile;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+// 건강 정보 응답 (조회·저장 공통)
 public record HealthProfileResponse(
         Long userId,
         Integer birthYear,
@@ -18,6 +19,7 @@ public record HealthProfileResponse(
         String sunExposure,
         LocalDateTime updatedAt
 ) {
+    // 엔티티(HealthProfile) → 응답 DTO
     public static HealthProfileResponse from(HealthProfile profile) {
         return new HealthProfileResponse(
                 profile.getUserId(),

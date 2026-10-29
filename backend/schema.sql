@@ -11,6 +11,8 @@ DROP TABLE IF EXISTS `question_options`;
 DROP TABLE IF EXISTS `survey_questions`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
+DROP TABLE IF EXISTS `ai_question_turns`;
+DROP TABLE IF EXISTS `ai_question_sessions`;
 DROP TABLE IF EXISTS `survey_responses`;
 DROP TABLE IF EXISTS `surveys`;
 DROP TABLE IF EXISTS `user_medications`;
@@ -118,7 +120,7 @@ CREATE TABLE `notifications` (
                                  PRIMARY KEY (`notification_id`),
                                  UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
                                  KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),
-                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED'))
+                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'GUARDIAN'))
 );
 
 CREATE TABLE `guardian_settings` (
@@ -171,7 +173,8 @@ CREATE TABLE `ai_recommendation_items` (
 
 CREATE TABLE `ai_recommendations` (
                                       `recommendation_id`   BIGINT   NOT NULL,
-                                      `response_id`   BIGINT   NOT NULL,
+                                      `response_id`   BIGINT   NULL   COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
+                                      `session_id`   BIGINT   NULL   COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
                                       `summary`   TEXT   NULL,
                                       `model_name`   VARCHAR(60)   NULL,
                                       `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
@@ -186,8 +189,9 @@ CREATE TABLE `llm_call_logs` (
                                  `llm_call_log_id`   BIGINT   NOT NULL AUTO_INCREMENT,
                                  `response_id`   BIGINT   NULL   COMMENT 'survey_responses 참조 (평가 실행 중이면 null, FK 없음)',
                                  `eval_run_id`   VARCHAR(50)   NULL,
+                                 `session_id`   BIGINT   NULL   COMMENT 'ai_question_sessions 참조 (V2 호출만, FK 없음, STEP 14)',
                                  `pipeline_version`   VARCHAR(10)   NOT NULL,
-                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR',
+                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE',
                                  `model`   VARCHAR(60)   NOT NULL,
                                  `prompt_version`   VARCHAR(20)   NOT NULL,
                                  `input_tokens`   INT   NULL,
@@ -222,7 +226,7 @@ CREATE TABLE `ingredient_standards` (
 -- AI 추천: 안전 규칙 (STEP 07). 시드는 docs/sql/STEP07_seed_recommendation_rules.sql
 CREATE TABLE `recommendation_rules` (
                                         `rule_id`   VARCHAR(10)   NOT NULL,
-                                        `condition_type`   VARCHAR(15)   NOT NULL   COMMENT 'HABIT, DRUG, STATUS, INGREDIENT',
+                                        `condition_type`   VARCHAR(15)   NOT NULL   COMMENT 'HABIT, DRUG, STATUS, INGREDIENT, DISEASE',
                                         `condition_code`   VARCHAR(40)   NOT NULL,
                                         `target_ingredient`   VARCHAR(30)   NOT NULL,
                                         `action`   VARCHAR(10)   NOT NULL   COMMENT 'EXCLUDE, WARN, TIMING, ADJUST, ASK',
@@ -231,6 +235,43 @@ CREATE TABLE `recommendation_rules` (
                                         `source_id`   VARCHAR(20)   NOT NULL,
                                         `active`   BOOLEAN   NOT NULL   DEFAULT TRUE,
                                         PRIMARY KEY (`rule_id`)
+);
+
+-- AI 추천 V2: 회원 맞춤 질문 회차·질문 (STEP 14). 맞춤 답변은 프로필에 저장하지 않고 여기에만 남긴다 (90일 뒤 삭제)
+CREATE TABLE `ai_question_sessions` (
+                                        `session_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                        `user_id`   BIGINT   NOT NULL,
+                                        `status`   VARCHAR(15)   NOT NULL   COMMENT 'IN_PROGRESS, READY, DONE, ABANDONED, FAILED',
+                                        `pregnancy`   VARCHAR(20)   NULL   COMMENT 'NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING (19~50세 여성만)',
+                                        `question_count`   INT   NOT NULL   DEFAULT 0   COMMENT 'LLM 질문 수 (고정 질문 제외)',
+                                        `stopped_by_user`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                        `recommendation_id`   BIGINT   NULL,
+                                        `baseline_recommendation_id`   BIGINT   NULL   COMMENT '모니터링용: 비교한 V1 추천',
+                                        `diff_json`   JSON   NULL   COMMENT '모니터링용: V1 대비 추가·제외·순서 변화',
+                                        `error_code`   VARCHAR(20)   NULL,
+                                        `started_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                        `finished_at`   DATETIME   NULL,
+                                        PRIMARY KEY (`session_id`),
+                                        KEY `idx_pq_sessions_user` (`user_id`, `started_at`),
+                                        KEY `idx_pq_sessions_started` (`started_at`)
+);
+
+CREATE TABLE `ai_question_turns` (
+                                     `turn_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                     `session_id`   BIGINT   NOT NULL,
+                                     `turn_no`   INT   NOT NULL   COMMENT '0 = 고정 질문(임신), 1부터 LLM 질문',
+                                     `fixed`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                     `topic`   VARCHAR(60)   NOT NULL,
+                                     `depth`   INT   NOT NULL,
+                                     `question_text`   VARCHAR(200)   NOT NULL,
+                                     `answer_type`   VARCHAR(10)   NOT NULL   COMMENT 'SINGLE, MULTI',
+                                     `options_json`   JSON   NOT NULL   COMMENT '[{"label":"4년 이상","kind":"CONCERN"}, ...] 최대 5개',
+                                     `selected_json`   JSON   NULL   COMMENT '[2] 또는 [0,3], 답하기 전 NULL',
+                                     `llm_call_log_id`   BIGINT   NULL,
+                                     `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                     `answered_at`   DATETIME   NULL,
+                                     PRIMARY KEY (`turn_id`),
+                                     UNIQUE KEY `uq_pq_turn` (`session_id`, `turn_no`)
 );
 
 CREATE TABLE `intake_schedules` (
@@ -380,6 +421,8 @@ ALTER TABLE `user_conditions` MODIFY `user_condition_id` BIGINT NOT NULL AUTO_IN
 ALTER TABLE `user_medications` MODIFY `user_medication_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `ai_recommendations` MODIFY `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `ai_recommendation_items` MODIFY `recommendation_item_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `user_products` MODIFY `user_product_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `intake_schedules` MODIFY `schedule_id` BIGINT NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
                                                                                           `user_id`
@@ -457,6 +500,16 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recom
     REFERENCES `survey_responses` (
                                    `response_id`
         );
+
+-- STEP 14: 회원이 삭제되면 회차·질문도 삭제. 회차가 90일 뒤 삭제되면 추천 결과는 남기고 session_id만 비운다
+ALTER TABLE `ai_question_sessions` ADD CONSTRAINT `fk_pq_sessions_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_question_turns` ADD CONSTRAINT `fk_pq_turns_session` FOREIGN KEY (`session_id`)
+    REFERENCES `ai_question_sessions` (`session_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`)
+    REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL;
 
 -- ============================================================
 -- 예시 데이터 (개발/시연용)

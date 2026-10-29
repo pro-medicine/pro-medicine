@@ -42,16 +42,23 @@ public class NutritionService {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 1. 먹고 있는 제품의 성분 함량을 성분별로 더한다
+        // 1. 먹고 있는 영양제의 성분 함량을 성분별로 더한다
         Map<Nutrient, Integer> totals = new EnumMap<>(Nutrient.class);
         boolean sample = false;
+        int unsupportedCount = 0; // 함량 정보가 없어 계산에서 빠진 영양제 수
         for (UserProduct userProduct : userProductRepository.findActiveWithCatalogByUserId(userId)) {
-            CatalogProduct product = userProduct.getCatalogProduct();
-            if (product == null) {
-                continue; // 직접 입력한 처방약 등은 성분 정보가 없음
+            // 처방약 등 영양제가 아닌 것은 영양 계산 대상이 아님
+            if (!"SUPPLEMENT".equals(userProduct.getProductKind())) {
+                continue;
             }
-            Map<Nutrient, Integer> amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
+            CatalogProduct product = userProduct.getCatalogProduct();
+            Map<Nutrient, Integer> amounts = null;
+            if (product != null) {
+                amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
+            }
+            // 함량을 모르는 영양제 (함량 목록에 없는 제품, 직접 입력한 영양제)
             if (amounts == null) {
+                unsupportedCount++;
                 continue;
             }
             sample = true;
@@ -74,6 +81,6 @@ public class NutritionService {
                     percent
             ));
         }
-        return new NutritionResponse(userId, nutrients, sample);
+        return new NutritionResponse(userId, nutrients, sample, unsupportedCount);
     }
 }

@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `ingredient_standards` (
 
 CREATE TABLE IF NOT EXISTS `recommendation_rules` (
     `rule_id`           VARCHAR(10)  NOT NULL,
-    `condition_type`    VARCHAR(15)  NOT NULL COMMENT 'HABIT, DRUG, STATUS, INGREDIENT',
+    `condition_type`    VARCHAR(15)  NOT NULL COMMENT 'HABIT, DRUG, STATUS, INGREDIENT, DISEASE',
     `condition_code`    VARCHAR(40)  NOT NULL,
     `target_ingredient` VARCHAR(30)  NOT NULL,
     `action`            VARCHAR(10)  NOT NULL COMMENT 'EXCLUDE, WARN, TIMING, ADJUST, ASK',
@@ -250,7 +250,7 @@ INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, con
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'IRON', 'M', 19, 50, NULL, 8, NULL, 'mg', 'NIH-ODS', 'S-16' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'IRON' AND `gender` <=> 'M' AND `age_min` <=> 19 AND `age_max` <=> 50 AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
 
 -- 3-5) 추천 규칙 (STEP07_seed_recommendation_rules.sql, 계열 모름 R-U* 포함)
--- 추천 규칙 시드 (STEP 07). reference/domain-rules.md 3번 표 그대로: 회원 23 + 비회원 4 = 27행, STEP 12에서 계열 모름 12행 추가(총 39행).
+-- 추천 규칙 시드 (STEP 07). reference/domain-rules.md 3번 표 그대로: 회원 23 + 비회원 4 = 27행, STEP 12에서 계열 모름 12행, STEP 15에서 진단 질환 2행 추가(총 41행).
 -- 서비스 공개 전 약사 검토 필요. MySQL / H2(MySQL 모드) 공용. 운영 DB에는 수동 실행.
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-01', 'HABIT', 'SMOKING_CURRENT', 'VITAMIN_C', 'ADJUST', '흡연자는 비타민 C 필요량이 하루 35mg 많아요', FALSE, 'S-03, S-04', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-02', 'HABIT', 'SMOKING_CURRENT', 'BETA_CAROTENE', 'EXCLUDE', '흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요', FALSE, 'S-05, S-06', TRUE);
@@ -292,3 +292,6 @@ INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U06b', 'DRUG', 'THYROID_MED_UNKNOWN', 'CALCIUM', 'TIMING', '갑상선약과 칼슘은 시간 간격을 두고 드세요. 간격은 의사·약사와 상담하세요', FALSE, 'S-17', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U07', 'DRUG', 'ANTIBIOTIC_UNKNOWN', 'MAGNESIUM', 'TIMING', '일부 항생제는 마그네슘과 시간 간격을 두고 드셔야 해요. 의사·약사와 상담하세요', FALSE, 'S-13', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U08', 'DRUG', 'ANTIDEPRESSANT_UNKNOWN', 'ST_JOHNS_WORT', 'EXCLUDE', '항우울제와 세인트존스워트는 함께 드시면 안 돼요. 의사·약사와 상담하세요', FALSE, 'S-18', TRUE);
+-- 진단 질환 (STEP 15). 출처를 확인한 성분만, 기본 WARN (추천하되 상담 안내)
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-K01', 'DISEASE', 'KIDNEY', 'POTASSIUM', 'WARN', '신장 질환이 있으면 칼륨 보충제는 먼저 의사·약사와 상담하세요', FALSE, 'S-19', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-K02', 'DISEASE', 'KIDNEY', 'MAGNESIUM', 'WARN', '신장 기능이 떨어져 있으면 마그네슘이 몸에 쌓일 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-20', TRUE);

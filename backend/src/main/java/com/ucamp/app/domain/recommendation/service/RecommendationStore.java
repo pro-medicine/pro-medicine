@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendationItem;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,18 @@ public class RecommendationStore {
         return mapper.toResponse(rec, saveItems(rec, result));
     }
 
+    /** V2 정밀 추천: 설문 응답 없이 맞춤 질문 회차로 DONE 저장 (response_id = null, session_id = 회차) */
+    @Transactional
+    public RecommendationResponse saveForSession(AiQuestionSession session, RecommendationResult result) {
+        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
+                .session(session)
+                .summary(result.summary())
+                .modelName(truncate(result.model(), AiRecommendation.MODEL_NAME_LENGTH))
+                .status(AiRecommendation.DONE)
+                .build());
+        return mapper.toResponse(rec, saveItems(rec, result));
+    }
+
     /** 비동기 API: 같은 응답의 진행 중·완료 작업 (멱등) */
     @Transactional(readOnly = true)
     public Optional<RecommendationResponse> findActiveOrDone(Long responseId) {
@@ -57,7 +71,8 @@ public class RecommendationStore {
     @Transactional
     public Optional<Long> markProcessing(Long recommendationId) {
         return recommendationRepository.findById(recommendationId)
-                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()))
+                // 큐에는 V1(설문 기반) 추천만 들어온다. V2 정밀 추천(response 없음)은 항상 동기로 만든다
+                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()) && r.getResponse() != null)
                 .map(r -> {
                     r.markProcessing();
                     return r.getResponse().getResponseId();
@@ -87,6 +102,13 @@ public class RecommendationStore {
     @Transactional(readOnly = true)
     public Optional<RecommendationResponse> latestDoneForUser(Long userId) {
         return recommendationRepository.findLatestDoneByUserId(userId, PageRequest.of(0, 1)).stream()
+                .findFirst().map(this::toResponse);
+    }
+
+    /** V2 모니터링 기준: since 이후 가장 최근 V1(설문 기반) 완료 추천 */
+    @Transactional(readOnly = true)
+    public Optional<RecommendationResponse> latestV1DoneForUserSince(Long userId, LocalDateTime since) {
+        return recommendationRepository.findLatestDoneByUserIdSince(userId, since, PageRequest.of(0, 1)).stream()
                 .findFirst().map(this::toResponse);
     }
 
