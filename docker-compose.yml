@@ -13,7 +13,6 @@ services:
       - mysql-data:/var/lib/mysql
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ./backend/docs/sql/STEP06_seed_ingredient_standards.sql:/docker-entrypoint-initdb.d/02_seed_ingredient_standards.sql
-      - ./backend/docs/sql/STEP07_seed_recommendation_rules.sql:/docker-entrypoint-initdb.d/03_seed_recommendation_rules.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
