@@ -45,10 +45,14 @@ public class IntakeController {
         return ResponseEntity.noContent().build();   // 204
     }
 
-    // 마이페이지 통계 (마이페이지 프론트가 ?userId=로 호출 중이라 그대로 둠, 담당자 협의 후 변경)
+    // 로그인한 사용자의 복용 통계 조회
     @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<IntakeStatsResponse>> getStats(@RequestParam Long userId) {
-        return ResponseEntity.ok(ApiResponse.success(intakeService.getStats(userId)));
+    public ResponseEntity<ApiResponse<IntakeStatsResponse>> getStats(
+            @CurrentUserId Long userId
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(intakeService.getStats(userId))
+        );
     }
 
     // 홈 화면 오늘 먹을 영양제: GET /api/v1/intakes/today?date=2026-10-21  (헤더 X-User-Id, date 없으면 오늘)
