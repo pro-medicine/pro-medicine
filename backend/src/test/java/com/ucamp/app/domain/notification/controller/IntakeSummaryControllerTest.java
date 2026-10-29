@@ -58,7 +58,9 @@ class IntakeSummaryControllerTest {
     @DisplayName("사용자를 알 수 없으면(헤더 없음) 401을 응답하고 조회하지 않는다")
     void unauthorizedWithoutUser() throws Exception {
         mockMvc.perform(get("/api/v1/notifications/intake-summary"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("E003"));
 
         verify(intakeSummaryService, never()).getSummary(any());
     }
