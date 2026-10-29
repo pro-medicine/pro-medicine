@@ -51,7 +51,6 @@ export default function DisposalMapScreen({ onNotifications }) {
   const [focusPharmacy, setFocusPharmacy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [guideOpen, setGuideOpen] = useState(false);
   const locationRequestId = useRef(0);
 
   useEffect(() => {
@@ -193,33 +192,29 @@ export default function DisposalMapScreen({ onNotifications }) {
         <TopBar
             title="폐의약품 지도"
             subtitle="내 주변 안전한 약 폐기"
+            description="처방약은 수거함에 안전하게 버려주세요."
             onNotifications={onNotifications}
         />
 
-        <section className="map-intro">
-          <div className="map-intro-icon"><Icon name="trash" size={24} /></div>
-          <div>
-            <h2>처방약은 수거함에 안전하게 버려주세요</h2>
-            <p>지역명을 검색하거나 내 주변 약국을 찾아보세요. 폐의약품 수거 여부는 방문 전 약국에 확인해주세요.</p>
-          </div>
-          <span>{loading ? "검색 중" : `${pharmacies.length}곳 표시`}</span>
-        </section>
+        {/* 검색줄: 지역 검색 · 내 주변 약국 · 반경 */}
+        <div className="disposal-toolbar">
+          <form className="disposal-search-form" onSubmit={handleSearch}>
+            <label htmlFor="disposal-query" className="sr-only">약국 검색</label>
+            <span className="disposal-search-input">
+              <Icon name="search" size={17} />
+              <input
+                  id="disposal-query"
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="예: 강남역 약국"
+                  maxLength={100}
+              />
+            </span>
+            <button type="submit" className="btn btn-dark">검색</button>
+          </form>
 
-        <form className="disposal-search-form" onSubmit={handleSearch}>
-          <label htmlFor="disposal-query">약국 검색</label>
-          <input
-              id="disposal-query"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="예: 강남역 약국"
-              maxLength={100}
-          />
-          <button type="submit">검색</button>
-        </form>
-
-        <div className="disposal-location-controls">
           <button
-              className="disposal-nearby-button"
+              className="btn btn-outline disposal-nearby-button"
               type="button"
               onClick={handleNearbySearch}
               disabled={locating}
@@ -229,7 +224,7 @@ export default function DisposalMapScreen({ onNotifications }) {
             {locating ? "현재 위치 확인 중..." : "내 주변 약국"}
           </button>
           <label className="disposal-radius-label" htmlFor="disposal-radius">
-            검색 반경
+            반경
             <select
                 id="disposal-radius"
                 value={radius}
@@ -244,30 +239,32 @@ export default function DisposalMapScreen({ onNotifications }) {
               <option value={3000}>3km</option>
             </select>
           </label>
-          <small className="disposal-search-mode" aria-live="polite">
-            {nearby ? `내 위치 기준 ${radius.toLocaleString()}m 이내 · 거리순` : "지역명 검색 중 · 위치 정보 사용 안 함"}
-          </small>
         </div>
+        <small className="disposal-search-mode" aria-live="polite">
+          {nearby ? `내 위치 기준 ${radius.toLocaleString()}m 이내 · 거리순` : "지역명 검색 중 · 위치 정보 사용 안 함"}
+        </small>
         {locationError && <p className="disposal-location-error" role="alert">{locationError}</p>}
 
+        {/* 지도(왼쪽) + 약국 목록(오른쪽) */}
         <section className="map-layout">
-          <KakaoMap
-              pharmacies={pharmacies}
-              selected={selected}
-              onSelect={handlePharmacySelect}
-              mode={mode}
-              userLocation={nearby ? userLocation : null}
-              radius={radius}
-              focusPharmacy={focusPharmacy}
-          />
+          <div className="map-column">
+            <KakaoMap
+                pharmacies={pharmacies}
+                selected={selected}
+                onSelect={handlePharmacySelect}
+                mode={mode}
+                userLocation={nearby ? userLocation : null}
+                radius={radius}
+                focusPharmacy={focusPharmacy}
+            />
+            <p className="disposal-note">ⓘ 폐의약품 수거 여부는 방문 전 약국에 확인해 주세요.</p>
+          </div>
 
           <div className="pharmacy-list-wrap">
-            <div className="section-title-row">
-              <div>
-                <span className="section-label">PHARMACIES</span>
-                <h2>{nearby ? "내 주변 약국" : "검색된 약국"}</h2>
-              </div>
-              <span className="distance-sort">{nearby ? "직선거리순" : "검색 결과"}</span>
+            <div className="pharmacy-list-head">
+              <h2>{nearby ? "내 주변 약국" : "검색된 약국"}</h2>
+              <span>{loading ? "검색 중" : `${pharmacies.length}곳`}</span>
+              {nearby && <small>직선거리순</small>}
             </div>
 
             {loading && <p className="disposal-state" role="status">약국 정보를 검색하고 있어요.</p>}
@@ -281,41 +278,46 @@ export default function DisposalMapScreen({ onNotifications }) {
             )}
 
             <div className="pharmacy-list">
-              {pharmacies.map((pharmacy, index) => (
+              {pharmacies.map((pharmacy) => (
                   <button
                       type="button"
                       className={selected?.id === pharmacy.id ? "pharmacy-card selected" : "pharmacy-card"}
                       key={pharmacy.id}
                       onClick={() => handlePharmacySelect(pharmacy)}
                   >
-                    <span className="pharmacy-number">{index + 1}</span>
-                    <span className="pharmacy-info">
-                  <strong>{pharmacy.name}</strong>
-                  <small>{pharmacy.address}</small>
-                      {pharmacy.phone && <small>전화: {pharmacy.phone}</small>}
-                      <span className="accepts">폐의약품 수거 여부는 약국에 문의</span>
-                </span>
-                    <span className="pharmacy-distance">
-                  {nearby && pharmacy.distanceText && <strong>{pharmacy.distanceText}</strong>}
-                      <Icon name="chevron" size={16} />
-                </span>
+                    <span className="pharmacy-card-top">
+                      <strong>{pharmacy.name}</strong>
+                      {nearby && pharmacy.distanceText && <b>{pharmacy.distanceText}</b>}
+                    </span>
+                    <small>{pharmacy.address}</small>
+                    {pharmacy.phone && <small className="pharmacy-phone">☎ {pharmacy.phone}</small>}
                   </button>
               ))}
             </div>
           </div>
         </section>
 
-        <aside className="disposal-guide">
-          <span><Icon name="trash" size={19} /></span>
-          <div>
-            <strong>약 종류별로 이렇게 버려주세요</strong>
-            <p>알약은 포장을 제거하고, 가루약은 포장 그대로 모아주세요. 물약과 연고는 새지 않게 밀봉해주세요.</p>
-            {guideOpen && <p>배출 장소와 수거 가능한 종류는 지역별로 다를 수 있으므로 해당 지자체나 약국의 안내를 확인해주세요.</p>}
+        {/* 약 종류별 버리는 방법 */}
+        <section className="disposal-guide" aria-label="약 종류별 버리는 방법">
+          <h2>약 종류별로 이렇게 버려주세요</h2>
+          <div className="disposal-guide-grid">
+            <div>
+              <strong>알약</strong>
+              <p>포장을 제거하고 알약만 모아주세요.</p>
+            </div>
+            <div>
+              <strong>가루약</strong>
+              <p>포장 그대로 모아주세요.</p>
+            </div>
+            <div>
+              <strong>물약 · 연고</strong>
+              <p>새지 않게 밀봉해서 가져가 주세요.</p>
+            </div>
           </div>
-          <button type="button" aria-expanded={guideOpen} onClick={() => setGuideOpen((value) => !value)}>
-            {guideOpen ? "접기" : "자세히 보기"}
-          </button>
-        </aside>
+          <p className="disposal-guide-foot">
+            배출 장소와 수거 가능한 종류는 지역별로 다를 수 있으므로 해당 지자체나 약국의 안내를 확인해주세요.
+          </p>
+        </section>
       </div>
   );
 }

@@ -1,410 +1,432 @@
-.map-intro {
-  align-items: center;
-  background: var(--yellow-pale);
-  border: 1px solid #f1e4aa;
-  border-radius: 18px;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: auto 1fr auto;
-  margin-bottom: 18px;
-  padding: 17px 21px;
+/* 폐의약품 지도 화면 스타일 — #67 시안 B
+   - 검색줄 → 지도(왼쪽) + 약국 목록(오른쪽) → 버리는 방법
+   - 아래 "영양제 카드(products-section 등)"는 마이페이지가 같이 쓰는 스타일이라 따로 둔다 */
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
-.map-intro-icon {
+/* ───────── 검색줄 ───────── */
+.disposal-toolbar {
   align-items: center;
-  background: var(--yellow);
-  border-radius: 11px;
-  color: #665619;
   display: flex;
-  height: 43px;
-  justify-content: center;
-  width: 43px;
+  gap: 10px;
 }
 
-.map-intro h2 {
-  font-size: 14px;
-  letter-spacing: -0.03em;
-  margin: 0;
+.map-screen .disposal-search-form {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
 }
 
-.map-intro p {
-  color: var(--muted);
-  font-size: 9px;
-  margin: 4px 0 0;
+.disposal-search-input {
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--faint);
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  height: 46px;
+  min-width: 0;
+  padding: 0 20px;
 }
 
-.map-intro > span {
-  background: white;
-  border: 1px solid #eee4ba;
-  border-radius: 20px;
-  color: #8b7525;
-  font-size: 9px;
+.disposal-search-input:focus-within {
+  border-color: var(--primary);
+}
+
+.disposal-search-input input {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-size: 15px;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.map-screen .disposal-search-form .btn,
+.map-screen .disposal-nearby-button {
+  height: 46px;
+}
+
+.map-screen .disposal-nearby-button:disabled {
+  cursor: wait;
+}
+
+.map-screen .disposal-radius-label {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--faint);
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+  height: 46px;
+  padding: 0 8px 0 18px;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-radius-label select {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 15px;
   font-weight: 700;
-  padding: 7px 10px;
+  outline: 0;
+  padding: 0 4px;
 }
 
+.map-screen .disposal-search-mode {
+  color: var(--faint);
+  display: block;
+  font-size: 12px;
+  margin: 10px 4px 0;
+}
+
+.map-screen .disposal-location-error {
+  color: var(--alert);
+  font-size: 13px;
+  margin: 8px 4px 0;
+}
+
+/* ───────── 지도 + 약국 목록 ───────── */
 .map-layout {
+  align-items: start;
   display: grid;
-  gap: 22px;
-  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  margin-top: 20px;
 }
 
-.mock-map {
-  background-color: #eef0e9;
-  background-image:
-    linear-gradient(35deg, transparent 47%, rgba(255,255,255,.9) 48% 52%, transparent 53%),
-    linear-gradient(145deg, transparent 45%, rgba(255,255,255,.75) 46% 50%, transparent 51%);
-  background-size: 150px 140px, 190px 180px;
-  border: 1px solid #e1e4dc;
-  border-radius: 22px;
-  min-height: 520px;
+.map-column {
+  min-width: 0;
+}
+
+.map-screen .kakao-map-frame {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  height: 540px;
   overflow: hidden;
   position: relative;
 }
 
-.map-river {
-  background: #d7e8eb;
-  height: 60px;
-  left: -10%;
-  position: absolute;
-  top: 61%;
-  transform: rotate(-9deg);
-  width: 120%;
+.map-screen .kakao-map-canvas {
+  height: 100%;
+  width: 100%;
 }
 
-.map-road {
-  background: rgba(255, 255, 255, 0.9);
-  height: 13px;
-  position: absolute;
-  width: 120%;
-}
-
-.road-one {
-  left: -10%;
-  top: 34%;
-  transform: rotate(16deg);
-}
-
-.road-two {
-  left: -12%;
-  top: 52%;
-  transform: rotate(-24deg);
-}
-
-.road-three {
-  height: 9px;
-  left: -5%;
-  top: 18%;
-  transform: rotate(-6deg);
-}
-
-.map-area {
-  color: #969d92;
-  font-size: 8px;
-  font-weight: 600;
-  position: absolute;
-}
-
-.area-one {
-  left: 12%;
-  top: 20%;
-}
-
-.area-two {
-  right: 11%;
-  top: 44%;
-}
-
-.area-three {
-  bottom: 13%;
-  left: 44%;
-}
-
-.map-marker {
+.map-screen .map-overlay-state {
   align-items: center;
-  background: #5c665d;
-  border: 3px solid white;
-  border-radius: 50% 50% 50% 5px;
-  box-shadow: 0 4px 10px rgba(46, 57, 48, 0.22);
-  color: white;
+  color: var(--muted);
   display: flex;
-  height: 38px;
-  justify-content: center;
-  position: absolute;
-  transform: translate(-50%, -100%) rotate(-45deg);
-  width: 38px;
-  z-index: 5;
-}
-
-.map-marker > .icon {
-  transform: rotate(45deg);
-}
-
-.map-marker small {
-  display: none;
-}
-
-.map-marker.selected {
-  background: var(--yellow-deep);
-  color: #514510;
-  height: 44px;
-  width: 44px;
-  z-index: 6;
-}
-
-.my-location {
-  height: 34px;
-  left: 43%;
-  position: absolute;
-  top: 51%;
-  width: 34px;
-  z-index: 4;
-}
-
-.my-location i {
-  animation: pulse 2s infinite;
-  background: rgba(68, 126, 189, 0.18);
-  border-radius: 50%;
+  font-size: 14px;
   inset: 0;
-  position: absolute;
-}
-
-.my-location span {
-  background: #4381c3;
-  border: 3px solid white;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(36, 88, 143, 0.3);
-  height: 15px;
-  left: 9px;
-  position: absolute;
-  top: 9px;
-  width: 15px;
-  z-index: 1;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(.8); opacity: .7; }
-  50% { transform: scale(1.2); opacity: .3; }
-}
-
-.location-button {
-  align-items: center;
-  background: white;
-  border: 1px solid #dfe2dc;
-  border-radius: 10px;
-  bottom: 89px;
-  box-shadow: 0 4px 12px rgba(47, 48, 39, 0.1);
-  color: #697168;
-  display: flex;
-  height: 38px;
   justify-content: center;
+  padding: 20px;
   position: absolute;
-  right: 16px;
-  width: 38px;
+  text-align: center;
+  z-index: 2;
 }
 
-.map-selected-card {
-  align-items: center;
+.map-screen .kakao-radius-badge {
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid white;
-  border-radius: 14px;
-  bottom: 15px;
-  box-shadow: 0 8px 24px rgba(45, 53, 46, 0.14);
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto 1fr auto;
-  left: 15px;
-  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  left: 14px;
+  padding: 7px 12px;
+  pointer-events: none;
   position: absolute;
-  right: 15px;
+  top: 14px;
+  z-index: 3;
 }
 
-.pharmacy-number {
+/* 지도 아래 선택한 약국 카드 */
+.map-screen .map-selected-card {
   align-items: center;
-  background: var(--yellow);
-  border-radius: 9px;
-  color: #655617;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  bottom: 14px;
+  box-shadow: 0 8px 24px rgba(17, 23, 20, 0.1);
   display: flex;
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 800;
+  gap: 12px;
+  left: 14px;
+  padding: 14px 16px;
+  position: absolute;
+  right: 14px;
+  z-index: 3;
+}
+
+.map-selected-card .pharmacy-number {
+  align-items: center;
+  background: var(--primary);
+  border-radius: 50%;
+  color: var(--white);
+  display: flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
   height: 32px;
   justify-content: center;
   width: 32px;
 }
 
-.map-selected-card strong,
-.map-selected-card small {
-  display: block;
+.map-selected-card > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .map-selected-card strong {
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .map-selected-card small {
   color: var(--muted);
-  font-size: 8px;
-  margin-top: 2px;
-}
-
-.map-selected-card > span:last-child {
-  border-radius: 20px;
-  font-size: 8px;
-  font-weight: 700;
-  padding: 5px 7px;
-}
-
-.map-selected-card .open {
-  background: #e8f2e9;
-  color: #62816a;
-}
-
-.map-selected-card .closed {
-  background: #f1f1ed;
-  color: #8c8d86;
-}
-
-.pharmacy-list-wrap {
-  min-width: 0;
-}
-
-.distance-sort {
-  color: #96978f;
-  font-size: 9px;
-}
-
-.pharmacy-list {
-  display: grid;
-  gap: 9px;
-}
-
-.pharmacy-card {
-  align-items: center;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 15px;
-  display: grid;
-  gap: 11px;
-  grid-template-columns: auto 1fr auto;
-  padding: 13px;
-  text-align: left;
-  transition: 150ms ease;
-  width: 100%;
-}
-
-.pharmacy-card:hover,
-.pharmacy-card.selected {
-  background: var(--yellow-pale);
-  border-color: var(--yellow-deep);
-}
-
-.pharmacy-info {
-  min-width: 0;
-}
-
-.pharmacy-info > span,
-.pharmacy-info strong,
-.pharmacy-info small {
-  display: block;
-}
-
-.pharmacy-info .status {
-  color: #6c946f;
-  font-size: 7px;
-  font-weight: 700;
-  margin-bottom: 3px;
-}
-
-.pharmacy-info .status.closed {
-  color: #a5a59d;
-}
-
-.pharmacy-info strong {
   font-size: 12px;
 }
 
-.pharmacy-info small {
-  color: #93958d;
-  font-size: 8px;
-  margin: 2px 0 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pharmacy-info .accepts {
-  color: #927c2a;
-  font-size: 7px;
-}
-
-.pharmacy-distance {
-  text-align: right;
-}
-
-.pharmacy-distance strong,
-.pharmacy-distance small {
-  display: block;
-}
-
-.pharmacy-distance strong {
-  font-size: 11px;
-}
-
-.pharmacy-distance small {
-  color: #9b9c95;
-  font-size: 7px;
-}
-
-.pharmacy-distance .icon {
-  color: #aaa;
-  margin: 5px 0 0 auto;
-}
-
-.disposal-guide {
-  align-items: center;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  display: grid;
-  gap: 13px;
-  grid-template-columns: auto 1fr auto;
-  margin-top: 20px;
-  padding: 17px 20px;
-}
-
-.disposal-guide > span {
-  align-items: center;
-  background: var(--yellow-soft);
-  border-radius: 10px;
-  color: #897326;
-  display: flex;
-  height: 39px;
-  justify-content: center;
-  width: 39px;
-}
-
-.disposal-guide strong {
-  display: block;
-  font-size: 11px;
-}
-
-.disposal-guide p {
-  color: var(--muted);
-  font-size: 8px;
-  margin: 3px 0 0;
-}
-
-.disposal-guide button {
-  background: var(--yellow-soft);
-  border: 1px solid #efe0a3;
-  border-radius: 8px;
-  color: #826d23;
-  font-size: 8px;
+.map-screen .map-detail-link {
+  color: var(--primary);
+  flex-shrink: 0;
+  font-size: 13px;
   font-weight: 700;
-  padding: 8px 10px;
+  text-decoration: none;
 }
 
+/* 내 위치 점 (카카오 지도 위 CustomOverlay) */
+.map-screen .kakao-my-location {
+  background: rgba(46, 125, 215, 0.18);
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: grid;
+  height: 22px;
+  place-items: center;
+  width: 22px;
+}
+
+.map-screen .kakao-my-location span {
+  background: #277ace;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 8px rgba(30, 70, 120, 0.38);
+  box-sizing: content-box;
+  display: block;
+  height: 13px;
+  width: 13px;
+}
+
+.disposal-note {
+  color: var(--faint);
+  font-size: 13px;
+  margin: 10px 4px 0;
+}
+
+/* 오른쪽 약국 목록 카드 */
+.map-screen .pharmacy-list-wrap {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  max-height: 540px;
+  padding: 22px 14px 14px;
+}
+
+.pharmacy-list-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  padding: 0 8px 12px;
+}
+
+.pharmacy-list-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.pharmacy-list-head span {
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.pharmacy-list-head small {
+  color: var(--faint);
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.map-screen .disposal-state {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.map-screen .pharmacy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.pharmacy-card {
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  text-align: left;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+.pharmacy-card:hover {
+  background: var(--surface);
+}
+
+.pharmacy-card.selected {
+  background: var(--primary-soft);
+}
+
+.pharmacy-card-top {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.pharmacy-card strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pharmacy-card b {
+  color: var(--primary);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.pharmacy-card small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pharmacy-card .pharmacy-phone {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+/* ───────── 약 종류별 버리는 방법 ───────── */
+.disposal-guide {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  margin-top: 28px;
+  padding: 26px 28px;
+}
+
+.disposal-guide h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 18px;
+}
+
+.disposal-guide-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.disposal-guide-grid strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.disposal-guide-grid p,
+.disposal-guide-foot {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.disposal-guide-foot {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 13px;
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+/* ───────── 좁은 화면 ───────── */
+@media (max-width: 900px) {
+  .map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .map-screen .kakao-map-frame {
+    height: 420px;
+  }
+
+  .map-screen .pharmacy-list-wrap {
+    max-height: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .disposal-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .map-screen .disposal-search-form {
+    flex: 1 1 100%;
+  }
+
+  .map-screen .disposal-nearby-button {
+    flex: 1;
+  }
+
+  .map-screen .kakao-map-frame {
+    height: 360px;
+  }
+
+  .disposal-guide-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* ───────── 영양제 카드 (마이페이지 products-section에서 사용, 7단계에서 정리) ───────── */
 .products-section {
   margin-top: 36px;
 }
@@ -509,267 +531,4 @@
   display: flex;
   font-size: 8px;
   gap: 3px;
-}
-
-.map-screen .disposal-search-form {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.map-screen .disposal-search-form label {
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.map-screen .disposal-search-form input {
-  flex: 1;
-  min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: white;
-}
-
-.map-screen .disposal-search-form button {
-  padding: 11px 18px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--yellow);
-  color: #665619;
-  font-weight: 700;
-}
-
-.map-screen .kakao-map-frame {
-  height: 520px;
-  min-height: 520px;
-  border: 1px solid #e1e4dc;
-  border-radius: 22px;
-  position: relative;
-  overflow: hidden;
-  background: #eef0e9;
-}
-
-.map-screen .kakao-map-canvas {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.map-screen .map-overlay-state {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.85);
-  color: #555;
-  font-size: 13px;
-}
-
-.map-screen .map-selected-card {
-  z-index: 3;
-}
-
-.map-screen .map-detail-link {
-  border-radius: 8px;
-  background: var(--yellow-soft);
-  padding: 8px;
-  color: #826d23;
-  text-decoration: none;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.map-screen .disposal-state {
-  padding: 15px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-@media (max-width: 600px) {
-  .map-screen .disposal-search-form {
-    flex-wrap: wrap;
-  }
-
-  .map-screen .disposal-search-form label {
-    width: 100%;
-  }
-
-  .map-screen .kakao-map-frame {
-    height: 390px;
-    min-height: 390px;
-  }
-}
-
-
-/* 폐의약품 지도 옆 약국 목록: 지도 높이만큼 표시하고 내부 스크롤 */
-.map-screen .pharmacy-list-wrap {
-  display: flex;
-  flex-direction: column;
-  height: 520px;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.map-screen .pharmacy-list-wrap .section-title-row {
-  flex-shrink: 0;
-}
-
-.map-screen .pharmacy-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  align-content: start;
-  grid-auto-rows: max-content;
-  padding-right: 6px;
-}
-
-@media (max-width: 600px) {
-  .map-screen .pharmacy-list-wrap {
-    height: 390px;
-  }
-}
-
-/* 이 파일의 내용만 기존 frontend/src/disposal/disposal.css 맨 아래에 추가하세요. */
-.map-screen .disposal-location-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: -4px 0 18px;
-}
-
-.map-screen .disposal-nearby-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border: 1px solid #d9d5bd;
-  border-radius: 10px;
-  background: var(--yellow-soft);
-  color: #665619;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.map-screen .disposal-nearby-button:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.map-screen .disposal-radius-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #6b6e65;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.map-screen .disposal-radius-label select {
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: white;
-  color: #444;
-  font-size: 12px;
-}
-
-.map-screen .disposal-search-mode {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.map-screen .disposal-location-error {
-  margin: -5px 0 15px;
-  color: #a33b32;
-  font-size: 12px;
-}
-
-.map-screen .kakao-radius-badge {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  z-index: 3;
-  border-radius: 10px;
-  padding: 8px 11px;
-  background: rgba(255,255,255,0.94);
-  border: 1px solid #cddfeb;
-  box-shadow: 0 2px 9px rgba(30,50,80,0.1);
-  color: #285b88;
-  font-size: 11px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.map-screen .kakao-my-location {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(46, 125, 215, 0.18);
-  box-sizing: border-box;
-}
-
-.map-screen .kakao-my-location span {
-  display: block;
-  width: 13px;
-  height: 13px;
-  border: 3px solid white;
-  border-radius: 50%;
-  background: #277ace;
-  box-shadow: 0 1px 8px rgba(30,70,120,0.38);
-  box-sizing: content-box;
-}
-
-@media (max-width: 600px) {
-  .map-screen .disposal-location-controls {
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .map-screen .disposal-search-mode {
-    width: 100%;
-  }
-}
-
-/* 기존 CodeRabbit 목록 스크롤 수정이 아직 적용되지 않은 경우에도 동작하도록 포함 */
-.map-screen .pharmacy-list-wrap {
-  display: flex;
-  flex-direction: column;
-  height: 520px;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.map-screen .pharmacy-list-wrap .section-title-row {
-  flex-shrink: 0;
-}
-
-.map-screen .pharmacy-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  align-content: start;
-  grid-auto-rows: max-content;
-  padding-right: 6px;
-}
-
-@media (max-width: 600px) {
-  .map-screen .pharmacy-list-wrap {
-    height: 390px;
-  }
 }
