@@ -1,4 +1,3 @@
-
 package com.ucamp.app.global.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -19,130 +18,70 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.List;
 
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
-
     @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
-    ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
-                // Bearer 헤더 기반 무상태 인증
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
-                )
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        // 서버 상태 확인 - 인증 불필요
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/actuator/health"
-                        ).permitAll()
-
-                        // 회원가입 / 로그인 - 인증 불필요
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/signup"
-                        ).permitAll()
-                        // 폐의약품 약국 검색은 로그인 없이 허용
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/v1/disposal/**"
-                        ).permitAll()
-
-                        // 그 외 API는 기존대로 JWT 인증 필요
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(Customizer.withDefaults())
-                );
-
+            .cors(Customizer.withDefaults())
+            // Bearer-protected APIs are stateless and not cookie-authenticated.
+            // Refresh/logout use HttpOnly cookies, protected by a strict Origin check in the controller.
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/auth/login", "/api/v1/auth/signup",
+                        "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/disposal/**").permitAll()
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return http.build();
     }
 
     @Bean
-    public SecretKey jwtSecretKey(
-            @Value("${JWT_SECRET_BASE64}") String secret
-    ) {
+    public SecretKey jwtSecretKey(@Value("${JWT_SECRET_BASE64}") String secret) {
         byte[] bytes = Base64.getDecoder().decode(secret);
-
-        if (bytes.length < 32) {
-            throw new IllegalArgumentException(
-                    "JWT 비밀키는 최소 32바이트여야 합니다."
-            );
-        }
-
+        if (bytes.length < 32) throw new IllegalArgumentException("JWT 비밀키는 최소 32바이트여야 합니다.");
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
     @Bean
     public JwtEncoder jwtEncoder(SecretKey secretKey) {
-        return new NimbusJwtEncoder(
-                new ImmutableSecret<>(secretKey)
-        );
+        return new NimbusJwtEncoder(new ImmutableSecret<>(secretKey));
     }
 
     @Bean
     public JwtDecoder jwtDecoder(SecretKey secretKey) {
-        NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withSecretKey(secretKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-
-        decoder.setJwtValidator(
-                JwtValidators.createDefaultWithIssuer("yakssok")
-        );
-
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS256).build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer("yakssok"));
         return decoder;
     }
 
     @Bean
-    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+    public UrlBasedCorsConfigurationSource corsConfigurationSource(
+            @Value("${app.auth.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}") String csv
+    ) {
         CorsConfiguration config = new CorsConfiguration();
-
-        // React 개발 서버 주소
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173"
-        ));
-
-        // 허용할 HTTP 메서드
-        config.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-        ));
-
-        // JWT 인증 헤더 허용
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type"
-        ));
-
-        // 현재는 쿠키 인증이 아닌 Bearer 토큰 사용
-        config.setAllowCredentials(false);
-
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        List<String> origins = Arrays.stream(csv.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toList();
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Credentialed cross-origin /auth/refresh and /auth/logout; origins are explicitly enumerated.
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 }

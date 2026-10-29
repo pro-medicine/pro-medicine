@@ -1,6 +1,6 @@
 import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
 // 개인 PC 주소를 코드에 넣지 않기 위해 환경변수 사용
-import { getAccessToken } from "../auth/authToken";
+import { fetchWithAuth } from "../auth/authApi";
 
 // 로컬: frontend/.env.local 에 VITE_API_BASE_URL=http://localhost:8080
 
@@ -18,17 +18,11 @@ const COLORS = ["#d6b44c", "#6f99a1", "#a68fb8"];
 // 공통 fetch 함수: 실패하면 에러를 던진다
 
 async function request(path, options = {}) {
-    // API 요청할 때마다 현재 JWT 가져오기
-    const token = getAccessToken();
-
-    const res = await fetch(`${BASE_URL}${path}`, {
+    const res = await fetchWithAuth(`${BASE_URL}${path}`, {
         ...options,
         headers: {
             "Content-Type": "application/json",
             ...(options.headers ?? {}),
-            ...(token
-                ? { Authorization: `Bearer ${token}` }
-                : {}),
         },
     });
 

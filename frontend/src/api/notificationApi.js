@@ -1,5 +1,6 @@
 import { api } from "./client";
 import { getAccessToken } from "../auth/authToken";
+import { refreshAccessToken } from "../auth/authApi";
 
 // 알림 API (/api/v1/notifications)
 // 사용자 식별: 로그인 연동 전까지 X-User-Id 헤더 사용 (백엔드 NotificationController와 동일)
@@ -63,6 +64,7 @@ export function subscribeNotifications(userId, onNotification) {
     let controller = null;
     let retryTimer = null;
     let connectedBefore = false;
+    let triedAuthRefresh = false;
 
     const connect = async () => {
         if (stopped) return;
@@ -85,10 +87,22 @@ export function subscribeNotifications(userId, onNotification) {
                 signal: controller.signal,
             });
 
-            if (response.status === 401 || response.status === 403) {
-                console.warn("SSE 인증이 만료되었거나 권한이 없습니다.");
+            if (response.status === 401) {
+                controller?.abort();
+                if (!triedAuthRefresh) {
+                    triedAuthRefresh = true;
+                    try {
+                        if (await refreshAccessToken()) {
+                            retryTimer = setTimeout(connect, 0);
+                        }
+                    } catch (error) {
+                        console.warn("SSE 인증 갱신 실패", error);
+                    }
+                }
                 return;
             }
+            if (response.status === 403) return;
+            triedAuthRefresh = false;
 
             if (!response.ok || !response.body) {
                 throw new Error(`SSE 연결 실패: ${response.status}`);

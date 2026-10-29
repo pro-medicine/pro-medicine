@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 // 인증
 import AuthPage from "./auth/AuthPage";
-import { getCurrentUser, logout } from "./auth/authApi";
+import { getCurrentUser, logout, SESSION_EXPIRED_EVENT } from "./auth/authApi";
 import "./auth/auth.css";
 
 // 알림
@@ -37,6 +37,22 @@ export default function App() {
     const [friendsKey, setFriendsKey] = useState(0);
 
     const userId = user?.userId;
+
+    // A failed cookie refresh invalidates the in-memory session once (no retry loop).
+    useEffect(() => {
+        const handleExpired = () => {
+            setUser(null);
+            setAuthMode("login");
+            setTab("home");
+            setSurveyOpen(false);
+            setNotificationsOpen(false);
+            setHasUnreadNotifications(false);
+            setError("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+        };
+        window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    }, []);
+
 
     // 최초 로그인 확인
     useEffect(() => {
