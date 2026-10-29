@@ -10,8 +10,9 @@ import ProductRecommendations from "../recommendation/ProductRecommendations";
  * - active: 마지막 말풍선이라 선택지를 누를 수 있는지
  * - ingredients: 성분 코드 → { name, unit }
  * - onChoose: 선택지 누름 (message, chip)
+ * - onRetry: 오류 말풍선의 [다시 시도] (message)
  */
-export default function ChatMessage({ message, active, ingredients, onChoose }) {
+export default function ChatMessage({ message, active, ingredients, onChoose, onRetry }) {
   const mine = message.from === "user";
   return (
     <li className={`chat-row ${mine ? "mine" : "bot"}`}>
@@ -20,7 +21,9 @@ export default function ChatMessage({ message, active, ingredients, onChoose }) 
           약
         </span>
       )}
-      <div className={`chat-bubble${message.kind === "alert" ? ` alert ${message.tone ?? ""}` : ""}${message.kind === "result" ? " wide" : ""}`}>
+      <div
+        className={`chat-bubble${message.kind === "alert" ? ` alert ${message.tone ?? ""}` : ""}${message.kind === "error" ? " error" : ""}${message.kind === "result" ? " wide" : ""}`}
+      >
         {message.text && <p className="chat-text">{message.text}</p>}
         {message.kind === "pending" && (
           <span className="chat-dots" role="status" aria-label="추천을 기다리는 중">
@@ -42,6 +45,13 @@ export default function ChatMessage({ message, active, ingredients, onChoose }) 
                 {chip.label}
               </button>
             ))}
+          </div>
+        )}
+        {message.kind === "error" && !message.retrying && (
+          <div className="chat-chips">
+            <button type="button" className="chat-chip" onClick={() => onRetry(message)}>
+              다시 시도
+            </button>
           </div>
         )}
         {message.kind === "result" && <ChatResult result={message.result} ingredients={ingredients} />}

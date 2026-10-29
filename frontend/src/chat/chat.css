@@ -165,6 +165,7 @@
   color: var(--chat-danger-text);
   font-weight: 600;
 }
+.chat-bubble.error { border-color: var(--chat-line); background: var(--chat-card); color: var(--chat-sub); }
 .chat-bubble.alert.warn { border-color: var(--r-yellow-line); background: var(--r-yellow-soft); }
 
 .chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }

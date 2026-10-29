@@ -15,7 +15,9 @@ export default function ChatPanel({ chat, onClose, openerRef }) {
   const dialogRef = useModalFocus(onClose, openerRef);
   const listRef = useRef(null);
   const [text, setText] = useState("");
-  const { messages, sending, inputDisabled, ingredients, send, choose } = chat;
+  const { messages, sending, inputDisabled, ingredients, send, choose, retry } = chat;
+  // 다시 시도 중이면 그 오류 말풍선이 진행 표시를 대신한다
+  const retrying = messages.some((m) => m.kind === "error" && m.retrying);
 
   // 새 말풍선이 오면 맨 아래로
   useEffect(() => {
@@ -61,9 +63,10 @@ export default function ChatPanel({ chat, onClose, openerRef }) {
             onChoose={(msg, chip) => {
               choose(msg, chip);
             }}
+            onRetry={retry}
           />
         ))}
-        {sending && (
+        {sending && !retrying && (
           <li className="chat-row bot">
             <span className="chat-avatar" aria-hidden="true">
               약
