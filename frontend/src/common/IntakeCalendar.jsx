@@ -35,6 +35,7 @@ function DayModal({
   onClose,
   onSave,
   onDelete,
+  onToggle,
 }) {
   const dialogRef = useModalFocus(onClose, openerRef);
   const [mode, setMode] = useState(null); // null | "new" | 이벤트 객체(수정)
@@ -91,6 +92,15 @@ function DayModal({
       await onDelete(event.eventId);
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
+    }
+  };
+
+  const toggle = async (event) => {
+    setError("");
+    try {
+      await onToggle(event);
+    } catch (err) {
+      setError(err.message || "상태를 바꾸지 못했어요.");
     }
   };
 
@@ -167,7 +177,22 @@ function DayModal({
             {!mode && (
               <ul>
                 {events.map((event) => (
-                  <li key={event.eventId} className="event-item">
+                  <li
+                    key={event.eventId}
+                    className={`event-item ${event.status === "COMPLETED" ? "completed" : ""}`}
+                  >
+                    {onToggle && (
+                      <button
+                        type="button"
+                        className="event-check"
+                        role="checkbox"
+                        aria-checked={event.status === "COMPLETED"}
+                        aria-label={`${event.title} 완료`}
+                        onClick={() => toggle(event)}
+                      >
+                        {event.status === "COMPLETED" ? "✓" : ""}
+                      </button>
+                    )}
                     <span className="event-type">
                       {typeLabel(event.eventType)}
                     </span>
@@ -262,13 +287,13 @@ function DayModal({
   );
 }
 
-// ───────── 달력 ─────────
 export default function IntakeCalendar({
   fetchDates,
   fetchDay,
   fetchEvents,
   createEvent,
   updateEvent,
+  updateEventStatus,
   deleteEvent,
   title = "복용 달력",
 }) {
@@ -377,6 +402,12 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
+  const handleToggle = async (event) => {
+    const next = event.status === "COMPLETED" ? "PLANNED" : "COMPLETED";
+    await updateEventStatus(event.eventId, next);
+    await reloadEvents();
+  };
+
   const completed = new Set(dates);
   const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7; // 월요일 시작
   const cells = [
@@ -445,7 +476,15 @@ export default function IntakeCalendar({
               }}
             >
               {day}
-              {dayEvents.length > 0 && <span className="calendar-event-dot" />}
+              {dayEvents.length > 0 && (
+                <span
+                  className={`calendar-event-dot ${
+                    dayEvents.every((e) => e.status === "COMPLETED")
+                      ? "all-done"
+                      : ""
+                  }`}
+                />
+              )}
             </button>
           );
         })}
@@ -470,6 +509,7 @@ export default function IntakeCalendar({
           onClose={() => setSelected(null)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onToggle={updateEventStatus ? handleToggle : null}
         />
       )}
     </section>

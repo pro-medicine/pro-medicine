@@ -17,6 +17,14 @@ export function updateCalendarEvent(eventId, payload) {
   return api.put(`/api/v1/calendar-events/${eventId}`, payload, { headers });
 }
 
+export function updateCalendarEventStatus(eventId, status) {
+  return api.patch(
+    `/api/v1/calendar-events/${eventId}/status`,
+    { status },
+    { headers },
+  );
+}
+
 export function deleteCalendarEvent(eventId) {
   return api.delete(`/api/v1/calendar-events/${eventId}`, { headers });
 }

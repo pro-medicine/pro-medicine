@@ -13,6 +13,7 @@ import {
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
+  updateCalendarEventStatus,
 } from "../api/calendarEventApi";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
@@ -270,6 +271,7 @@ export default function ProfileScreen({
           fetchEvents={getCalendarEvents}
           createEvent={createCalendarEvent}
           updateEvent={updateCalendarEvent}
+          updateEventStatus={updateCalendarEventStatus}
           deleteEvent={deleteCalendarEvent}
         />
       ) : (
