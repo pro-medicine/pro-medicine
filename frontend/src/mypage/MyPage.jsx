@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Icon, SupplementCard, TopBar } from "../shared/ui";
+import { Icon, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
   fetchMySupplements,
@@ -125,7 +125,6 @@ export default function ProfileScreen({
     : (friend.supplements ?? []).map(toSupplementCard); // 내 정보 API를 못 불러오면 기존 예시 이름을 보여줌
   const name = friend?.name ?? user?.nickname ?? "김민지";
   const initial = friend?.initial ?? name.charAt(0);
-  const avatarColor = friend?.color ?? "yellow";
   // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
   const streak = isMine ? (stats?.streakDays ?? "-") : (friend.streak ?? 0);
   const productCount = isMine
@@ -209,31 +208,35 @@ export default function ProfileScreen({
 
   return (
     <div className="screen profile-screen">
+      {/* 머리: 큰 아바타 + 이름(화면 제목) + 오른쪽 버튼 (내 화면: 프로필 편집 / 친구: 안부지킴이·삭제) */}
       <TopBar
         back={onBack}
-        title={isMine ? "마이페이지" : `${name}님의 영양정보`}
-        subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
+        avatar={<span className="avatar xlarge">{initial}</span>}
+        title={
+          <>
+            {name}
+            {!isMine && friend?.relation && (
+              <span className={`chip ${friend.mutual === false ? "" : "green"} profile-relation`}>
+                {friend.relation}
+              </span>
+            )}
+          </>
+        }
+        subtitle={isMine ? "건강한 하루를 만드는 중" : undefined}
+        description={isMine ? undefined : friend?.status}
         onNotifications={onNotifications}
-        actions={topBarActions}
+        actions={
+          isMine ? (
+            <button className="btn btn-outline" type="button" onClick={openEdit}>
+              프로필 편집
+            </button>
+          ) : (
+            topBarActions
+          )
+        }
       />
 
-      <section
-        className={isMine ? "profile-hero clickable" : "profile-hero"}
-        onClick={isMine ? openEdit : undefined}
-      >
-        <span className={`avatar xlarge ${avatarColor}`}>{initial}</span>
-        <div className="profile-name">
-          <span>{isMine ? "건강한 하루를 만드는 중" : friend?.relation}</span>
-          <h2>{name}</h2>
-          <p>{isMine ? "꾸준함이 최고의 영양제예요" : friend?.status}</p>
-        </div>
-        {isMine && (
-          <button className="edit-button" type="button" onClick={openEdit}>
-            프로필 편집
-          </button>
-        )}
-      </section>
-
+      {/* 통계 3칸 */}
       <section className="stats-grid">
         <div>
           <span>연속 복용</span>
@@ -269,79 +272,83 @@ export default function ProfileScreen({
           fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
         />
       )}
-      {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
-      {isMine && <NutritionManagement key={refreshKey} />}
 
-      <section className="section-block products-section">
-        <div className="section-title-row">
-          <div>
-            <span className="section-label">SUPPLEMENTS</span>
-            <h2>{isMine ? "내가 먹는 영양제" : `${name}님이 먹는 영양제`}</h2>
+      {/* 내 화면: 나의 영양관리(왼쪽) + 내가 먹는 영양제(오른쪽) / 친구 화면: 영양제만 */}
+      <div className={isMine ? "profile-columns" : "profile-columns single"}>
+        {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
+        {isMine && <NutritionManagement key={refreshKey} />}
+
+        <section className="products-section">
+          <div className="products-head">
+            <h2>
+              {isMine ? "내가 먹는 영양제" : `${name}님이 먹는 영양제`}
+              <span>{supplements.length}개</span>
+            </h2>
+            {isMine && (
+              <button className="btn btn-soft btn-sm" type="button" onClick={openAdd}>
+                <Icon name="plus" size={15} />
+                영양제 등록
+              </button>
+            )}
           </div>
-          {isMine && (
-            <button
-              className="add-friend-button"
-              type="button"
-              onClick={openAdd}
-            >
-              <Icon name="plus" size={16} />
-              영양제 등록
-            </button>
+          {isMine && supplementError && (
+            <p className="section-description">
+              영양제 정보를 불러오지 못했어요.
+            </p>
           )}
-        </div>
-        <p className="section-description">
-          상품명과 주요 영양성분, 함량 및 구매 가격을 확인할 수 있어요.
-        </p>
-        {isMine && supplementError && (
-          <p className="section-description">
-            영양제 정보를 불러오지 못했어요.
-          </p>
-        )}
-        {isMine && !supplementError && mySupplementList?.length === 0 && (
-          <p className="section-description">아직 등록된 영양제가 없어요.</p>
-        )}
-        <div className="product-grid">
-          {supplements.map((supplement) =>
-            isMine ? (
-              // 공용 SupplementCard 는 그대로 두고, 바깥을 감싸서 삭제 버튼만 얹음
-              <div className="supplement-card-wrap" key={supplement.id}>
-                <SupplementCard supplement={supplement} />
-                {/* 카드 오른쪽 위: 수정(복용 일정) / 삭제 */}
-                <div className="supplement-card-actions">
-                  <button
-                    type="button"
-                    aria-label={`${supplement.name} 복용 일정 수정`}
-                    onClick={() => {
-                      setScheduleTarget(supplement.raw);
-                      window.scrollTo({ top: 0 });
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${supplement.name} 삭제`}
-                    disabled={removingId === supplement.id}
-                    onClick={() => removeSupplement(supplement)}
-                  >
-                    삭제
-                  </button>
+          {isMine && !supplementError && mySupplementList?.length === 0 && (
+            <p className="section-description">아직 등록된 영양제가 없어요.</p>
+          )}
+          {!isMine && supplements.length === 0 && (
+            <p className="section-description">아직 등록된 영양제가 없어요.</p>
+          )}
+          <ul className="product-list">
+            {supplements.map((supplement) => (
+              <li className="product-row" key={supplement.id}>
+                <div className="product-row-main">
+                  <strong>{supplement.name}</strong>
+                  <small>
+                    {[supplement.brand, supplement.amount, supplement.price]
+                      .filter((v) => v && v !== "-")
+                      .join(" · ")}
+                  </small>
                 </div>
-              </div>
-            ) : (
-              <SupplementCard key={supplement.id} supplement={supplement} />
-            ),
-          )}
-        </div>
-      </section>
+                <span className="chip gray">{supplement.category}</span>
+                <span className="product-row-time">{supplement.time}</span>
+                {isMine && (
+                  <span className="product-row-actions">
+                    <button
+                      type="button"
+                      title="복용 일정 수정"
+                      aria-label={`${supplement.name} 복용 일정 수정`}
+                      onClick={() => {
+                        setScheduleTarget(supplement.raw);
+                        window.scrollTo({ top: 0 });
+                      }}
+                    >
+                      <Icon name="pencil" size={17} />
+                    </button>
+                    <button
+                      type="button"
+                      title="삭제"
+                      aria-label={`${supplement.name} 삭제`}
+                      disabled={removingId === supplement.id}
+                      onClick={() => removeSupplement(supplement)}
+                    >
+                      <Icon name="trash" size={17} />
+                    </button>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }
 
 // ───────────── 나의 영양관리 ─────────────
-
-// 성분 순서대로 게이지 색상
-const nutritionTones = ["yellow", "green", "purple", "orange", "blue"];
 
 // 권장량에 가장 못 미치는 성분 안내
 function nutritionNoticeText(nutrients) {
@@ -382,7 +389,6 @@ function NutritionManagement() {
     <section className="nutrition-management">
       <div className="nutrition-heading">
         <div>
-          <span className="section-label">DAILY NUTRITION</span>
           <h2>나의 영양관리</h2>
           <p>복용 중인 영양제를 기준으로 성인 하루 권장량과 비교했어요.</p>
         </div>
@@ -400,7 +406,7 @@ function NutritionManagement() {
       ) : (
         <>
           <div className="nutrition-list">
-            {nutrients.map((item, index) => (
+            {nutrients.map((item) => (
               <div className="nutrition-row" key={item.name}>
                 <div className="nutrition-name">
                   <strong>{item.name}</strong>
@@ -412,13 +418,12 @@ function NutritionManagement() {
                 </div>
                 <div className="nutrition-gauge">
                   <span
-                    className={nutritionTones[index % nutritionTones.length]}
+                    className={item.percent < 50 ? "low" : "ok"}
                     style={{ width: `${Math.min(item.percent, 100)}%` }}
                   />
                 </div>
-                <div className="nutrition-percent">
-                  <strong>{item.percent}%</strong>
-                  {item.percent > 100 && <span>충분</span>}
+                <div className={`nutrition-percent ${item.percent < 50 ? "low" : item.percent >= 100 ? "ok" : ""}`}>
+                  {item.percent < 50 ? "부족" : item.percent >= 100 ? "충분" : `${item.percent}%`}
                 </div>
               </div>
             ))}

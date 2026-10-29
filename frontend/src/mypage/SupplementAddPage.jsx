@@ -143,7 +143,7 @@ export default function SupplementAddPage({
       <TopBar
         back={onBack}
         title={isEdit ? "복용 일정 수정" : "영양제 등록"}
-        subtitle="내가 먹는 영양제"
+        description={isEdit ? "먹는 끼니와 알림 시각을 바꿀 수 있어요." : "검색해서 고르고, 먹는 시간을 정해 주세요."}
         onNotifications={onNotifications}
       />
 
@@ -160,7 +160,9 @@ export default function SupplementAddPage({
 
         {!isEdit && (
           <section className="profile-edit-card">
-            <h2>1. 제품 검색</h2>
+            <h2>
+              <span className="step-num">1</span>제품 검색
+            </h2>
             <div className="supplement-search-row">
               <input
                 value={keyword}
@@ -174,7 +176,7 @@ export default function SupplementAddPage({
                   }
                 }}
               />
-              <button type="button" onClick={search} disabled={searching}>
+              <button type="button" className="btn btn-dark" onClick={search} disabled={searching}>
                 {searching ? "검색 중..." : "검색"}
               </button>
             </div>
@@ -212,11 +214,17 @@ export default function SupplementAddPage({
         )}
 
         <section className="profile-edit-card">
-          <h2>{isEdit ? "복용 일정" : "2. 복용 일정"}</h2>
+          <h2>
+            {!isEdit && <span className="step-num">2</span>}복용 일정
+          </h2>
+          <p className="profile-edit-hint">먹는 끼니를 고르면 그 시간에 알림을 보내드려요.</p>
           {mealSlotOptions.map((option) => {
             const schedule = schedules[option.slot];
             return (
-              <div className="supplement-schedule-row" key={option.slot}>
+              <div
+                className={schedule.checked ? "supplement-schedule-row checked" : "supplement-schedule-row"}
+                key={option.slot}
+              >
                 <label className="supplement-schedule-check">
                   <input
                     type="checkbox"
@@ -231,29 +239,37 @@ export default function SupplementAddPage({
                   />
                   {option.label}
                 </label>
-                <select
-                  value={schedule.relation}
-                  disabled={!schedule.checked}
-                  aria-label={`${option.label} 식전·식후`}
-                  onChange={(event) =>
-                    changeSchedule(option.slot, "relation", event.target.value)
-                  }
-                >
-                  {mealRelationOptions.map(([value, text]) => (
-                    <option key={value} value={value}>
-                      {text}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="time"
-                  value={schedule.time}
-                  disabled={!schedule.checked}
-                  aria-label={`${option.label} 알림 시각`}
-                  onChange={(event) =>
-                    changeSchedule(option.slot, "time", event.target.value)
-                  }
-                />
+                {/* 체크한 끼니만 식전·식후와 알림 시각을 고른다 */}
+                {schedule.checked && (
+                  <>
+                    <div
+                      className="supplement-relation"
+                      role="radiogroup"
+                      aria-label={`${option.label} 식전·식후`}
+                    >
+                      {mealRelationOptions.map(([value, text]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={schedule.relation === value}
+                          className={schedule.relation === value ? "choice active" : "choice"}
+                          onClick={() => changeSchedule(option.slot, "relation", value)}
+                        >
+                          {text}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="time"
+                      value={schedule.time}
+                      aria-label={`${option.label} 알림 시각`}
+                      onChange={(event) =>
+                        changeSchedule(option.slot, "time", event.target.value)
+                      }
+                    />
+                  </>
+                )}
               </div>
             );
           })}
@@ -261,20 +277,22 @@ export default function SupplementAddPage({
 
         {message && <p className="profile-edit-message error">{message}</p>}
 
-        <button
-          type="button"
-          className="profile-edit-save"
-          onClick={submit}
-          disabled={saving}
-        >
-          {saving
-            ? "저장 중..."
-            : isEdit
-              ? "복용 일정 저장"
-              : selected
-                ? `'${selected.productName}' 등록`
-                : "등록"}
-        </button>
+        <div className="profile-edit-footer">
+          <p className="supplement-summary">
+            {isEdit ? target.productName : selected ? selected.productName : "제품을 골라 주세요"}
+          </p>
+          <button type="button" className="btn btn-outline btn-lg" onClick={onBack}>
+            취소
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            onClick={submit}
+            disabled={saving}
+          >
+            {saving ? "저장 중..." : isEdit ? "저장" : "등록"}
+          </button>
+        </div>
       </div>
     </div>
   );
