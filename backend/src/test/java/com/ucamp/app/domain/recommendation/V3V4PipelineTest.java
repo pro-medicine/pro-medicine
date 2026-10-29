@@ -55,7 +55,7 @@ class V3V4PipelineTest {
         assertThat(r.itemsOrEmpty()).hasSize(3);
         assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
         RecommendationItem c = r.finalItems().get(0);
-        assertThat(c.amount()).isEqualByComparingTo("125"); // R-01 ADJUST는 기준표 흡연 행으로 반영
+        assertThat(c.amount()).isEqualByComparingTo("135"); // R-01 ADJUST는 기준표 흡연 행(KDRI 100 + 35)으로 반영
         assertThat(c.appliedRuleIdsOrEmpty()).containsExactly("R-01");
         assertThat(r.itemsOrEmpty().stream().filter(RecommendationItem::excluded))
                 .extracting(RecommendationItem::appliedRuleIds)
@@ -75,6 +75,6 @@ class V3V4PipelineTest {
         assertThat(user.indexOf("추천하지 마라")).isGreaterThan(user.indexOf("사용자 정보"));
         assertThat(fake.requests().get(0).system()).doesNotContain("혈압약(ACE 억제제)"); // 금지 이유는 시스템(고정 부분)에 없음
         assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
-        assertThat(r.promptVersion()).isEqualTo("v4.2");
+        assertThat(r.promptVersion()).isEqualTo("v4.3");
     }
 }

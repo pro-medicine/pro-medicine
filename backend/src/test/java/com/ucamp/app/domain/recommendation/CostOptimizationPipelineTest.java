@@ -74,9 +74,9 @@ class CostOptimizationPipelineTest {
         assertThat(first.cacheHit()).isFalse();
         assertThat(second.cacheHit()).isTrue();
         assertThat(second.llmCallLogIdsOrEmpty()).isEmpty();
-        // 용량은 각자의 현재 섭취량으로 다시 계산 (125 - 25, 125 - 100)
-        assertThat(first.finalItems().get(0).amount()).isEqualByComparingTo("100");
-        assertThat(second.finalItems().get(0).amount()).isEqualByComparingTo("25");
+        // 용량은 각자의 현재 섭취량으로 다시 계산 (흡연 135 - 25, 135 - 100)
+        assertThat(first.finalItems().get(0).amount()).isEqualByComparingTo("110");
+        assertThat(second.finalItems().get(0).amount()).isEqualByComparingTo("35");
         // 규칙도 다시 적용 (베타카로틴 제외)
         assertThat(second.itemsOrEmpty()).filteredOn(RecommendationItem::excluded)
                 .extracting(RecommendationItem::ingredient).containsExactly("BETA_CAROTENE");

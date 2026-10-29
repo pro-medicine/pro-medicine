@@ -1,4 +1,7 @@
-// 추천 결과 (담당: 영준) — 추천 성분 카드, 제외 성분, 안내 문구
+// 추천 결과 (담당: 영준) — 추천 성분 카드, 제외 성분, 안내 문구, 성분별 제품 추천(V3)
+import { useEffect, useState } from "react";
+import { getProductAvailability } from "../api/recommendationApi";
+import ProductRecommendations from "./ProductRecommendations";
 
 const EMPTY_TEXT =
   "입력하신 건강 정보로는 지금 바로 권할 성분이 없어요. 복용 중인 약이나 질환이 있다면 의사·약사와 상담해 주세요.";
@@ -34,6 +37,21 @@ export default function ResultStep({
     (a, b) => a.sortOrder - b.sortOrder,
   );
   const excluded = result.excludedItems ?? [];
+
+  // V3: 성분별 [제품 추천 보기] 버튼 노출 여부 (통과 제품이 1개 이상인 성분만). 실패하면 버튼을 숨긴다
+  const recommendationId = result.recommendationId;
+  const [availability, setAvailability] = useState({});
+  const [openIngredient, setOpenIngredient] = useState(null);
+  useEffect(() => {
+    if (!recommendationId || items.length === 0) return undefined;
+    let alive = true;
+    getProductAvailability(recommendationId)
+      .then((data) => alive && setAvailability(data ?? {}))
+      .catch(() => alive && setAvailability({}));
+    return () => {
+      alive = false;
+    };
+  }, [recommendationId, items.length]);
 
   return (
     <div className="rec-result">
@@ -80,9 +98,27 @@ export default function ResultStep({
                     ))}
                   </ul>
                 )}
-                <button type="button" className="rec-product" disabled>
-                  제품 추천 보기 (준비 중)
-                </button>
+                {availability[item.ingredient] && (
+                  <>
+                    <button
+                      type="button"
+                      className={`rec-product${openIngredient === item.ingredient ? " open" : ""}`}
+                      aria-expanded={openIngredient === item.ingredient}
+                      onClick={() =>
+                        setOpenIngredient((cur) => (cur === item.ingredient ? null : item.ingredient))
+                      }
+                    >
+                      {openIngredient === item.ingredient ? "제품 추천 접기" : "제품 추천 보기"}
+                    </button>
+                    {openIngredient === item.ingredient && (
+                      <ProductRecommendations
+                        recommendationId={recommendationId}
+                        ingredient={item.ingredient}
+                        nameOf={nameOf}
+                      />
+                    )}
+                  </>
+                )}
               </li>
             );
           })}
