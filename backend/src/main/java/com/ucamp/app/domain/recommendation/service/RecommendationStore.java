@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.service;
 
+import com.ucamp.app.domain.chat.entity.AiChatSession;
 import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.recommendation.dto.RecommendationResponse;
 import com.ucamp.app.domain.recommendation.entity.AiRecommendation;
@@ -65,6 +66,19 @@ public class RecommendationStore {
     @Transactional
     public RecommendationResponse createPending(Long responseId) {
         return mapper.toResponse(newRecommendation(responseId, AiRecommendation.PENDING, null, null), List.of());
+    }
+
+    /**
+     * V4 대화창 트랙 2: 대화 세션으로 PENDING 행 생성 (response_id·session_id = null, chat_session_id = 대화 세션).
+     * V1 큐 워커는 response가 없는 행을 가져가지 않으므로(markProcessing) 대화창 쪽 실행기가 complete·fail로 끝낸다
+     */
+    @Transactional
+    public RecommendationResponse createPendingForChat(AiChatSession chatSession) {
+        AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
+                .chatSession(chatSession)
+                .status(AiRecommendation.PENDING)
+                .build());
+        return mapper.toResponse(rec, List.of());
     }
 
     /** 워커: PENDING → PROCESSING. 이미 다른 워커가 가져갔거나 끝난 작업이면 empty */
