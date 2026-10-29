@@ -213,6 +213,10 @@ button.calendar-day {
   background: #68591c; /* 노란 동그라미 위에서도 보이게 */
 }
 
+.calendar-day.done .calendar-event-dot.all-done {
+  background: #a0a199; /* 노란 배경 위에서도 보이는 회색 */
+}
+
 /* 모달 */
 .calendar-modal {
   max-width: 420px;

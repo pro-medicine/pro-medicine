@@ -318,11 +318,13 @@ export default function IntakeCalendar({
   const canEdit = Boolean(createEvent);
 
   const reloadEvents = async () => {
-    const list = await fetchEvents(
-      `${monthKey}-01`,
-      `${monthKey}-${pad(daysInMonth)}`,
-    );
-    setEvents(list ?? []);
+    try {
+      const list = await fetchEvents(
+        `${monthKey}-01`,
+        `${monthKey}-${pad(daysInMonth)}`,
+      );
+      setEvents(list ?? []);
+    } catch {}
   };
 
   // 완료한 날
