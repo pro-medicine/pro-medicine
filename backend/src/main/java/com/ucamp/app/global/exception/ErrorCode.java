@@ -27,12 +27,6 @@ public enum ErrorCode {
             "이메일 또는 비밀번호가 올바르지 않습니다."
     ),
 
-    INVALID_CSRF_TOKEN(
-            HttpStatus.FORBIDDEN,
-            "U005",
-            "보안 토큰이 유효하지 않습니다."
-    ),
-
     DUPLICATE_USER(
             HttpStatus.CONFLICT,
             "U006",
