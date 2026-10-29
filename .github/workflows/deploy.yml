@@ -91,5 +91,5 @@ jobs:
             cd ~/pro-medicine
             git fetch origin
             git checkout ${{ github.ref_name }}
-            git reset --hard origin/${{ github.ref_name }}
+            git reset --hard ${{ github.sha }}
             bash scripts/deploy.sh
