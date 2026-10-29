@@ -1,0 +1,62 @@
+name: Deploy to EC2
+
+on:
+  push:
+    # 테스트가 끝나면 feat/docker는 지우고 develop만 남기세요.
+    branches: [develop, feat/docker]
+  workflow_dispatch:
+
+# 배포가 동시에 두 개 돌지 않도록 순서대로 실행
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 받기
+        uses: actions/checkout@v4
+
+      # ---------- 백엔드 빌드 ----------
+      - name: Java 21 설치
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            backend/*.gradle*
+            backend/gradle/wrapper/gradle-wrapper.properties
+
+      - name: application.yml 생성 (Git 미포함 파일)
+        env:
+          APPLICATION_YML: ${{ secrets.APPLICATION_YML }}
+        run: |
+          mkdir -p backend/src/main/resources
+          printf '%s\n' "$APPLICATION_YML" > backend/src/main/resources/application.yml
+
+      - name: 백엔드 jar 빌드
+        working-directory: backend
+        run: |
+          chmod +x gradlew
+          ./gradlew clean bootJar -x test --no-daemon
+
+      # ---------- 프론트 빌드 ----------
+      - name: Node 22 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 프론트 빌드
+        working-directory: frontend
+        env:
+          VITE_KAKAO_JAVASCRIPT_KEY: ${{ secrets.VITE_KAKAO_JAVASCRIPT_KEY }}
+        run: |
+          npm ci
+          npm run build
+
+      # ---------- 결과물 정리

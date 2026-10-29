@@ -31,6 +31,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       TZ: Asia/Seoul
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # 무중단 배포 중 백엔드 2개가 잠깐 같이 떠도 메모리가 부족하지 않도록 제한
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
     depends_on:
       mysql:
         condition: service_healthy
@@ -40,6 +42,9 @@ services:
     build: ./frontend
     ports:
       - "80:80"
+    volumes:
+      # 빌드된 화면 파일을 이미지에 넣지 않고 연결만 해서, 배포 때 nginx를 재시작하지 않아도 됨
+      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
 
