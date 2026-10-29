@@ -28,10 +28,6 @@ function msUntil(remindAt, now = new Date()) {
   return kstTodayAt(now, h, m, s) - now.getTime();
 }
 
-// KST 다음 날 자정까지 남은 밀리초 → 날짜가 바뀌면 "오늘" 기준이 바뀌므로 다시 불러온다
-function msUntilKstMidnight(now = new Date()) {
-  return kstTodayAt(now, 24) - now.getTime();
-}
 
 // 남은 시간 문구: "35분 뒤", "2시간 뒤", "2시간 10분 뒤"
 function remainText(remindAt, now) {
@@ -52,7 +48,7 @@ function namesText(names = []) {
 /**
  * props (HomePage에서 전달)
  * - userId: 로그인 사용자 id
- * - refreshKey: 값이 바뀌면 다시 불러옴 (복용 체크 저장 후, 알림 패널을 닫을 때)
+ * - refreshKey: 값이 바뀌면 다시 불러옴 (복용 체크 저장 후, 알림 패널을 닫을 때, KST 자정 — App에서 홈과 함께 갱신)
  * - isSample: 홈이 예시 데이터로 표시 중이면 API를 부르지 않고 예시 카드 표시
  */
 export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
@@ -66,8 +62,6 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
     if (isSample) return undefined;
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     let timer;
-    // 다음 알림이 없어도 KST 자정이 지나면 "오늘" 알림·이번 주 복용률을 새로 불러온다
-    const midnightTimer = setTimeout(() => setReloadKey((k) => k + 1), msUntilKstMidnight() + 1000);
     getIntakeSummary(userId)
       .then((data) => {
         if (ignore) return;
@@ -89,7 +83,6 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
     return () => {
       ignore = true;
       clearTimeout(timer);
-      clearTimeout(midnightTimer);
     };
   }, [userId, refreshKey, reloadKey, isSample]);
 
