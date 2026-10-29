@@ -30,6 +30,7 @@ export default function IntakeCalendar({
   useEffect(() => {
     let ignore = false;
     setError("");
+    setDates([]);
     fetchDates(`${monthKey}-01`, `${monthKey}-${pad(daysInMonth)}`)
       .then((res) => {
         if (!ignore) setDates(res ?? []);
