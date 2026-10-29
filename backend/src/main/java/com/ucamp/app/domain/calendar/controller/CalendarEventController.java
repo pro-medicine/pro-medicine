@@ -2,6 +2,7 @@ package com.ucamp.app.domain.calendar.controller;
 
 import com.ucamp.app.domain.calendar.dto.CalendarEventRequest;
 import com.ucamp.app.domain.calendar.dto.CalendarEventResponse;
+import com.ucamp.app.domain.calendar.dto.CalendarEventStatusRequest;
 import com.ucamp.app.domain.calendar.service.CalendarEventService;
 import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
@@ -49,6 +50,15 @@ public class CalendarEventController {
             @PathVariable Long eventId,
             @Valid @RequestBody CalendarEventRequest request) {
         CalendarEventResponse response = calendarEventService.update(userId, eventId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("/{eventId}/status")
+    public ResponseEntity<ApiResponse<CalendarEventResponse>> changeStatus(
+            @CurrentUserId Long userId,
+            @PathVariable Long eventId,
+            @Valid @RequestBody CalendarEventStatusRequest request) {
+        CalendarEventResponse response = calendarEventService.changeStatus(userId, eventId, request.status());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

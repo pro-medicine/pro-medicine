@@ -50,7 +50,6 @@ public class CalendarEventService {
                 .eventType(request.eventType())
                 .title(request.title().trim())
                 .scheduledAt(request.scheduledAt())
-                .endAt(request.endAt())
                 .notes(request.notes())
                 .status(EventStatus.PLANNED)
                 .build();
@@ -61,7 +60,14 @@ public class CalendarEventService {
     public CalendarEventResponse update(Long userId, Long eventId, CalendarEventRequest request) {
         validateEvent(request);
         CalendarEvent event = findEvent(userId, eventId);
-        event.update(request.eventType(), request.title().trim(), request.scheduledAt(), request.endAt(), request.notes(), event.getStatus());
+        event.update(request.eventType(), request.title().trim(), request.scheduledAt(), request.notes(), event.getStatus());
+        return CalendarEventResponse.from(event);
+    }
+
+    @Transactional
+    public CalendarEventResponse changeStatus(Long userId, Long eventId, EventStatus status) {
+        CalendarEvent event = findEvent(userId, eventId);
+        event.changeStatus(status);
         return CalendarEventResponse.from(event);
     }
 
@@ -85,9 +91,7 @@ public class CalendarEventService {
         if (request.scheduledAt() == null
                 || request.eventType() == null
                 || request.title() == null
-                || request.title().isBlank()
-                || (request.endAt() != null
-                && request.endAt().isBefore(request.scheduledAt()))) {
+                || request.title().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
     }

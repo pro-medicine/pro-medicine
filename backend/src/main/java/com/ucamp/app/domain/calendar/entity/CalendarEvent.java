@@ -70,19 +70,18 @@ public class CalendarEvent {
             EventType eventType,
             String title,
             LocalDateTime scheduledAt,
-            LocalDateTime endAt,
             String notes,
             EventStatus status
     ) {
         this.eventType = eventType;
         this.title = title;
         this.scheduledAt = scheduledAt;
-        this.endAt = endAt;
         this.notes = notes;
         this.status = status;
     }
 
     public void changeStatus(EventStatus status) {
         this.status = status;
+        if (status == EventStatus.COMPLETED) this.endAt = LocalDateTime.now();
     }
 }

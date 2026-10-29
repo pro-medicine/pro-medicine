@@ -27,7 +27,7 @@ DROP TABLE IF EXISTS `catalog_products`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
-DROP TABLE IF EXISTS `calendar_event`;
+DROP TABLE IF EXISTS `calendar_events`;
 DROP TABLE IF EXISTS `users`;
 
 -- ============================================================
@@ -156,7 +156,7 @@ CREATE TABLE `disposal_locations` (
                                       `source_updated_at`   DATETIME   NULL
 );
 
-CREATE TABLE `calendar_event` (
+CREATE TABLE `calendar_events` (
                                   `event_id` BIGINT NOT NULL AUTO_INCREMENT,
                                   `user_id` BIGINT NOT NULL,
                                   `event_type` VARCHAR(30) NOT NULL,
@@ -395,7 +395,7 @@ ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (
 ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
                                                            `user_id`
     );
-ALTER TABLE `calendar_event`
+ALTER TABLE `calendar_events`
     ADD CONSTRAINT `fk_calendar_event_user`
         FOREIGN KEY (`user_id`)
             REFERENCES `users` (`user_id`)

@@ -11,7 +11,6 @@ public record CalendarEventRequest(
         @NotNull EventType eventType,
         @NotBlank @Size(max = 150) String title,
         @NotNull LocalDateTime scheduledAt,
-        LocalDateTime endAt,
         @Size(max = 1000) String notes
         ) {
 }
