@@ -21,16 +21,33 @@ public final class ChatParseValidator {
     private ChatParseValidator() {
     }
 
-    public record Result(ChatParse parse, List<String> errors) {
+    /**
+     * @param parse       검증 결과. 남은 오류가 검색 문장 속 약 이름뿐이면 parse도 채운다 (재요청 뒤 그 단어만 지우고 진행)
+     * @param bannedFound 검색 문장에 들어 있던 약 이름·약 계열 이름
+     */
+    public record Result(ChatParse parse, List<String> errors, List<String> bannedFound) {
         public boolean ok() {
             return errors.isEmpty();
+        }
+
+        /** 오류가 검색 문장 속 약 이름뿐인지 */
+        public boolean onlyBannedTerms() {
+            return parse != null && !bannedFound.isEmpty();
         }
     }
 
     public static Result validate(JsonNode out, Collection<String> drugClasses, Collection<String> conditionCodes) {
+        return validate(out, drugClasses, conditionCodes, List.of());
+    }
+
+    /**
+     * @param bannedTerms search_query에 넣으면 안 되는 말 (약 이름·약 계열 한글 이름, DrugCatalog.searchQueryBannedTerms)
+     */
+    public static Result validate(JsonNode out, Collection<String> drugClasses, Collection<String> conditionCodes,
+                                  Collection<String> bannedTerms) {
         List<String> errors = new ArrayList<>();
         if (out == null || !out.isObject()) {
-            return new Result(null, List.of("응답이 JSON 객체가 아니다"));
+            return new Result(null, List.of("응답이 JSON 객체가 아니다"), List.of());
         }
         String redFlag = out.path("red_flag").isString() ? out.path("red_flag").asString() : null;
         if (redFlag == null || !ChatParseOutputSchema.RED_FLAGS.contains(redFlag)) {
@@ -93,10 +110,34 @@ public final class ChatParseValidator {
             }
         }
         if (!errors.isEmpty()) {
-            return new Result(null, List.copyOf(errors));
+            return new Result(null, List.copyOf(errors), List.of());
         }
-        return new Result(new ChatParse(redFlag, offTopic, needs, clarification, query, List.copyOf(medications),
-                List.copyOf(conditions)), List.of());
+        ChatParse parse = new ChatParse(redFlag, offTopic, needs, clarification, query, List.copyOf(medications),
+                List.copyOf(conditions));
+        List<String> found = bannedIn(query, bannedTerms);
+        List<String> bannedErrors = found.stream()
+                .map(t -> "search_query에 약 이름 '" + t + "'를 넣지 않는다 (약은 medications에만, 증상·대상만 쓴다)").toList();
+        return new Result(parse, bannedErrors, found);
+    }
+
+    /** 검색 문장에 들어 있는 금지어 (공백을 지우고도 비교) */
+    static List<String> bannedIn(String query, Collection<String> terms) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        String compact = query.replaceAll("\\s+", "");
+        return terms.stream().filter(t -> t != null && !t.isBlank())
+                .filter(t -> query.contains(t) || compact.contains(t.replaceAll("\\s+", "")))
+                .distinct().toList();
+    }
+
+    /** 재요청 뒤에도 남은 금지어를 지운다 (그 단어만, 공백 정리) */
+    public static String stripTerms(String query, Collection<String> terms) {
+        String out = query;
+        for (String t : terms) {
+            out = out.replace(t, " ");
+        }
+        return out.replaceAll("\\s+", " ").strip();
     }
 
     private static ChatParse.Clarification clarification(JsonNode node, boolean needs, List<String> errors) {

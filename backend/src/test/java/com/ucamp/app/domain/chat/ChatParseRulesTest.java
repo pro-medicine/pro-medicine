@@ -94,6 +94,39 @@ class ChatParseRulesTest {
     }
 
     @Test
+    void 검색_문장에_약_이름이나_약_계열_이름이_있으면_실패하고_찾은_단어를_돌려준다() {
+        List<String> banned = List.of("와파린", "항응고제", "혈압약");
+        ObjectNode n = valid();
+        n.put("search_query", "와파린을 복용 중이며 피로를 느끼는 사람에게 추천");
+
+        ChatParseValidator.Result r = ChatParseValidator.validate(n, CLASSES, CONDITIONS, banned);
+
+        assertThat(r.ok()).isFalse();
+        assertThat(r.onlyBannedTerms()).isTrue(); // 다른 오류는 없음 → 재요청 뒤 단어만 지우고 진행 가능
+        assertThat(r.bannedFound()).containsExactly("와파린");
+
+        n.put("search_query", "항응고 제를 먹는 사람에게 추천"); // 공백이 끼어도 찾는다
+        assertThat(ChatParseValidator.validate(n, CLASSES, CONDITIONS, List.of("항응고제")).bannedFound())
+                .containsExactly("항응고제");
+        n.put("search_query", "피로가 쌓여 기운이 없는 사람에게 추천");
+        assertThat(ChatParseValidator.validate(n, CLASSES, CONDITIONS, banned).ok()).isTrue();
+    }
+
+    @Test
+    void 남은_약_이름은_그_단어만_지운다() {
+        assertThat(ChatParseValidator.stripTerms("와파린 복용 중 피로가 쌓인 사람에게 추천", List.of("와파린")))
+                .isEqualTo("복용 중 피로가 쌓인 사람에게 추천");
+    }
+
+    @Test
+    void 응급_문구_기절_경련이_멈추지_않음은_걸리고_눈꺼풀_경련은_통과() {
+        assertThat(RedFlagDetector.detect("친구가 기절했어요")).contains(ChatParse.EMERGENCY);
+        assertThat(RedFlagDetector.detect("경련이 멈추지 않아요")).contains(ChatParse.EMERGENCY);
+        assertThat(RedFlagDetector.detect("갑자기 의식을 잃었어요")).contains(ChatParse.EMERGENCY);
+        assertThat(RedFlagDetector.detect("눈꺼풀 경련이 있어요")).isEmpty();
+    }
+
+    @Test
     void 응급_위기_키워드는_공백을_무시하고_위기가_먼저() {
         assertThat(RedFlagDetector.detect("가슴이 너무 아프고 숨이 차요")).contains(ChatParse.EMERGENCY);
         assertThat(RedFlagDetector.detect("숨이 안 쉬어져요")).contains(ChatParse.EMERGENCY);

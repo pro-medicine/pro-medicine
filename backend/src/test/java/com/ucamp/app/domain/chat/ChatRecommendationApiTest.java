@@ -215,6 +215,48 @@ class ChatRecommendationApiTest {
         assertThat(chatSessionRepository.findById(id).orElseThrow().getPregnancy()).isEqualTo("PREGNANT");
     }
 
+    // ---------- 검색 문장 속 약 이름 (chat-v2) ----------
+
+    @Test
+    void 검색_문장에_약_이름이_재요청_뒤에도_남으면_그_단어만_지우고_약은_세션에() throws Exception {
+        User user = members.fullMale(1980);
+        String withDrug = "와파린 복용 중 피로가 쌓인 사람에게 추천";
+        parseSequence(List.of(withDrug, withDrug), List.of(Map.of("name", "와파린", "drug_class", "WARFARIN")));
+
+        JsonNode data = send(user, start(user), "와파린 먹는데 피곤해요");
+
+        assertThat(parseRequests()).extracting(LlmRequest::callTag).containsExactly("CHAT_PARSE", "CHAT_PARSE_REPAIR");
+        assertThat(parseRequests().get(1).messages().get(0).text()).contains("search_query에 약 이름 '와파린'");
+        assertThat(fakeEmbedding.requests()).containsExactly("복용 중 피로가 쌓인 사람에게 추천");
+        assertThat(fakeEmbedding.requests().get(0)).doesNotContain("와파린");
+        AiChatSession s = chatSessionRepository.findById(data.path("chatSessionId").asLong()).orElseThrow();
+        assertThat(s.getExtraMedications()).contains("D-007");
+    }
+
+    @Test
+    void 재요청_응답에_약_이름이_없으면_그_검색_문장을_그대로_쓴다() throws Exception {
+        User user = members.fullMale(1980);
+        parseSequence(List.of("와파린 복용 중 피로가 쌓인 사람에게 추천", "피로가 쌓여 기운이 없는 사람에게 추천"),
+                List.of(Map.of("name", "와파린", "drug_class", "WARFARIN")));
+
+        send(user, start(user), "와파린 먹는데 피곤해요");
+
+        assertThat(parseRequests()).hasSize(2);
+        assertThat(fakeEmbedding.requests()).containsExactly("피로가 쌓여 기운이 없는 사람에게 추천");
+    }
+
+    @Test
+    void 눈꺼풀_경련은_추천을_진행하고_경련이_멈추지_않으면_응급() throws Exception {
+        User user = members.fullMale(1980);
+        parseAs(Map.of());
+        fakeEmbedding.setVector(QUERY, vector(9401));
+
+        assertThat(send(user, start(user), "눈꺼풀 경련이 있어요").path("type").asString()).isIn("RESULT", "PENDING");
+        JsonNode red = send(user, start(user), "경련이 멈추지 않아요");
+        assertThat(red.path("type").asString()).isEqualTo("RED_FLAG");
+        assertThat(send(user, start(user), "친구가 기절했어요").path("type").asString()).isEqualTo("RED_FLAG");
+    }
+
     // ---------- 응급·주제 밖·되묻기 ----------
 
     @Test
@@ -487,6 +529,20 @@ class ChatRecommendationApiTest {
                 return fake.structuredResponse(req, output.apply(req));
             }
             return fallback == null ? fake.render(req, defaultAnswer()) : fake.render(req, fallback);
+        });
+    }
+
+    // 대화 구조화 요청마다 검색 문장을 차례로 돌려준다 (재요청 흐름 확인용)
+    void parseSequence(List<String> queries, List<Map<String, String>> medications) {
+        java.util.concurrent.atomic.AtomicInteger n = new java.util.concurrent.atomic.AtomicInteger();
+        fake.setResponder(req -> {
+            if (req.outputSchema() != null && FakeLlmClient.CHAT_PARSE_SCHEMA.equals(req.outputSchema().name())) {
+                String q = queries.get(Math.min(n.getAndIncrement(), queries.size() - 1));
+                ObjectNode node = (ObjectNode) fake.chatParseOutput(q);
+                node.set("medications", objectMapper.valueToTree(medications));
+                return fake.structuredResponse(req, node);
+            }
+            return fake.render(req, defaultAnswer());
         });
     }
 

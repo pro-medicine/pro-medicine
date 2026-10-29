@@ -33,7 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatParser {
     public static final String PIPELINE_VERSION = "chat-v1";
-    public static final String PROMPT_VERSION = "chat-v1";
+    // chat-v2 (2026-10-29): search_query에 약·약 계열·질환 이름을 넣지 않는다 (서버도 약 이름을 검사해 1회 재요청)
+    public static final String PROMPT_VERSION = "chat-v2";
     public static final String TAG_CHAT_PARSE = "CHAT_PARSE";
     public static final String TAG_CHAT_PARSE_REPAIR = "CHAT_PARSE_REPAIR";
     static final int MAX_TOKENS = 800;
@@ -71,27 +72,42 @@ public class ChatParser {
                 : promptTemplates.render("chat/clarified.txt",
                         Map.of("text", text, "question", clarifiedQuestion, "answer", answer));
 
+        List<String> banned = drugCatalog.searchQueryBannedTerms(drugs);
+
         List<Long> logIds = new ArrayList<>();
         LlmResponse first = call(system, user, schema, TAG_CHAT_PARSE);
         addLogId(logIds, first.callLogId());
-        ChatParseValidator.Result result = ChatParseValidator.validate(first.output(), classes.keySet(), conditionCodes);
+        ChatParseValidator.Result result = ChatParseValidator.validate(first.output(), classes.keySet(), conditionCodes,
+                banned);
         JsonNode raw = first.output();
+        ChatParse validated = result.parse();
         if (!result.ok()) {
             llmCallLogService.markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
             String repairUser = user + "\n\n" + promptTemplates.render("chat/repair.txt",
                     Map.of("errors", PromptTemplates.bulletList(result.errors())));
             LlmResponse repair = call(system, repairUser, schema, TAG_CHAT_PARSE_REPAIR);
             addLogId(logIds, repair.callLogId());
-            result = ChatParseValidator.validate(repair.output(), classes.keySet(), conditionCodes);
+            result = ChatParseValidator.validate(repair.output(), classes.keySet(), conditionCodes, banned);
             raw = repair.output();
-            if (!result.ok()) {
+            validated = result.parse();
+            if (result.onlyBannedTerms()) {
+                // 재요청 뒤에도 검색 문장에 약 이름이 남으면 그 단어만 지우고 진행 (약은 medications로 이미 받았다)
+                log.info("chat search_query banned terms stripped: count={}", result.bannedFound().size());
+                validated = withSearchQuery(validated, ChatParseValidator.stripTerms(validated.searchQuery(),
+                        result.bannedFound()));
+            } else if (!result.ok()) {
                 llmCallLogService.markOutcome(repair.callLogId(), LlmCallLog.PARSE_FAIL);
                 log.warn("chat parse failed after repair: errors={}", result.errors().size());
                 throw new ChatParseException(ChatParseException.VALIDATION_FAIL_AFTER_REPAIR, logIds, null);
             }
         }
-        ChatParse parse = postProcess(result.parse(), text, answer, clarifiedQuestion != null);
+        ChatParse parse = postProcess(validated, text, answer, clarifiedQuestion != null);
         return new Parsed(parse, raw, List.copyOf(logIds), drugs);
+    }
+
+    private static ChatParse withSearchQuery(ChatParse p, String query) {
+        return new ChatParse(p.redFlag(), p.offTopic(), p.needsClarification(), p.clarification(), query,
+                p.medications(), p.conditions());
     }
 
     /** 서버 키워드 응급·위기 + 되묻기 질문 검증. 되묻기 답 이후에는 되묻기를 무시한다 (D5) */

@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * V4 대화창 LLM 구조화·임베딩이 Spring AI 자동 설정 경로로 나가는 모양 확인 (실제 API 대신 WireMock, 비용 없음).
- * 골든 openai/chat-parse-request = OpenAI로 나간 구조화 요청 본문 전체 (프롬프트 chat-v1 + 스키마)
+ * 골든 openai/chat-parse-request = OpenAI로 나간 구조화 요청 본문 전체 (프롬프트 chat-v2 + 스키마)
  */
 @SpringBootTest
 class ChatParseWiringTest {
@@ -91,7 +91,7 @@ class ChatParseWiringTest {
         assertThat(system).contains("ANTICOAGULANT_UNKNOWN: 항응고제 (이름 모름)").contains("WARFARIN: 와파린");
         LlmCallLog log = logRepository.findById(parsed.logIds().get(0)).orElseThrow();
         assertThat(log.getCallTag()).isEqualTo(ChatParser.TAG_CHAT_PARSE);
-        assertThat(log.getPromptVersion()).isEqualTo("chat-v1");
+        assertThat(log.getPromptVersion()).isEqualTo("chat-v2");
     }
 
     @Test

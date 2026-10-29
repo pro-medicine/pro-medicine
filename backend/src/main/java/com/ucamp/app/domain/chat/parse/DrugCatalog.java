@@ -48,6 +48,18 @@ public class DrugCatalog {
         return out;
     }
 
+    /**
+     * 검색 문장(search_query)에 넣으면 안 되는 말: 약 이름 전체 + "이름 모름" 행의 계열 한글 이름 ("항응고제 (이름 모름)" → "항응고제").
+     * 약 정보는 medications로만 넘기고 검색은 증상·대상으로만 한다
+     */
+    public List<String> searchQueryBannedTerms(List<Entry> entries) {
+        return entries.stream()
+                .map(e -> e.name().replace(UNKNOWN_NAME_MARK, "").strip())
+                .filter(n -> n.length() >= 2)
+                .distinct()
+                .toList();
+    }
+
     /** ① 이름 일치 (공백 제거 후 비교) */
     public Optional<Entry> byName(List<Entry> entries, String name) {
         if (name == null || name.isBlank()) {
