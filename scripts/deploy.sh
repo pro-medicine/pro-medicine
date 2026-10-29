@@ -14,6 +14,14 @@ WAIT_SECONDS=300
 
 cd "$APP_DIR"
 
+
+echo "▶ 0. frontend/dist 폴더 준비 (nginx 연결 전에 배포 사용자 권한으로)"
+mkdir -p frontend/dist
+if [ ! -w frontend/dist ]; then
+  echo "   root 소유 폴더라 권한을 복구합니다"
+  sudo chown -R "$(id -u):$(id -g)" frontend/dist
+fi
+
 echo "▶ 1. 백엔드 jar 배치"
 rm -rf backend/build/libs
 mkdir -p backend/build/libs
