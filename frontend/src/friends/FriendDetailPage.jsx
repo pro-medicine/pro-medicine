@@ -216,29 +216,39 @@ export default function FriendDetailPage({
         ? "pending"
         : "";
 
+  // 버튼에 보이는 짧은 문구 (자세한 설명은 title·aria-label의 guardianLabel)
+  const guardianText = pendingIncoming
+    ? "안부지킴이 수락"
+    : incoming?.active
+      ? "나를 지키는 중"
+      : !guardian
+        ? "안부지킴이 신청"
+        : guardian.active
+          ? "안부지킴이 설정"
+          : "신청 대기 중";
+
   const guardianButton = (
     <button
       type="button"
-      className={`round-button guardian-button ${stateClass}`}
+      className={`btn btn-outline guardian-button ${stateClass}`}
       aria-label={guardianLabel}
       title={guardianLabel}
       disabled={guardianBusy || blocked}
       onClick={handleGuardianClick}
     >
-      <Icon name="shield" size={20} />
+      <Icon name="shield" size={17} />
+      {guardianText}
     </button>
   );
 
   const deleteButton = (
     <button
       type="button"
-      className="round-button"
-      aria-label="친구 삭제"
-      title="친구 삭제"
+      className="btn-text danger friend-delete"
       disabled={deleting}
       onClick={handleDeleteFriend}
     >
-      <Icon name="trash" size={20} />
+      친구 삭제
     </button>
   );
 
@@ -277,8 +287,8 @@ export default function FriendDetailPage({
         onNotifications={onNotifications}
         topBarActions={
           <>
-            {deleteButton}
             {guardianButton}
+            {deleteButton}
           </>
         }
       />

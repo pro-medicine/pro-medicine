@@ -100,7 +100,7 @@ export default function FollowRequestModal({
       >
         <div className="modal-header">
           <div>
-            <span className="section-label">FRIEND REQUESTS</span>
+            <span className="section-label">친구 신청</span>
             <h2>친구 신청</h2>
           </div>
           <button type="button" aria-label="닫기" onClick={onClose}>

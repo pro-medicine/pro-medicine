@@ -339,7 +339,7 @@ export function SupplementCard({ supplement }) {
  * 화면 상단 헤더 (제목, 뒤로 가기, 알림 버튼)
  * @param {{ title: string, subtitle?: string, back?: () => void, onNotifications: () => void }} props
  */
-export function TopBar({ title, subtitle, back, onNotifications, actions }) {
+export function TopBar({ title, subtitle, description, back, onNotifications, actions }) {
   const hasUnread = useContext(UnreadNotificationContext); // 안 읽은 알림이 있을 때만 빨간 점
   return (
     <header className="app-header">
@@ -356,6 +356,7 @@ export function TopBar({ title, subtitle, back, onNotifications, actions }) {
         <div>
           {subtitle && <span>{subtitle}</span>}
           <h1>{title}</h1>
+          {description && <p className="header-desc">{description}</p>}
         </div>
       </div>
       <div className="header-actions">

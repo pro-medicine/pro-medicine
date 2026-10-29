@@ -99,119 +99,105 @@ export default function FriendsPage({ onNotifications }) {
     );
   }
   return (
-    <div className="screen">
-      <TopBar
-        title="친구 영양정보"
-        subtitle="함께 챙기는 건강 습관"
-        onNotifications={onNotifications}
-      />
-
-      <div className="search-box">
-        <Icon name="search" size={19} />
-        <input
-          aria-label="친구 검색"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="친구 이름을 검색해보세요"
-          value={query}
+    <div className="screen friends-page">
+      {/* 머리: 제목(왼쪽) + 검색·친구 신청·친구 추가(오른쪽) */}
+      <div className="friends-head">
+        <TopBar
+          title="친구 영양정보"
+          subtitle="함께 챙기는 건강 습관"
+          description="서로의 건강 루틴을 보며 꾸준한 습관을 만들어요."
+          onNotifications={onNotifications}
         />
+        <div className="friends-toolbar">
+          <div className="search-box">
+            <Icon name="search" size={17} />
+            <input
+              aria-label="친구 검색"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="친구 이름을 검색해보세요"
+              value={query}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={openModal(setRequestsOpen)}
+          >
+            친구 신청
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openModal(setAddOpen)}
+          >
+            <Icon name="plus" size={16} />
+            친구 추가
+          </button>
+        </div>
       </div>
 
-      <section className="friends-highlight">
-        <div>
-          <span className="section-label">TOGETHER</span>
-          <h2>친구 {friends.length}명이 함께하고 있어요</h2>
-          <p>서로의 건강 루틴을 보며 꾸준한 습관을 만들어요.</p>
+      {/* 친구 목록 표: 친구 · 관계 · 연속 복용 · 안부지킴이 */}
+      <section className="friend-table" aria-label="친구 목록">
+        <div className="friend-table-head" aria-hidden="true">
+          <span>친구 {friends.length}명</span>
+          <span>관계</span>
+          <span>연속 복용</span>
+          <span>안부지킴이</span>
+          <span />
         </div>
-        <div className="stacked-avatars">
-          {friends.slice(0, 3).map((friend) => (
-            <span className={`avatar ${friend.color}`} key={friend.id}>
-              {friend.initial}
-            </span>
+
+        {loading && <p className="friend-table-state">친구 목록을 불러오는 중...</p>}
+        {!loading && error && <p className="friend-table-state">{error}</p>}
+        {!loading && !error && filtered.length === 0 && (
+          <p className="friend-table-state">
+            {friends.length === 0
+              ? "등록된 친구가 없습니다."
+              : "검색 결과가 없습니다."}
+          </p>
+        )}
+
+        {!loading &&
+          !error &&
+          filtered.map((friend) => (
+            <button
+              type="button"
+              className="friend-row"
+              key={friend.id}
+              onClick={() => setSelectedFriend(friend)}
+            >
+              <span className="friend-name">
+                <span className="avatar">{friend.initial}</span>
+                <strong>{friend.name}</strong>
+              </span>
+              <span className="friend-relation">
+                <span className={`chip ${friend.mutual ? "green" : ""}`}>
+                  {friend.relation}
+                </span>
+              </span>
+              <span className="friend-streak">
+                {friend.streak === 0 ? (
+                  <span className="friend-encourage">오늘 응원이 필요해요</span>
+                ) : (
+                  <b>{friend.streak}일 연속</b>
+                )}
+              </span>
+              <span className="friend-guardian">
+                {watchingIds.has(friend.userId) ? (
+                  <>
+                    <Icon name="shield" size={15} />
+                    안부지킴이
+                  </>
+                ) : (
+                  <span className="friend-none">–</span>
+                )}
+              </span>
+              <span className="friend-chevron" aria-hidden="true">
+                <Icon name="chevron" size={18} />
+              </span>
+            </button>
           ))}
-          {friends.length > 3 && (
-            <span className="avatar more">+{friends.length - 3}</span>
-          )}
-        </div>
       </section>
 
-      <section className="section-block friends-section">
-        <div className="section-title-row">
-          <div>
-            <span className="section-label">MY FRIENDS</span>
-            <h2>친구들의 오늘</h2>
-          </div>
-          <div className="friend-header-actions">
-            <button
-              className="add-friend-button"
-              onClick={openModal(setRequestsOpen)}
-            >
-              친구 신청
-            </button>
-            <button
-              className="add-friend-button"
-              onClick={openModal(setAddOpen)}
-            >
-              <Icon name="plus" size={16} />
-              친구 추가
-            </button>
-          </div>
-        </div>
-
-        <div className="friend-list">
-          {loading && <p>친구 목록을 불러오는 중...</p>}
-          {!loading && error && <p>{error}</p>}
-          {!loading && !error && filtered.length === 0 && (
-            <p>
-              {friends.length === 0
-                ? "등록된 친구가 없습니다."
-                : "검색 결과가 없습니다."}
-            </p>
-          )}
-
-          {!loading &&
-            !error &&
-            filtered.map((friend) => (
-              <button
-                className="friend-row"
-                key={friend.id}
-                onClick={() => setSelectedFriend(friend)}
-              >
-                <span className={`avatar large ${friend.color}`}>
-                  {friend.initial}
-                </span>
-                <span className="friend-copy">
-                  <span>
-                    <strong>{friend.name}</strong>
-                    {watchingIds.has(friend.userId) && (
-                      <span
-                        className="guardian-badge"
-                        title="안부지킴이"
-                        aria-label="안부지킴이"
-                      >
-                        <Icon name="shield" size={14} />
-                      </span>
-                    )}
-                    <small>{friend.relation}</small>
-                  </span>
-                </span>
-                <span className="friend-meta">
-                  {friend.streak === 0 ? (
-                    <span className="friend-encourage">
-                      친구를 응원해보세요 <Icon name="chevron" size={18} />
-                    </span>
-                  ) : (
-                    <span className="friend-streak">
-                      <span>
-                        <b>{friend.streak}</b>일째
-                      </span>
-                      <Icon name="chevron" size={18} />
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))}
-        </div>
-      </section>
       {requestsOpen && (
         <FollowRequestModal
           userId={userId}

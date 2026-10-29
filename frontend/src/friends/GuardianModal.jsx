@@ -28,7 +28,7 @@ export default function GuardianDaysModal({
       >
         <div className="modal-header">
           <div>
-            <span className="section-label">GUARDIAN</span>
+            <span className="section-label">안부지킴이</span>
             <h2>안부지킴이 설정</h2>
           </div>
           <button type="button" aria-label="닫기" onClick={onClose}>
@@ -67,7 +67,7 @@ export default function GuardianDaysModal({
             disabled={busy}
             onClick={onCancelGuardian}
           >
-            안부지킴이 취소
+            안부지킴이 해지
           </button>
           <button
             type="button"
@@ -75,7 +75,7 @@ export default function GuardianDaysModal({
             disabled={busy || days === currentDays}
             onClick={() => onChange(days)}
           >
-            변경
+            저장
           </button>
         </div>
       </div>
