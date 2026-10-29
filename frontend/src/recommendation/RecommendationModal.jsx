@@ -16,6 +16,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const POLL_INTERVAL_MS = 1000; // queue 모드 조회 간격
 const MAX_POLLS = 90; // 1초 × 90번 ≈ 90초가 지나도 끝나지 않으면 에러 화면
+// 단계별 모달 제목 (위 작은 초록 글씨는 항상 "맞춤 영양 추천")
+const STEP_TITLE = {
+  consent: "건강정보 이용 동의",
+  survey: "생활 습관 체크",
+  result: "추천 결과",
+};
 const SURVEY_LOADING_TEXT = "설문을 불러오고 있어요";
 const AI_LOADING_TEXT = "AI가 추천을 만들고 있어요";
 
@@ -276,8 +282,8 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
       >
         <div className="rec-header">
           <div>
-            <span className="rec-eyebrow">AI RECOMMENDATION</span>
-            <h2>맞춤 영양 추천</h2>
+            <span className="rec-eyebrow">맞춤 영양 추천</span>
+            <h2>{STEP_TITLE[step] ?? "맞춤 영양 추천"}</h2>
           </div>
           <button
             type="button"
