@@ -33,4 +33,17 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
     @Modifying
     @Query("UPDATE UserProduct up SET up.isActive = false WHERE up.userProductId = :userProductId")
     void deactivate(@Param("userProductId") Long userProductId);
+
+    @Query("""
+        select up
+        from UserProduct up
+        left join fetch up.catalogProduct
+        where up.user.id = :userId
+          and up.isActive = true
+          and up.productKind = 'SUPPLEMENT'
+        order by up.createdAt asc, up.userProductId asc
+        """)
+    List<UserProduct> findActiveSupplementsByUserId(
+            @Param("userId") Long userId
+    );
 }

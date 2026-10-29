@@ -14,7 +14,16 @@ public record FriendDetailResponse(
         int supplementCount,
         List<MySupplementResponse> supplements
 ) {
-    public static FriendDetailResponse of(User friend, IntakeStatsResponse stats, List<MySupplementResponse> supplements) {
-        return new FriendDetailResponse(friend.getId(), friend.getNickname(), stats.streakDays(), stats.monthlyRate(), (int) stats.activeProductCount(), supplements);
+    public static FriendDetailResponse of(
+            User friend,
+            IntakeStatsResponse stats,
+            List<MySupplementResponse> supplements) {
+        return new FriendDetailResponse(
+                friend.getId(),
+                friend.getNickname(),
+                stats.streakDays(),
+                stats.monthlyRate(),
+                supplements.size(),
+                supplements);
     }
 }

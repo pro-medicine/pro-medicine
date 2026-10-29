@@ -36,24 +36,32 @@ public class FriendService {
     private final MySupplementService mySupplementService;
 
     public List<FriendResponse> getFriends(Long userId) {
-        List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
-        Map<Long, User> users = userRepository
-                .findAllById(follows.stream()
-                        .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        // 나를 팔로우하는 사람 -> 서로 팔로우 하는지 판단하기 위해서
+        List<Follow> follows = followRepository
+                .findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        List<Long> friendIds = follows.stream().map(Follow::getFollowingId).toList();
+
+        Map<Long, User> users = userRepository.findAllById(friendIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
         Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
                 .map(Follow::getFollowerId)
                 .collect(Collectors.toSet());
+        Map<Long, Integer> streaks = intakeService.getStreakDays(users.keySet());   // 일괄 계산
+
         return follows.stream()
-                .filter(follow -> users.containsKey(follow.getFollowingId()))
-                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()), streakOf(follow.getFollowingId()))).toList();
+                .filter(f -> users.containsKey(f.getFollowingId()))
+                .map(f -> FriendResponse.of(
+                        f.getFollowId(),
+                        users.get(f.getFollowingId()),
+                        followsMe.contains(f.getFollowingId()),
+                        streaks.getOrDefault(f.getFollowingId(), 0)))
+                .toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
         getAcceptedFollow(userId, friendUserId);
         User friend = getUser(friendUserId);
         IntakeStatsResponse stats = intakeService.getStats(friendUserId);
-        List<MySupplementResponse> supplements = mySupplementService.getMySupplements(friendUserId);
+        List<MySupplementResponse> supplements = mySupplementService.getMyActiveSupplements(friendUserId);
         return FriendDetailResponse.of(friend, stats, supplements);
     }
 
@@ -83,13 +91,5 @@ public class FriendService {
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-    }
-
-    private int streakOf(Long friendUserId) {
-        try {
-            return intakeService.getStats(friendUserId).streakDays();
-        } catch (Exception e) {
-            return 0;
-        }
     }
 }
