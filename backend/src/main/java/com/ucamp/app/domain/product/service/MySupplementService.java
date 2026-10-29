@@ -85,6 +85,30 @@ public class MySupplementService {
         return result;
     }
 
+    public List<MySupplementResponse> getMyActiveSupplements(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        List<UserProduct> products = userProductRepository.findActiveSupplementsByUserId(userId);
+        if (products.isEmpty()) return List.of();
+        List<Long> productIds = new ArrayList<>();
+        for (UserProduct product: products) {
+            productIds.add(product.getUserProductId());
+        }
+        Map<Long, List<MySupplementResponse.ScheduleResponse>> schedules = new HashMap<>();
+        for (IntakeSchedule schedule: supplementScheduleRepository.findEnabledByUserProductIds(productIds)) {
+            Long productId = schedule.getUserProduct().getUserProductId();
+            List<MySupplementResponse.ScheduleResponse> list = schedules.computeIfAbsent(productId, key -> new ArrayList<>());
+            list.add(MySupplementResponse.ScheduleResponse.from(schedule));
+        }
+        List<MySupplementResponse> result = new ArrayList<>();
+        for (UserProduct product: products) {
+            List<MySupplementResponse.ScheduleResponse> list = schedules.getOrDefault(product.getUserProductId(), List.of());
+            result.add(MySupplementResponse.of(product, list));
+        }
+        return result;
+    }
+
     // 등록 흐름: 값 검사 → 유저·제품 확인 → 중복 확인 → 영양제 저장 → 복용 일정 저장
     @Transactional
     public MySupplementResponse addMySupplement(Long userId, MySupplementAddRequest request) {

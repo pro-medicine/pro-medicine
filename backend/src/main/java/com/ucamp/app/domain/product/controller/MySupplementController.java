@@ -52,7 +52,7 @@ public class MySupplementController {
 
     // 영양제 삭제: DELETE /api/v1/users/{userId}/products/{userProductId}
     @DeleteMapping("/{userProductId}")
-    public ResponseEntity<ApiResponse<Void>> removeMySupplement(@PathVariable Long userId,
+    public ResponseEntity<Void> removeMySupplement(@PathVariable Long userId,
                                                                 @PathVariable Long userProductId) {
         mySupplementService.removeMySupplement(userId, userProductId);
         return ResponseEntity.noContent().build();

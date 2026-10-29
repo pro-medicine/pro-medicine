@@ -16,8 +16,8 @@ import { useEffect, useRef, useState } from "react";
 export default function HomePage({
   userId = 1,
   onOpenNotifications,
-  onSurvey, refreshKey,
-
+  onSurvey,
+  refreshKey,
 }) {
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
@@ -89,10 +89,10 @@ export default function HomePage({
     <div className="home-page">
       <div className="home-inner">
         <HomeHeader
-            userName={home.userName}
-            today={home.today}
-            hasUnread={home.hasUnreadNotifications}
-            onBellClick={onOpenNotifications}
+          userName={home.userName}
+          today={home.today}
+          hasUnread={home.hasUnreadNotifications}
+          onBellClick={onOpenNotifications}
         />
 
         {isSample && (
@@ -109,7 +109,6 @@ export default function HomePage({
           onToggle={handleToggle}
         />
         {error && <p className="home-error">{error}</p>}
-
         {/* TODO: 추천 설문 모달 만들면 연결 */}
         <RecommendBanner onClick={onSurvey} />
       </div>
