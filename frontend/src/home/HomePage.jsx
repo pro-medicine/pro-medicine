@@ -102,24 +102,30 @@ export default function HomePage({
           <p className="home-sample-notice">예시 데이터로 표시 중입니다</p>
         )}
 
-        <PromiseCard percent={percent} remain={total - done} total={total} />
+        {/* 넓은 화면: 왼쪽(오늘 먹을 영양제·추천 배너) + 오른쪽(오늘의 약속·복용 알림) */}
+        <div className="home-columns">
+          <div className="home-main">
+            <TodaySupplements
+              supplements={supplements}
+              done={done}
+              total={total}
+              pendingIds={pendingIds}
+              onToggle={handleToggle}
+            />
+            {error && <p className="home-error">{error}</p>}
+            {/* TODO: 추천 설문 모달 만들면 연결 */}
+            <RecommendBanner onClick={onSurvey} />
+          </div>
 
-        <IntakeAlarmCard
-          userId={userId}
-          refreshKey={`${refreshKey}-${intakeSavedKey}`}
-          isSample={isSample}
-        />
-
-        <TodaySupplements
-          supplements={supplements}
-          done={done}
-          total={total}
-          pendingIds={pendingIds}
-          onToggle={handleToggle}
-        />
-        {error && <p className="home-error">{error}</p>}
-        {/* TODO: 추천 설문 모달 만들면 연결 */}
-        <RecommendBanner onClick={onSurvey} />
+          <aside className="home-side">
+            <PromiseCard percent={percent} remain={total - done} total={total} />
+            <IntakeAlarmCard
+              userId={userId}
+              refreshKey={`${refreshKey}-${intakeSavedKey}`}
+              isSample={isSample}
+            />
+          </aside>
+        </div>
       </div>
     </div>
   );

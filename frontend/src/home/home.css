@@ -2,7 +2,7 @@
    - 모든 선택자는 .home- 접두사로만 작성 → 다른 화면에 영향 X
    - 색상은 공통 디자인 변수(index.css)를 사용하고, 기존 --h-* 이름은 유지해서 연결
    - 넓은 화면: 왼쪽(오늘 먹을 영양제·추천 배너) + 오른쪽(오늘의 약속·복용 알림)
-     HomePage.jsx의 순서는 그대로 두고 grid-area로 자리만 정한다 */
+     좁은 화면은 한 줄로 바꾸고 order로 순서를 정한다 */
 
 .home-page {
   --h-bg: var(--white);
@@ -33,29 +33,21 @@
 .home-page ul { padding: 0; list-style: none; }
 
 .home-inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 352px;
-  grid-template-areas:
-    "header header"
-    "notice notice"
-    "today  promise"
-    "today  side"
-    "error  side"
-    "banner side";
-  grid-template-rows: auto auto auto 1fr auto auto;
-  column-gap: 24px;
   max-width: calc(var(--content-width) + 64px);
   margin: 0 auto;
   padding: 56px 32px 40px;
 }
-.home-header { grid-area: header; }
-.home-sample-notice { grid-area: notice; }
-.home-today { grid-area: today; align-self: start; }
-.home-error { grid-area: error; }
-.home-banner { grid-area: banner; }
-.home-promise { grid-area: promise; align-self: start; }
-/* 오른쪽 아래 칸: 복용 알림 카드(#77) 등 오른쪽에 쌓을 요소 */
-.home-alarm { grid-area: side; align-self: start; }
+
+/* 왼쪽 본문 + 오른쪽 352px */
+.home-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 352px;
+  gap: 24px;
+  align-items: start;
+}
+.home-main,
+.home-side { display: flex; flex-direction: column; min-width: 0; }
+.home-side { gap: 16px; }
 
 .home-loading { display: grid; place-items: center; color: var(--h-sub); }
 .home-sample-notice { margin-bottom: 16px !important; font-size: 13px; color: var(--faint); }
@@ -107,16 +99,6 @@
 .home-banner-sub { font-size: 14px; color: var(--h-sub); }
 .home-banner-button { flex-shrink: 0; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line); font-size: 14px; font-weight: 700; }
 
-/* ===== 오른쪽 칸 복용 알림 카드(#77 IntakeAlarmCard) =====
-   좁은 오른쪽 칸에 맞게 두 블록을 위아래로 쌓는다. (#77 merge 후 적용됨) */
-.home-section-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
-.home-eyebrow { display: none; }
-.home-section-title { font-size: 18px; font-weight: 700; letter-spacing: -0.03em; }
-.home-inner .home-alarm { margin-top: 24px; }
-.home-inner .home-alarm-card { grid-template-columns: 1fr; border-radius: var(--radius-card); }
-.home-inner .home-alarm-block { padding: 22px 26px; }
-.home-inner .home-alarm-block + .home-alarm-block { border-left: 0; border-top: 1px solid var(--line); }
-
 /* ===== 영양제 병 일러스트 (현재 홈에서는 사용하지 않음, 다른 화면 재사용용으로 유지) ===== */
 .home-bottle { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
 .home-bottle-cap { width: 60%; height: 22%; border-radius: 3px 3px 0 0; background: repeating-linear-gradient(90deg, #d9d9d9 0 2px, #f4f4f4 2px 4px); }
@@ -127,14 +109,15 @@
 
 /* ===== 반응형: 좁은 화면은 한 줄로 (약속 → 영양제 → 배너 → 알림) ===== */
 @media (max-width: 900px) {
-  .home-inner {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "header" "notice" "promise" "today" "error" "banner" "side";
-    grid-template-rows: none;
-    padding: 28px 20px 40px;
-  }
-  .home-promise { margin-bottom: 16px; }
-  .home-alarm { margin-top: 24px; }
+  .home-inner { padding: 28px 20px 40px; }
+  /* 한 줄: 오늘의 약속 → 오늘 먹을 영양제 → 추천 배너 → 복용 알림 */
+  .home-columns { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+  .home-main, .home-side { display: contents; }
+  .home-promise { order: 1; }
+  .home-today { order: 2; }
+  .home-error { order: 3; }
+  .home-page .home-banner { order: 4; margin-top: 0; }
+  .home-page .home-alarm { order: 5; margin-top: 0; }
 }
 
 @media (max-width: 760px) {
