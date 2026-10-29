@@ -123,6 +123,15 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
     }
   };
 
+  // Esc 키로 닫기 (패널 바깥을 눌러도 닫힘)
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   // 모두 읽음
   const handleReadAll = async () => {
     try {
@@ -144,11 +153,18 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="notification-header">
-          <div>
-            <span className="section-label">NOTIFICATIONS</span>
-            <h2>새로운 알림</h2>
-          </div>
-          <button aria-label="닫기" onClick={onClose}>×</button>
+          <h2>
+            알림
+            {unreadCount > 0 && <em aria-label={`안 읽은 알림 ${unreadCount}개`}>{unreadCount}</em>}
+          </h2>
+          <button
+            type="button"
+            className="read-all"
+            onClick={handleReadAll}
+            disabled={loading || (unreadCount === 0 && !hasUnreadItem)}
+          >
+            모두 읽음
+          </button>
         </div>
 
         <div className="notification-tabs" role="tablist">
@@ -161,7 +177,6 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
               onClick={() => setTab(t.id)}
             >
               {t.label}
-              {t.id === "ALL" && unreadCount > 0 && <span>{unreadCount}</span>}
             </button>
           ))}
         </div>
@@ -198,23 +213,16 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
                     <Icon name={view.icon} size={19} />
                   </span>
                   <div>
+                    <h3>{item.title}</h3>
                     <span className="notification-meta">
                       {view.label} · {timeAgo(item.createdAt)}
                     </span>
-                    <h3>{item.title}</h3>
                   </div>
                   {unread && <i />}
                 </article>
               );
             })}
         </div>
-        <button
-          className="read-all"
-          onClick={handleReadAll}
-          disabled={loading || (unreadCount === 0 && !hasUnreadItem)}
-        >
-          모두 읽음으로 표시
-        </button>
       </aside>
     </div>
   );
