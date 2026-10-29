@@ -12,4 +12,9 @@ public interface CatalogProductRepository extends JpaRepository<CatalogProduct, 
 
     // 검색어가 없을 때 전체 목록 (제품명 가나다순)
     List<CatalogProduct> findAllByOrderByProductNameAsc();
+
+    //[등록 폼] 위 검색과 조건은 같고 20개만 (식약처 데이터가 들어오면 "비타민"만 쳐도 수백개)
+    List<CatalogProduct> findTop20ByProductNameContainingOrManufacturerContainingOrderByProductNameAsc(
+            String productName, String manufacturer);
+
 }

@@ -10,5 +10,5 @@ public class TodayIntakeResponse {
     private String timing;  // "아침 식후"
     private String name;
     private String desc;
-    private Boolean taken;
+    private Boolean taken; // 약 하나를 섭취 했는지 T/F
 }

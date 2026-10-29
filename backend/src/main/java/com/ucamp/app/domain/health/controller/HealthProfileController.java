@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// TODO: 로그인 연동 후 /api/v1/users/me/health-profile 로 변경
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users/{userId}/health-profile")
