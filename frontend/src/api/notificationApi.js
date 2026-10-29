@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { getAccessToken } from "../auth/authToken";
 
 // 알림 API (/api/v1/notifications)
 // 사용자 식별: 로그인 연동 전까지 X-User-Id 헤더 사용 (백엔드 NotificationController와 동일)
@@ -51,17 +52,101 @@ export function markAllNotificationsRead(userId) {
  * - 연결이 끊기면 EventSource가 자동으로 다시 연결한다.
  * @returns 구독 해제 함수 (컴포넌트가 사라질 때 호출)
  */
+// JWT 인증을 사용하는 실시간 알림 SSE 구독
 export function subscribeNotifications(userId, onNotification) {
-    const baseUrl = import.meta.env.VITE_API_URL || "";   // client.js와 같은 기준 주소 (기본: Vite 프록시)
-    const source = new EventSource(
-        `${baseUrl}/api/v1/notifications/subscribe?userId=${encodeURIComponent(userId)}`,
-    );
-    // 재연결에 성공하면 끊겨 있는 동안 놓친 알림이 있을 수 있으니 한 번 다시 조회하게 한다. (첫 연결은 제외)
-    let opened = false;
-    source.onopen = () => {
-        if (opened) onNotification();
-        opened = true;
+    if (userId == null) return () => {};
+
+    const baseUrl = import.meta.env.VITE_API_URL || "";
+    const url = `${baseUrl}/api/v1/notifications/subscribe`;
+
+    let stopped = false;
+    let controller = null;
+    let retryTimer = null;
+    let connectedBefore = false;
+
+    const connect = async () => {
+        if (stopped) return;
+
+        const token = getAccessToken();
+
+        if (!token) return;
+
+        controller = new AbortController();
+
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "text/event-stream",
+                },
+                credentials: "omit",
+                cache: "no-store",
+                signal: controller.signal,
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                console.warn("SSE 인증이 만료되었거나 권한이 없습니다.");
+                return;
+            }
+
+            if (!response.ok || !response.body) {
+                throw new Error(`SSE 연결 실패: ${response.status}`);
+            }
+
+            // 재연결 시 놓친 알림 다시 조회
+            if (connectedBefore) {
+                onNotification();
+            }
+            connectedBefore = true;
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (!stopped) {
+                const { value, done } = await reader.read();
+
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                buffer = buffer.replace(/\r\n/g, "\n");
+
+                let endIndex;
+
+                while ((endIndex = buffer.indexOf("\n\n")) !== -1) {
+                    const eventText = buffer.slice(0, endIndex);
+                    buffer = buffer.slice(endIndex + 2);
+
+                    const eventLine = eventText
+                        .split("\n")
+                        .find((line) => line.startsWith("event:"));
+
+                    const eventType = eventLine?.slice(6).trim();
+
+                    if (eventType === "notification" && !stopped) {
+                        onNotification();
+                    }
+                }
+            }
+        } catch (error) {
+            if (!stopped && error.name !== "AbortError") {
+                console.error("SSE 연결 오류:", error);
+            }
+        }
+
+        // 네트워크 단절이나 서버 연결 종료 시 재연결
+        if (!stopped) {
+            retryTimer = setTimeout(connect, 3000);
+        }
     };
-    source.addEventListener("notification", onNotification);
-    return () => source.close();
+
+    void connect();
+
+    // 로그아웃 또는 컴포넌트 종료 시 연결 해제
+    return () => {
+        stopped = true;
+        clearTimeout(retryTimer);
+        controller?.abort();
+    };
 }

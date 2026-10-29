@@ -82,19 +82,6 @@ export default function App() {
             ignore = true;
         };
     }, [userId, homeRefreshKey]);
-  
-//   // 실시간 알림(SSE)
-//     // 새 알림이 발생하면 홈과 알림 개수를 다시 조회
-//     useEffect(() => {
-//         if (userId == null) {
-//             return;
-//         }
-
-//         return subscribeNotifications(userId, () => {
-//             setHomeRefreshKey((key) => key + 1);
-//         });
-//     }, [userId]);
-
 
     // 로그인·회원가입 완료
     const handleAuthComplete = (account) => {
@@ -147,10 +134,16 @@ export default function App() {
   );
 
   // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
-  useEffect(
-    () => subscribeNotifications(userId, () => setHomeRefreshKey((key) => key + 1)),
-    [userId],
-  );
+    // 로그인한 사용자만 실시간 알림 구독
+    useEffect(() => {
+        if (userId == null) {
+            return;
+        }
+
+        return subscribeNotifications(userId, () => {
+            setHomeRefreshKey((key) => key + 1);
+        });
+    }, [userId]);
 
   // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
 

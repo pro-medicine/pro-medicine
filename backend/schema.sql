@@ -359,6 +359,9 @@ ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
                                                            `user_id`
     );
 
+ALTER TABLE `users`
+    MODIFY COLUMN `user_id` BIGINT NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
                                                                            `user_product_id`
     );
