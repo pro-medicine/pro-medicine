@@ -201,7 +201,13 @@ export default function App() {
 
             case "my":
                 return (
-                    <MyPage onNotifications={openNotifications} />
+                    <MyPage
+                        userId={userId}
+                        onUserUpdated={(updatedUser) =>
+                            setUser((prev) => ({ ...prev, ...updatedUser }))
+                        }
+                        onNotifications={openNotifications}
+                    />
                 );
 
             case "disposal":

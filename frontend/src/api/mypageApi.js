@@ -1,7 +1,7 @@
 import { api } from "./client";
 
 // 로그인 기능이 생기기 전까지 사용하는 테스트 유저
-export const MY_USER_ID = 1;
+// export const MY_USER_ID = 1;
 
 export function fetchUser(userId) {
   return api.get(`/api/v1/users/${userId}`);

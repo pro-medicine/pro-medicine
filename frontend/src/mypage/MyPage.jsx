@@ -5,7 +5,6 @@ import {
   fetchMySupplements,
   fetchNutrition,
   fetchUser,
-  MY_USER_ID,
   removeMySupplement,
 } from "../api/mypageApi";
 import ProfileEditPage from "./ProfileEditPage";
@@ -52,10 +51,12 @@ function toSupplementCard(item, index) {
 }
 
 export default function ProfileScreen({
-  friend,
-  onBack,
-  onNotifications,
-  topBarActions,
+    userId,
+    onUserUpdated,
+    friend,
+    onBack,
+    onNotifications,
+    topBarActions,
 }) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
@@ -73,12 +74,12 @@ export default function ProfileScreen({
   const [removingId, setRemovingId] = useState(null);
 
   useEffect(() => {
-    if (!isMine) return;
+    if (!isMine || userId == null) return;
     // 다시 불러오기(refreshKey 변경)로 이 effect가 다시 실행되면 true가 된다
     // → 늦게 도착한 이전 요청의 응답은 화면에 반영하지 않는다
     let ignore = false;
 
-    fetchUser(MY_USER_ID)
+    fetchUser(userId)
       .then((loadedUser) => {
         if (ignore) return;
         setUser(loadedUser);
@@ -87,7 +88,7 @@ export default function ProfileScreen({
         if (ignore) return;
         setUser(null);
       });
-    fetchIntakeStats(MY_USER_ID)
+    fetchIntakeStats(userId)
       .then((loadedStats) => {
         if (ignore) return;
         setStats(loadedStats);
@@ -96,7 +97,7 @@ export default function ProfileScreen({
         if (ignore) return;
         setStats(null);
       });
-    fetchMySupplements(MY_USER_ID)
+    fetchMySupplements(userId)
       .then((list) => {
         if (ignore) return;
         setMySupplementList(list.map(toSupplementCard));
@@ -111,14 +112,14 @@ export default function ProfileScreen({
     return () => {
       ignore = true;
     };
-  }, [isMine, refreshKey]);
+  }, [isMine, userId, refreshKey]);
 
   const reload = () => setRefreshKey((prev) => prev + 1);
 
   // 내 화면은 API 값, 친구 화면은 기존 예시 데이터
   const supplements = isMine ? (mySupplementList ?? []) : friend.supplements;
   // 내 정보 API를 못 불러오면 기존 예시 이름을 보여줌
-  const name = friend?.name ?? user?.nickname ?? "김민지";
+  const name = friend?.name ?? user?.nickname ?? "사용자";
   const initial = friend?.initial ?? name.charAt(0);
   const avatarColor = friend?.color ?? "yellow";
   // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
@@ -130,40 +131,46 @@ export default function ProfileScreen({
 
   if (isMine && editing) {
     return (
-      <ProfileEditPage
-        onBack={() => setEditing(false)}
-        onSaved={setUser}
-        onNotifications={onNotifications}
-      />
+        <ProfileEditPage
+            userId={userId}
+            onBack={() => setEditing(false)}
+            onSaved={(updatedUser) => {
+              setUser(updatedUser);
+              onUserUpdated?.(updatedUser);
+            }}
+            onNotifications={onNotifications}
+        />
     );
   }
 
   // 영양제 등록 페이지: 등록에 성공하면 마이페이지로 돌아와서 목록·통계·영양관리를 다시 불러옴
   if (isMine && adding) {
     return (
-      <SupplementAddPage
-        onBack={() => setAdding(false)}
-        onSaved={() => {
-          setAdding(false);
-          reload();
-        }}
-        onNotifications={onNotifications}
-      />
+        <SupplementAddPage
+            userId={userId}
+            onBack={() => setAdding(false)}
+            onSaved={() => {
+              setAdding(false);
+              reload();
+            }}
+            onNotifications={onNotifications}
+        />
     );
   }
 
   // 같은 페이지를 수정 모드로 사용 (제품은 고정, 복용 일정만 수정)
   if (isMine && scheduleTarget) {
     return (
-      <SupplementAddPage
-        target={scheduleTarget}
-        onBack={() => setScheduleTarget(null)}
-        onSaved={() => {
-          setScheduleTarget(null);
-          reload();
-        }}
-        onNotifications={onNotifications}
-      />
+        <SupplementAddPage
+            userId={userId}
+            target={scheduleTarget}
+            onBack={() => setScheduleTarget(null)}
+            onSaved={() => {
+              setScheduleTarget(null);
+              reload();
+            }}
+            onNotifications={onNotifications}
+        />
     );
   }
 
@@ -183,7 +190,7 @@ export default function ProfileScreen({
       return;
     setRemovingId(supplement.id);
     try {
-      await removeMySupplement(MY_USER_ID, supplement.id);
+      await removeMySupplement(userId, supplement.id);
       // 재조회가 실패해도 삭제한 카드가 남지 않도록 목록에서 먼저 뺀다
       setMySupplementList((prev) => {
         const next = [];
@@ -252,7 +259,15 @@ export default function ProfileScreen({
       </section>
 
       {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
-      {isMine && <NutritionManagement key={refreshKey} />}
+      {/*{isMine && <NutritionManagement key={refreshKey} />}*/}
+      {/*DB에 영양제 정보 등록시 아래 코드로 수정*/}
+      {isMine && (
+          <NutritionManagement
+              key={refreshKey}
+              userId={userId}
+          />
+      )}
+
 
       <section className="section-block products-section">
         <div className="section-title-row">
@@ -341,14 +356,26 @@ function nutritionNoticeText(nutrients) {
   return `${message} 식품 섭취량은 포함되지 않은 참고용 수치예요.`;
 }
 
-function NutritionManagement() {
+function NutritionManagement({userId}) {
   const [nutrition, setNutrition] = useState(null);
 
   useEffect(() => {
-    fetchNutrition(MY_USER_ID)
-      .then(setNutrition)
-      .catch(() => setNutrition(null));
-  }, []);
+    if (userId == null) return;
+
+    let ignore = false;
+
+    fetchNutrition(userId)
+        .then((data) => {
+          if (!ignore) setNutrition(data);
+        })
+        .catch(() => {
+          if (!ignore) setNutrition(null);
+        });
+
+    return () => {
+      ignore = true;
+    };
+  }, [userId]);
 
   const nutrients = nutrition?.nutrients ?? [];
   // 복용 중이지만 함량 정보가 없어 계산에서 빠진 영양제 수
