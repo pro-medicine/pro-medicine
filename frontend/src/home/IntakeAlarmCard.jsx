@@ -12,12 +12,25 @@ const SAMPLE_SUMMARY = {
   onTime: { total: 10, onTime: 8, rate: 80 },
 };
 
-// "12:30:00" → 오늘 그 시각까지 남은 밀리초 (지났으면 0 이하)
+// 서버는 한국 시간(KST) 기준으로 계산하므로, 브라우저 시간대와 상관없이 KST로 맞춘다
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const RETRY_MS = 60_000; // 알림 시각이 이미 지났을 때 다시 불러오기까지 기다리는 시간
+
+// KST 오늘 날짜의 h:m:s 시각 (UTC 밀리초)
+function kstTodayAt(now, h, m = 0, s = 0) {
+  const kst = new Date(now.getTime() + KST_OFFSET_MS); // getUTC*로 읽으면 KST 날짜·시각
+  return Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate(), h, m, s) - KST_OFFSET_MS;
+}
+
+// "12:30" 또는 "12:30:00" → KST 오늘 그 시각까지 남은 밀리초 (지났으면 0 이하)
 function msUntil(remindAt, now = new Date()) {
-  const [h, m] = remindAt.split(":").map(Number);
-  const target = new Date(now);
-  target.setHours(h, m, 0, 0);
-  return target - now;
+  const [h, m, s = 0] = remindAt.split(":").map(Number);
+  return kstTodayAt(now, h, m, s) - now.getTime();
+}
+
+// KST 다음 날 자정까지 남은 밀리초 → 날짜가 바뀌면 "오늘" 기준이 바뀌므로 다시 불러온다
+function msUntilKstMidnight(now = new Date()) {
+  return kstTodayAt(now, 24) - now.getTime();
 }
 
 // 남은 시간 문구: "35분 뒤", "2시간 뒤", "2시간 10분 뒤"
@@ -53,6 +66,8 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
     if (isSample) return undefined;
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     let timer;
+    // 다음 알림이 없어도 KST 자정이 지나면 "오늘" 알림·이번 주 복용률을 새로 불러온다
+    const midnightTimer = setTimeout(() => setReloadKey((k) => k + 1), msUntilKstMidnight() + 1000);
     getIntakeSummary(userId)
       .then((data) => {
         if (ignore) return;
@@ -61,8 +76,9 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
         // 다음 알림 시각이 지나면 그다음 알림으로 바뀌어야 하므로, 그 시각에 맞춰 한 번 더 불러온다
         const next = data?.nextReminder;
         if (next) {
+          // 서버는 분 단위로 내려주므로(12:30:30 → 12:30) 이미 지난 시각이면 잠시 뒤 다시 불러온다
           const wait = msUntil(next.remindAt) + 1000;
-          if (wait > 0) timer = setTimeout(() => setReloadKey((k) => k + 1), wait);
+          timer = setTimeout(() => setReloadKey((k) => k + 1), wait > 0 ? wait : RETRY_MS);
         }
       })
       .catch((e) => {
@@ -73,6 +89,7 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
     return () => {
       ignore = true;
       clearTimeout(timer);
+      clearTimeout(midnightTimer);
     };
   }, [userId, refreshKey, reloadKey, isSample]);
 
@@ -83,6 +100,7 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
   }, []);
 
   const data = isSample ? SAMPLE_SUMMARY : summary;
+  const errorText = isSample ? "" : error; // 예시 데이터로 바뀌면 이전 조회 오류는 보이지 않게 한다
   const next = data?.nextReminder;
   const onTime = data?.onTime;
 
@@ -95,10 +113,10 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
         </div>
       </div>
 
-      {error && <p className="home-alarm-message">{error}</p>}
-      {!error && !data && <p className="home-alarm-message">불러오는 중...</p>}
+      {errorText && <p className="home-alarm-message">{errorText}</p>}
+      {!errorText && !data && <p className="home-alarm-message">불러오는 중...</p>}
 
-      {!error && data && (
+      {!errorText && data && (
         <div className="home-alarm-card">
           {/* 다음 알림 */}
           <div className="home-alarm-block">
