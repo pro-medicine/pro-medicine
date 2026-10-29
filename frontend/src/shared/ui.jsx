@@ -49,6 +49,12 @@ export function Icon({ name, size = 20 }) {
         <path d="m20 20-4-4" />
       </>
     ),
+    settings: (
+      <>
+        <path d="M10 2h4l.6 2.5a7.8 7.8 0 0 1 1.8.8l2.3-1.1 2 3.5-1.9 1.7a8 8 0 0 1 0 2.1l1.9 1.7-2 3.5-2.3-1.1a7.8 7.8 0 0 1-1.8.8L14 21h-4l-.6-2.5a7.8 7.8 0 0 1-1.8-.8l-2.3 1.1-2-3.5 1.9-1.7a8 8 0 0 1 0-2.1L3.3 9.8l2-3.5 2.3 1.1a7.8 7.8 0 0 1 1.8-.8L10 2Z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    ),
     shield: (
       <>
         <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" />
@@ -339,7 +345,14 @@ export function SupplementCard({ supplement }) {
  * 화면 상단 헤더 (제목, 뒤로 가기, 알림 버튼)
  * @param {{ title: string, subtitle?: string, back?: () => void, onNotifications: () => void }} props
  */
-export function TopBar({ title, subtitle, back, onNotifications, actions }) {
+export function TopBar({
+  title,
+  subtitle,
+  back,
+  onNotifications,
+  actions,
+  onSettings,
+}) {
   const hasUnread = useContext(UnreadNotificationContext); // 안 읽은 알림이 있을 때만 빨간 점
   return (
     <header className="app-header">
@@ -358,9 +371,23 @@ export function TopBar({ title, subtitle, back, onNotifications, actions }) {
           <h1>{title}</h1>
         </div>
       </div>
+
       <div className="header-actions">
         {actions}
+
+        {onSettings && (
+          <button
+            type="button"
+            className="round-button settings-button"
+            aria-label="설정"
+            onClick={onSettings}
+          >
+            <Icon name="settings" size={21} />
+          </button>
+        )}
+
         <button
+          type="button"
           className="round-button notification-button"
           aria-label="알림"
           onClick={onNotifications}
