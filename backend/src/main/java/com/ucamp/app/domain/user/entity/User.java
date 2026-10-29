@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.user.entity;
 
+import com.ucamp.app.global.common.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
