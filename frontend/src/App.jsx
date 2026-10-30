@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
-import { getUnreadCount, subscribeNotifications } from "./api/notificationApi";
+import { useEffect, useRef, useState } from "react";
+import {
+  getNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  subscribeNotifications,
+} from "./api/notificationApi";
+import NotificationToast from "./common/NotificationToast";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -28,6 +34,9 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsOpenRef = useRef(false); // SSE 콜백에서 패널이 열려 있는지 확인용
+  const [toast, setToast] = useState(null); // 새 알림 팝업에 보여줄 알림
+  const lastToastIdRef = useRef(null); // 같은 알림을 두 번 띄우지 않게
   const [friendTarget, setFriendTarget] = useState(null); // 알림에서 바로 열 친구 상세 (친구 userId)
   const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
@@ -49,8 +58,21 @@ export default function App() {
   }, [userId, homeRefreshKey]);
 
   // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
+  // 진짜 새 알림 신호(재연결 제외)면 가장 최근 안 읽은 알림을 팝업으로 띄운다. (알림 패널이 열려 있으면 생략)
   useEffect(
-    () => subscribeNotifications(userId, () => setHomeRefreshKey((key) => key + 1)),
+    () =>
+      subscribeNotifications(userId, (event) => {
+        setHomeRefreshKey((key) => key + 1);
+        if (event?.type !== "notification" || notificationsOpenRef.current) return;
+        getNotifications(userId, null)
+          .then((items) => {
+            const latest = (items ?? []).find((item) => !item.read);
+            if (!latest || latest.notificationId === lastToastIdRef.current) return;
+            lastToastIdRef.current = latest.notificationId;
+            setToast(latest);
+          })
+          .catch((err) => console.error(err));
+      }),
     [userId],
   );
 
@@ -81,9 +103,12 @@ export default function App() {
         : null,
     );
     setNotificationsOpen(true);
+    notificationsOpenRef.current = true;
+    setToast(null);
   };
   const closeNotifications = () => {
     setNotificationsOpen(false);
+    notificationsOpenRef.current = false;
     setHomeRefreshKey((key) => key + 1);
   };
 
@@ -98,6 +123,8 @@ export default function App() {
   // 알림 패널의 버튼 → 해당 화면으로 이동 (안부지킴이: 친구 상세 / 복용 알림: 홈)
   const navigateFromNotification = ({ tab: nextTab, friendUserId }) => {
     setNotificationsOpen(false);
+    notificationsOpenRef.current = false;
+    setToast(null);
     changeTab(nextTab);
     if (friendUserId) {
       setFriendTarget(friendUserId);
@@ -164,6 +191,7 @@ export default function App() {
         tab={tab}
         onChange={changeTab}
         hasUnread={hasUnreadNotifications}
+        ringing={toast !== null}
         onNotifications={openNotifications}
       />
       <main>{renderContent()}</main>
@@ -171,6 +199,24 @@ export default function App() {
       <BottomNav tab={tab} onChange={changeTab} />
 
       {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
+
+      {toast && (
+        <NotificationToast
+          key={toast.notificationId}
+          item={toast}
+          onClose={() => setToast(null)}
+          onOpen={() => {
+            const bell = document.querySelector(".top-nav-bell");
+            openNotifications(bell?.offsetParent ? { currentTarget: bell } : null);
+          }}
+          onAction={(item, target) => {
+            markNotificationRead(userId, item.notificationId)
+              .then(() => setHomeRefreshKey((key) => key + 1))
+              .catch((err) => console.error(err));
+            navigateFromNotification(target);
+          }}
+        />
+      )}
 
       {notificationsOpen && (
         <NotificationPanel

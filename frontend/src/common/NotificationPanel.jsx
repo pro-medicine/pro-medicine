@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { viewOf } from "./notificationTypes";
+import TypeIcon from "./NotificationTypeIcon";
 import {
   getNotifications,
   getUnreadCount,
@@ -12,63 +14,6 @@ const TABS = [
   { id: "INTAKE", label: "내 복용", category: "INTAKE" },
   { id: "FRIEND", label: "친구 소식", category: "FRIEND" },
 ];
-
-// 알림 종류(type)별 표시 이름 · 아이콘 · 색 (#67 알림 시안 B)
-const TYPE_PATHS = {
-  pill: (
-    <>
-      <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-      <path d="m8.5 8.5 7 7" />
-    </>
-  ),
-  check: <path d="m5 12 4 4L19 6" />,
-  userPlus: (
-    <>
-      <circle cx="9" cy="8" r="4" />
-      <path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" />
-    </>
-  ),
-  people: (
-    <>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6" />
-    </>
-  ),
-  shield: (
-    <>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-      <path d="M12 8v4M12 16h.01" />
-    </>
-  ),
-};
-const TYPE_VIEW = {
-  INTAKE_REMINDER: { label: "복용 알림", icon: "pill", tone: "mint" },
-  FRIEND_GOAL_ACHIEVED: { label: "친구 완료", icon: "check", tone: "green" },
-  NEW_FOLLOWER: { label: "친구 신청", icon: "userPlus", tone: "blue" },
-  FOLLOW_ACCEPTED: { label: "친구 수락", icon: "people", tone: "purple" },
-  GUARDIAN: { label: "안부지킴이", icon: "shield", tone: "red" },
-};
-// type이 없거나 모르는 값이면 category로 대신
-const CATEGORY_FALLBACK = {
-  INTAKE: TYPE_VIEW.INTAKE_REMINDER,
-  FRIEND: { label: "친구 소식", icon: "people", tone: "purple" },
-};
-const viewOf = (item) => TYPE_VIEW[item.type] ?? CATEGORY_FALLBACK[item.category] ?? CATEGORY_FALLBACK.INTAKE;
-
-function TypeIcon({ item, solid = false, size = 40 }) {
-  const view = viewOf(item);
-  return (
-    <span
-      className={`noti-icon is-${view.tone}${solid ? " is-solid" : ""}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <svg width={Math.round(size * 0.46)} height={Math.round(size * 0.46)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {TYPE_PATHS[view.icon]}
-      </svg>
-    </span>
-  );
-}
 
 // "2026-10-30T12:30:00" → 오늘(KST) 알림인지, "12:30"
 const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());

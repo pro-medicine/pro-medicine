@@ -11,7 +11,7 @@ const NAV_ITEMS = [
  * 웹 상단 메뉴 (넓은 화면 전용, 768px 이하에서는 숨기고 하단 탭을 사용)
  * @param {{ tab: string, onChange: (tab: string) => void, hasUnread: boolean, onNotifications: (event) => void }} props
  */
-export function TopNav({ tab, onChange, hasUnread, onNotifications }) {
+export function TopNav({ tab, onChange, hasUnread, ringing = false, onNotifications }) {
     return (
         <header className="top-nav">
             <div className="top-nav-inner">
@@ -29,7 +29,8 @@ export function TopNav({ tab, onChange, hasUnread, onNotifications }) {
                             aria-current={tab === item.id ? "page" : undefined}
                             onClick={() => onChange(item.id)}
                         >
-                            {item.label}
+                            <Icon name={item.icon} size={20} />
+                            <span>{item.label}</span>
                         </button>
                     ))}
                 </nav>
@@ -37,7 +38,7 @@ export function TopNav({ tab, onChange, hasUnread, onNotifications }) {
                 <div className="top-nav-actions">
                     <button
                         type="button"
-                        className="top-nav-bell"
+                        className={`top-nav-bell${ringing ? " is-ringing" : ""}`}
                         aria-label="알림 열기"
                         onClick={onNotifications}
                     >

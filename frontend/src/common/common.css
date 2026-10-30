@@ -703,6 +703,154 @@
   padding: 0 14px;
 }
 
+/* ───────── 새 알림 팝업 (#67 시안 B: 종에서 나오는 말풍선 / 모바일: 위에서 내려오는 배너) ───────── */
+.noti-toast {
+  align-items: center;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgba(17, 23, 20, 0.16);
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  position: fixed;
+  z-index: 210;
+}
+
+.noti-toast.is-bubble {
+  animation: noti-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transform-origin: calc(100% - var(--tail-right, 40px)) 0;
+  width: min(340px, calc(100vw - 32px));
+}
+
+/* 종 쪽 꼬리 */
+.noti-toast.is-bubble::before {
+  background: var(--white);
+  box-shadow: -3px -3px 6px rgba(17, 23, 20, 0.04);
+  content: "";
+  height: 14px;
+  position: absolute;
+  right: var(--tail-right, 40px);
+  top: -7px;
+  transform: rotate(45deg);
+  width: 14px;
+}
+
+.noti-toast.is-bubble.is-leaving {
+  animation: noti-bubble-out 0.25s ease forwards;
+}
+
+.noti-toast.is-banner {
+  animation: noti-banner-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  left: 12px;
+  padding-bottom: 18px;
+  right: 12px;
+  top: 12px;
+}
+
+.noti-toast.is-banner.is-leaving {
+  animation: noti-banner-out 0.25s ease forwards;
+}
+
+.noti-toast-main {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  font-family: inherit;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.noti-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.noti-toast-text small {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.noti-toast-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.noti-toast-action {
+  background: var(--primary);
+  border: 0;
+  border-radius: 999px;
+  color: var(--white);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  height: 30px;
+  padding: 0 12px;
+}
+
+.noti-toast-handle {
+  background: rgba(17, 23, 20, 0.15);
+  border-radius: 4px;
+  bottom: 7px;
+  height: 4px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 40px;
+}
+
+/* 새 알림이 오면 종이 흔들리고 초록 파동 */
+.top-nav-bell.is-ringing {
+  animation: noti-bell-shake 0.7s ease 2;
+  box-shadow: 0 0 0 6px rgba(14, 159, 110, 0.15);
+}
+
+@keyframes noti-bubble-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes noti-bubble-out {
+  to { opacity: 0; transform: translateY(-4px) scale(0.9); }
+}
+
+@keyframes noti-banner-in {
+  from { opacity: 0; transform: translateY(-110%); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes noti-banner-out {
+  to { opacity: 0; transform: translateY(-110%); }
+}
+
+@keyframes noti-bell-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noti-toast.is-bubble,
+  .noti-toast.is-banner,
+  .noti-toast.is-leaving,
+  .top-nav-bell.is-ringing {
+    animation: none;
+  }
+}
+
 /* 넓은 화면은 상단 메뉴, 좁은 화면(768px 이하)은 기존 하단 탭 (파일 맨 끝에 두어야 위의 display를 덮어씀) */
 @media (max-width: 768px) {
   .top-nav {
