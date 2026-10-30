@@ -713,6 +713,48 @@ button.fr-rank-row:hover {
   color: var(--ink);
 }
 
+/* 시상대 빈 자리 */
+.fr-podium {
+  position: relative;
+}
+
+.fr-avatar.is-empty {
+  background: var(--white);
+  border: 2px dashed #d5dbd8;
+  box-sizing: border-box;
+  color: #c4cbc7;
+}
+
+.fr-podium-item.is-empty .fr-podium-face .fr-avatar {
+  box-shadow: none;
+}
+
+.fr-podium-item.is-empty > strong {
+  color: var(--faint);
+  font-weight: 600;
+}
+
+.fr-days.is-empty {
+  color: #c4cbc7;
+  font-weight: 600;
+}
+
+.fr-podium-item.is-empty .fr-podium-stand {
+  background: linear-gradient(180deg, #f3f5f4, rgba(255, 255, 255, 0));
+}
+
+.fr-podium-hint {
+  bottom: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  left: 0;
+  margin: 0;
+  position: absolute;
+  right: 0;
+  text-align: center;
+}
+
 .fr-rank-name {
   align-items: center;
   display: flex;

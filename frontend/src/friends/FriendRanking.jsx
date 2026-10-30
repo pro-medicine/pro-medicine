@@ -36,13 +36,32 @@ function withRanks(list) {
   });
 }
 
-function Podium({ top3 }) {
-  // 2위 · 1위 · 3위 순서로 배치
-  const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+// 연속 기록이 없는 자리: 점선 빈 자리
+function EmptySeat({ place }) {
   return (
-    <div className="fr-podium">
-      {order.map((p) => {
-        const place = top3.indexOf(p) + 1; // 자리(1~3), 공동 순위여도 자리는 고정
+    <div className={`fr-podium-item is-place-${place} is-empty`}>
+      <span className="fr-podium-face">
+        <span className={`fr-avatar is-${place === 1 ? "xl" : "lg"} is-empty`} aria-hidden="true">
+          {place}
+        </span>
+      </span>
+      <strong>{place === 1 ? "1위 자리" : `${place}위 자리`}</strong>
+      <span className="fr-days is-empty">비어 있어요</span>
+      <span className="fr-podium-stand" aria-hidden="true" />
+    </div>
+  );
+}
+
+function Podium({ top3 }) {
+  // 2위 · 1위 · 3위 순서로 배치, 연속 기록(1일 이상)이 없는 자리는 빈 자리로
+  const seats = [0, 1, 2].map((i) => (top3[i]?.streak > 0 ? top3[i] : null));
+  const empty = seats.every((p) => p === null);
+  return (
+    <div className={`fr-podium${empty ? " is-all-empty" : ""}`}>
+      {[1, 0, 2].map((i) => {
+        const p = seats[i];
+        const place = i + 1; // 자리(1~3), 공동 순위여도 자리는 고정
+        if (!p) return <EmptySeat key={`empty-${place}`} place={place} />;
         return (
           <div key={p.key} className={`fr-podium-item is-place-${place}`}>
             <span className="fr-podium-face">
@@ -63,6 +82,7 @@ function Podium({ top3 }) {
           </div>
         );
       })}
+      {empty && <p className="fr-podium-hint">오늘 약속을 모두 지키면 내일 첫 1위가 될 수 있어요</p>}
     </div>
   );
 }
@@ -106,8 +126,14 @@ export default function FriendRanking({
       myEntry.rank === 1
         ? myEntry.streak > 0
           ? "지금 내가 1위예요! 이대로 이어가 볼까요?"
-          : "오늘부터 함께 기록을 시작해 보세요"
-        : (
+          : "아직 연속 기록이 있는 사람이 없어요 · 오늘 먼저 시작해 보세요"
+        : myEntry.streak === 0
+          ? (
+              <>
+                {everyone[0].name}님이 <b className="is-streak">{topDays}일</b>째 1위예요 · 오늘부터 나도 시작해 보세요
+              </>
+            )
+          : (
             <>
               나는 친구들 중 <b>{myEntry.rank}위</b>예요 · 1위까지{" "}
               <b className="is-streak">{topDays - myEntry.streak}일</b>
@@ -115,7 +141,7 @@ export default function FriendRanking({
           );
   }
 
-  const showPodium = !loading && !error && topDays > 0 && everyone.length >= 2;
+  const showPodium = !loading && !error && friends.length > 0;
 
   return (
     <section className="fr-card fr-rank" aria-label="연속 복용 랭킹">
@@ -158,7 +184,10 @@ export default function FriendRanking({
             const percent = topDays ? Math.round((p.streak / topDays) * 100) : 0;
             const content = (
               <>
-                <span className={`fr-rank-no${p.rank <= 3 ? " is-top" : ""}`}>{p.rank}</span>
+                {/* 연속 기록이 없으면 순위 대신 "–" (모두 0일이면 전부 1위로 보이는 문제 방지) */}
+                <span className={`fr-rank-no${p.streak > 0 && p.rank <= 3 ? " is-top" : ""}`}>
+                  {p.streak > 0 ? p.rank : "–"}
+                </span>
                 <FriendAvatar person={p} />
                 <span className="fr-rank-name">
                   <strong>{p.name}</strong>
