@@ -351,6 +351,11 @@
   position: relative;
 }
 
+/* 감싼 div 높이만큼 카드도 늘려서, 같은 줄 카드 높이를 맞춤 */
+.supplement-card-wrap > .supplement-card {
+  height: 100%;
+}
+
 .supplement-card-actions {
   display: flex;
   gap: 6px;
@@ -436,6 +441,14 @@
 .supplement-search-item small {
   color: var(--muted);
   font-size: 11px;
+}
+
+/* 섭취 방법이 길면 2줄까지만 보이고 나머지는 ... 처리 */
+.supplement-search-item small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .supplement-schedule-row {

@@ -499,6 +499,7 @@ ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY 
                                                                                  `schedule_id`
     );
 
+
 ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (
                                                                `survey_id`
     );

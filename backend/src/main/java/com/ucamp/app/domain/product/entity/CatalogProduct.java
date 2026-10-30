@@ -83,4 +83,14 @@ public class CatalogProduct {
         this.packageSize = packageSize;
         this.price = price;
     }
+
+    public void updateFromMfds(String productName, String manufacturer, String mainFunction, String intakeMethod, String intakeCaution, String category, String ingredientSummary) {
+        this.productName = productName;
+        this.manufacturer = manufacturer;
+        this.mainFunction = mainFunction;
+        this.intakeMethod = intakeMethod;
+        this.intakeCaution = intakeCaution;
+        this.category = category;
+        this.ingredientSummary = ingredientSummary;
+    }
 }

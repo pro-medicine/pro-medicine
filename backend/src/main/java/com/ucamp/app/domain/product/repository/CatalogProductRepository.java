@@ -17,4 +17,6 @@ public interface CatalogProductRepository extends JpaRepository<CatalogProduct, 
     List<CatalogProduct> findTop20ByProductNameContainingOrManufacturerContainingOrderByProductNameAsc(
             String productName, String manufacturer);
 
+    List<CatalogProduct> findByMfdsItemNoIn(List<String> mfdsItemNos);
+
 }
