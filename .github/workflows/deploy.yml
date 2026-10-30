@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     # 테스트가 끝나면 feat/docker는 지우고 develop만 남기세요.
-    branches: [develop, feat/docker]
+    branches: [develop]
   workflow_dispatch:
 
 # 배포가 동시에 두 개 돌지 않도록 순서대로 실행
