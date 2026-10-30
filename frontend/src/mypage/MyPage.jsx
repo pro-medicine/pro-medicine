@@ -498,7 +498,7 @@ function NutritionManagement() {
           </p>
         </div>
         <span className="nutrition-date">
-          {nutrition?.sample ? "오늘 기준 · 예시 데이터" : "오늘 기준"}
+          {nutrition?.sample ? "오늘 기준" : "오늘 기준"}
         </span>
       </div>
 
