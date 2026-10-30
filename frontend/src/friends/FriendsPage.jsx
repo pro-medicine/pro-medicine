@@ -6,6 +6,10 @@ import AddFriendModal from "./AddFriendModal";
 import FollowRequestModal from "./FollowRequestModal";
 import FriendDetailPage from "./FriendDetailPage";
 import { getWatching } from "../api/guardianApi";
+import { getFollowRequests } from "../api/followApi";
+import { fetchIntakeStats, fetchUser, MY_USER_ID } from "../api/mypageApi";
+import FriendRanking from "./FriendRanking";
+import { RequestCard, GuardianCard, FriendTipCard } from "./FriendSideCards";
 
 // 서버에 색 정보가 없으므로 순서대로 돌려 씀 (실제 쓰는 색 클래스명으로 수정)
 const COLORS = ["mint", "blue", "yellow", "pink"];
@@ -16,6 +20,7 @@ function toFriend(item, index) {
   return {
     ...item,
     id: item.followId,
+    key: `friend-${item.followId}`,
     name: item.nickname ?? "",
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
@@ -37,11 +42,22 @@ export default function FriendsPage({ onNotifications }) {
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [watchingIds, setWatchingIds] = useState(new Set());
+  const [watching, setWatching] = useState([]); // 내가 지키는 친구 (안부지킴이 카드)
+  const [requests, setRequests] = useState(null); // 받은 친구 신청, null 이면 불러오는 중
+  const [me, setMe] = useState(null); // 랭킹에 넣을 "나"
+  const [tab, setTab] = useState("all"); // 전체 / 친구 / 팔로우
+  const [requestTab, setRequestTab] = useState("received");
   const openerRef = useRef(null);
 
   const openModal = (setter) => (e) => {
     openerRef.current = e.currentTarget;
     setter(true);
+  };
+  // 친구 신청 모달: 받은 / 보낸 탭을 골라서 연다
+  const openRequests = (which, e) => {
+    openerRef.current = e.currentTarget;
+    setRequestTab(which);
+    setRequestsOpen(true);
   };
 
   useEffect(() => {
@@ -52,11 +68,33 @@ export default function FriendsPage({ onNotifications }) {
     getWatching(userId)
       .then((data) => {
         if (ignore) return;
+        setWatching(data ?? []);
         setWatchingIds(
           new Set((data ?? []).filter((g) => g.active).map((g) => g.userId)),
         );
       })
       .catch(() => {});
+    getFollowRequests(userId, "received")
+      .then((data) => {
+        if (!ignore) setRequests(data ?? []);
+      })
+      .catch(() => {
+        if (!ignore) setRequests([]);
+      });
+    // 랭킹의 "나": 내 연속 복용일 + 닉네임 (못 불러오면 나를 빼고 친구끼리만 보여줌)
+    Promise.all([fetchIntakeStats(MY_USER_ID), fetchUser(MY_USER_ID).catch(() => null)])
+      .then(([stats, user]) => {
+        if (ignore) return;
+        setMe({
+          key: "me",
+          isMe: true,
+          name: user?.nickname ?? "나",
+          streak: stats?.streakDays ?? 0,
+        });
+      })
+      .catch(() => {
+        if (!ignore) setMe(null);
+      });
 
     getFriends(userId)
       .then((data) => {
@@ -79,7 +117,7 @@ export default function FriendsPage({ onNotifications }) {
     };
   }, [userId, reloadKey]);
 
-  const filtered = friends.filter((friend) => friend.name.includes(query));
+  const friendsById = new Map(friends.map((f) => [f.userId, f]));
   if (selectedFriend) {
     return (
       <FriendDetailPage
@@ -100,7 +138,7 @@ export default function FriendsPage({ onNotifications }) {
   }
   return (
     <div className="screen friends-page">
-      {/* 머리: 제목(왼쪽) + 검색·친구 신청·친구 추가(오른쪽) */}
+      {/* 머리: 제목(왼쪽) + 검색·친구 추가(오른쪽), 친구 신청은 오른쪽 카드로 이동 */}
       <div className="friends-head">
         <TopBar
           title="친구 영양정보"
@@ -120,13 +158,6 @@ export default function FriendsPage({ onNotifications }) {
           </div>
           <button
             type="button"
-            className="btn btn-outline"
-            onClick={openModal(setRequestsOpen)}
-          >
-            친구 신청
-          </button>
-          <button
-            type="button"
             className="btn btn-primary"
             onClick={openModal(setAddOpen)}
           >
@@ -136,72 +167,43 @@ export default function FriendsPage({ onNotifications }) {
         </div>
       </div>
 
-      {/* 친구 목록 표: 친구 · 관계 · 연속 복용 · 안부지킴이 */}
-      <section className="friend-table" aria-label="친구 목록">
-        <div className="friend-table-head" aria-hidden="true">
-          <span>친구 {friends.length}명</span>
-          <span>관계</span>
-          <span>연속 복용</span>
-          <span>안부지킴이</span>
-          <span />
-        </div>
-
-        {loading && <p className="friend-table-state">친구 목록을 불러오는 중...</p>}
-        {!loading && error && <p className="friend-table-state">{error}</p>}
-        {!loading && !error && filtered.length === 0 && (
-          <p className="friend-table-state">
-            {friends.length === 0
-              ? "등록된 친구가 없습니다."
-              : "검색 결과가 없습니다."}
-          </p>
-        )}
-
-        {!loading &&
-          !error &&
-          filtered.map((friend) => (
-            <button
-              type="button"
-              className="friend-row"
-              key={friend.id}
-              onClick={() => setSelectedFriend(friend)}
-            >
-              <span className="friend-name">
-                <span className="avatar">{friend.initial}</span>
-                <strong>{friend.name}</strong>
-              </span>
-              <span className="friend-relation">
-                <span className={`chip ${friend.mutual ? "green" : ""}`}>
-                  {friend.relation}
-                </span>
-              </span>
-              <span className="friend-streak">
-                {friend.streak === 0 ? (
-                  <span className="friend-encourage">오늘 응원이 필요해요</span>
-                ) : (
-                  <b>{friend.streak}일 연속</b>
-                )}
-              </span>
-              <span className="friend-guardian">
-                {watchingIds.has(friend.userId) ? (
-                  <>
-                    <Icon name="shield" size={15} />
-                    안부지킴이
-                  </>
-                ) : (
-                  <span className="friend-none">–</span>
-                )}
-              </span>
-              <span className="friend-chevron" aria-hidden="true">
-                <Icon name="chevron" size={18} />
-              </span>
-            </button>
-          ))}
-      </section>
+      {/* 2단: 왼쪽 연속 복용 랭킹 / 오른쪽 친구 신청·안부지킴이·안내 (#67 친구 시안 C+) */}
+      <div className="fr-layout">
+        <FriendRanking
+          friends={friends}
+          me={me}
+          watchingIds={watchingIds}
+          query={query}
+          tab={tab}
+          onTabChange={setTab}
+          loading={loading}
+          error={error}
+          onSelect={setSelectedFriend}
+        />
+        <aside className="fr-side">
+          <RequestCard
+            userId={userId}
+            requests={requests}
+            onOpenModal={openRequests}
+            onChanged={() => setReloadKey((k) => k + 1)}
+          />
+          <GuardianCard
+            watching={watching}
+            friendsById={friendsById}
+            onSelect={setSelectedFriend}
+          />
+          <FriendTipCard />
+        </aside>
+      </div>
 
       {requestsOpen && (
         <FollowRequestModal
           userId={userId}
-          onClose={() => setRequestsOpen(false)}
+          initialTab={requestTab}
+          onClose={() => {
+            setRequestsOpen(false);
+            setReloadKey((k) => k + 1); // 모달에서 수락·취소한 내용을 카드에도 반영
+          }}
           onAccepted={() => setReloadKey((k) => k + 1)}
           openerRef={openerRef}
         />
