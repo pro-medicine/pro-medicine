@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import KakaoMap from "./KaKaoMap";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+//const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin; //배포 때문에 수정
 const RADII = [500, 1000, 2000, 3000];
 
 function toPharmacy(place, nearby) {
@@ -72,9 +73,10 @@ export default function DisposalMapScreen({ onNotifications }) {
       setFocusPharmacy(null);
 
       try {
-        if (!API_BASE_URL) {
-          throw new Error("VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.");
-        }
+        // 배포 때문에 주석 처리
+        // if (!API_BASE_URL) {
+        //   throw new Error("VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.");
+        // }
 
         const url = new URL(
             mode === "nearby" ? "/api/v1/disposal/nearby" : "/api/v1/disposal/places",
