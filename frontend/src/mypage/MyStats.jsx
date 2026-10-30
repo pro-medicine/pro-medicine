@@ -1,6 +1,6 @@
 // 마이페이지 통계 카드 3개 (#67 마이페이지 시안 B)
 // 연속 복용(최고 기록 배지) / 이번 주 달성률(요일 막대) / 이번 달 달성률(주차별 꺾은선)
-// stats: GET /api/v1/intakes/stats 응답, 못 불러오면 null
+// stats: GET /api/v1/intakes/stats 응답(친구 상세는 같은 모양으로 맞춘 값), 못 불러오면 null
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
 // 한국 시간 기준 오늘 "YYYY-MM-DD"
@@ -159,72 +159,6 @@ export default function MyStats({ stats }) {
       <StreakCard streak={stats?.streakDays ?? null} best={stats?.bestStreakDays ?? 0} />
       <WeekCard rate={stats?.weeklyRate} days={stats?.weekDays} todayKey={todayKey} />
       <MonthCard rate={stats?.monthlyRate} weeks={stats?.monthWeeks} todayKey={todayKey} />
-    </div>
-  );
-}
-
-// ───────────── 친구 상세 통계 카드 3개 (#67 친구 상세) ─────────────
-// 연속 복용(나와 비교) / 이번 달 달성률(막대) / 복용 영양제(종류 칩)
-// friend: FriendDetailPage가 만든 친구 정보 (streak, monthlyRate, supplementCount, supplements)
-export function FriendStats({ friend, supplements, myStreak }) {
-  const streak = friend.streak ?? 0;
-  const rate = friend.monthlyRate ?? null;
-  const count = friend.supplementCount ?? supplements.length;
-  const categories = [...new Set(supplements.map((s) => s.category).filter((c) => c && c !== "-"))];
-
-  let compare = null;
-  if (myStreak !== null && myStreak !== undefined) {
-    const diff = streak - myStreak;
-    compare = diff > 0 ? `나보다 ${diff}일 앞서요` : diff < 0 ? `나보다 ${-diff}일 뒤에 있어요` : "나와 같은 기록이에요";
-  }
-
-  return (
-    <div className="my-stats">
-      <section className="my-stat-card">
-        <span className="my-stat-label">연속 복용</span>
-        <div className="my-stat-streak">
-          <BigNumber value={streak} unit="일" />
-          {streak > 0 && (
-            <span className="my-stat-best">
-              <Flame />
-              {streak >= 7 ? "꾸준히 이어가는 중" : "기록 쌓는 중"}
-            </span>
-          )}
-        </div>
-        <p className="my-stat-message">
-          {streak === 0 ? "오늘부터 다시 시작할 수 있어요" : compare ?? `${streak}일째 약속을 지키고 있어요`}
-        </p>
-      </section>
-
-      <section className="my-stat-card">
-        <div className="my-stat-top">
-          <span className="my-stat-label">이번 달 달성률</span>
-          <BigNumber value={rate ?? "-"} unit="%" />
-        </div>
-        <div className="friend-rate-bar" role="img" aria-label={`이번 달 달성률 ${rate ?? 0}%`}>
-          <span style={{ width: `${Math.min(rate ?? 0, 100)}%` }} />
-        </div>
-        <p className="my-stat-message">
-          {rate === null ? "아직 기록이 없어요" : rate >= 80 ? "이번 달 아주 잘 챙기고 있어요" : rate >= 50 ? "절반 넘게 챙겼어요" : "조금씩 챙겨가는 중이에요"}
-        </p>
-      </section>
-
-      <section className="my-stat-card">
-        <div className="my-stat-top">
-          <span className="my-stat-label">복용 영양제</span>
-          <BigNumber value={count} unit="개" />
-        </div>
-        {categories.length > 0 ? (
-          <div className="friend-categories">
-            {categories.slice(0, 4).map((c) => (
-              <span key={c} className="chip gray">{c}</span>
-            ))}
-            {categories.length > 4 && <span className="chip gray">+{categories.length - 4}</span>}
-          </div>
-        ) : (
-          <p className="my-stat-message">{count === 0 ? "아직 등록된 영양제가 없어요" : "종류 정보가 없어요"}</p>
-        )}
-      </section>
     </div>
   );
 }

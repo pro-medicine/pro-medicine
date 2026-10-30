@@ -12,7 +12,7 @@ import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
 import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
-import MyStats, { FriendStats } from "./MyStats";
+import MyStats from "./MyStats";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
@@ -77,21 +77,6 @@ export default function ProfileScreen({
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
-
-  // 친구 화면: "나와 비교" 문구에 쓸 내 연속 복용일
-  const [myStreak, setMyStreak] = useState(null);
-  useEffect(() => {
-    if (isMine) return;
-    let ignore = false;
-    fetchIntakeStats(MY_USER_ID)
-      .then((loaded) => {
-        if (!ignore) setMyStreak(loaded?.streakDays ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, [isMine]);
 
   useEffect(() => {
     if (!isMine) return;
@@ -255,7 +240,17 @@ export default function ProfileScreen({
       {isMine ? (
         <MyStats stats={stats} />
       ) : (
-        <FriendStats friend={friend} supplements={supplements} myStreak={myStreak} />
+        // 친구 상세: 친구 상세 API의 통계 값을 마이페이지 통계와 같은 모양으로 넘김
+        <MyStats
+          stats={{
+            streakDays: friend.streak ?? 0,
+            bestStreakDays: friend.bestStreakDays ?? 0,
+            weeklyRate: friend.weeklyRate,
+            weekDays: friend.weekDays,
+            monthlyRate: friend.monthlyRate,
+            monthWeeks: friend.monthWeeks,
+          }}
+        />
       )}
       {isMine ? (
         <IntakeCalendar fetchProgress={getMyCalendarProgress} fetchDay={getMyDayIntakes} />
