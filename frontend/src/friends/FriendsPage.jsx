@@ -20,7 +20,7 @@ function toFriend(item, index) {
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
     relation: item.mutual ? "친구" : "팔로우",
-    streak: item.streak ?? 0,
+    streak: item.streakDays ?? 0,
   };
 }
 
@@ -194,7 +194,6 @@ export default function FriendsPage({ userId, onNotifications }) {
                     <small>{friend.relation}</small>
                   </span>
                 </span>
-                <span className="friend-status">{friend.status}</span>
                 <span className="friend-meta">
                   {friend.streak === 0 ? (
                     <span className="friend-encourage">

@@ -1,3 +1,4 @@
+/* ───────── 검색 ───────── */
 .search-box {
   align-items: center;
   background: white;
@@ -28,6 +29,7 @@
   color: #b1b2ab;
 }
 
+/* ───────── TOGETHER 카드 ───────── */
 .friends-highlight {
   align-items: center;
   background: var(--yellow-pale);
@@ -50,11 +52,16 @@
   margin: 7px 0 0;
 }
 
+.friends-highlight .section-label {
+  margin-bottom: 8px;
+}
+
 .stacked-avatars {
   display: flex;
   padding-left: 15px;
 }
 
+/* ───────── 아바타 ───────── */
 .avatar {
   align-items: center;
   background: #dce8e0;
@@ -101,19 +108,62 @@
   color: #90855a;
 }
 
+.avatar.large {
+  border: 0;
+  height: 50px;
+  margin: 0;
+  width: 50px;
+}
+
+/* ───────── 섹션 제목 / 버튼 ───────── */
+.friends-section {
+  margin-top: 28px;
+}
+
+.section-title-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title-row h2 {
+  font-size: 20px;
+  letter-spacing: -0.04em;
+  margin: 2px 0 0;
+}
+
+.section-label {
+  color: #a2945e;
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.friend-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .add-friend-button {
   align-items: center;
   background: var(--yellow-soft);
   border: 1px solid #efdfa0;
   border-radius: 9px;
   color: #776520;
+  cursor: pointer;
   display: flex;
   font-size: 10px;
   font-weight: 700;
   gap: 4px;
   padding: 8px 10px;
+  white-space: nowrap;
 }
 
+/* ───────── 친구 목록 ───────── */
 .friend-list {
   background: white;
   border: 1px solid var(--line);
@@ -121,14 +171,24 @@
   overflow: hidden;
 }
 
+/* 불러오는 중, 오류, 빈 목록 문구 */
+.friend-list > p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+  padding: 28px 20px;
+  text-align: center;
+}
+
 .friend-row {
   align-items: center;
   background: white;
   border: 0;
   border-bottom: 1px solid var(--line);
+  cursor: pointer;
   display: grid;
   gap: 15px;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   padding: 19px 22px;
   text-align: left;
   transition: 150ms ease;
@@ -143,21 +203,22 @@
   background: #fffdf4;
 }
 
-.avatar.large {
-  border: 0;
-  height: 50px;
-  margin: 0;
-  width: 50px;
+.friend-copy {
+  min-width: 0;
 }
 
 .friend-copy > span:first-child {
   align-items: baseline;
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
 }
 
 .friend-copy strong {
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .friend-copy small {
@@ -165,62 +226,30 @@
   font-size: 9px;
 }
 
-.friend-status {
+.guardian-badge {
+  color: #2f9e8f;
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* 오른쪽: 스트릭 / 응원 문구 + 화살표 (한 줄) */
+.friend-meta {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.friend-streak,
+.friend-encourage {
   align-items: center;
-  color: var(--muted);
-  display: flex;
-  font-size: 10px;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.friend-status i {
-  background: #e7c94f;
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
-}
-
-.friend-status i.complete {
-  background: #75a382;
-}
-
-.friend-meta {
-  min-width: 84px;
-  text-align: right;
-}
-
-.friend-meta span,
-.friend-meta small {
-  display: block;
-}
-
-.friend-meta span {
-  color: #8c7b36;
-  font-size: 10px;
-}
-
-.friend-meta span b {
-  font-size: 16px;
-}
-.friend-meta {
-  min-width: 84px;
-  text-align: right;
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
 }
 
 .friend-streak {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  white-space: nowrap;
   color: #8c7b36;
   font-size: 10px;
-}
-
-.friend-streak > span {
-  display: inline;
-  white-space: nowrap;
 }
 
 .friend-streak b {
@@ -228,52 +257,40 @@
 }
 
 .friend-encourage {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
   color: #a0a199;
   font-size: 10px;
-  white-space: nowrap;
 }
 
-.friend-encourage .icon {
+.friend-meta .icon {
   color: #aaaca5;
   flex-shrink: 0;
 }
 
-.friend-meta small {
-  color: #a0a199;
-  font-size: 9px;
-  margin-top: 2px;
-}
-
-.friend-row > .icon {
-  color: #aaaca5;
-}
-
+/* ───────── 모달 공통 ───────── */
 .modal-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
   align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  inset: 0;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.45);
+  position: fixed;
+  z-index: 100;
 }
 
 .modal-card {
-  width: 100%;
-  max-width: 400px;
-  padding: 22px;
-  border-radius: 20px;
   background: #fff;
+  border-radius: 20px;
+  max-height: 85vh;
+  max-width: 400px;
+  overflow-y: auto;
+  padding: 22px;
+  width: 100%;
 }
 
 .modal-header {
-  display: flex;
   align-items: flex-start;
+  display: flex;
   justify-content: space-between;
 }
 
@@ -282,17 +299,17 @@
 }
 
 .modal-header button {
-  border: 0;
   background: none;
+  border: 0;
+  cursor: pointer;
   font-size: 26px;
   line-height: 1;
-  cursor: pointer;
 }
 
 .modal-description {
-  margin: 12px 0 16px;
-  font-size: 14px;
   color: #6b7280;
+  font-size: 14px;
+  margin: 12px 0 16px;
 }
 
 .modal-form {
@@ -301,32 +318,32 @@
 }
 
 .modal-form input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 14px;
   border: 1px solid #d9dde3;
   border-radius: 12px;
+  flex: 1;
   font-size: 15px;
+  min-width: 0;
+  padding: 12px 14px;
 }
 
 .modal-form button {
-  padding: 0 18px;
+  background: #2f9e8f; /* 메인 컬러로 교체 */
   border: 0;
   border-radius: 12px;
-  background: #2f9e8f; /* 메인 컬러로 교체 */
   color: #fff;
-  font-weight: 600;
   cursor: pointer;
+  font-weight: 600;
+  padding: 0 18px;
 }
 
 .modal-form button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .modal-result {
-  margin: 14px 0 0;
   font-size: 14px;
+  margin: 14px 0 0;
 }
 
 .modal-result.success {
@@ -337,91 +354,61 @@
   color: #d64545;
 }
 
-.header-actions {
+.modal-actions {
   display: flex;
-  align-items: center;
   gap: 8px;
+  justify-content: space-between;
 }
 
-.guardian-button.pending {
-  opacity: 0.6;
+.modal-actions button {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  flex: 1;
+  font-weight: 600;
+  padding: 12px 0;
 }
 
-.guardian-button.on {
-  color: #2f9e8f;
-  background: #e6f6f3;
+.modal-actions .danger {
+  background: #f1f3f5;
+  color: #d64545;
 }
 
-.guardian-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.guardian-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 90px;
-  transform: translateX(-50%);
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: rgba(17, 24, 39, 0.9);
+.modal-actions .primary {
+  background: #2f9e8f; /* 메인 컬러로 교체 */
   color: #fff;
-  font-size: 13px;
-  z-index: 50;
-  animation: toast-fade 5s ease forwards;
 }
 
-@keyframes toast-fade {
-  0%,
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+.modal-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
-.guardian-badge {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: 4px;
-  color: #2f9e8f;
-}
-
-.friend-header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.modal-card {
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
+/* ───────── 친구 신청 모달 ───────── */
 .request-tabs {
+  background: #f1f3f5;
+  border-radius: 12px;
   display: flex;
   gap: 6px;
   margin: 16px 0 12px;
   padding: 4px;
-  border-radius: 12px;
-  background: #f1f3f5;
 }
 
 .request-tabs button {
-  flex: 1;
-  padding: 9px 0;
+  background: transparent;
   border: 0;
   border-radius: 9px;
-  background: transparent;
   color: #6b7280;
-  font-weight: 600;
   cursor: pointer;
+  flex: 1;
+  font-weight: 600;
+  padding: 9px 0;
 }
 
 .request-tabs button.active {
   background: #fff;
-  color: #111827;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #111827;
 }
 
 .request-list {
@@ -432,19 +419,19 @@
 }
 
 .request-empty {
+  color: #9ca3af;
+  font-size: 14px;
   margin: 24px 0;
   text-align: center;
-  font-size: 14px;
-  color: #9ca3af;
 }
 
 .request-row {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
   border: 1px solid #eceff3;
   border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
 }
 
 .request-name {
@@ -465,12 +452,12 @@
 }
 
 .request-actions button {
-  padding: 8px 12px;
   border: 0;
   border-radius: 10px;
+  cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
+  padding: 8px 12px;
 }
 
 .request-actions .accept {
@@ -484,14 +471,35 @@
 }
 
 .request-actions button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ───────── 안부지킴이 ───────── */
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.guardian-button.pending {
+  opacity: 0.6;
+}
+
+.guardian-button.on {
+  background: #e6f6f3;
+  color: #2f9e8f;
 }
 
 .guardian-button.alert {
-  color: #fff;
-  background: #f5a524;
   animation: guardian-pulse 1.6s ease-in-out infinite;
+  background: #f5a524;
+  color: #fff;
+}
+
+.guardian-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 @keyframes guardian-pulse {
@@ -510,55 +518,49 @@
   }
 }
 
+.guardian-toast {
+  animation: toast-fade 5s ease forwards;
+  background: rgba(17, 24, 39, 0.9);
+  border-radius: 999px;
+  bottom: 90px;
+  color: #fff;
+  font-size: 13px;
+  left: 50%;
+  padding: 10px 16px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+@keyframes toast-fade {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .days-picker {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
   margin: 8px 0 20px;
 }
 
 .days-picker button {
-  padding: 12px 0;
+  background: #fff;
   border: 1px solid #d9dde3;
   border-radius: 12px;
-  background: #fff;
-  font-size: 15px;
   cursor: pointer;
+  font-size: 15px;
+  padding: 12px 0;
 }
 
 .days-picker button.active {
-  border-color: #2f9e8f; /* 메인 컬러로 교체 */
   background: #e6f6f3;
+  border-color: #2f9e8f; /* 메인 컬러로 교체 */
   color: #1f7a6e;
   font-weight: 600;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.modal-actions button {
-  flex: 1;
-  padding: 12px 0;
-  border: 0;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.modal-actions .danger {
-  background: #f1f3f5;
-  color: #d64545;
-}
-
-.modal-actions .primary {
-  background: #2f9e8f; /* 메인 컬러로 교체 */
-  color: #fff;
-}
-
-.modal-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }

@@ -2,9 +2,9 @@
 -- 예시 데이터(schema.sql)·다른 테스트 데이터와 겹치지 않도록 9100번대 id를 사용한다.
 -- 테스트 트랜잭션 안에서 실행되어 테스트가 끝나면 롤백된다.
 
-INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at) VALUES
-                                                                                                                                (9101, 'completion-test-9101@example.com', 'test-hash', '완료테스트9101', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9102, 'completion-test-9102@example.com', 'test-hash', '완료테스트9102', TRUE, FALSE, NOW(), NOW());
+INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at, last_active_at) VALUES
+                                                                                                                                (9101, 'completion-test-9101@example.com', 'test-hash', '완료테스트9101', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9102, 'completion-test-9102@example.com', 'test-hash', '완료테스트9102', TRUE, FALSE, NOW(), NOW(), NOW());
 
 -- 9101: 복용 중 영양제 / 9102: 복용 중 약 / 9103: 복용 중단 / 9104: 복용 시작일이 미래
 INSERT INTO user_products (user_product_id, user_id, catalog_product_id, product_kind, manual_product_name, registered_via, start_date, is_active, created_at) VALUES

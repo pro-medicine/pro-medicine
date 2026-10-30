@@ -89,7 +89,7 @@ public class GuardianController {
 
     // 안부지킴이 취소
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> remove(
+    public ResponseEntity<Void> remove(
             @CurrentUserId Long userId,
             @PathVariable Long id) {
 

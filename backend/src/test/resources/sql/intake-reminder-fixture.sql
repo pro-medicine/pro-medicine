@@ -2,9 +2,9 @@
 -- 예시 데이터(schema.sql)와 겹치지 않도록 9000번대 id와 별도 이메일·닉네임을 사용한다.
 -- 테스트 트랜잭션 안에서 실행되어 테스트가 끝나면 롤백된다.
 
-INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at) VALUES
-    (9001, 'reminder-test-9001@example.com', 'test-hash', '알림테스트9001', FALSE, FALSE, NOW(), NOW()),
-    (9002, 'reminder-test-9002@example.com', 'test-hash', '알림테스트9002', FALSE, FALSE, NOW(), NOW());
+INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at, last_active_at) VALUES
+    (9001, 'reminder-test-9001@example.com', 'test-hash', '알림테스트9001', FALSE, FALSE, NOW(), NOW(), NOW()),
+    (9002, 'reminder-test-9002@example.com', 'test-hash', '알림테스트9002', FALSE, FALSE, NOW(), NOW(), NOW());
 
 INSERT INTO user_products (user_product_id, user_id, catalog_product_id, product_kind, manual_product_name, registered_via, start_date, is_active, created_at) VALUES
     (9001, 9001, NULL, 'SUPPLEMENT', '테스트 비타민D', 'MANUAL', '2026-01-01', TRUE, NOW()),

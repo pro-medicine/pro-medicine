@@ -76,7 +76,7 @@ public class MySupplementController {
 
     // 본인 영양제 삭제
     @DeleteMapping("/{userProductId}")
-    public ResponseEntity<ApiResponse<Void>> removeMySupplement(
+    public ResponseEntity<Void> removeMySupplement(
             @PathVariable Long userId,
             @PathVariable Long userProductId,
             @CurrentUserId Long currentUserId

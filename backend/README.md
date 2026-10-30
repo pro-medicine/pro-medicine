@@ -15,25 +15,23 @@
 | Redis (선택) | 결과 캐시·큐를 Redis로 쓸 때 | 기본은 메모리. `docker run -d -p 6379:6379 redis:7-alpine` |
 | Docker (선택) | Redis | |
 
-### 시드 (로컬 MySQL에 한 번)
+### DB 준비 (로컬 MySQL)
 
-앱 시작 시 자동으로 넣지 않는다. 새 DB는 `schema.sql`(설문 v1·약물 예시 포함) 실행 후 시드 2개를 순서대로 실행 (모두 예시 데이터):
+1. 서버를 한 번 실행해서 테이블을 만든다 (`ddl-auto: update`). 이미 실행해 둔 DB면 건너뛴다
+2. `docs/sql/AI_SETUP.sql` 하나를 실행한다 (MySQL Workbench에서 파일을 열어 전체 실행해도 된다)
 
-```text
-schema.sql
-docs/sql/STEP06_seed_ingredient_standards.sql
-docs/sql/STEP07_seed_recommendation_rules.sql
+```powershell
+# 각자 PC의 PowerShell (MySQL 클라이언트가 있을 때). Workbench로 실행해도 같다
+mysql -u root -p --default-character-set=utf8mb4 yakssok < backend/docs/sql/AI_SETUP.sql
 ```
 
-`schema.sql`을 쓰지 않는 경우에만 위 STEP06·STEP07 앞에 `docs/sql/STEP02_seed_survey_v1.sql`, `docs/sql/STEP02_seed_drugs.sql`을 먼저 실행한다 (`schema.sql`과 같이 실행하면 PK 중복).
+- AI 테이블 16개(설문, 약물, 성분 기준값, 추천 규칙, AI 추천·맞춤 질문 기록, LLM 호출 로그, 리뷰 제품 추천)를 **지우고 다시 만든 뒤** 기준 데이터를 넣는다. 회원 등 예시 데이터는 넣지 않는다
+- 넣는 데이터: 설문 v1, 약물 마스터, 성분 기준값(2025 한국인 영양소 섭취기준, 성인), 추천 규칙 81개, 리뷰 제품 87개·언급 227·점수 78
+- 다른 팀원 테이블(users, health_profiles, user_*, catalog_products, intake_*, notifications 등)의 데이터는 지우지 않는다. catalog_products에는 리뷰 제품 컬럼·행만 추가된다
+- 실행하면 각자 DB에 쌓인 **설문 응답·AI 추천 기록은 지워진다** (회원 계정·복용 약·질환은 남는다)
+- 여러 번 실행해도 결과가 같다. 예전 `STEP02~18` 파일은 실행하지 않는다 (`docs/sql/archive/`에 기록만 남김)
 
-이미 예전 STEP02·STEP07 시드를 넣은 DB라면 `docs/sql/STEP12_seed_unknown_drug_classes.sql`만 추가로 실행한다 (약 이름 모름 항목·규칙).
-
-**기존 팀원 DB**(예전 `schema.sql`로 만든 DB)는 `docs/sql/STEP13_ai_survey_setup.sql` 하나만 실행하면 된다 (MySQL Workbench 가능). AI 테이블·컬럼과 PK AUTO_INCREMENT를 맞추고, 예전 예시 설문(CONCERN 등)과 그 응답·추천을 지운 뒤 STEP02·06·07(STEP12 포함) 시드를 넣는다. STEP02·06·07·12 시드를 따로 실행할 필요 없고, 여러 번 실행해도 안전하다. 다른 팀원 테이블 데이터는 바꾸지 않는다.
-
-V2 회원 맞춤 질문(STEP 14)을 쓰려면 기존 DB에 이어서 `docs/sql/STEP14_personalized_questions.sql`을 실행한다. **순서: STEP13 → STEP14** (맞춤 질문 회차 테이블 2개, `ai_recommendations.response_id` NULL 허용·`session_id`, `llm_call_logs.session_id`). 여러 번 실행해도 안전하다. 새 DB는 `schema.sql`에 이미 들어 있다.
-
-테이블·컬럼은 `ddl-auto: update`로 자동 반영된다. 공유 DB용 DDL은 `docs/sql/STEPxx_*.sql`, 변경 목록은 [docs/schema-changes.md](docs/schema-changes.md).
+테이블·컬럼은 `ddl-auto: update`로 자동 반영된다. 변경 목록은 [docs/schema-changes.md](docs/schema-changes.md).
 
 ### 서버
 

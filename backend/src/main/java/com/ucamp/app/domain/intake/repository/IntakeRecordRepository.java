@@ -10,6 +10,7 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 // 마이페이지 복용 통계용 조회 (읽기 전용)
@@ -73,4 +74,15 @@ public interface IntakeRecordRepository extends Repository<IntakeRecord, Long> {
             WHERE schedule_id = :scheduleId AND intake_date = :date
             """, nativeQuery = true)
     int deleteRecord(@Param("scheduleId") Long scheduleId, @Param("date") LocalDate date);
+
+    @Query("""
+        SELECT new com.ucamp.app.domain.intake.dto.TakenIntake(r.schedule.scheduleId, r.intakeDate)
+        FROM IntakeRecord r
+        WHERE r.schedule.userProduct.user.id IN :userIds
+          AND r.status = 'TAKEN'
+          AND r.intakeDate BETWEEN :from AND :to
+        """)
+    List<TakenIntake> findTakenIntakesByUserIds(@Param("userIds") Collection<Long> userIds,
+                                                @Param("from") LocalDate from,
+                                                @Param("to") LocalDate to);
 }

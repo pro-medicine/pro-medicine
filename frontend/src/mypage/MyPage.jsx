@@ -9,6 +9,9 @@ import {
 } from "../api/mypageApi";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
+import IntakeCalendar from "../common/IntakeCalendar";
+import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
+import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -52,6 +55,7 @@ function toSupplementCard(item, index) {
 
 export default function ProfileScreen({
     userId,
+    viewerId,
     onUserUpdated,
     friend,
     onBack,
@@ -116,18 +120,25 @@ export default function ProfileScreen({
 
   const reload = () => setRefreshKey((prev) => prev + 1);
 
-  // 내 화면은 API 값, 친구 화면은 기존 예시 데이터
-  const supplements = isMine ? (mySupplementList ?? []) : friend.supplements;
-  // 내 정보 API를 못 불러오면 기존 예시 이름을 보여줌
-  const name = friend?.name ?? user?.nickname ?? "사용자";
+    // 내 영양제는 로그인 사용자 데이터 사용
+    // 친구 영양제는 API 응답을 화면 카드 형태로 변환
+    const supplements = isMine
+        ? (mySupplementList ?? [])
+        : (friend?.supplements ?? []).map(toSupplementCard);
+
+    // 사용자 이름
+    const name = friend?.name ?? user?.nickname ?? "사용자";
+
   const initial = friend?.initial ?? name.charAt(0);
   const avatarColor = friend?.color ?? "yellow";
   // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
-  const streak = isMine ? (stats?.streakDays ?? "-") : friend.streak;
+  const streak = isMine ? (stats?.streakDays ?? "-") : (friend.streak ?? 0);
   const productCount = isMine
     ? (stats?.activeProductCount ?? "-")
-    : supplements.length;
-  const monthlyRate = isMine ? (stats?.monthlyRate ?? "-") : 92;
+    : (friend.supplementCount ?? supplements.length);
+  const monthlyRate = isMine
+    ? (stats?.monthlyRate ?? "-")
+    : (friend.monthlyRate ?? "-");
 
   if (isMine && editing) {
     return (
@@ -257,7 +268,18 @@ export default function ProfileScreen({
           </strong>
         </div>
       </section>
-
+      {isMine ? (
+        <IntakeCalendar fetchDates={getMyCalendar} fetchDay={getMyDayIntakes} />
+      ) : (
+        <IntakeCalendar
+          key={friend.userId}
+          title={`${name}님의 복용 달력`}
+          fetchDates={(s, e) =>
+            getFriendCalendar(viewerId, friend.userId, s, e)
+          }
+          fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
+        />
+      )}
       {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
       {/*{isMine && <NutritionManagement key={refreshKey} />}*/}
       {/*DB에 영양제 정보 등록시 아래 코드로 수정*/}

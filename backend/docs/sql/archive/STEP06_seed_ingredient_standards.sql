@@ -9,3 +9,11 @@ INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, con
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('FOLATE', 'ALL', 19, NULL, NULL, 400, NULL, 'mcg DFE', 'NIH-ODS', 'S-11');
 -- 철분 남성 19-50 (S-16). 상한은 TODO(출처 필요)라 NULL
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('IRON', 'M', 19, 50, NULL, 8, NULL, 'mg', 'NIH-ODS', 'S-16');
+-- 나이아신·비타민 B6 (S-26, S-28, NIH-ODS. KDRI-2025 원문 확보 시 교체). 나이아신 상한 35mg은 보충제 기준 (STEP 16)
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('NIACIN', 'M', 19, NULL, NULL, 16, 35, 'mg NE', 'NIH-ODS', 'S-26');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('NIACIN', 'F', 19, NULL, NULL, 14, 35, 'mg NE', 'NIH-ODS', 'S-26');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B6', 'ALL', 19, 50, NULL, 1.3, 100, 'mg', 'NIH-ODS', 'S-28');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B6', 'M', 51, NULL, NULL, 1.7, 100, 'mg', 'NIH-ODS', 'S-28');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B6', 'F', 51, NULL, NULL, 1.5, 100, 'mg', 'NIH-ODS', 'S-28');
+-- 오메가3 (S-21). 상한 5000mg은 FDA 권고(EPA+DHA 보충제), 권장량 출처가 없어 NULL (STEP 16)
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('OMEGA3', 'ALL', 19, NULL, NULL, NULL, 5000, 'mg', 'NIH-ODS', 'S-21');
