@@ -50,8 +50,9 @@ function namesText(names = []) {
  * - userId: 로그인 사용자 id
  * - refreshKey: 값이 바뀌면 다시 불러옴 (복용 체크 저장 후, 알림 패널을 닫을 때, KST 자정 — App에서 홈과 함께 갱신)
  * - isSample: 홈이 예시 데이터로 표시 중이면 API를 부르지 않고 예시 카드 표시
+ * - showNext: false면 "다음 알림" 칸을 숨김 (홈 타임라인에 다음 알림이 이미 보일 때)
  */
-export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
+export default function IntakeAlarmCard({ userId, refreshKey, isSample, showNext = true }) {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => new Date()); // "N분 뒤" 문구를 1분마다 갱신
@@ -112,6 +113,7 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
       {!errorText && data && (
         <div className="home-alarm-card">
           {/* 다음 알림 */}
+          {showNext && (
           <div className="home-alarm-block">
             <p className="home-alarm-label">다음 알림</p>
             {next ? (
@@ -131,6 +133,7 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample }) {
               </>
             )}
           </div>
+          )}
 
           {/* 이번 주 제시간 복용률 */}
           <div className="home-alarm-block">

@@ -5,6 +5,12 @@ spring:
   ai:
     model:
       chat: openai
+      # V4 대화창 검색 문장 임베딩. 리뷰 언급 벡터와 같은 모델이어야 한다 (chat.embedding.model)
+      embedding: openai
+    openai:
+      embedding:
+        options:
+          model: ${chat.embedding.model:text-embedding-3-small}
     # 추론 강도를 바꾸려면: spring.ai.openai.chat.reasoning-effort (low|medium|high|xhigh|max). 지정하지 않으면 모델 기본값(medium)
 llm:
   provider: spring-ai

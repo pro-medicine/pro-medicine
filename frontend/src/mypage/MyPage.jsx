@@ -60,6 +60,7 @@ export default function ProfileScreen({
   onBack,
   onNotifications,
   topBarActions,
+  startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
 }) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
@@ -70,7 +71,7 @@ export default function ProfileScreen({
   const [supplementError, setSupplementError] = useState(false);
   // 등록·삭제 후 숫자를 올려서 통계·영양관리·영양제 목록을 다시 불러옴
   const [refreshKey, setRefreshKey] = useState(0);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   // 복용 일정을 수정할 내 영양제 (API 응답 1개), null 이면 수정 안 함
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)

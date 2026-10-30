@@ -32,6 +32,7 @@ export default function App() {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
+  const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function App() {
 
   const changeTab = (nextTab) => {
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
+    setMyStartAdding(false);
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -98,7 +100,13 @@ export default function App() {
           <FriendsPage key={friendsKey} onNotifications={openNotifications} />
         );
       case "my":
-        return <MyPage onNotifications={openNotifications} />;
+        return (
+          <MyPage
+            key={myStartAdding ? "my-add" : "my"}
+            startAdding={myStartAdding}
+            onNotifications={openNotifications}
+          />
+        );
       case "disposal":
         return <DisposalMapPage onNotifications={openNotifications} />;
       default:
@@ -108,6 +116,10 @@ export default function App() {
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
             onSurvey={() => setSurveyOpen(true)}
+            onAddSupplement={() => {
+              changeTab("my");
+              setMyStartAdding(true);
+            }}
           />
         );
     }

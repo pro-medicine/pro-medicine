@@ -156,9 +156,33 @@ public class IntakeService {
                     dto.setName(row.getName());
                     dto.setDesc(row.getDesc());
                     dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1); // 먹었으면 true
+                    dto.setMealSlot(row.getMealSlot());
+                    dto.setRemindAt(toHourMinute(row.getRemindAt()));
+                    dto.setCompletedAt(toHourMinute(row.getCompletedAt()));
                     return dto;
                 })
                 .toList();
+    }
+
+    // native query의 시간 값 → "HH:mm" (DB 드라이버에 따라 Time / LocalTime / Timestamp / LocalDateTime 으로 올 수 있음)
+    static String toHourMinute(Object value) {
+        if (value == null) return null;
+        java.time.LocalTime time;
+        if (value instanceof java.time.LocalTime t) {
+            time = t;
+        } else if (value instanceof java.sql.Time t) {
+            time = t.toLocalTime();
+        } else if (value instanceof java.time.LocalDateTime t) {
+            time = t.toLocalTime();
+        } else if (value instanceof java.sql.Timestamp t) {
+            time = t.toLocalDateTime().toLocalTime();
+        } else {
+            String text = value.toString();               // "08:00:00" 또는 "2026-10-29 08:10:00"
+            int split = Math.max(text.indexOf(' '), text.indexOf('T'));
+            if (split >= 0) text = text.substring(split + 1);
+            return text.length() >= 5 ? text.substring(0, 5) : text;
+        }
+        return String.format("%02d:%02d", time.getHour(), time.getMinute());
     }
 
     // 달력 만들기 부분

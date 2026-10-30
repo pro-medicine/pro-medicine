@@ -5,10 +5,11 @@ export const SAMPLE_HOME = {
     userName: "SAMPLE DATA",
     today: "2026-10-25",
     hasUnreadNotifications: true,
+    streakDays: 12,
     supplements: [
-        { id: 1, timing: "아침 식후 1정", name: "얼라이브 원스데일리", desc: "비타민 21종 · 미네랄 7종", color: "#d6b44c", taken: true },
-        { id: 2, timing: "점심 식후 1캡슐", name: "초임계 알티지 오메가3", desc: "EPA+DHA 600mg", color: "#6f99a1", taken: false },
-        { id: 3, timing: "저녁 식전 2캡슐", name: "킬레이트 마그네슘", desc: "마그네슘 200mg", color: "#a68fb8", taken: false },
+        { id: 1, timing: "아침 식후 1정", name: "얼라이브 원스데일리", desc: "비타민 21종 · 미네랄 7종", color: "#d6b44c", taken: true, mealSlot: "BREAKFAST", remindAt: "08:00", completedAt: "08:10" },
+        { id: 2, timing: "점심 식후 1캡슐", name: "초임계 알티지 오메가3", desc: "EPA+DHA 600mg", color: "#6f99a1", taken: false, mealSlot: "LUNCH", remindAt: "12:30", completedAt: null },
+        { id: 3, timing: "저녁 식전 2캡슐", name: "킬레이트 마그네슘", desc: "마그네슘 200mg", color: "#a68fb8", taken: false, mealSlot: "DINNER", remindAt: "18:30", completedAt: null },
     ],
 };
 
