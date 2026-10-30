@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Icon, SupplementCard, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
@@ -21,6 +21,7 @@ import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
 import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
+import { useModalFocus } from "../common/useModalFocus";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -87,6 +88,16 @@ export default function ProfileScreen({
   const [removingId, setRemovingId] = useState(null);
   const [sharing, setSharing] = useState(false);
   const shared = user?.shareIntakeStatus ?? false;
+  const settingsOpenerRef = useRef(null);
+  const settingsPanelRef = useModalFocus(
+    () => setShowSettings(false),
+    settingsOpenerRef,
+  );
+
+  const openSettings = () => {
+    settingsOpenerRef.current = document.activeElement;
+    setShowSettings(true);
+  };
 
   const toggleShare = async () => {
     if (sharing || !user) return;
@@ -241,12 +252,13 @@ export default function ProfileScreen({
         title={isMine ? "마이페이지" : `${name}님의 영양정보`}
         subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
         onNotifications={onNotifications}
-        onSettings={() => setShowSettings(true)}
+        onSettings={isMine ? openSettings : undefined}
         actions={topBarActions}
       />
       {showSettings && (
         <div className="settings-overlay">
           <section
+            ref={settingsPanelRef}
             className="settings-panel"
             role="dialog"
             aria-modal="true"
