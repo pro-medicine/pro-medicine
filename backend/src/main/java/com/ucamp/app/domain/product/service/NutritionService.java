@@ -1,5 +1,7 @@
 package com.ucamp.app.domain.product.service;
 
+import com.ucamp.app.domain.health.entity.HealthProfile;
+import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.product.dto.NutrientIntakeResponse;
 import com.ucamp.app.domain.product.dto.NutritionResponse;
 import com.ucamp.app.domain.product.entity.CatalogProduct;
@@ -23,27 +25,35 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class NutritionService {
 
-    // 예시 제품의 하루 섭취 기준 성분 함량 (예시 데이터, 식약처 연동 시 교체)
-    // 키는 catalog_products.mfds_item_no, 목록에 없는 제품은 계산에서 빠짐
-    private static final Map<String, Map<Nutrient, Integer>> SAMPLE_AMOUNTS = Map.of(
-            "SAMPLE-0001", Map.of(Nutrient.VITAMIN_C, 100, Nutrient.VITAMIN_D, 10,
-                    Nutrient.MAGNESIUM, 80, Nutrient.CALCIUM, 200),
-            "SAMPLE-0002", Map.of(Nutrient.OMEGA3, 600),
-            "SAMPLE-0003", Map.of(Nutrient.MAGNESIUM, 200),
+    // 예시 제품의 하루 섭취 기준 성분 함량 (예시 데이터)
+    // 키는 catalog_products.mfds_item_no, 식약처 제품은 성분 요약에서 함량을 읽음
+    private static final Map<String, Map<Nutrient, Double>> SAMPLE_AMOUNTS = Map.of(
+            "SAMPLE-0001", Map.of(Nutrient.VITAMIN_C, 100.0, Nutrient.VITAMIN_D, 10.0,
+                    Nutrient.MAGNESIUM, 80.0, Nutrient.CALCIUM, 200.0),
+            "SAMPLE-0002", Map.of(Nutrient.OMEGA3, 600.0),
+            "SAMPLE-0003", Map.of(Nutrient.MAGNESIUM, 200.0),
             // 비타민D 2000IU = 50㎍
-            "SAMPLE-0007", Map.of(Nutrient.VITAMIN_D, 50)
+            "SAMPLE-0007", Map.of(Nutrient.VITAMIN_D, 50.0)
     );
 
     private final UserProductRepository userProductRepository;
     private final UserRepository userRepository;
+    private final HealthProfileRepository healthProfileRepository;
 
     public NutritionResponse getNutrition(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
+        //성별에 맞는 권장량을 쓰려고 건강 정보의 성별을 읽음(없으면 null → 남성 값)
+        String gender = null;
+        HealthProfile profile = healthProfileRepository.findById(userId).orElse(null);
+        if(profile != null) {
+            gender = profile.getGender();
+        }
+
         // 1. 먹고 있는 영양제의 성분 함량을 성분별로 더한다
-        Map<Nutrient, Integer> totals = new EnumMap<>(Nutrient.class);
+        Map<Nutrient, Double> totals = new EnumMap<>(Nutrient.class);
         boolean sample = false;
         int unsupportedCount = 0; // 함량 정보가 없어 계산에서 빠진 영양제 수
         for (UserProduct userProduct : userProductRepository.findActiveWithCatalogByUserId(userId)) {
@@ -52,7 +62,7 @@ public class NutritionService {
                 continue;
             }
             CatalogProduct product = userProduct.getCatalogProduct();
-            Map<Nutrient, Integer> amounts = null;
+            Map<Nutrient, Double> amounts = null;
             if (product != null) {
                 // 예시 제품은 예시 함량, 식약처 제품은 성분 요약 글에서 함량을 읽음
                 amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
@@ -67,22 +77,27 @@ public class NutritionService {
                 continue;
             }
             for (Nutrient nutrient : amounts.keySet()) {
-                int before = totals.getOrDefault(nutrient, 0);  // 지금까지 더한 양 (없으면 0)
+                double before = totals.getOrDefault(nutrient, 0.0);  // 지금까지 더한 양 (없으면 0)
                 totals.put(nutrient, before + amounts.get(nutrient));
             }
         }
 
 
-        // 2. 성분마다 권장량 대비 섭취율을 계산한다 (먹는 게 없으면 0)
+        // 2. 먹고 있는 성분마다 권장량 대비 섭취율을 계산한다
         List<NutrientIntakeResponse> nutrients = new ArrayList<>();
         for (Nutrient nutrient : Nutrient.values()) {
-            int intake = totals.getOrDefault(nutrient, 0);
-            int percent = (int) Math.round(intake * 100.0 / nutrient.getRecommendedAmount());
+            //등록한 영양제에 없는 성분은 게이지에 포함하지 않음
+            if(!totals.containsKey(nutrient)){
+                continue;
+            }
+            double intake = round1(totals.get(nutrient));
+            double recommended = nutrient.getRecommendationAmount(gender);
+            int percent = (int) Math.round(intake * 100.0 / recommended);
             nutrients.add(new NutrientIntakeResponse(
                     nutrient.getDisplayName(),
                     nutrient.getUnit(),
                     intake,
-                    nutrient.getRecommendedAmount(),
+                    recommended,
                     percent
             ));
         }
@@ -91,8 +106,8 @@ public class NutritionService {
 
     // 식약처 성분 요약 글을 성분별 함량으로 바꿈
     // 예: "EPA+DHA 530mg, 루테인 20mg" → 오메가3 530 (게이지에 없는 루테인은 건너뜀)
-    private Map<Nutrient, Integer> parseSummary(String summary) {
-        Map<Nutrient, Integer> amounts = new EnumMap<>(Nutrient.class);
+    private Map<Nutrient, Double> parseSummary(String summary) {
+        Map<Nutrient, Double> amounts = new EnumMap<>(Nutrient.class);
         if(summary == null) {
             return amounts;
         }
@@ -101,6 +116,8 @@ public class NutritionService {
             String text = part.trim().replace(",", "").replace("㎎", "mg").replace("μg", "㎍").replace("µg", "㎍").replace("ug", "㎍");
             // 성분 이름은 공백을 없앤 글로 찾음 ("비타민 C" → "비타민C")
             Nutrient nutrient = findNutrient(text.replace(" ", ""));
+            // 단위 뒤에 붙는 표기 떼기 (예: "11mgα-TE" → "11mg", "700㎍RAE" → "700㎍")
+            text = text.replace("α-TE", "").replace("RAE", "").replace("DFE", "").trim();
             // 게이지에 없는 성분이거나, 단위가 게이지 단위와 다르면 건너뜀
             if (nutrient == null || !text.endsWith(nutrient.getUnit())) {
                 continue;
@@ -115,10 +132,10 @@ public class NutritionService {
             if (start == end) {
                 continue;
             }
-            int amount = (int)Math.round(Double.parseDouble(text.substring(start, end)));
+            double amount = Double.parseDouble(text.substring(start, end));
 
             // EPA, DHA처럼 같은 성분이 두 번 나오면 더함
-            int before = amounts.getOrDefault(nutrient, 0);
+            double before = amounts.getOrDefault(nutrient, 0.0);
             amounts.put(nutrient, before + amount);
         }
         return amounts;
@@ -126,17 +143,44 @@ public class NutritionService {
 
     // 성분 이름으로 게이지 성분 찾기 (공백을 없앤 글 기준), 게이지에 없는 성분이면 null
     private Nutrient findNutrient(String text) {
+        if (text.contains("비타민A")) {
+            return Nutrient.VITAMIN_A;
+        }
+        if (text.contains("비타민B12")) {
+            return Nutrient.VITAMIN_B12;
+        }
+        if (text.contains("비타민B1")) {
+            return Nutrient.VITAMIN_B1;
+        }
+        if (text.contains("비타민B2")) {
+            return Nutrient.VITAMIN_B2;
+        }
+        if (text.contains("비타민B6")) {
+            return Nutrient.VITAMIN_B6;
+        }
         if (text.contains("비타민C")) {
             return Nutrient.VITAMIN_C;
         }
         if (text.contains("비타민D")) {
             return Nutrient.VITAMIN_D;
         }
-        if (text.contains("마그네슘")) {
-            return Nutrient.MAGNESIUM;
+        if (text.contains("비타민E")) {
+            return Nutrient.VITAMIN_E;
+        }
+        if (text.contains("엽산")) {
+            return Nutrient.FOLATE;
         }
         if (text.contains("칼슘")) {
             return Nutrient.CALCIUM;
+        }
+        if (text.contains("마그네슘")) {
+            return Nutrient.MAGNESIUM;
+        }
+        if (text.contains("아연")) {
+            return Nutrient.ZINC;
+        }
+        if (text.startsWith("철")) {
+            return Nutrient.IRON;
         }
         if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가")) {
             return Nutrient.OMEGA3;
@@ -144,5 +188,8 @@ public class NutritionService {
         return null;
     }
 
-
+    // 소수 첫째 자리까지 (더하다 생기는 0.30000000000000004 같은 값 정리)
+    private double round1(double value) {
+        return Math.round(value * 10) / 10.0;
+    }
 }
