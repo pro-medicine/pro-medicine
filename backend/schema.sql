@@ -498,8 +498,6 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `PK_AI_RECOMMENDATIONS` PRIMARY 
 ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY (
                                                                                  `schedule_id`
     );
-ALTER TABLE `catalog_products` MODIFY `catalog_product_id` BIGINT NOT NULL AUTO_INCREMENT;
-
 
 ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (
                                                                `survey_id`

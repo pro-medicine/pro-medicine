@@ -182,7 +182,7 @@ public class NutritionService {
         if (text.startsWith("철")) {
             return Nutrient.IRON;
         }
-        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가")) {
+        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가3")) {
             return Nutrient.OMEGA3;
         }
         return null;
