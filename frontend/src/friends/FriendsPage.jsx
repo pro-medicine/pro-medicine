@@ -29,7 +29,8 @@ function toFriend(item, index) {
   };
 }
 
-export default function FriendsPage({ onNotifications }) {
+// openFriendUserId: 알림의 "친구 보기"로 들어오면 그 친구 상세부터 보여줌
+export default function FriendsPage({ onNotifications, openFriendUserId = null }) {
   // TODO: 로그인 연동 후 실제 사용자 id
   const userId = 1;
 
@@ -37,7 +38,9 @@ export default function FriendsPage({ onNotifications }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedFriend, setSelectedFriend] = useState(null); // 추가
+  const [selectedFriend, setSelectedFriend] = useState(
+    openFriendUserId ? { userId: openFriendUserId } : null,
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);

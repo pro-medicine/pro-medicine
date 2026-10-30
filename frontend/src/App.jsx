@@ -28,6 +28,7 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [friendTarget, setFriendTarget] = useState(null); // 알림에서 바로 열 친구 상세 (친구 userId)
   const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
@@ -88,16 +89,31 @@ export default function App() {
 
   const changeTab = (nextTab) => {
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
+    setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // 알림 패널의 버튼 → 해당 화면으로 이동 (안부지킴이: 친구 상세 / 복용 알림: 홈)
+  const navigateFromNotification = ({ tab: nextTab, friendUserId }) => {
+    setNotificationsOpen(false);
+    changeTab(nextTab);
+    if (friendUserId) {
+      setFriendTarget(friendUserId);
+      setFriendsKey((k) => k + 1); // 친구 화면을 새로 열어서 바로 상세로
+    }
   };
 
   const renderContent = () => {
     switch (tab) {
       case "friends":
         return (
-          <FriendsPage key={friendsKey} onNotifications={openNotifications} />
+          <FriendsPage
+            key={friendsKey}
+            openFriendUserId={friendTarget}
+            onNotifications={openNotifications}
+          />
         );
       case "my":
         return (
@@ -163,6 +179,7 @@ export default function App() {
           refreshKey={homeRefreshKey}
           onRead={() => setHomeRefreshKey((key) => key + 1)}
           onClose={closeNotifications}
+          onNavigate={navigateFromNotification}
         />
       )}
     </div>

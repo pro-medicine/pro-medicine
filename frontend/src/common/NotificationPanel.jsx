@@ -5,7 +5,6 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "../api/notificationApi";
-import { Icon } from "../shared/ui";
 
 // 탭: 전체 / 내 복용 / 친구 소식 (백엔드 NotificationCategory와 같은 값)
 const TABS = [
@@ -14,11 +13,67 @@ const TABS = [
   { id: "FRIEND", label: "친구 소식", category: "FRIEND" },
 ];
 
-// 알림 종류(category)별 표시 이름과 아이콘
-const CATEGORY_VIEW = {
-  INTAKE: { label: "복용 알림", icon: "clock" },
-  FRIEND: { label: "친구 소식", icon: "people" },
+// 알림 종류(type)별 표시 이름 · 아이콘 · 색 (#67 알림 시안 B)
+const TYPE_PATHS = {
+  pill: (
+    <>
+      <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+      <path d="m8.5 8.5 7 7" />
+    </>
+  ),
+  check: <path d="m5 12 4 4L19 6" />,
+  userPlus: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" />
+    </>
+  ),
+  people: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="M12 8v4M12 16h.01" />
+    </>
+  ),
 };
+const TYPE_VIEW = {
+  INTAKE_REMINDER: { label: "복용 알림", icon: "pill", tone: "mint" },
+  FRIEND_GOAL_ACHIEVED: { label: "친구 완료", icon: "check", tone: "green" },
+  NEW_FOLLOWER: { label: "친구 신청", icon: "userPlus", tone: "blue" },
+  FOLLOW_ACCEPTED: { label: "친구 수락", icon: "people", tone: "purple" },
+  GUARDIAN: { label: "안부지킴이", icon: "shield", tone: "red" },
+};
+// type이 없거나 모르는 값이면 category로 대신
+const CATEGORY_FALLBACK = {
+  INTAKE: TYPE_VIEW.INTAKE_REMINDER,
+  FRIEND: { label: "친구 소식", icon: "people", tone: "purple" },
+};
+const viewOf = (item) => TYPE_VIEW[item.type] ?? CATEGORY_FALLBACK[item.category] ?? CATEGORY_FALLBACK.INTAKE;
+
+function TypeIcon({ item, solid = false, size = 40 }) {
+  const view = viewOf(item);
+  return (
+    <span
+      className={`noti-icon is-${view.tone}${solid ? " is-solid" : ""}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <svg width={Math.round(size * 0.46)} height={Math.round(size * 0.46)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {TYPE_PATHS[view.icon]}
+      </svg>
+    </span>
+  );
+}
+
+// "2026-10-30T12:30:00" → 오늘(KST) 알림인지, "12:30"
+const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+const isToday = (createdAt) => (createdAt ?? "").slice(0, 10) === todayKey();
+const hourMinute = (createdAt) => (createdAt ?? "").slice(11, 16);
 
 /**
  * 알림 시각을 "방금", "10분 전", "3시간 전", "어제", "3일 전", "10월 20일"로 바꾼다.
@@ -50,7 +105,7 @@ function timeAgo(createdAt, now = new Date()) {
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose }) {
+export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose, onNavigate }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
@@ -106,7 +161,7 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
     }));
   };
 
-  // 알림 하나 클릭 → 안 읽은 알림이면 읽음 처리
+  // 알림 하나 읽음 처리 (안 읽은 알림만)
   const handleItemClick = async (item) => {
     const id = item.notificationId;
     if (item.read || pendingIdsRef.current.has(id)) return; // 이미 읽음 또는 요청 중
@@ -122,6 +177,22 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
       pendingIdsRef.current.delete(id);
     }
   };
+
+  // 상단 고정 카드의 버튼: 읽음 처리 후 해당 화면으로 이동 (패널은 App이 닫음)
+  const readAndGo = (item, target) => {
+    handleItemClick(item);
+    onNavigate?.(target);
+  };
+
+  // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
+  // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
+  // - 오늘 복용 알림: 지금 먹을 영양제 → 민트 카드
+  const items = result.items;
+  const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
+  const intakeAlert =
+    tab !== "FRIEND" ? items.find((i) => !i.read && i.type === "INTAKE_REMINDER" && isToday(i.createdAt)) : null;
+  const pinnedIds = [guardianAlert, intakeAlert].filter(Boolean).map((i) => i.notificationId);
+  const others = items.filter((i) => !pinnedIds.includes(i.notificationId));
 
   // Esc 키로 닫기 (패널 바깥을 눌러도 닫힘)
   useEffect(() => {
@@ -186,14 +257,57 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
           {!loading && result.error && (
             <p className="notification-state">{result.error}</p>
           )}
-          {!loading && !result.error && result.items.length === 0 && (
+          {!loading && !result.error && items.length === 0 && (
             <p className="notification-state">새로운 알림이 없어요</p>
           )}
 
+          {/* 중요 알림 상단 고정 */}
+          {!loading && !result.error && guardianAlert && (
+            <section className="noti-pin is-guardian" aria-label="안부 확인이 필요한 알림">
+              <div className="noti-pin-body">
+                <TypeIcon item={guardianAlert} solid />
+                <div>
+                  <span className="noti-pin-label">안부 확인이 필요해요</span>
+                  <p>{guardianAlert.title}</p>
+                  <span className="notification-meta">{timeAgo(guardianAlert.createdAt)}</span>
+                </div>
+              </div>
+              <div className="noti-pin-actions">
+                {guardianAlert.actorUserId && (
+                  <button
+                    type="button"
+                    className="is-primary"
+                    onClick={() => readAndGo(guardianAlert, { tab: "friends", friendUserId: guardianAlert.actorUserId })}
+                  >
+                    친구 보기
+                  </button>
+                )}
+                <button type="button" onClick={() => handleItemClick(guardianAlert)}>
+                  나중에
+                </button>
+              </div>
+            </section>
+          )}
+          {!loading && !result.error && intakeAlert && (
+            <section className="noti-pin is-intake" aria-label="지금 먹을 영양제 알림">
+              <TypeIcon item={intakeAlert} solid />
+              <div className="noti-pin-text">
+                <p>{intakeAlert.title}</p>
+                <span className="notification-meta">{hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요</span>
+              </div>
+              <button type="button" onClick={() => readAndGo(intakeAlert, { tab: "home" })}>
+                체크하기
+              </button>
+            </section>
+          )}
+
+          {!loading && !result.error && pinnedIds.length > 0 && others.length > 0 && (
+            <h3 className="noti-section-title">다른 소식</h3>
+          )}
           {!loading &&
             !result.error &&
-            result.items.map((item) => {
-              const view = CATEGORY_VIEW[item.category] ?? CATEGORY_VIEW.INTAKE;
+            others.map((item) => {
+              const view = viewOf(item);
               const unread = !item.read;
               return (
                 <article
@@ -201,6 +315,7 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
                   key={item.notificationId}
                   role="button"
                   tabIndex={0}
+                  aria-label={`${view.label}: ${item.title}${unread ? ", 안 읽음" : ""}`}
                   onClick={() => handleItemClick(item)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -209,9 +324,7 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
                     }
                   }}
                 >
-                  <span className={`notification-type-icon ${view.icon}`}>
-                    <Icon name={view.icon} size={19} />
-                  </span>
+                  <TypeIcon item={item} size={36} />
                   <div>
                     <h3>{item.title}</h3>
                     <span className="notification-meta">
