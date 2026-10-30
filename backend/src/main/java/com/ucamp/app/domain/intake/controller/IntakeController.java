@@ -1,6 +1,7 @@
 package com.ucamp.app.domain.intake.controller;
 
 import com.ucamp.app.domain.intake.dto.IntakeRequest;
+import com.ucamp.app.domain.intake.dto.DayProgress;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
@@ -84,4 +85,16 @@ public class IntakeController {
                 .body(ApiResponse.success(intakeService.getCompletedDates(userId, start, end)));
     }
 
+    // 마이페이지 달력 진행 링: 날짜별 { date, expected(먹어야 할 수), taken(먹은 수) } (오늘까지만)
+    @GetMapping("/calendar/progress")
+    public ResponseEntity<ApiResponse<List<DayProgress>>> getCalendarProgress(
+            @CurrentUserId Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    ) {
+        requireLogin(userId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success(intakeService.getDailyProgress(userId, start, end)));
+    }
 }

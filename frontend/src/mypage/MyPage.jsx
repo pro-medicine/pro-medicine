@@ -11,7 +11,8 @@ import {
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
-import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
+import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
+import MyStats from "./MyStats";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
@@ -237,32 +238,36 @@ export default function ProfileScreen({
         }
       />
 
-      {/* 통계 3칸 */}
-      <section className="stats-grid">
-        <div>
-          <span>연속 복용</span>
-          <strong>
-            {streak}
-            <small>일</small>
-          </strong>
-        </div>
-        <div>
-          <span>복용 영양제</span>
-          <strong>
-            {productCount}
-            <small>개</small>
-          </strong>
-        </div>
-        <div>
-          <span>이번 달 달성률</span>
-          <strong>
-            {monthlyRate}
-            <small>%</small>
-          </strong>
-        </div>
-      </section>
+      {/* 내 화면: 그래프 통계 카드 3개 / 친구 화면: 숫자 통계 3칸 */}
       {isMine ? (
-        <IntakeCalendar fetchDates={getMyCalendar} fetchDay={getMyDayIntakes} />
+        <MyStats stats={stats} />
+      ) : (
+        <section className="stats-grid">
+          <div>
+            <span>연속 복용</span>
+            <strong>
+              {streak}
+              <small>일</small>
+            </strong>
+          </div>
+          <div>
+            <span>복용 영양제</span>
+            <strong>
+              {productCount}
+              <small>개</small>
+            </strong>
+          </div>
+          <div>
+            <span>이번 달 달성률</span>
+            <strong>
+              {monthlyRate}
+              <small>%</small>
+            </strong>
+          </div>
+        </section>
+      )}
+      {isMine ? (
+        <IntakeCalendar fetchProgress={getMyCalendarProgress} fetchDay={getMyDayIntakes} />
       ) : (
         <IntakeCalendar
           key={friend.userId}

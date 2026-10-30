@@ -784,3 +784,209 @@
     width: 100%;
   }
 }
+
+/* ───────── 내 통계 카드 3개 (#67 마이페이지 시안 B) ───────── */
+.my-stats {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1.25fr 1.25fr;
+}
+
+.my-stat-card {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px 26px;
+}
+
+.my-stat-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.my-stat-big {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.my-stat-big small {
+  color: var(--faint);
+  font-size: 15px;
+  font-weight: 600;
+  margin-left: 3px;
+}
+
+.my-stat-top {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 연속 복용 */
+.my-stat-streak {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 12px;
+}
+
+.my-stat-best {
+  align-items: center;
+  background: var(--streak-soft);
+  border-radius: 999px;
+  color: var(--streak);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 4px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.my-stat-message {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: auto 0 0;
+  white-space: pre-line;
+}
+
+/* 이번 주: 요일 막대 */
+.my-week-bars {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.my-week-bar {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.my-week-track {
+  align-items: flex-end;
+  display: flex;
+  height: 90px;
+  justify-content: center;
+  width: 100%;
+}
+
+.my-week-track span {
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: block;
+  height: 6px;
+  transition: height 0.5s ease;
+  width: 22px;
+}
+
+.my-week-bar.is-full .my-week-track span {
+  background: var(--primary);
+}
+
+.my-week-bar.is-part .my-week-track span {
+  background: #8fd3b6;
+}
+
+/* 하나도 못 먹은 날 / 먹을 영양제가 없던 날: 바닥에 얇은 회색 */
+.my-week-bar.is-zero .my-week-track span,
+.my-week-bar.is-none .my-week-track span {
+  background: var(--line);
+}
+
+/* 오늘 이후: 점선 */
+.my-week-bar.is-future .my-week-track span {
+  border: 1.5px dashed #d5dbd8;
+  height: 90px;
+}
+
+.my-week-bar em {
+  color: var(--faint);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.my-week-bar.is-today em {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* 이번 달: 주차별 꺾은선 */
+.my-month-chart {
+  display: block;
+  margin-top: 10px;
+  overflow: visible;
+  width: 100%;
+}
+
+.my-month-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.my-month-dot {
+  fill: var(--primary);
+  stroke: var(--primary);
+  stroke-width: 2.5;
+}
+
+.my-month-dot.is-current {
+  fill: var(--white);
+}
+
+.my-month-labels {
+  display: flex;
+}
+
+.my-month-labels span {
+  color: var(--faint);
+  flex: 1;
+  font-size: 12px;
+  text-align: center;
+}
+
+.my-month-labels span.is-current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.my-month-empty {
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: auto 0 0;
+  padding-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .my-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .my-stats > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .my-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-week-track span {
+    transition: none;
+  }
+}
