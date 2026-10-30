@@ -1141,3 +1141,39 @@
     display: none;
   }
 }
+
+/* 좁은 화면: 내 마이페이지는 다른 화면처럼 프로필 편집·알림 버튼을 오른쪽 위에 둔다 (줄바꿈하지 않음) */
+@media (max-width: 620px) {
+  .profile-screen.is-mine .app-header {
+    flex-wrap: nowrap;
+  }
+
+  .profile-screen.is-mine .header-title-row {
+    gap: 12px;
+  }
+
+  /* 폭이 좁아서 "건강한 하루를 만드는 중" 문구는 숨기고 이름만 */
+  .profile-screen.is-mine .header-title-row > div > span {
+    display: none;
+  }
+
+  .profile-screen.is-mine .avatar.xlarge {
+    font-size: 18px;
+    height: 48px;
+    margin-right: 0;
+    width: 48px;
+  }
+
+  .profile-screen.is-mine .header-actions {
+    align-self: flex-start;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .profile-screen.is-mine .header-actions .btn {
+    font-size: 13px;
+    height: 38px;
+    padding: 0 14px;
+  }
+}

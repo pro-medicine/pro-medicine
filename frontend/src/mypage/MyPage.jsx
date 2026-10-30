@@ -202,7 +202,7 @@ export default function ProfileScreen({
   };
 
   return (
-    <div className="screen profile-screen">
+    <div className={`screen profile-screen${isMine ? " is-mine" : ""}`}>
       {/* 머리: 큰 아바타 + 이름(화면 제목) + 오른쪽 버튼 (내 화면: 프로필 편집 / 친구: 안부지킴이·삭제) */}
       <TopBar
         back={onBack}
