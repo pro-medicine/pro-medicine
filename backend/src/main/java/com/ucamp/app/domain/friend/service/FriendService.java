@@ -35,23 +35,30 @@ public class FriendService {
     private final IntakeService intakeService;
     private final MySupplementService mySupplementService;
 
+
     public List<FriendResponse> getFriends(Long userId) {
         List<Follow> follows = followRepository
-                .findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
-        List<Long> friendIds = follows.stream().map(Follow::getFollowingId).toList();
-
+                .findByFollowerIdAndStatusOrderByFollowIdDesc(
+                        userId, FollowStatus.ACCEPTED);
+        List<Long> friendIds = follows.stream()
+                .map(Follow::getFollowingId)
+                .toList();
         Map<Long, User> users = userRepository.findAllById(friendIds).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
-        Set<Long> sharedIds = users.values().stream()
-                .filter(User::isShareIntakeStatus).map(User::getId).collect(Collectors.toSet());
-        Map<Long, Integer> streaks = intakeService.getStreakDays(sharedIds);
+        Map<Long, Integer> streaks = intakeService.getStreakDays(
+                users.values().stream()
+                        .filter(User::isShareIntakeStatus)
+                        .map(User::getId)
+                        .collect(Collectors.toSet())
+        );
         return follows.stream()
                 .filter(f -> users.containsKey(f.getFollowingId()))
-                .map(f -> FriendResponse.of(
-                        f.getFollowId(),
-                        users.get(f.getFollowingId()),
-                        sharedIds.contains(f.getFollowingId()),
-                        streaks.getOrDefault(f.getFollowingId(), 0)))
+                .map(f -> {
+                    Long friendId = f.getFollowingId();
+                    boolean mutual = followRepository.existsByFollowerIdAndFollowingIdAndStatus(friendId, userId, FollowStatus.ACCEPTED);
+                    return FriendResponse.of(f.getFollowId(), users.get(friendId), mutual, streaks.getOrDefault(friendId, 0)
+                    );
+                })
                 .toList();
     }
 
