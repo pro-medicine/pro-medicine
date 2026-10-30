@@ -13,6 +13,7 @@ import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
 import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
 import MyStats from "./MyStats";
+import SupplementGroups from "./SupplementGroups";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
@@ -294,46 +295,17 @@ export default function ProfileScreen({
           {!isMine && supplements.length === 0 && (
             <p className="section-description">아직 등록된 영양제가 없어요.</p>
           )}
-          <ul className="product-list">
-            {supplements.map((supplement) => (
-              <li className="product-row" key={supplement.id}>
-                <div className="product-row-main">
-                  <strong>{supplement.name}</strong>
-                  <small>
-                    {[supplement.brand, supplement.amount, supplement.price]
-                      .filter((v) => v && v !== "-")
-                      .join(" · ")}
-                  </small>
-                </div>
-                <span className="chip gray">{supplement.category}</span>
-                <span className="product-row-time">{supplement.time}</span>
-                {isMine && (
-                  <span className="product-row-actions">
-                    <button
-                      type="button"
-                      title="복용 일정 수정"
-                      aria-label={`${supplement.name} 복용 일정 수정`}
-                      onClick={() => {
-                        setScheduleTarget(supplement.raw);
-                        window.scrollTo({ top: 0 });
-                      }}
-                    >
-                      <Icon name="pencil" size={17} />
-                    </button>
-                    <button
-                      type="button"
-                      title="삭제"
-                      aria-label={`${supplement.name} 삭제`}
-                      disabled={removingId === supplement.id}
-                      onClick={() => removeSupplement(supplement)}
-                    >
-                      <Icon name="trash" size={17} />
-                    </button>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          {/* 아침 · 점심 · 저녁 시간대별 묶음 (#67 영양제 시안 B) */}
+          <SupplementGroups
+            supplements={supplements}
+            isMine={isMine}
+            removingId={removingId}
+            onEdit={(supplement) => {
+              setScheduleTarget(supplement.raw);
+              window.scrollTo({ top: 0 });
+            }}
+            onRemove={removeSupplement}
+          />
         </section>
       </div>
     </div>
