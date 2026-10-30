@@ -5,7 +5,7 @@ import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
 import RecommendBanner from "./RecommendBanner";
 import IntakeAlarmCard from "./IntakeAlarmCard";
-import { AllDoneCard, EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
+import { EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
 import "./home.css";
 import { useEffect, useRef, useState } from "react";
 
@@ -145,7 +145,6 @@ export default function HomePage({
         {/* 넓은 화면: 왼쪽(오늘 먹을 영양제·추천 배너) + 오른쪽(오늘의 약속·복용 알림) */}
         <div className="home-columns">
           <div className="home-main">
-            {total > 0 && done === total && <AllDoneCard streakDays={shownStreak} />}
             {total === 0 && !isSample ? (
               <EmptySupplements onAdd={onAddSupplement} />
             ) : (
