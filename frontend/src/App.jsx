@@ -5,7 +5,6 @@ import {
   subscribeNotifications,
 } from "./api/notificationApi";
 import NotificationToast from "./common/NotificationToast";
-import DevNotificationTester from "./common/DevNotificationTester";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -205,9 +204,6 @@ export default function App() {
       <BottomNav tab={tab} onChange={changeTab} />
 
       {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
-
-      {/* 개발 중에만: 새 알림 팝업 테스트 버튼 (빌드에는 포함되지 않음) */}
-      {import.meta.env.DEV && <DevNotificationTester userId={userId} onFake={setToast} />}
 
       {toast && (
         <NotificationToast
