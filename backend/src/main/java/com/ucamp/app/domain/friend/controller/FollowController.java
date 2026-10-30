@@ -55,7 +55,4 @@ public class FollowController {
         followService.cancel(userId, followId);
         return ResponseEntity.noContent().build();
     }
-
-
-
 }

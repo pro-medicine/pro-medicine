@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Icon, SupplementCard, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
@@ -7,12 +7,21 @@ import {
   fetchUser,
   MY_USER_ID,
   removeMySupplement,
+  updateShareIntake,
 } from "../api/mypageApi";
+import {
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  updateCalendarEventStatus,
+} from "../api/calendarEventApi";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
 import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
+import { useModalFocus } from "../common/useModalFocus";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -54,6 +63,32 @@ function toSupplementCard(item, index) {
   };
 }
 
+function SettingsModal({ onClose, openerRef, children }) {
+  const panelRef = useModalFocus(onClose, openerRef);
+
+  return (
+    <div className="settings-overlay">
+      <section
+        ref={panelRef}
+        className="settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabIndex={-1}
+      >
+        <div className="settings-header">
+          <h2 id="settings-title">설정</h2>
+          <button type="button" aria-label="설정 닫기" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {children}
+      </section>
+    </div>
+  );
+}
+
 export default function ProfileScreen({
   friend,
   viewerId,
@@ -63,6 +98,8 @@ export default function ProfileScreen({
 }) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const hidden = !isMine && friend.shared === false;
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(null);
   // 내 영양제 카드 목록, null 이면 아직 불러오는 중
@@ -75,7 +112,30 @@ export default function ProfileScreen({
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
+  const [sharing, setSharing] = useState(false);
+  const shared = user?.shareIntakeStatus ?? false;
+  const settingsOpenerRef = useRef(null);
 
+  const openSettings = () => {
+    settingsOpenerRef.current = document.activeElement;
+    setShowSettings(true);
+  };
+
+  const toggleShare = async () => {
+    if (sharing || !user) return;
+    setSharing(true);
+    try {
+      const updated = await updateShareIntake(MY_USER_ID, !shared);
+      setUser((prev) => ({
+        ...prev,
+        shareIntakeStatus: updated.shareIntakeStatus,
+      }));
+    } catch (e) {
+      window.alert(e.message || "공개 설정을 바꾸지 못했어요.");
+    } finally {
+      setSharing(false);
+    }
+  };
   useEffect(() => {
     if (!isMine) return;
     // 다시 불러오기(refreshKey 변경)로 이 effect가 다시 실행되면 true가 된다
@@ -214,9 +274,40 @@ export default function ProfileScreen({
         title={isMine ? "마이페이지" : `${name}님의 영양정보`}
         subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
         onNotifications={onNotifications}
+        onSettings={isMine ? openSettings : undefined}
         actions={topBarActions}
       />
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          openerRef={settingsOpenerRef}
+        >
+          {isMine && (
+            <section className="share-setting">
+              <div>
+                <strong>친구에게 복용 현황 공개</strong>
+                <small>
+                  {shared
+                    ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
+                    : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
+                </small>
+              </div>
 
+              <button
+                type="button"
+                role="switch"
+                aria-checked={shared}
+                aria-label="친구에게 복용 현황 공개"
+                className={`switch ${shared ? "on" : ""}`}
+                disabled={sharing || !user}
+                onClick={toggleShare}
+              >
+                <span />
+              </button>
+            </section>
+          )}
+        </SettingsModal>
+      )}
       <section
         className={isMine ? "profile-hero clickable" : "profile-hero"}
         onClick={isMine ? openEdit : undefined}
@@ -233,42 +324,56 @@ export default function ProfileScreen({
           </button>
         )}
       </section>
-
-      <section className="stats-grid">
-        <div>
-          <span>연속 복용</span>
-          <strong>
-            {streak}
-            <small>일</small>
-          </strong>
-        </div>
-        <div>
-          <span>복용 영양제</span>
-          <strong>
-            {productCount}
-            <small>개</small>
-          </strong>
-        </div>
-        <div>
-          <span>이번 달 달성률</span>
-          <strong>
-            {monthlyRate}
-            <small>%</small>
-          </strong>
-        </div>
-      </section>
-      {isMine ? (
-        <IntakeCalendar fetchDates={getMyCalendar} fetchDay={getMyDayIntakes} />
+      {hidden ? (
+        <p className="share-hidden">
+          {name}님이 복용 현황을 공개하지 않았어요.
+        </p>
       ) : (
-        <IntakeCalendar
-          key={friend.userId}
-          title={`${name}님의 복용 달력`}
-          fetchDates={(s, e) =>
-            getFriendCalendar(viewerId, friend.userId, s, e)
-          }
-          fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
-        />
+        <section className="stats-grid">
+          <div>
+            <span>연속 복용</span>
+            <strong>
+              {streak}
+              <small>일</small>
+            </strong>
+          </div>
+          <div>
+            <span>복용 영양제</span>
+            <strong>
+              {productCount}
+              <small>개</small>
+            </strong>
+          </div>
+          <div>
+            <span>이번 달 달성률</span>
+            <strong>
+              {monthlyRate}
+              <small>%</small>
+            </strong>
+          </div>
+        </section>
       )}
+      {!hidden &&
+        (isMine ? (
+          <IntakeCalendar
+            fetchDates={getMyCalendar}
+            fetchDay={getMyDayIntakes}
+            fetchEvents={getCalendarEvents}
+            createEvent={createCalendarEvent}
+            updateEvent={updateCalendarEvent}
+            updateEventStatus={updateCalendarEventStatus}
+            deleteEvent={deleteCalendarEvent}
+          />
+        ) : (
+          <IntakeCalendar
+            key={friend.userId}
+            title={`${name}님의 복용 달력`}
+            fetchDates={(s, e) =>
+              getFriendCalendar(viewerId, friend.userId, s, e)
+            }
+            fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
+          />
+        ))}
       {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
       {isMine && <NutritionManagement key={refreshKey} />}
 
@@ -300,39 +405,45 @@ export default function ProfileScreen({
         {isMine && !supplementError && mySupplementList?.length === 0 && (
           <p className="section-description">아직 등록된 영양제가 없어요.</p>
         )}
-        <div className="product-grid">
-          {supplements.map((supplement) =>
-            isMine ? (
-              // 공용 SupplementCard 는 그대로 두고, 바깥을 감싸서 삭제 버튼만 얹음
-              <div className="supplement-card-wrap" key={supplement.id}>
-                <SupplementCard supplement={supplement} />
-                {/* 카드 오른쪽 위: 수정(복용 일정) / 삭제 */}
-                <div className="supplement-card-actions">
-                  <button
-                    type="button"
-                    aria-label={`${supplement.name} 복용 일정 수정`}
-                    onClick={() => {
-                      setScheduleTarget(supplement.raw);
-                      window.scrollTo({ top: 0 });
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${supplement.name} 삭제`}
-                    disabled={removingId === supplement.id}
-                    onClick={() => removeSupplement(supplement)}
-                  >
-                    삭제
-                  </button>
+        {hidden ? (
+          <p className="share-hidden">
+            {name}님이 복용 현황을 공개하지 않았어요.
+          </p>
+        ) : (
+          <div className="product-grid">
+            {supplements.map((supplement) =>
+              isMine ? (
+                // 공용 SupplementCard 는 그대로 두고, 바깥을 감싸서 삭제 버튼만 얹음
+                <div className="supplement-card-wrap" key={supplement.id}>
+                  <SupplementCard supplement={supplement} />
+                  {/* 카드 오른쪽 위: 수정(복용 일정) / 삭제 */}
+                  <div className="supplement-card-actions">
+                    <button
+                      type="button"
+                      aria-label={`${supplement.name} 복용 일정 수정`}
+                      onClick={() => {
+                        setScheduleTarget(supplement.raw);
+                        window.scrollTo({ top: 0 });
+                      }}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${supplement.name} 삭제`}
+                      disabled={removingId === supplement.id}
+                      onClick={() => removeSupplement(supplement)}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <SupplementCard key={supplement.id} supplement={supplement} />
-            ),
-          )}
-        </div>
+              ) : (
+                <SupplementCard key={supplement.id} supplement={supplement} />
+              ),
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

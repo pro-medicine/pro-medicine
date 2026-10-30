@@ -9,6 +9,7 @@ import java.util.List;
 public record FriendDetailResponse(
         Long userId,
         String nickname,
+        boolean shared,
         int streak,
         int monthlyRate,
         int supplementCount,
@@ -21,9 +22,14 @@ public record FriendDetailResponse(
         return new FriendDetailResponse(
                 friend.getId(),
                 friend.getNickname(),
+                true,
                 stats.streakDays(),
                 stats.monthlyRate(),
                 supplements.size(),
                 supplements);
+    }
+
+    public static FriendDetailResponse hidden(User friend) {
+        return new FriendDetailResponse(friend.getId(), friend.getNickname(), false, 0, 0, 0, List.of());
     }
 }

@@ -14,6 +14,7 @@ services:
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ./backend/docs/sql/STEP09_proposal_notification_dedup.sql:/docker-entrypoint-initdb.d/02_notification_dedup.sql
       - ./backend/docs/sql/AI_SETUP.sql:/docker-entrypoint-initdb.d/03_ai_setup.sql
+      - ./backend/docs/sql/AI_SETUP_2.sql:/docker-entrypoint-initdb.d/04_ai_setup_2.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s

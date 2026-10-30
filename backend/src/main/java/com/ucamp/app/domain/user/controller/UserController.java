@@ -1,9 +1,11 @@
 package com.ucamp.app.domain.user.controller;
 
 import com.ucamp.app.domain.user.dto.NicknameUpdateRequest;
+import com.ucamp.app.domain.user.dto.ShareIntakeRequest;
 import com.ucamp.app.domain.user.dto.UserResponse;
 import com.ucamp.app.domain.user.service.UserService;
 import com.ucamp.app.global.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,5 +32,13 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> changeNickname(@PathVariable Long userId,
                                                                     @RequestBody NicknameUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.changeNickname(userId, request.nickname())));
+    }
+
+    @PatchMapping("/{userId}/share-intake")
+    public ResponseEntity<ApiResponse<UserResponse>> changeShareIntake(
+            @PathVariable Long userId,
+            @Valid @RequestBody ShareIntakeRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.changeShareIntakeStatus(userId, request.shared())));
     }
 }
