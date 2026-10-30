@@ -23,6 +23,9 @@ DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `intake_records`;
 DROP TABLE IF EXISTS `intake_schedules`;
 DROP TABLE IF EXISTS `user_products`;
+DROP TABLE IF EXISTS `review_product_scores`;
+DROP TABLE IF EXISTS `review_mentions`;
+DROP TABLE IF EXISTS `product_ingredients`;
 DROP TABLE IF EXISTS `catalog_products`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
@@ -102,7 +105,71 @@ CREATE TABLE `catalog_products` (
                                     `ingredient_summary`   VARCHAR(255)   NULL,
                                     `package_size`   VARCHAR(100)   NULL,
                                     `price`   INT   NULL,
-                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+    -- STEP 17: 리뷰 제품 추천 (V3). 주연님 검색·상세는 이 컬럼을 쓰지 않는다
+                                    `name_ko`   VARCHAR(255)   NULL   COMMENT '화면 표시용 한글 이름. 없으면 product_name',
+                                    `brand`   VARCHAR(255)   NULL,
+                                    `data_source`   VARCHAR(20)   NOT NULL   DEFAULT 'SAMPLE'   COMMENT 'DSLD, MFDS, MANUAL, SAMPLE',
+                                    `external_id`   VARCHAR(64)   NULL   COMMENT 'DSLD 라벨 ID / 품목제조신고번호',
+                                    `is_active`   BOOLEAN   NOT NULL   DEFAULT TRUE   COMMENT '단종·비노출이면 FALSE',
+                                    `blocked_kr`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '국내 반입 차단 성분(멜라토닌 등) 포함',
+                                    `image_key`   VARCHAR(500)   NULL   COMMENT 'S3 키 (리팩토링 때 사용)',
+                                    `updated_at`   DATETIME   NULL   COMMENT '리뷰 데이터 import 시각',
+                                    UNIQUE KEY `uk_catalog_products_source_external` (`data_source`, `external_id`)
+);
+
+-- 리뷰 제품 추천 (STEP 17). 서버는 읽기만 하고 월 1회 SQL import로 채운다. ingredient_code = IngredientCode 24개 + OTHER
+CREATE TABLE `product_ingredients` (
+                                       `product_ingredient_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                       `catalog_product_id`   BIGINT   NOT NULL,
+                                       `ingredient_code`   VARCHAR(30)   NOT NULL   COMMENT 'IngredientCode 24개 또는 OTHER',
+                                       `ingredient_name`   VARCHAR(100)   NOT NULL   COMMENT '라벨 원래 이름',
+                                       `amount_per_day`   DECIMAL(12,3)   NULL   COMMENT 'DSLD만. NULL = 들어 있음',
+                                       `unit`   VARCHAR(20)   NULL,
+                                       `source`   VARCHAR(20)   NULL   COMMENT 'DSLD_LABEL, MFDS_FUNCTIONAL, MANUAL',
+                                       PRIMARY KEY (`product_ingredient_id`),
+                                       UNIQUE KEY `uk_product_ingredients` (`catalog_product_id`, `ingredient_code`, `ingredient_name`)
+);
+
+CREATE TABLE `review_mentions` (
+                                   `mention_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                   `video_id`   VARCHAR(20)   NOT NULL,
+                                   `mention_no`   INT   NOT NULL,
+                                   `channel_id`   VARCHAR(30)   NOT NULL   COMMENT '약사 채널 (점수 계산용, 화면 노출 안 함)',
+                                   `published_at`   DATE   NULL,
+                                   `catalog_product_id`   BIGINT   NULL   COMMENT '제품 확정 못 하면 NULL',
+                                   `resolve_status`   VARCHAR(20)   NOT NULL   COMMENT 'RESOLVED, PENDING_REVIEW',
+                                   `product_name_ko`   VARCHAR(255)   NULL,
+                                   `brand_en`   VARCHAR(255)   NULL,
+                                   `ingredients`   JSON   NULL   COMMENT '["MAGNESIUM"] 어떤 성분 제품으로 말했나',
+                                   `stance`   VARCHAR(15)   NOT NULL   COMMENT 'RECOMMEND, NOT_RECOMMEND, NEUTRAL',
+                                   `is_sponsored`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                   `purpose_tags`   JSON   NULL   COMMENT 'V4용',
+                                   `cautions`   JSON   NULL   COMMENT '[{category, text}]',
+                                   `context`   VARCHAR(400)   NULL   COMMENT 'V4 검색용, API로 내보내지 않음',
+                                   `embedding`   MEDIUMBLOB   NULL   COMMENT 'context 벡터 float32 x 1536 (V4용)',
+                                   `embedding_model`   VARCHAR(80)   NULL,
+                                   `start_sec`   INT   NULL,
+                                   `evidence_quote`   TEXT   NULL   COMMENT '검수용, API로 내보내지 않음',
+                                   `prompt_version`   VARCHAR(30)   NULL,
+                                   PRIMARY KEY (`mention_id`),
+                                   UNIQUE KEY `uk_review_mentions_video` (`video_id`, `mention_no`),
+                                   KEY `idx_review_mentions_product` (`catalog_product_id`)
+);
+
+CREATE TABLE `review_product_scores` (
+                                         `ingredient_code`   VARCHAR(30)   NOT NULL,
+                                         `catalog_product_id`   BIGINT   NOT NULL,
+                                         `base_score`   DECIMAL(8,3)   NOT NULL,
+                                         `recommend_channels`   INT   NOT NULL   DEFAULT 0,
+                                         `not_recommend_channels`   INT   NOT NULL   DEFAULT 0,
+                                         `last_published_at`   DATE   NULL,
+                                         `common_cautions`   JSON   NULL   COMMENT '2명 이상 약사가 말한 주의점',
+                                         `mention_ids`   JSON   NULL,
+                                         `computed_at`   DATETIME   NULL,
+                                         PRIMARY KEY (`ingredient_code`, `catalog_product_id`),
+                                         KEY `idx_review_product_scores_rank` (`ingredient_code`, `base_score` DESC),
+                                         KEY `idx_review_product_scores_product` (`catalog_product_id`)
 );
 
 CREATE TABLE `notifications` (
@@ -120,7 +187,7 @@ CREATE TABLE `notifications` (
                                  PRIMARY KEY (`notification_id`),
                                  UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
                                  KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),
-                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED'))
+                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'GUARDIAN'))
 );
 
 CREATE TABLE `guardian_settings` (
@@ -423,6 +490,8 @@ ALTER TABLE `ai_recommendations` MODIFY `recommendation_id` BIGINT NOT NULL AUTO
 ALTER TABLE `ai_recommendation_items` MODIFY `recommendation_item_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `user_products` MODIFY `user_product_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `intake_schedules` MODIFY `schedule_id` BIGINT NOT NULL AUTO_INCREMENT;
+-- STEP 17: CatalogProduct 엔티티도 IDENTITY
+ALTER TABLE `catalog_products` MODIFY `catalog_product_id` BIGINT NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
                                                                                           `user_id`
@@ -502,6 +571,10 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recom
         );
 
 -- STEP 14: 회원이 삭제되면 회차·질문도 삭제. 회차가 90일 뒤 삭제되면 추천 결과는 남기고 session_id만 비운다
+-- 엔티티 AiRecommendationItem.recommendation(@ManyToOne)과 같은 FK (2026-10-29 대조 때 빠진 것을 발견해 추가)
+ALTER TABLE `ai_recommendation_items` ADD CONSTRAINT `FK_ai_recommendations_TO_ai_recommendation_items_1` FOREIGN KEY (`recommendation_id`)
+    REFERENCES `ai_recommendations` (`recommendation_id`);
+
 ALTER TABLE `ai_question_sessions` ADD CONSTRAINT `fk_pq_sessions_user` FOREIGN KEY (`user_id`)
     REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
@@ -510,6 +583,16 @@ ALTER TABLE `ai_question_turns` ADD CONSTRAINT `fk_pq_turns_session` FOREIGN KEY
 
 ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`)
     REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL;
+
+-- STEP 17: 리뷰 제품 추천. 제품이 삭제되면 성분·점수는 삭제, 언급은 남기고 제품 id만 비운다
+ALTER TABLE `product_ingredients` ADD CONSTRAINT `fk_product_ingredients_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE;
+
+ALTER TABLE `review_mentions` ADD CONSTRAINT `fk_review_mentions_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE SET NULL;
+
+ALTER TABLE `review_product_scores` ADD CONSTRAINT `fk_review_product_scores_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE;
 
 -- ============================================================
 -- 예시 데이터 (개발/시연용)
@@ -544,7 +627,8 @@ INSERT INTO `user_conditions` (`user_condition_id`, `user_id`, `condition_name`,
                                                                                                    (3, 4, 'DIABETES',     '2026-10-04 12:00:00');
 
 -- 의약품 사전과 복용 중인 약 (예시 데이터, docs/sql/STEP02_seed_drugs.sql과 같은 내용) ----
--- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 규칙 대상이 아닌 예시 약물
+-- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 STEP 16부터 규칙 대상(R-30c3, R-36)인 예시 약물
+-- D-013~D-016, D-U09~D-U12는 성분 확장(STEP 16)의 새 약물 계열 (ANTIPLATELET, INSULIN, IMMUNOSUPPRESSANT, ANTICONVULSANT, CHEMOTHERAPY)
 INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-001', '메트포르민',           'METFORMIN'),
                                                           ('D-002', '오메프라졸',           'PPI'),
@@ -558,6 +642,10 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-010', '에스시탈로프람',       'SSRI'),
                                                           ('D-011', '암로디핀',             'CALCIUM_CHANNEL_BLOCKER'),
                                                           ('D-012', '아토르바스타틴',       'STATIN'),
+                                                          ('D-013', '클로피도그렐',         'ANTIPLATELET'),
+                                                          ('D-014', '인슐린',               'INSULIN'),
+                                                          ('D-015', '타크로리무스',         'IMMUNOSUPPRESSANT'),
+                                                          ('D-016', '발프로산',             'ANTICONVULSANT'),
                                                           ('D-U01', '혈압약 (이름 모름)',     'ANTIHYPERTENSIVE_UNKNOWN'),
                                                           ('D-U02', '이뇨제 (이름 모름)',     'DIURETIC_UNKNOWN'),
                                                           ('D-U03', '당뇨약 (이름 모름)',     'ANTIDIABETIC_UNKNOWN'),
@@ -565,7 +653,11 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-U05', '항응고제 (이름 모름)',   'ANTICOAGULANT_UNKNOWN'),
                                                           ('D-U06', '갑상선약 (이름 모름)',   'THYROID_MED_UNKNOWN'),
                                                           ('D-U07', '항생제 (이름 모름)',     'ANTIBIOTIC_UNKNOWN'),
-                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN');
+                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN'),
+                                                          ('D-U09', '항혈소판제 (이름 모름)', 'ANTIPLATELET'),
+                                                          ('D-U10', '항암제 (이름 모름)',     'CHEMOTHERAPY'),
+                                                          ('D-U11', '면역억제제 (이름 모름)', 'IMMUNOSUPPRESSANT'),
+                                                          ('D-U12', '뇌전증약 (이름 모름)',   'ANTICONVULSANT');
 
 INSERT INTO `user_medications` (`user_medication_id`, `user_id`, `drug_id`, `unmatched_name`, `updated_at`) VALUES
                                                                                                                 (1, 2, 'D-011', NULL,                   '2026-10-02 10:00:00'),

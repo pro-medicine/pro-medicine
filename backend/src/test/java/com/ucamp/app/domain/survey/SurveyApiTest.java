@@ -302,7 +302,7 @@ class SurveyApiTest {
                 .andExpect(jsonPath("$.data[0].drugClass").value("WARFARIN"));
         mockMvc.perform(get("/api/v1/ingredients"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(14));
+                .andExpect(jsonPath("$.data.length()").value(24));
     }
 
     // ---------- helpers ----------

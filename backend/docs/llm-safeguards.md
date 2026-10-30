@@ -62,7 +62,7 @@ GPT 답이 정해진 JSON 구조로 오도록 강제하고, 그래도 깨지면 
 
 `rule/`, `pipeline/`, `dose/`, `dto/`는 `domain/recommendation/` 아래.
 
-규칙 데이터: DB `recommendation_rules` (27행, 시드 `backend/docs/sql/STEP07_seed_recommendation_rules.sql`, 원본 `backend/docs/supplement-recommendation/reference/domain-rules.md` 3번 표).
+규칙 데이터: DB `recommendation_rules` (81행 = 회원 69(기본 23 + 계열 모름 12 + 진단 질환 2 + 성분 확장 32) + 비회원 12(기본 4 + 성분 확장 8), 시드 `backend/docs/sql/STEP07_seed_recommendation_rules.sql`, 원본 `backend/docs/supplement-recommendation/reference/domain-rules.md` 3번 표).
 
 | action | 동작 |
 | --- | --- |
@@ -72,7 +72,7 @@ GPT 답이 정해진 JSON 구조로 오도록 강제하고, 그래도 깨지면 
 | ASK | 의사·약사 확인 안내 추가 |
 | ADJUST | 용량 조정 (기준표 조건 행으로 반영, 규칙 ID만 기록) |
 
-- 비회원: `guest_excluded` 규칙은 비회원에게만 적용된다. 임신·복용 약을 묻지 않으므로 칼륨, 세인트존스워트, 비타민 A를 미리 막는다.
+- 비회원: `guest_excluded` 규칙은 비회원에게만 적용된다. 임신·복용 약을 묻지 않으므로 칼륨, 세인트존스워트, 비타민 A를 미리 막는다. 성분 확장(STEP 16)부터는 회원 규칙에 EXCLUDE가 있는 커큐민, 코엔자임 Q10, 콜라겐, 글루코사민, 나이아신, 밀크씨슬, 루테인, 유산균도 막는다 (오메가3·비타민 B6은 WARN만 있어 비회원도 추천 가능).
 - 규칙은 서비스 공개 전에 약사 검토가 필요하다.
 
 ## 4. 비용·성능 장치
@@ -172,7 +172,7 @@ sync 모드는 요청마다 Tomcat 스레드 1개가 GPT 응답(10~13초)을 기
 | 타임아웃 미적용 | `llm.timeout-ms`가 HTTP 클라이언트에 연결되지 않아 약 60초에 끊김 | RestClient 읽기 시간 제한 연결 후 25~30초 |
 | ~~출력 한도 2,000 검증~~ | 확인 완료: 284회 중 최대 1,064토큰, 잘림 0건 | 2,000 유지 |
 | 캐시 스탬피드 | 같은 조건 요청이 동시에 오면 캐시 전 중복 호출 | 다음 과제 (single-flight) |
-| 규칙 검토 | 규칙 27개 출처는 있으나 약사 검토 전 | 서비스 공개 전 검토 |
+| 규칙 검토 | 규칙 81개 출처는 있으나 약사 검토 전 (S-30은 식약처 고시 원문이 아니라 제품 신고 문구 집계, 원문 대조 필요) | 서비스 공개 전 검토 |
 
 ## 11. V2 맞춤 질문 (STEP 14)
 

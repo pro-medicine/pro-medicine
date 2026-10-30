@@ -53,7 +53,7 @@ public class FollowController {
             @RequestParam Long userId,
             @PathVariable Long followId) {
         followService.cancel(userId, followId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.noContent().build();
     }
 
 

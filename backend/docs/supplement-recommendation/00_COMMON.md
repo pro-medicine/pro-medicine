@@ -7,9 +7,9 @@
 
 | 파일 | 내용 |
 | --- | --- |
-| `docs/prompts/reference/erd.sql` | 확정 ERD (MySQL DDL) |
-| `docs/prompts/reference/domain-rules.md` | 기준표·규칙 테이블의 초기 데이터와 출처 |
-| `docs/prompts/reference/measurement.md` | 측정 지표 정의, 기록 형식, 평가셋 형식 |
+| `backend/docs/supplement-recommendation/reference/erd.sql` | 확정 ERD (MySQL DDL) |
+| `backend/docs/supplement-recommendation/reference/domain-rules.md` | 기준표·규칙 테이블의 초기 데이터와 출처 |
+| `backend/docs/supplement-recommendation/reference/measurement.md` | 측정 지표 정의, 기록 형식, 평가셋 형식 |
 
 ## 2. 패키지 구조
 
