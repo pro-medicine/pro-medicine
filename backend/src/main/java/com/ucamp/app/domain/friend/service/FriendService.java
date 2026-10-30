@@ -43,6 +43,9 @@ public class FriendService {
         List<Long> friendIds = follows.stream()
                 .map(Follow::getFollowingId)
                 .toList();
+        Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
+                .map(Follow::getFollowerId)
+                .collect(Collectors.toSet());
         Map<Long, User> users = userRepository.findAllById(friendIds).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
         Map<Long, Integer> streaks = intakeService.getStreakDays(
@@ -55,9 +58,7 @@ public class FriendService {
                 .filter(f -> users.containsKey(f.getFollowingId()))
                 .map(f -> {
                     Long friendId = f.getFollowingId();
-                    boolean mutual = followRepository.existsByFollowerIdAndFollowingIdAndStatus(friendId, userId, FollowStatus.ACCEPTED);
-                    return FriendResponse.of(f.getFollowId(), users.get(friendId), mutual, streaks.getOrDefault(friendId, 0)
-                    );
+                    return FriendResponse.of(f.getFollowId(), users.get(friendId), followsMe.contains(friendId), streaks.getOrDefault(friendId, 0));
                 })
                 .toList();
     }
