@@ -19,10 +19,12 @@
 
 1. 서버를 한 번 실행해서 테이블을 만든다 (`ddl-auto: update`). 이미 실행해 둔 DB면 건너뛴다
 2. `docs/sql/AI_SETUP.sql` 하나를 실행한다 (MySQL Workbench에서 파일을 열어 전체 실행해도 된다)
+3. `docs/sql/AI_SETUP_2.sql`을 실행한다 (리뷰 제품 추천 데이터 갱신: 약사 쇼츠 15개 추가, 비약사 채널 제외. 설문 응답·추천 기록은 지우지 않는다)
 
 ```powershell
 # 각자 PC의 PowerShell (MySQL 클라이언트가 있을 때). Workbench로 실행해도 같다
 mysql -u root -p --default-character-set=utf8mb4 yakssok < backend/docs/sql/AI_SETUP.sql
+mysql -u root -p --default-character-set=utf8mb4 yakssok < backend/docs/sql/AI_SETUP_2.sql
 ```
 
 - AI 테이블 16개(설문, 약물, 성분 기준값, 추천 규칙, AI 추천·맞춤 질문 기록, LLM 호출 로그, 리뷰 제품 추천)를 **지우고 다시 만든 뒤** 기준 데이터를 넣는다. 회원 등 예시 데이터는 넣지 않는다

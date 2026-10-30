@@ -78,6 +78,9 @@ public class FakeLlmClient implements LlmClient {
         if (request.outputSchema() != null && QUESTIONS_SCHEMA.equals(request.outputSchema().name())) {
             return structuredResponse(request, questionsOutput(request));
         }
+        if (request.outputSchema() != null && CHAT_PARSE_SCHEMA.equals(request.outputSchema().name())) {
+            return structuredResponse(request, chatParseOutput(DEFAULT_CHAT_QUERY));
+        }
         if (request.outputSchema() != null) {
             return structuredResponse(request, structuredOutput(request.outputSchema(), answer));
         }
@@ -196,6 +199,26 @@ public class FakeLlmClient implements LlmClient {
         }
         option(options, "없어요", "NONE");
         option(options, "잘 모르겠어요", "UNKNOWN");
+        return root;
+    }
+
+    /** ChatParseOutputSchema.NAME (V4 대화창 문장 구조화) */
+    public static final String CHAT_PARSE_SCHEMA = "submit_chat_parse";
+    public static final String DEFAULT_CHAT_QUERY = "피로가 쌓이고 잠들기 어려운 사람에게 추천";
+
+    /**
+     * 대화 구조화 스키마에 맞는 고정 응답: 응급 아님, 되묻기 없음, 약·질환 없음, 검색 문장 = searchQuery.
+     * 테스트는 setResponder로 문장별 응답(약 추출·되묻기·red_flag 등)을 바꾼다
+     */
+    public JsonNode chatParseOutput(String searchQuery) {
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("red_flag", "NONE");
+        root.put("off_topic", false);
+        root.put("needs_clarification", false);
+        root.putNull("clarification");
+        root.put("search_query", searchQuery);
+        root.putArray("medications");
+        root.putArray("conditions");
         return root;
     }
 
