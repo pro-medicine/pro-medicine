@@ -8,7 +8,7 @@
 
 :root {
   color: #111714;
-  background: #ffffff;
+  background: var(--page-bg);
   font-family: "Noto Sans KR", sans-serif;
   font-synthesis: none;
 
@@ -24,6 +24,17 @@
   --surface: #f7f9f8;
   --alert: #e5484d;
   --white: #ffffff;
+  /* 색 역할 (#67 색 1): 초록 = 완료·진행 / 검정 = 누를 것·지금 할 일·선택 / 주황 = 연속 복용 / 회색 = 라벨 */
+  --accent: #111714;
+  --accent-hover: #2b322e;
+  --accent-soft: #f1f3f2;
+  --accent-line: #c9cfcc;
+  --streak: #d9480f;
+  --streak-soft: #fff1e6;
+
+  --page-bg: #fafafa; /* 화면 배경: 거의 흰색에 가까운 회색 (카드는 흰색 + 두 겹 그림자) */
+  --card-shadow: 0 1px 3px rgba(17, 23, 20, 0.04), 0 4px 14px rgba(17, 23, 20, 0.06);
+  --card-shadow-hover: 0 2px 6px rgba(17, 23, 20, 0.05), 0 8px 22px rgba(17, 23, 20, 0.09);
   --radius-card: 18px;
   --radius-modal: 20px;
   --content-width: 1120px;
@@ -50,7 +61,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--page-bg);
   color: var(--ink);
 }
 
@@ -101,7 +112,7 @@ button {
 }
 
 .header-title-row > div > span {
-  color: var(--primary);
+  color: var(--muted);
   display: block;
   font-size: 14px;
   font-weight: 600;

@@ -42,7 +42,7 @@
 }
 
 .disposal-search-input:focus-within {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .disposal-search-input input {
@@ -116,7 +116,8 @@
 
 .map-screen .kakao-map-frame {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   height: 540px;
   overflow: hidden;
@@ -175,7 +176,7 @@
 
 .map-selected-card .pharmacy-number {
   align-items: center;
-  background: var(--primary);
+  background: var(--accent);
   border-radius: 50%;
   color: var(--white);
   display: flex;
@@ -205,7 +206,7 @@
 }
 
 .map-screen .map-detail-link {
-  color: var(--primary);
+  color: var(--accent);
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 700;
@@ -243,7 +244,8 @@
 /* 오른쪽 약국 목록 카드 */
 .map-screen .pharmacy-list-wrap {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   display: flex;
   flex-direction: column;
@@ -311,7 +313,7 @@
 }
 
 .pharmacy-card.selected {
-  background: var(--primary-soft);
+  background: var(--accent-soft);
 }
 
 .pharmacy-card-top {
@@ -328,7 +330,7 @@
 }
 
 .pharmacy-card b {
-  color: var(--primary);
+  color: var(--accent);
   flex-shrink: 0;
   font-size: 13px;
 }
@@ -346,7 +348,8 @@
 /* ───────── 약 종류별 버리는 방법 ───────── */
 .disposal-guide {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   margin-top: 28px;
   padding: 26px 28px;

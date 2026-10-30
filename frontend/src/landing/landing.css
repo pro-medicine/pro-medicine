@@ -252,7 +252,7 @@
 }
 
 .landing-feature-icon {
-  color: var(--primary);
+  color: var(--accent);
   display: flex;
 }
 
@@ -298,7 +298,7 @@
 }
 
 .landing-steps li > span {
-  color: var(--primary);
+  color: var(--accent);
   font-size: 16px;
   font-weight: 700;
 }

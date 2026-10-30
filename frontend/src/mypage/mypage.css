@@ -22,7 +22,8 @@
 /* ───────── 통계 3칸 ───────── */
 .stats-grid {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -81,7 +82,8 @@
 /* 나의 영양관리 */
 .nutrition-management {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   padding: 26px 28px;
 }
@@ -214,7 +216,8 @@
 /* 내가 먹는 영양제 */
 .profile-screen .products-section {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   margin: 0;
   padding: 24px 28px 10px;
@@ -393,7 +396,7 @@
 .profile-edit-field select:focus,
 .supplement-search-row input:focus,
 .supplement-schedule-row input[type="time"]:focus {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .profile-edit-input {
@@ -447,10 +450,10 @@
 
 .profile-edit-conditions li {
   align-items: center;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
   border-radius: 999px;
-  color: var(--primary);
+  color: var(--accent);
   display: inline-flex;
   font-size: 14px;
   font-weight: 700;
@@ -462,7 +465,7 @@
 .profile-edit-conditions li button {
   background: transparent;
   border: 0;
-  color: var(--primary);
+  color: var(--accent);
   cursor: pointer;
   font-size: 13px;
 }
@@ -529,8 +532,10 @@
   background: var(--white);
 }
 
-.profile-screen .profile-edit:has(.supplement-schedule-row) .profile-edit-card {
-  border: 1px solid var(--line);
+/* 프로필 편집·영양제 등록: 섹션마다 흰 카드 (배경이 연한 회색이라 카드로 구분) */
+.profile-screen .profile-edit .profile-edit-card {
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   padding: 26px 28px;
 }
@@ -610,16 +615,16 @@
 }
 
 .supplement-search-item:hover {
-  border-color: var(--primary-line);
+  border-color: var(--accent-line);
 }
 
 .supplement-search-item.selected {
-  background: var(--primary-soft);
-  border-color: var(--primary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .supplement-search-item.selected::before {
-  border: 6px solid var(--primary);
+  border: 6px solid var(--accent);
 }
 
 .supplement-search-item strong {
@@ -651,7 +656,7 @@
 }
 
 .supplement-schedule-row.checked {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .supplement-schedule-check {
@@ -668,7 +673,7 @@
 }
 
 .supplement-schedule-check input {
-  accent-color: var(--primary);
+  accent-color: var(--accent);
   height: 18px;
   width: 18px;
 }

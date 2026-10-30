@@ -6,7 +6,8 @@
   padding: 24px 26px 6px;
   border-radius: var(--radius-card);
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
 }
 
 /* 머리: "복용 알림" (위 작은 영문 라벨은 숨김) */
@@ -23,7 +24,7 @@
 .home-alarm-time-row { display: flex; align-items: center; gap: 10px; }
 .home-alarm-time { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
 .home-alarm-unit { margin-left: 2px; font-size: 16px; font-weight: 500; color: var(--faint); }
-.home-alarm-chip { padding: 5px 10px; border-radius: 999px; background: var(--primary-soft); font-size: 12px; font-weight: 700; color: var(--primary); }
+.home-alarm-chip { padding: 5px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 12px; font-weight: 700; color: var(--accent); }
 .home-alarm-empty { font-size: 16px; font-weight: 700; line-height: 1.4; }
 .home-alarm-sub { font-size: 13px; line-height: 1.5; color: var(--muted); }
 

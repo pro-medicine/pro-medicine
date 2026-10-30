@@ -45,7 +45,7 @@
 .read-all {
   background: transparent;
   border: 0;
-  color: var(--primary);
+  color: var(--accent);
   font-size: 14px;
   font-weight: 700;
   padding: 4px 0;
@@ -121,9 +121,9 @@
 }
 
 .notification-item.unread .notification-type-icon {
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border-color: transparent;
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .notification-item h3 {
@@ -218,7 +218,7 @@
 }
 
 .top-nav-menu button.active {
-  box-shadow: inset 0 -2px 0 var(--primary);
+  box-shadow: inset 0 -2px 0 var(--accent);
   color: var(--ink);
   font-weight: 700;
 }
@@ -248,7 +248,7 @@
 }
 
 .top-nav-bell:hover {
-  border-color: var(--primary-line);
+  border-color: var(--accent-line);
 }
 
 .top-nav-dot {
@@ -263,13 +263,13 @@
 }
 
 .top-nav-avatar {
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border: 1px solid transparent;
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .top-nav-avatar.active {
-  border-color: var(--primary-line);
+  border-color: var(--accent-line);
 }
 
 /* ===== 공통 화면 요소 (#67 디자인 기준) =====
@@ -277,7 +277,7 @@
 
 /* 화면 머리: 초록 라벨 14 · 제목 30 · 설명 15 */
 .page-eyebrow {
-  color: var(--primary);
+  color: var(--muted);
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 8px;
@@ -309,7 +309,8 @@
 /* 카드: 흰 배경 · 1px 선 · 모서리 18 · 그림자 없음 */
 .ui-card {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
 }
 
@@ -347,12 +348,12 @@
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: var(--accent);
   color: var(--white);
 }
 
 .btn-primary:not(:disabled):hover {
-  background: var(--primary-hover);
+  background: var(--accent-hover);
 }
 
 .btn-dark {
@@ -371,15 +372,15 @@
 }
 
 .btn-soft {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* 글자만 있는 버튼: 모두 읽음(초록) · 친구 삭제(빨강) */
 .btn-text {
   background: transparent;
   border: 0;
-  color: var(--primary);
+  color: var(--accent);
   font-size: 14px;
   font-weight: 700;
   padding: 0;
@@ -405,9 +406,9 @@
 }
 
 .chip.green {
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border-color: transparent;
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .chip.gray {
@@ -429,9 +430,9 @@
 
 .choice.active,
 .choice[aria-pressed="true"] {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -453,7 +454,7 @@
 }
 
 .ui-input:focus {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 /* 모달: 모서리 20 · 어두운 배경 42% */
@@ -497,9 +498,9 @@
 /* 원형 아바타 (이름 첫 글자) */
 .ui-avatar {
   align-items: center;
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border-radius: 50%;
-  color: var(--primary);
+  color: var(--accent);
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 15px;
@@ -542,7 +543,7 @@
 }
 
 .bottom-nav button.active {
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .nav-icon {

@@ -39,7 +39,7 @@
 }
 
 .search-box:focus-within {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .search-box input {
@@ -58,9 +58,9 @@
 /* ───────── 아바타 (이름 첫 글자) ───────── */
 .avatar {
   align-items: center;
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border-radius: 50%;
-  color: var(--primary);
+  color: var(--accent);
   display: flex;
   flex: 0 0 auto;
   font-size: 15px;
@@ -94,7 +94,7 @@
 }
 
 .section-label {
-  color: var(--primary);
+  color: var(--muted);
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -102,10 +102,10 @@
 
 .add-friend-button {
   align-items: center;
-  background: var(--primary-soft);
+  background: var(--accent-soft);
   border: 0;
   border-radius: 999px;
-  color: var(--primary);
+  color: var(--accent);
   cursor: pointer;
   display: inline-flex;
   font-size: 14px;
@@ -119,7 +119,8 @@
 /* ───────── 친구 목록 표 ───────── */
 .friend-table {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: var(--radius-card);
   overflow: hidden;
 }
@@ -190,7 +191,7 @@
 
 .friend-guardian {
   align-items: center;
-  color: var(--primary);
+  color: var(--accent);
   display: flex;
   font-size: 14px;
   gap: 5px;
@@ -211,8 +212,8 @@
 }
 
 .guardian-button.on {
-  border-color: var(--primary-line);
-  color: var(--primary);
+  border-color: var(--accent-line);
+  color: var(--accent);
 }
 
 .guardian-button.pending {
@@ -341,11 +342,11 @@
 }
 
 .modal-form input:focus {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .modal-form button {
-  background: var(--primary);
+  background: var(--accent);
   border: 0;
   border-radius: 12px;
   color: var(--white);
@@ -400,7 +401,7 @@
 }
 
 .modal-actions .primary {
-  background: var(--primary);
+  background: var(--accent);
   color: var(--white);
 }
 
@@ -495,8 +496,8 @@
 
 /* 시안처럼 거절(흰색) → 수락(초록) 순서 */
 .request-actions .accept {
-  background: var(--primary);
-  border: 1px solid var(--primary);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   color: var(--white);
   order: 2;
 }
@@ -531,9 +532,9 @@
 }
 
 .days-picker button.active {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
   font-weight: 700;
 }
 

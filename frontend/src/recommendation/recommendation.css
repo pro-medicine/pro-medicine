@@ -47,7 +47,7 @@
 
 /* ===== 헤더: 초록 라벨 + 제목 + 닫기 ===== */
 .rec-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
-.rec-eyebrow { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--primary); }
+.rec-eyebrow { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .rec-header h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
 .rec-close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--surface); color: var(--muted) !important; font-size: 20px; line-height: 1; }
 
@@ -56,8 +56,8 @@
 .rec-actions .rec-button { flex: 1; }
 .rec-button { height: 48px; padding: 0 24px; white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; background: var(--white); font-size: 15px; font-weight: 700; }
 .rec-button:not(:disabled):hover { border-color: var(--faint); }
-.rec-button.primary { border-color: var(--primary); background: var(--primary); color: var(--white) !important; }
-.rec-button.primary:not(:disabled):hover { border-color: var(--primary-hover); background: var(--primary-hover); }
+.rec-button.primary { border-color: var(--accent); background: var(--accent); color: var(--white) !important; }
+.rec-button.primary:not(:disabled):hover { border-color: var(--accent-hover); background: var(--accent-hover); }
 .rec-button:disabled,
 .rec-link:disabled { opacity: 0.4; cursor: not-allowed; }
 .rec-link { border: none; background: none; white-space: nowrap; color: var(--muted); font-size: 14px; }
@@ -99,10 +99,10 @@
 .rec-option { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 12px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); font-size: 15px; text-align: left; transition: border-color 0.15s, background 0.15s; }
 .rec-option::before { content: ""; flex-shrink: 0; width: 20px; height: 20px; border: 1.5px solid #d4d9d6; border-radius: 50%; background: var(--white); box-sizing: border-box; }
 .rec-options:has(.rec-hint) .rec-option::before { border-radius: 6px; } /* 여러 개 고르는 문항은 네모 */
-.rec-option:not(:disabled):hover { border-color: var(--primary-line); }
-.rec-option.selected { border-color: var(--primary); background: var(--primary-soft); font-weight: 700; }
-.rec-option.selected::before { border: 6px solid var(--primary); }
-.rec-options:has(.rec-hint) .rec-option.selected::before { border: 0; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4L19 6'/%3E%3C/svg%3E") center / 14px no-repeat; }
+.rec-option:not(:disabled):hover { border-color: var(--accent-line); }
+.rec-option.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.rec-option.selected::before { border: 6px solid var(--accent); }
+.rec-options:has(.rec-hint) .rec-option.selected::before { border: 0; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4L19 6'/%3E%3C/svg%3E") center / 14px no-repeat; }
 
 .rec-number input,
 .rec-medication input,
@@ -111,7 +111,7 @@
 .rec-number input:focus,
 .rec-medication input:focus,
 .rec-supplement-row select:focus,
-.rec-supplement-row input:focus { border-color: var(--primary); }
+.rec-supplement-row input:focus { border-color: var(--accent); }
 .rec-number { margin-top: 18px; }
 
 /* 이전(왼쪽) · 건너뛰기 · 다음(오른쪽) */
@@ -123,18 +123,18 @@
 .rec-search-results li + li { border-top: 1px solid var(--line); }
 .rec-search-results button { width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; }
 .rec-search-results button:hover { background: var(--surface); }
-.rec-search-results .rec-direct { color: var(--primary) !important; font-weight: 600; }
+.rec-search-results .rec-direct { color: var(--accent) !important; font-weight: 600; }
 .rec-search-empty { padding: 12px 16px; font-size: 13px; color: var(--muted); }
 .rec-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.rec-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 12px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 600; }
-.rec-chip button { border: none; background: none; color: var(--primary) !important; font-size: 15px; line-height: 1; }
+.rec-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
+.rec-chip button { border: none; background: none; color: var(--accent) !important; font-size: 15px; line-height: 1; }
 
 /* 영양제 */
 .rec-supplements { margin-top: 18px; }
 .rec-supplement-row { display: grid; grid-template-columns: 1fr 96px 44px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
 .rec-unit { font-size: 13px; color: var(--muted); text-align: center; }
 .rec-row-remove { border: none; background: none; color: var(--faint) !important; font-size: 18px; }
-.rec-add { height: 42px; padding: 0 16px; border: 1px dashed var(--primary-line); border-radius: 999px; background: none; color: var(--primary) !important; font-size: 14px; font-weight: 700; }
+.rec-add { height: 42px; padding: 0 16px; border: 1px dashed var(--accent-line); border-radius: 999px; background: none; color: var(--accent) !important; font-size: 14px; font-weight: 700; }
 
 /* ===== 결과: 01 · 02 · 03 번호 목록 ===== */
 .rec-notice { margin-bottom: 16px !important; padding: 12px 16px; border-radius: 12px; background: var(--r-warn-bg); font-size: 14px; font-weight: 600; color: var(--r-warn-text); }
@@ -143,10 +143,10 @@
 .rec-cards { counter-reset: rec-item; }
 .rec-card { position: relative; padding: 20px 0 20px 44px; counter-increment: rec-item; }
 .rec-card + .rec-card { border-top: 1px solid var(--line); }
-.rec-card::before { content: counter(rec-item, decimal-leading-zero); position: absolute; left: 0; top: 22px; font-size: 15px; font-weight: 700; color: var(--primary); }
+.rec-card::before { content: counter(rec-item, decimal-leading-zero); position: absolute; left: 0; top: 22px; font-size: 15px; font-weight: 700; color: var(--accent); }
 .rec-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .rec-card-head strong { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
-.rec-dose { flex-shrink: 0; font-size: 15px; font-weight: 700; color: var(--primary); text-align: right; }
+.rec-dose { flex-shrink: 0; font-size: 15px; font-weight: 700; color: var(--accent); text-align: right; }
 .rec-intake { display: block; margin-top: 6px; font-size: 12px; color: var(--faint); }
 .rec-reason { margin-top: 8px !important; font-size: 14px; line-height: 1.6; color: var(--muted); }
 .rec-warnings { margin-top: 12px !important; padding: 12px 14px !important; border-radius: 12px; background: var(--r-warn-bg); font-size: 13px; line-height: 1.6; color: var(--r-warn-text); }
