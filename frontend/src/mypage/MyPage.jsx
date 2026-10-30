@@ -63,6 +63,32 @@ function toSupplementCard(item, index) {
   };
 }
 
+function SettingsModal({ onClose, openerRef, children }) {
+  const panelRef = useModalFocus(onClose, openerRef);
+
+  return (
+    <div className="settings-overlay">
+      <section
+        ref={panelRef}
+        className="settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabIndex={-1}
+      >
+        <div className="settings-header">
+          <h2 id="settings-title">설정</h2>
+          <button type="button" aria-label="설정 닫기" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {children}
+      </section>
+    </div>
+  );
+}
+
 export default function ProfileScreen({
   friend,
   viewerId,
@@ -89,10 +115,6 @@ export default function ProfileScreen({
   const [sharing, setSharing] = useState(false);
   const shared = user?.shareIntakeStatus ?? false;
   const settingsOpenerRef = useRef(null);
-  const settingsPanelRef = useModalFocus(
-    () => setShowSettings(false),
-    settingsOpenerRef,
-  );
 
   const openSettings = () => {
     settingsOpenerRef.current = document.activeElement;
@@ -256,52 +278,35 @@ export default function ProfileScreen({
         actions={topBarActions}
       />
       {showSettings && (
-        <div className="settings-overlay">
-          <section
-            ref={settingsPanelRef}
-            className="settings-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-title"
-          >
-            <div className="settings-header">
-              <h2 id="settings-title">설정</h2>
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          openerRef={settingsOpenerRef}
+        >
+          {isMine && (
+            <section className="share-setting">
+              <div>
+                <strong>친구에게 복용 현황 공개</strong>
+                <small>
+                  {shared
+                    ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
+                    : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
+                </small>
+              </div>
 
               <button
                 type="button"
-                aria-label="설정 닫기"
-                onClick={() => setShowSettings(false)}
+                role="switch"
+                aria-checked={shared}
+                aria-label="친구에게 복용 현황 공개"
+                className={`switch ${shared ? "on" : ""}`}
+                disabled={sharing || !user}
+                onClick={toggleShare}
               >
-                ✕
+                <span />
               </button>
-            </div>
-
-            {isMine && (
-              <section className="share-setting">
-                <div>
-                  <strong>친구에게 복용 현황 공개</strong>
-                  <small>
-                    {shared
-                      ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
-                      : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
-                  </small>
-                </div>
-
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={shared}
-                  aria-label="친구에게 복용 현황 공개"
-                  className={`switch ${shared ? "on" : ""}`}
-                  disabled={sharing || !user}
-                  onClick={toggleShare}
-                >
-                  <span />
-                </button>
-              </section>
-            )}
-          </section>
-        </div>
+            </section>
+          )}
+        </SettingsModal>
       )}
       <section
         className={isMine ? "profile-hero clickable" : "profile-hero"}
