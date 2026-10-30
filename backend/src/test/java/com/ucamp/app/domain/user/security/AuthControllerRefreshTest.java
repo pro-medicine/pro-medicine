@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
 
@@ -71,4 +73,46 @@ class AuthControllerRefreshTest {
         assertTrue(result.getHeaders().getFirst(HttpHeaders.SET_COOKIE).contains("Max-Age=0"));
         verify(tokens).revoke("previous");
     }
+
+
+    @Test
+    void refreshWithoutCookieReturns401() {
+        when(tokens.rotate((String) null))
+                .thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        var result = controller.refresh(request, null);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertTrue(result.getHeaders()
+                .getFirst(HttpHeaders.SET_COOKIE)
+                .contains("Max-Age=0"));
+    }
+
+    @Test
+    void refreshWithInvalidTokenReturns401() {
+        when(tokens.rotate("invalid-token"))
+                .thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        var result = controller.refresh(request, "invalid-token");
+
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertTrue(result.getHeaders()
+                .getFirst(HttpHeaders.SET_COOKIE)
+                .contains("Max-Age=0"));
+    }
+
+    @Test
+    void refreshWithUntrustedOriginReturns403() {
+        when(request.getHeader("Origin"))
+                .thenReturn("https://attacker.example");
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> controller.refresh(request, "some-token")
+        );
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
+        verify(tokens, never()).rotate(anyString());
+    }
+
 }

@@ -43,6 +43,15 @@ public class SecurityConfig {
                         "/api/v1/auth/login", "/api/v1/auth/signup",
                         "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/disposal/**").permitAll()
+                    .requestMatchers(
+                            HttpMethod.GET,
+                            "/api/v1/surveys/active"
+                    ).permitAll()
+
+                    .requestMatchers(
+                            HttpMethod.POST,
+                            "/api/v1/surveys/*/responses"
+                    ).permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return http.build();

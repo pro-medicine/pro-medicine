@@ -19,12 +19,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
-// 사용자 식별: 팀 공통 @CurrentUserId (로그인 연동 전에는 X-User-Id 헤더, 연동 후에는 로그인 사용자로 CurrentUserResolver만 교체)
+// 사용자 식별: JWT Bearer 토큰에서 @CurrentUserId로 로그인 사용자 ID를 가져온다.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/notifications")
@@ -63,21 +61,17 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // 실시간 알림 구독 (SSE): 새 알림이 생기면 "notification" 이벤트로 신호를 보낸다.
-    // 브라우저 EventSource는 헤더를 붙일 수 없어서, 로그인 연동 전까지 userId를 쿼리 파라미터로 받는다.
-    // TODO: 로그인 연동 시 인증 방식 결정 (예: 구독 주소만 쿼리로 토큰 전달)
+    // 실시간 알림 구독 (SSE): JWT Bearer 헤더가 포함된 fetch 기반 SSE 클라이언트를 사용한다.
+    // 새 알림이 생기면 "notification" 이벤트로 신호를 보낸다.
     @GetMapping(
             value = "/subscribe",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE
     )
-    public SseEmitter subscribe(@AuthenticationPrincipal Jwt jwt) {
-
-        Long userId = Long.valueOf(jwt.getSubject());
-
-        return notificationSseService.subscribe(userId);
+    public SseEmitter subscribe(@CurrentUserId Long userId) {
+        return notificationSseService.subscribe(requireLogin(userId));
     }
 
-    // 사용자를 알 수 없으면(헤더 없음, 비로그인) 401
+    // 인증된 사용자 ID가 없으면 401
     private Long requireLogin(Long userId) {
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);

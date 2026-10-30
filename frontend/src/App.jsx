@@ -24,6 +24,8 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [authMode, setAuthMode] = useState("login");
     const [loading, setLoading] = useState(true);
+    const [authCheckError, setAuthCheckError] = useState(false);
+    const [authCheckAttempt, setAuthCheckAttempt] = useState(0);
     const [loggingOut, setLoggingOut] = useState(false);
     const [error, setError] = useState("");
 
@@ -54,18 +56,18 @@ export default function App() {
     }, []);
 
 
-    // 최초 로그인 확인
+    // 최초 인증 확인: 401(로그인 필요)과 전송 오류(확인 불가)를 구분한다.
     useEffect(() => {
         let active = true;
 
         getCurrentUser()
             .then((currentUser) => {
-                if (active) setUser(currentUser);
+                if (!active) return;
+                setUser(currentUser);
+                setAuthCheckError(false);
             })
             .catch(() => {
-                if (active) {
-                    setError("로그인 상태 확인에 실패했습니다.");
-                }
+                if (active) setAuthCheckError(true);
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -74,7 +76,7 @@ export default function App() {
         return () => {
             active = false;
         };
-    }, []);
+    }, [authCheckAttempt]);
 
     // 로그인 사용자 알림 조회
     useEffect(() => {
@@ -118,9 +120,6 @@ export default function App() {
 
         try {
             await logout();
-        } catch (err) {
-            setError(err.message || "로그아웃에 실패했습니다.");
-        } finally {
             setUser(null);
             setAuthMode("login");
             setTab("home");
@@ -129,6 +128,9 @@ export default function App() {
             setNotificationAnchor(null);
             setHasUnreadNotifications(false);
             setHomeRefreshKey(0);
+        } catch (err) {
+            setError(err.message || "로그아웃에 실패했습니다.");
+        } finally {
             setLoggingOut(false);
         }
     };
@@ -231,7 +233,11 @@ export default function App() {
                     <MyPage
                         userId={userId}
                         onUserUpdated={(updatedUser) =>
-                            setUser((prev) => ({ ...prev, ...updatedUser }))
+                            setUser((prev) =>
+                                prev?.userId === userId
+                                    ? { ...prev, ...updatedUser }
+                                    : prev
+                            )
                         }
                         onNotifications={openNotifications}
                     />
@@ -262,6 +268,30 @@ export default function App() {
         return (
             <div className="auth-page" role="status">
                 로그인 상태를 확인하는 중...
+            </div>
+        );
+    }
+
+    // 서버 연결 실패 등으로 로그인 여부를 확인하지 못한 경우, 로그인 화면을 보여주지 않는다.
+    if (authCheckError) {
+        return (
+            <div className="auth-page" role="alert">
+                <div className="auth-card" style={{ maxWidth: 440, margin: "48px auto" }}>
+                    <p className="auth-error-message">
+                        로그인 상태를 확인할 수 없습니다. 연결 상태를 확인하고 다시 시도해주세요.
+                    </p>
+                    <button
+                        type="button"
+                        className="auth-submit"
+                        onClick={() => {
+                            setLoading(true);
+                            setAuthCheckError(false);
+                            setAuthCheckAttempt((attempt) => attempt + 1);
+                        }}
+                    >
+                        다시 시도
+                    </button>
+                </div>
             </div>
         );
     }

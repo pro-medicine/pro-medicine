@@ -4,13 +4,12 @@ package com.ucamp.app.domain.user.controller;
 import com.ucamp.app.domain.user.dto.NicknameUpdateRequest;
 import com.ucamp.app.domain.user.dto.UserResponse;
 import com.ucamp.app.domain.user.service.UserService;
+import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,9 +23,9 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(
             @PathVariable Long userId,
-            @AuthenticationPrincipal Jwt jwt
+            @CurrentUserId Long currentUserId
     ) {
-        requireSelf(userId, jwt);
+        requireSelf(userId, currentUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(userService.getUser(userId))
@@ -38,9 +37,9 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> changeNickname(
             @PathVariable Long userId,
             @RequestBody NicknameUpdateRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @CurrentUserId Long currentUserId
     ) {
-        requireSelf(userId, jwt);
+        requireSelf(userId, currentUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -50,10 +49,11 @@ public class UserController {
     }
 
     // JWT 인증 사용자와 요청한 사용자 ID 비교
-    private void requireSelf(Long requestedUserId, Jwt jwt) {
-        Long authenticatedUserId = Long.valueOf(jwt.getSubject());
-
-        if (!requestedUserId.equals(authenticatedUserId)) {
+    private void requireSelf(Long requestedUserId, Long currentUserId) {
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        if (!requestedUserId.equals(currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
     }

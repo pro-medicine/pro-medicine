@@ -4,14 +4,13 @@ package com.ucamp.app.domain.health.controller;
 import com.ucamp.app.domain.health.dto.HealthProfileRequest;
 import com.ucamp.app.domain.health.dto.HealthProfileResponse;
 import com.ucamp.app.domain.health.service.HealthProfileService;
+import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,9 +24,9 @@ public class HealthProfileController {
     @GetMapping
     public ResponseEntity<ApiResponse<HealthProfileResponse>> getHealthProfile(
             @PathVariable Long userId,
-            @AuthenticationPrincipal Jwt jwt
+            @CurrentUserId Long currentUserId
     ) {
-        requireSelf(userId, jwt);
+        requireSelf(userId, currentUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -41,9 +40,9 @@ public class HealthProfileController {
     public ResponseEntity<ApiResponse<HealthProfileResponse>> saveHealthProfile(
             @PathVariable Long userId,
             @RequestBody HealthProfileRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @CurrentUserId Long currentUserId
     ) {
-        requireSelf(userId, jwt);
+        requireSelf(userId, currentUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -53,10 +52,11 @@ public class HealthProfileController {
     }
 
     // JWT 사용자 ID와 요청 사용자 ID 비교
-    private void requireSelf(Long requestedUserId, Jwt jwt) {
-        Long authenticatedUserId = Long.valueOf(jwt.getSubject());
-
-        if (!requestedUserId.equals(authenticatedUserId)) {
+    private void requireSelf(Long requestedUserId, Long currentUserId) {
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        if (!requestedUserId.equals(currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
     }

@@ -41,7 +41,7 @@ public class DisposalController {
             return ResponseEntity.ok(ApiResponse.success(result));
 
         } catch (RuntimeException e) {
-            log.error("[DISPOSAL] 약국 검색 실패. query={}", query, e);
+            log.error("[DISPOSAL] 약국 검색 실패. query={}", e);
             throw e;
         }
     }

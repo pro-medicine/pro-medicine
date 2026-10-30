@@ -6,6 +6,7 @@ const BASE_URL = import.meta.env.VITE_AUTH_API_BASE_URL ?? "";
 export const SESSION_EXPIRED_EVENT = "yakssok:session-expired";
 
 let refreshPromise = null;
+let logoutPromise = null;
 let authGeneration = 0;
 
 async function request(path, { method = "GET", body, credentials = "omit", useAuth = true } = {}) {
@@ -39,7 +40,7 @@ async function request(path, { method = "GET", body, credentials = "omit", useAu
  * A new opaque refresh token is returned only as an HttpOnly Set-Cookie.
  */
 export async function refreshAccessToken() {
-    if (USE_MOCK_AUTH) return null;
+    if (USE_MOCK_AUTH || logoutPromise) return null;
     if (!refreshPromise) {
         const generation = authGeneration;
         const perform = async () => {
@@ -111,17 +112,31 @@ export async function getCurrentUser() {
     }
 }
 
-export async function logout() {
+export function logout() {
     if (USE_MOCK_AUTH) return mockAuth.logout();
-    authGeneration += 1; // Don't let an in-flight refresh restore a logged-out user.
-    clearAccessToken();
-    try {
+    if (logoutPromise) return logoutPromise;
+
+    // Prevent an earlier refresh response from restoring the cookie after logout.
+    logoutPromise = (async () => {
+        if (refreshPromise) {
+            try {
+                await refreshPromise;
+            } catch {
+                // Even if refresh cannot connect, still attempt server logout.
+            }
+        }
+
         await request("/api/v1/auth/logout", {
             method: "POST", credentials: "include", useAuth: false,
         });
-    } finally {
+
+        // Only clear local auth state after the server confirms logout.
+        authGeneration += 1;
         clearAccessToken();
-    }
+    })().finally(() => {
+        logoutPromise = null;
+    });
+    return logoutPromise;
 }
 
 /** Fetch wrapper for APIs that don't use the shared Axios client (notably Home). */
