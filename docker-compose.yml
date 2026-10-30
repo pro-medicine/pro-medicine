@@ -43,6 +43,10 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # 무중단 배포 중 백엔드 2개가 잠깐 같이 떠도 메모리가 부족하지 않도록 제한
       JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
+      #radis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      APP_AUTH_ALLOWED_ORIGINS: http://localhost,http://3.34.112.40,http://localhost:5173,http://127.0.0.1:5173
     depends_on:
       mysql:
         condition: service_healthy
