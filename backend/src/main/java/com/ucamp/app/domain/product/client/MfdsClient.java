@@ -21,9 +21,10 @@ import java.util.List;
 public class MfdsClient {
 
     private static final String BASE_URL = "https://apis.data.go.kr/1471000/HtfsInfoService03";
-    // 식약처 응답이 늦어도 무한정 기다리지 않도록 (연결 5초, 응답 30초)
+    // 식약처 응답이 늦어도 무한정 기다리지 않도록 (연결 5초, 응답 90초)
+    // 100개씩 받을 때 보통 2~15초, 서버가 바쁘면 30초를 넘기기도 해서 여유 있게 잡음
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(90);
 
     private final RestClient restClient;
     private final String apiKey;
