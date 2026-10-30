@@ -68,21 +68,20 @@
 .home-bell-dot { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--alert); border: 2px solid var(--white); }
 
 /* ===== 오늘의 약속: 원형 진행률 + 문구 + 연속 복용 배지 ===== */
-.home-promise { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; gap: 18px; padding: 24px 26px; border-radius: var(--radius-card); background: linear-gradient(135deg, #12b981 0%, var(--primary) 55%, #0b8a63 100%); color: var(--white); box-shadow: 0 10px 28px rgba(14, 159, 110, 0.22); }
+.home-promise { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; gap: 18px; padding: 24px 26px; border-radius: var(--radius-card); background: linear-gradient(135deg, #e9f9f1 0%, #d4f3e4 100%); color: var(--ink); box-shadow: 0 1px 3px rgba(14, 159, 110, 0.06), 0 6px 18px rgba(14, 159, 110, 0.1); }
 /* 오른쪽 위 반투명 원 장식 (초록 3 시안) */
-.home-promise::before { content: ""; position: absolute; z-index: -1; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+.home-promise::before { content: ""; position: absolute; z-index: -1; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); }
 .home-ring { position: relative; flex-shrink: 0; width: 112px; height: 112px; }
 .home-ring circle { fill: none; stroke-width: 10; }
-.home-ring-track { stroke: rgba(255, 255, 255, 0.25); }
-.home-ring-fg { stroke: var(--white); stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+.home-ring-track { stroke: rgba(255, 255, 255, 0.85); }
+.home-ring-fg { stroke: var(--primary); stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
 .home-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .home-ring-text strong { font-size: 26px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
-.home-ring-text small { margin-top: 4px; font-size: 11px; color: rgba(255, 255, 255, 0.8); }
+.home-ring-text small { margin-top: 4px; font-size: 11px; color: var(--primary-hover); }
 .home-promise-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
-.home-promise-sub { font-size: 16px; font-weight: 700; line-height: 1.45; color: var(--white); word-break: keep-all; }
-/* 초록 카드 위의 연속 복용 배지: 반투명 흰색 + 노란 불꽃 */
-.home-promise .home-streak { background: rgba(255, 255, 255, 0.18); color: var(--white); }
-.home-promise .home-streak svg { color: #ffe8a3; }
+.home-promise-sub { font-size: 16px; font-weight: 700; line-height: 1.45; color: var(--ink); word-break: keep-all; }
+/* 연한 초록 카드 위의 연속 복용 배지: 흰 바탕 + 주황 */
+.home-promise .home-streak { background: var(--white); }
 .home-streak { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--streak-soft); color: var(--streak); font-size: 13px; font-weight: 700; white-space: nowrap; }
 
 /* ===== 오늘의 복용 타임라인 ===== */
@@ -139,9 +138,9 @@
 
 /* ===== 상태: 모두 완료 (오늘의 약속 카드가 완료 화면으로 바뀜) ===== */
 .home-promise.is-done { position: relative; overflow: hidden; flex-direction: column; justify-content: center; gap: 8px; min-height: 176px; text-align: center; }
-.home-done-check { width: 56px; height: 56px; margin-bottom: 4px; border-radius: 50%; background: var(--white); color: var(--primary); box-shadow: 0 6px 16px rgba(6, 78, 59, 0.2); display: grid; place-items: center; flex-shrink: 0; }
+.home-done-check { width: 56px; height: 56px; margin-bottom: 4px; border-radius: 50%; background: var(--primary); color: var(--white); box-shadow: 0 6px 16px rgba(14, 159, 110, 0.25); display: grid; place-items: center; flex-shrink: 0; }
 .home-done-title { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
-.home-done-sub { margin-bottom: 6px !important; font-size: 13px; line-height: 1.5; color: rgba(255, 255, 255, 0.85); }
+.home-done-sub { margin-bottom: 6px !important; font-size: 13px; line-height: 1.5; color: var(--muted); }
 .home-confetti { position: absolute; transform: rotate(var(--rotate)); }
 
 /* ===== 상태: 영양제 없음 ===== */

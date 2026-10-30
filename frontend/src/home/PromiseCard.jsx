@@ -1,4 +1,4 @@
-// 오늘의 약속 카드 (초록 그라데이션, 초록 3 시안): 원형 진행률 + 남은 개수 문구 + 연속 복용 배지 (#67 홈 시안 A)
+// 오늘의 약속 카드 (연한 민트 그라데이션): 원형 진행률 + 남은 개수 문구 + 연속 복용 배지 (#67 홈 시안 A)
 // (props: percent, remain, total, streakDays — 챙긴 개수 = total - remain)
 const SIZE = 112;
 const STROKE = 10;
@@ -14,12 +14,12 @@ function subText(remain, total) {
 
 // 모두 완료했을 때 카드 위에 뿌리는 색종이 (장식)
 const CONFETTI = [
-    { left: "8%", top: "14%", size: 7, round: false, color: "#ffffff", rotate: 20 },
+    { left: "8%", top: "14%", size: 7, round: false, color: "var(--primary)", rotate: 20 },
     { left: "20%", top: "80%", size: 5, round: true, color: "#f2c94c", rotate: 0 },
-    { left: "86%", top: "16%", size: 6, round: false, color: "#b9f3d6", rotate: 40 },
-    { left: "92%", top: "70%", size: 8, round: true, color: "#ffe8a3", rotate: 0 },
+    { left: "86%", top: "16%", size: 6, round: false, color: "#6fcf97", rotate: 40 },
+    { left: "92%", top: "70%", size: 8, round: true, color: "var(--primary)", rotate: 0 },
     { left: "70%", top: "8%", size: 5, round: true, color: "#f2994a", rotate: 0 },
-    { left: "36%", top: "10%", size: 5, round: false, color: "#b9f3d6", rotate: 60 },
+    { left: "36%", top: "10%", size: 5, round: false, color: "#6fcf97", rotate: 60 },
 ];
 
 export default function PromiseCard({ percent, remain, total, streakDays }) {
