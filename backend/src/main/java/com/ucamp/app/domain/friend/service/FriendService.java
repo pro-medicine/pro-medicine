@@ -35,31 +35,38 @@ public class FriendService {
     private final IntakeService intakeService;
     private final MySupplementService mySupplementService;
 
+
     public List<FriendResponse> getFriends(Long userId) {
         List<Follow> follows = followRepository
-                .findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
-        List<Long> friendIds = follows.stream().map(Follow::getFollowingId).toList();
-
-        Map<Long, User> users = userRepository.findAllById(friendIds).stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
+                .findByFollowerIdAndStatusOrderByFollowIdDesc(
+                        userId, FollowStatus.ACCEPTED);
+        List<Long> friendIds = follows.stream()
+                .map(Follow::getFollowingId)
+                .toList();
         Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
                 .map(Follow::getFollowerId)
                 .collect(Collectors.toSet());
-        Map<Long, Integer> streaks = intakeService.getStreakDays(users.keySet());   // 일괄 계산
-
+        Map<Long, User> users = userRepository.findAllById(friendIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        Map<Long, Integer> streaks = intakeService.getStreakDays(
+                users.values().stream()
+                        .filter(User::isShareIntakeStatus)
+                        .map(User::getId)
+                        .collect(Collectors.toSet())
+        );
         return follows.stream()
                 .filter(f -> users.containsKey(f.getFollowingId()))
-                .map(f -> FriendResponse.of(
-                        f.getFollowId(),
-                        users.get(f.getFollowingId()),
-                        followsMe.contains(f.getFollowingId()),
-                        streaks.getOrDefault(f.getFollowingId(), 0)))
+                .map(f -> {
+                    Long friendId = f.getFollowingId();
+                    return FriendResponse.of(f.getFollowId(), users.get(friendId), followsMe.contains(friendId), streaks.getOrDefault(friendId, 0));
+                })
                 .toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
         getAcceptedFollow(userId, friendUserId);
         User friend = getUser(friendUserId);
+        if (!friend.isShareIntakeStatus()) return FriendDetailResponse.hidden(friend);
         IntakeStatsResponse stats = intakeService.getStats(friendUserId);
         List<MySupplementResponse> supplements = mySupplementService.getMyActiveSupplements(friendUserId);
         return FriendDetailResponse.of(friend, stats, supplements);
@@ -67,12 +74,13 @@ public class FriendService {
 
     public List<LocalDate> getFriendCalendar(Long userId, Long friendUserId, LocalDate start, LocalDate end) {
         getAcceptedFollow(userId, friendUserId);
-        // TODO: 친구 캘린터 공개/비공개 설정 기능 생기면 추가
+        requireShared(getUser(friendUserId));
         return intakeService.getCompletedDates(friendUserId, start, end);
     }
 
     public List<TodayIntakeResponse> getFriendIntakes(Long userId, Long friendUserId, LocalDate date) {
         getAcceptedFollow(userId, friendUserId);
+        requireShared(getUser(friendUserId));
         return intakeService.getTodayIntakes(friendUserId, date);
     }
 
@@ -91,5 +99,11 @@ public class FriendService {
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private void requireShared(User friend) {
+        if (!friend.isShareIntakeStatus()) {
+            throw new BusinessException(ErrorCode.INTAKE_NOT_SHARED);
+        }
     }
 }

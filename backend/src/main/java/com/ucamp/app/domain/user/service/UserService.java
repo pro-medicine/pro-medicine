@@ -19,8 +19,7 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponse getUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        User user = findUser(userId);
         return UserResponse.from(user);
     }
 
@@ -32,8 +31,7 @@ public class UserService {
         }
         String trimmed = nickname.strip();
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        User user = findUser(userId);
         if (trimmed.equals(user.getNickname())) {
             return UserResponse.from(user);
         }
@@ -56,5 +54,17 @@ public class UserService {
         // 안부지킴이 알림용
         LocalDateTime now = LocalDateTime.now();
         userRepository.touchActive(userId, now, now.minusMinutes(10));
+    }
+
+    @Transactional
+    public UserResponse changeShareIntakeStatus(Long userId, boolean shared) {
+        User user = findUser(userId);
+        user.changeShareIntakeStatus(shared);
+        return UserResponse.from(user);
+    }
+
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

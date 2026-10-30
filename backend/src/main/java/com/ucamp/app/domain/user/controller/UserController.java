@@ -2,12 +2,14 @@
 package com.ucamp.app.domain.user.controller;
 
 import com.ucamp.app.domain.user.dto.NicknameUpdateRequest;
+import com.ucamp.app.domain.user.dto.ShareIntakeRequest;
 import com.ucamp.app.domain.user.dto.UserResponse;
 import com.ucamp.app.domain.user.service.UserService;
 import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,5 +58,13 @@ public class UserController {
         if (!requestedUserId.equals(currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+    }
+
+    @PatchMapping("/{userId}/share-intake")
+    public ResponseEntity<ApiResponse<UserResponse>> changeShareIntake(
+            @PathVariable Long userId,
+            @Valid @RequestBody ShareIntakeRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.changeShareIntakeStatus(userId, request.shared())));
     }
 }
