@@ -11,6 +11,9 @@ DROP TABLE IF EXISTS `question_options`;
 DROP TABLE IF EXISTS `survey_questions`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
+DROP TABLE IF EXISTS `ai_chat_results`;
+DROP TABLE IF EXISTS `ai_chat_turns`;
+DROP TABLE IF EXISTS `ai_chat_sessions`;
 DROP TABLE IF EXISTS `ai_question_turns`;
 DROP TABLE IF EXISTS `ai_question_sessions`;
 DROP TABLE IF EXISTS `survey_responses`;
@@ -255,6 +258,7 @@ CREATE TABLE `ai_recommendations` (
                                       `recommendation_id`   BIGINT   NOT NULL,
                                       `response_id`   BIGINT   NULL   COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
                                       `session_id`   BIGINT   NULL   COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
+                                      `chat_session_id`   BIGINT   NULL   COMMENT 'V4 대화창 트랙 2 (90일 삭제 후 NULL)',
                                       `summary`   TEXT   NULL,
                                       `model_name`   VARCHAR(60)   NULL,
                                       `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
@@ -271,7 +275,7 @@ CREATE TABLE `llm_call_logs` (
                                  `eval_run_id`   VARCHAR(50)   NULL,
                                  `session_id`   BIGINT   NULL   COMMENT 'ai_question_sessions 참조 (V2 호출만, FK 없음, STEP 14)',
                                  `pipeline_version`   VARCHAR(10)   NOT NULL,
-                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE',
+                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE, CHAT_PARSE, CHAT_PARSE_REPAIR, CHAT_EMBED',
                                  `model`   VARCHAR(60)   NOT NULL,
                                  `prompt_version`   VARCHAR(20)   NOT NULL,
                                  `input_tokens`   INT   NULL,
@@ -352,6 +356,51 @@ CREATE TABLE `ai_question_turns` (
                                      `answered_at`   DATETIME   NULL,
                                      PRIMARY KEY (`turn_id`),
                                      UNIQUE KEY `uq_pq_turn` (`session_id`, `turn_no`)
+);
+
+-- AI 추천 V4: 대화창 (증상 문장 → 성분 + 제품). 대화 원문·대화 속 약·질환은 프로필에 저장하지 않고 여기에만 남긴다 (90일 뒤 삭제)
+CREATE TABLE `ai_chat_sessions` (
+                                    `chat_session_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                    `user_id`   BIGINT   NOT NULL,
+                                    `status`   VARCHAR(20)   NOT NULL   COMMENT 'OPEN, CLARIFYING, SEARCHING, DONE, FALLBACK_PENDING, RED_FLAG, FAILED',
+                                    `pregnancy`   VARCHAR(20)   NULL   COMMENT 'NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING (19~50세 여성만)',
+                                    `clarified`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '되묻기 1번 했는지 (최대 1번)',
+                                    `extra_medications`   JSON   NULL   COMMENT '대화에서 뽑은 약 [{drugId, drugClass, name}]',
+                                    `extra_conditions`   JSON   NULL   COMMENT '대화에서 뽑은 질환 코드',
+                                    `started_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                    `completed_at`   DATETIME   NULL,
+                                    PRIMARY KEY (`chat_session_id`),
+                                    KEY `idx_chat_sessions_user` (`user_id`, `started_at`),
+                                    KEY `idx_chat_sessions_started` (`started_at`)
+);
+
+CREATE TABLE `ai_chat_turns` (
+                                 `chat_turn_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                 `chat_session_id`   BIGINT   NOT NULL,
+                                 `turn_no`   INT   NOT NULL   COMMENT '1 = 첫 입력, 2 = 되묻기 답',
+                                 `user_text`   VARCHAR(300)   NOT NULL   COMMENT '대화 원문 (건강 정보, 90일 뒤 삭제)',
+                                 `parse_output`   JSON   NULL   COMMENT 'LLM 구조화 결과 그대로',
+                                 `clarification`   JSON   NULL   COMMENT '보여준 되묻기 {question, options}',
+                                 `llm_call_log_ids`   JSON   NULL,
+                                 `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                 PRIMARY KEY (`chat_turn_id`),
+                                 UNIQUE KEY `uq_chat_turn` (`chat_session_id`, `turn_no`)
+);
+
+CREATE TABLE `ai_chat_results` (
+                                   `chat_result_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                   `chat_session_id`   BIGINT   NOT NULL,
+                                   `track`   VARCHAR(20)   NOT NULL   COMMENT 'REVIEW (트랙 1), RULE_BASED (트랙 2)',
+                                   `recommendation_id`   BIGINT   NULL   COMMENT '트랙 2 ai_recommendations id (FK 없음)',
+                                   `cards`   JSON   NULL   COMMENT '트랙 1 카드·제품 스냅샷',
+                                   `hit_mention_ids`   JSON   NULL   COMMENT 'τ를 넘은 언급 id와 sim',
+                                   `top_similarity`   DECIMAL(5,4)   NULL,
+                                   `excluded`   JSON   NULL   COMMENT '제외 성분·제외 제품 수',
+                                   `data_version`   DATETIME   NULL   COMMENT '사용한 review_product_scores.computed_at',
+                                   `latency_ms`   INT   NULL,
+                                   `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                   PRIMARY KEY (`chat_result_id`),
+                                   UNIQUE KEY `uq_chat_results_session` (`chat_session_id`)
 );
 
 CREATE TABLE `intake_schedules` (
@@ -606,6 +655,19 @@ ALTER TABLE `ai_question_turns` ADD CONSTRAINT `fk_pq_turns_session` FOREIGN KEY
 
 ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`)
     REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL;
+
+-- V4 대화창: 세션 삭제(90일) 시 턴·결과는 삭제, 트랙 2 추천은 남기고 chat_session_id만 비운다
+ALTER TABLE `ai_chat_sessions` ADD CONSTRAINT `fk_chat_sessions_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_chat_turns` ADD CONSTRAINT `fk_chat_turns_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_chat_results` ADD CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_chat_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL;
 
 -- STEP 17: 리뷰 제품 추천. 제품이 삭제되면 성분·점수는 삭제, 언급은 남기고 제품 id만 비운다
 ALTER TABLE `product_ingredients` ADD CONSTRAINT `fk_product_ingredients_product` FOREIGN KEY (`catalog_product_id`)

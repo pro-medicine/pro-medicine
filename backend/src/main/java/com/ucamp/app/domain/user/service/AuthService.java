@@ -39,11 +39,11 @@ public class AuthService {
                 || !GENDERS.contains(request.gender()) || !request.termsAgreed()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
-        if (users.existsByEmailIgnoreCase(email)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
-        }
-        if (users.existsByNickname(name)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        boolean duplicateEmail = users.existsByEmailIgnoreCase(email);
+        boolean duplicateNickname = users.existsByNickname(name);
+
+        if (duplicateEmail || duplicateNickname) {
+            throw new BusinessException(ErrorCode.DUPLICATE_USER);
         }
 
         User user = User.builder()

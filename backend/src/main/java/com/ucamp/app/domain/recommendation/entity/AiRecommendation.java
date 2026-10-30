@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.recommendation.entity;
 
+import com.ucamp.app.domain.chat.entity.AiChatSession;
 import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.survey.entity.SurveyResponse;
 import jakarta.persistence.Column;
@@ -46,6 +47,12 @@ public class AiRecommendation {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private AiQuestionSession session;
 
+    // V4 대화창 트랙 2(기존 성분 추천으로 폴백). 대화 세션이 90일 뒤 삭제되면 null
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_session_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private AiChatSession chatSession;
+
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
 
@@ -77,14 +84,15 @@ public class AiRecommendation {
     public static final int ERROR_CODE_LENGTH = 30;
 
     @Builder
-    public AiRecommendation(SurveyResponse response, AiQuestionSession session, String summary, String modelName,
-                            String status) {
-        // 설문 응답(V1) 또는 맞춤 질문 회차(V2) 중 하나는 있어야 한다. DB CHECK는 90일 삭제(session SET NULL) 때문에 걸지 않는다
-        if (response == null && session == null) {
-            throw new IllegalArgumentException("response 또는 session이 필요합니다");
+    public AiRecommendation(SurveyResponse response, AiQuestionSession session, AiChatSession chatSession,
+                            String summary, String modelName, String status) {
+        // 설문 응답(V1)·맞춤 질문 회차(V2)·대화 세션(V4) 중 하나는 있어야 한다. DB CHECK는 90일 삭제(SET NULL) 때문에 걸지 않는다
+        if (response == null && session == null && chatSession == null) {
+            throw new IllegalArgumentException("response, session, chatSession 중 하나가 필요합니다");
         }
         this.response = response;
         this.session = session;
+        this.chatSession = chatSession;
         this.summary = summary;
         this.modelName = modelName;
         this.status = status != null ? status : DONE;

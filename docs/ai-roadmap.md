@@ -157,19 +157,24 @@
 
 ---
 
-## Version 4 (이후) — AI 대화창
+## Version 4 — AI 대화창 (증상 문장 → 성분 + 제품)
 
-| ID | 내용 |
-|---|---|
-| F4-1 | 자유 대화("요즘 피곤해") → 설문 형태 변환 → 성분 추천 → 제품 추천 |
-| F4-2 | 안전 정보 되묻기 (맞춤 질문 역할) |
-| F4-3 | Tool: 추천 조회, 성분 설명, 제품 추천, 섭취 분석, 리뷰 검색, 복용 목록 추가(사용자 확인 후) |
-| F4-4 | 최종 답변 Guardrail, 프롬프트 인젝션 대응, 대화창 화면 |
-| Data4-1 | 리뷰 자막 청킹 + 임베딩 (서버 질문 임베딩과 같은 모델) |
-| Data4-2 | MySQL 기반 `VectorStore` (범위 좁힌 뒤 brute-force) |
-| Data4-3 | 대화 메모리 테이블 |
+> 설계: `docs/design/V4-chat-symptom-recommendation.md` (2026-10-28~29). 브랜치 `feat/chat-recommendation` (V3 PR 위)
 
-측정: RAG Recall@K, brute-force 규모별 지연, 대화 길이별 비용, tool 호출 성공률
+| ID | 내용 | 상태 |
+|---|---|---|
+| F4-1 | 화면 우측 하단 고정 버튼 → 채팅형 대화창. 회원 전용, 한 고민 = 한 세션, 대화 기록은 로그인 동안 sessionStorage | ✅ 구현 (화면 수동 확인 남음) |
+| F4-2 | ① LLM 구조화 (`chat-v1`, strict 스키마, 1회 재요청): 응급·위기 / 주제 밖 / 되묻기(최대 1번) / 검색 문장 / 대화 속 약·질환 | ✅ |
+| F4-3 | 트랙 1: 검색 문장 임베딩 → 메모리 벡터 인덱스(τ 0.30, K 50) → 상황 점수 → 성분 카드(최대 3) + V3 안전 필터·순위·브랜드 제한 제품(카드당 최대 3) | ✅ |
+| F4-4 | 트랙 2: 트랙 1 결과가 없으면 기존 성분 추천 파이프라인 (대화 원문을 맞춤 답변으로, `-c`, 비동기) → V3 제품 API | ✅ |
+| F4-5 | 안전: 대화 속 약을 약 마스터에 매칭(이름 → 계열 → 모름)해 이번 추천에만 반영, 응급 키워드 이중 확인, LLM 문장은 검증한 되묻기 질문만 노출 | ✅ (위기 안내 문구 확정 필요, P6) |
+| Data4-1 | AI 테이블 3개 + `ai_recommendations.chat_session_id` (AI_SETUP 19개), 90일 삭제 | ✅ |
+| Data4-2 | 벡터 저장: MySQL BLOB + 서버 메모리 코사인 (`ReviewVectorIndex` 인터페이스 뒤, 10분마다 `computed_at` 확인) | ✅ (91행) |
+| Eval4-1 | 평가셋 50문장 (리뷰 있는 상황 30 + 없는 상황 20) → τ·계수 조정 | ⬜ |
+
+하지 않는 것 (이후): 멀티턴 상담·대화 메모리, Tool 호출 Agent, LLM 설명 문장, 벡터 DB, 쿼리 임베딩 캐시
+
+측정: 트랙 1 성공률(= 1 − 폴백률), 되묻기·red_flag·off_topic 비율, 단계별 지연(`chat.request` parse/embed/search/total), 요청당 비용(`CHAT_PARSE`·`CHAT_EMBED`), `top_similarity` 분포, 안전 필터 제외율(`review.safety.excluded`, track 태그)
 
 ---
 

@@ -8,6 +8,7 @@ import "./auth/auth.css";
 
 // 알림
 import { getUnreadCount, subscribeNotifications } from "./api/notificationApi";
+import ChatLauncher from "./chat";
 import { BottomNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -134,7 +135,7 @@ export default function App() {
             setLoggingOut(false);
         }
     };
-  // 사용자 정보 및 로그아웃 버튼
+    // 사용자 정보 및 로그아웃 버튼
     const renderSessionActions = () => (
         <div className="auth-session-actions">
           <span className="auth-session-name">
@@ -149,9 +150,9 @@ export default function App() {
                 {loggingOut ? "로그아웃 중..." : "로그아웃"}
             </button>
         </div>
-  );
+    );
 
-  // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
+    // 실시간 알림(SSE): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
     // 로그인한 사용자만 실시간 알림 구독
     useEffect(() => {
         if (userId == null) {
@@ -163,25 +164,25 @@ export default function App() {
         });
     }, [userId]);
 
-  // KST 자정이 지나면 홈(오늘 먹을 영양제 목록·복용 알림 카드)을 새 날짜로 함께 다시 불러온다.
-  // 홈을 켜 둔 채 날짜가 바뀌어도 어제 목록에 체크해서 어제 날짜로 저장되지 않게 한다.
-  useEffect(() => {
-    const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    let timer;
-    const scheduleNextMidnight = () => {
-      const now = Date.now();
-      const nextMidnight = (Math.floor((now + KST_OFFSET_MS) / DAY_MS) + 1) * DAY_MS - KST_OFFSET_MS;
-      timer = setTimeout(() => {
-        setHomeRefreshKey((key) => key + 1);
-        scheduleNextMidnight(); // 다음 날 자정도 이어서 예약
-      }, nextMidnight - now + 1000);
-    };
-    scheduleNextMidnight();
-    return () => clearTimeout(timer);
-  }, []);
+    // KST 자정이 지나면 홈(오늘 먹을 영양제 목록·복용 알림 카드)을 새 날짜로 함께 다시 불러온다.
+    // 홈을 켜 둔 채 날짜가 바뀌어도 어제 목록에 체크해서 어제 날짜로 저장되지 않게 한다.
+    useEffect(() => {
+        const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        let timer;
+        const scheduleNextMidnight = () => {
+            const now = Date.now();
+            const nextMidnight = (Math.floor((now + KST_OFFSET_MS) / DAY_MS) + 1) * DAY_MS - KST_OFFSET_MS;
+            timer = setTimeout(() => {
+                setHomeRefreshKey((key) => key + 1);
+                scheduleNextMidnight(); // 다음 날 자정도 이어서 예약
+            }, nextMidnight - now + 1000);
+        };
+        scheduleNextMidnight();
+        return () => clearTimeout(timer);
+    }, []);
 
-  // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
+    // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
 
     // 알림 열기: 버튼 위치 계산
     const openNotifications = (event) => {
@@ -312,7 +313,7 @@ export default function App() {
     }
 
 
-  return (
+    return (
         <UnreadNotificationContext.Provider
             value={hasUnreadNotifications}
         >
@@ -342,6 +343,9 @@ export default function App() {
                     onChange={changeTab}
                 />
 
+                {/* 로그인 사용자 AI 채팅 */}
+                <ChatLauncher userId={userId} />
+
                 {/* AI 추천 설문 */}
                 {surveyOpen && (
                     <RecommendationModal
@@ -364,5 +368,5 @@ export default function App() {
                 )}
             </div>
         </UnreadNotificationContext.Provider>
-  );
+    );
 }
