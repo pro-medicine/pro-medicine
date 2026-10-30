@@ -14,10 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.ucamp.app.domain.user.repository.UserRepository;
 
 import java.util.Locale;
 import java.util.Set;
+import java.sql.SQLException;
 
 @Service
 @RequiredArgsConstructor
@@ -55,8 +55,13 @@ public class AuthService {
             users.saveAndFlush(user);
             demographics.saveAndFlush(new AuthDemographic(user, age, request.gender()));
         } catch (DataIntegrityViolationException ex) {
-            // 동시에 가입 요청이 발생할 때 DB의 UNIQUE 제약을 최종적으로 보호한다.
-            throw new BusinessException(ErrorCode.DUPLICATE_USER);
+            // UNIQUE 제약 위반일 때만 중복 사용자 오류 반환
+            if (isDuplicateKey(ex)) {
+                throw new BusinessException(ErrorCode.DUPLICATE_USER);
+            }
+
+            // 다른 DB 오류는 원본 예외 유지
+            throw ex;
         }
         return UserResponse.from(user);
     }
@@ -78,5 +83,16 @@ public class AuthService {
 
     private String normalizeEmail(String email) {
         return email.strip().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isDuplicateKey(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+
+        if (cause instanceof SQLException sql) {
+            return sql.getErrorCode() == 1062
+                    || "23505".equals(sql.getSQLState());
+        }
+
+        return false;
     }
 }
