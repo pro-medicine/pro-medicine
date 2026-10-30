@@ -81,6 +81,23 @@ public class DisposalController {
                 disposalService.searchNearby(parsedLatitude, parsedLongitude, parsedRadius)));
     }
 
+    @GetMapping("/locations")
+    public ResponseEntity<ApiResponse<JsonNode>> searchLocations(
+            @RequestParam(required = false) String query) {
+
+        if (query == null || query.isBlank()
+                || query.trim().length() > 100) {
+            throw new BusinessException(
+                    ErrorCode.DISPOSAL_INVALID_QUERY);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        disposalService.searchLocationCandidates(query.trim())
+                )
+        );
+    }
+
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidParameter(MethodArgumentTypeMismatchException ex) {

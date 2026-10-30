@@ -1,3 +1,20 @@
+/* Global palette is also defined in frontend/src/index.css.
+   Duplicated here so IDE CSS inspection can resolve the variables locally.
+   Keep values identical when updating the app palette. */
+:root {
+  --ink: #24251f;
+  --muted: #7b7d73;
+  --soft: #f7f7f3;
+  --line: #e9e9e2;
+  --yellow: #f5df79;
+  --yellow-deep: #e9c94c;
+  --yellow-soft: #fff8d9;
+  --yellow-pale: #fffcef;
+  --white: #ffffff;
+  --green: #577764;
+  --shadow: 0 14px 38px rgba(47, 48, 39, 0.07);
+}
+
 .map-intro {
   align-items: center;
   background: var(--yellow-pale);
@@ -52,8 +69,8 @@
 .mock-map {
   background-color: #eef0e9;
   background-image:
-    linear-gradient(35deg, transparent 47%, rgba(255,255,255,.9) 48% 52%, transparent 53%),
-    linear-gradient(145deg, transparent 45%, rgba(255,255,255,.75) 46% 50%, transparent 51%);
+          linear-gradient(35deg, transparent 47%, rgba(255, 255, 255, 0.9) 48%, rgba(255, 255, 255, 0.9) 52%, transparent 53%),
+          linear-gradient(145deg, transparent 45%, rgba(255, 255, 255, 0.75) 46%, rgba(255, 255, 255, 0.75) 50%, transparent 51%);
   background-size: 150px 140px, 190px 180px;
   border: 1px solid #e1e4dc;
   border-radius: 22px;
@@ -511,10 +528,11 @@
   gap: 3px;
 }
 
+/* ---------- Kakao map search / pharmacy list ---------- */
 .map-screen .disposal-search-form {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 10px;
   margin-bottom: 18px;
 }
 
@@ -542,104 +560,59 @@
   font-weight: 700;
 }
 
-.map-screen .kakao-map-frame {
-  height: 520px;
-  min-height: 520px;
-  border: 1px solid #e1e4dc;
-  border-radius: 22px;
-  position: relative;
-  overflow: hidden;
-  background: #eef0e9;
+/* Location candidate list (keyword -> area) */
+.map-screen .disposal-location-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 235px;
+  overflow-y: auto;
+  margin: -4px 0 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
 }
 
-.map-screen .kakao-map-canvas {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.map-screen .map-overlay-state {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.85);
-  color: #555;
+.map-screen .disposal-location-candidates h3 {
+  margin: 0 0 6px;
   font-size: 13px;
 }
 
-.map-screen .map-selected-card {
-  z-index: 3;
-}
-
-.map-screen .map-detail-link {
-  border-radius: 8px;
-  background: var(--yellow-soft);
-  padding: 8px;
-  color: #826d23;
-  text-decoration: none;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.map-screen .disposal-state {
-  padding: 15px;
+.map-screen .disposal-location-candidates p {
+  margin: 0;
   color: var(--muted);
   font-size: 12px;
 }
 
-@media (max-width: 600px) {
-  .map-screen .disposal-search-form {
-    flex-wrap: wrap;
-  }
-
-  .map-screen .disposal-search-form label {
-    width: 100%;
-  }
-
-  .map-screen .kakao-map-frame {
-    height: 390px;
-    min-height: 390px;
-  }
-}
-
-
-/* 폐의약품 지도 옆 약국 목록: 지도 높이만큼 표시하고 내부 스크롤 */
-.map-screen .pharmacy-list-wrap {
+.map-screen .disposal-location-candidates button {
   display: flex;
   flex-direction: column;
-  height: 520px;
-  min-height: 0;
-  overflow: hidden;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  text-align: left;
+  cursor: pointer;
 }
 
-.map-screen .pharmacy-list-wrap .section-title-row {
-  flex-shrink: 0;
+.map-screen .disposal-location-candidates button:hover,
+.map-screen .disposal-location-candidates button:focus-visible {
+  background: var(--yellow-pale);
+  border-color: var(--yellow-deep);
 }
 
-.map-screen .pharmacy-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  align-content: start;
-  grid-auto-rows: max-content;
-  padding-right: 6px;
+.map-screen .disposal-location-candidates button strong {
+  font-size: 12px;
 }
 
-@media (max-width: 600px) {
-  .map-screen .pharmacy-list-wrap {
-    height: 390px;
-  }
+.map-screen .disposal-location-candidates button small {
+  color: var(--muted);
+  font-size: 10px;
 }
 
-/* 이 파일의 내용만 기존 frontend/src/disposal/disposal.css 맨 아래에 추가하세요. */
+/* Search radius and GPS controls */
 .map-screen .disposal-location-controls {
   display: flex;
   align-items: center;
@@ -697,22 +670,74 @@
   font-size: 12px;
 }
 
+/* Real Kakao map */
+.map-screen .kakao-map-frame {
+  height: 520px;
+  min-height: 520px;
+  border: 1px solid #e1e4dc;
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  background: #eef0e9;
+}
+
+.map-screen .kakao-map-canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.map-screen .map-overlay-state {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.85);
+  color: #555;
+  font-size: 13px;
+}
+
+.map-screen .map-selected-card {
+  z-index: 3;
+}
+
+.map-screen .map-selected-card > div {
+  min-width: 0;
+}
+
+.map-screen .map-detail-link {
+  border-radius: 8px;
+  background: var(--yellow-soft);
+  padding: 8px;
+  color: #826d23;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .map-screen .kakao-radius-badge {
   position: absolute;
   top: 15px;
   left: 15px;
   z-index: 3;
+  max-width: calc(100% - 30px);
   border-radius: 10px;
   padding: 8px 11px;
-  background: rgba(255,255,255,0.94);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid #cddfeb;
-  box-shadow: 0 2px 9px rgba(30,50,80,0.1);
+  box-shadow: 0 2px 9px rgba(30, 50, 80, 0.1);
   color: #285b88;
   font-size: 11px;
   font-weight: 700;
   pointer-events: none;
 }
 
+/* Blue marker: device GPS location */
 .map-screen .kakao-my-location {
   width: 22px;
   height: 22px;
@@ -730,27 +755,37 @@
   border: 3px solid white;
   border-radius: 50%;
   background: #277ace;
-  box-shadow: 0 1px 8px rgba(30,70,120,0.38);
+  box-shadow: 0 1px 8px rgba(30, 70, 120, 0.38);
   box-sizing: content-box;
 }
 
-@media (max-width: 600px) {
-  .map-screen .disposal-location-controls {
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .map-screen .disposal-search-mode {
-    width: 100%;
-  }
+/* Orange marker: selected area / station */
+.map-screen .kakao-search-center {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #eaa500;
+  box-shadow: 0 2px 8px rgba(90, 73, 0, 0.3);
 }
 
-/* 기존 CodeRabbit 목록 스크롤 수정이 아직 적용되지 않은 경우에도 동작하도록 포함 */
+.map-screen .kakao-search-center span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: white;
+}
+
+/* Display pharmacies next to map with scrolling */
 .map-screen .pharmacy-list-wrap {
   display: flex;
   flex-direction: column;
   height: 520px;
   min-height: 0;
   overflow: hidden;
+  min-width: 0;
 }
 
 .map-screen .pharmacy-list-wrap .section-title-row {
@@ -768,8 +803,83 @@
   padding-right: 6px;
 }
 
+.map-screen .disposal-state {
+  padding: 15px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 @media (max-width: 600px) {
+  .map-screen .disposal-search-form {
+    flex-wrap: wrap;
+  }
+
+  .map-screen .disposal-search-form label {
+    width: 100%;
+  }
+
+  .map-screen .disposal-location-controls {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .map-screen .disposal-search-mode {
+    width: 100%;
+  }
+
+  .map-screen .kakao-map-frame {
+    height: 390px;
+    min-height: 390px;
+  }
+
   .map-screen .pharmacy-list-wrap {
     height: 390px;
   }
+}
+
+
+/* 이슈 #97: 장소 후보는 검색 입력창 아래가 아닌 약국 목록의 윗부분에 표시 */
+.map-screen .disposal-location-candidates.disposal-location-candidates--sidebar {
+  flex: 0 0 auto;
+  margin: 6px 0 10px;
+  max-height: 160px;
+  padding: 10px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.map-screen .disposal-location-candidates--sidebar h3 {
+  margin: 0;
+  font-size: 11px;
+}
+
+.map-screen .disposal-candidate-buttons {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.map-screen .disposal-candidate-buttons button {
+  flex: 0 0 auto;
+  max-width: 160px;
+  padding: 7px 10px;
+}
+
+.map-screen .disposal-candidate-buttons button strong,
+.map-screen .disposal-candidate-buttons button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-candidate-buttons button.selected {
+  background: var(--yellow-pale, #fffcef);
+  border-color: var(--yellow-deep, #e9c94c);
+}
+
+.map-screen .disposal-location-candidates--sidebar p {
+  font-size: 10px;
 }
