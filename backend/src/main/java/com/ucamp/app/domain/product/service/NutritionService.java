@@ -97,8 +97,8 @@ public class NutritionService {
             return amounts;
         }
         for (String part : summary.split(", ")) {
-            // 천 단위 쉼표 없애고 단위 표기 통일 (㎎ → mg, μg → ㎍), 공백은 숫자 구분용으로 남김
-            String text = part.trim().replace(",", "").replace("㎎", "mg").replace("μg", "㎍").replace("µg", "㎍");
+            // 천 단위 쉼표 없애고 단위 표기 통일 (㎎ → mg, μg·ug → ㎍), 공백은 숫자 구분용으로 남김
+            String text = part.trim().replace(",", "").replace("㎎", "mg").replace("μg", "㎍").replace("µg", "㎍").replace("ug", "㎍");
             // 성분 이름은 공백을 없앤 글로 찾음 ("비타민 C" → "비타민C")
             Nutrient nutrient = findNutrient(text.replace(" ", ""));
             // 게이지에 없는 성분이거나, 단위가 게이지 단위와 다르면 건너뜀

@@ -51,6 +51,10 @@ public class CatalogProductImportService {
             if (isSkipped(product)) {
                 continue;
             }
+            // 한 페이지에 같은 품목번호가 두 번 오면 처음 것만 저장 (중복 행 방지)
+            if (itemNos.contains(product.itemNo())) {
+                continue;
+            }
             targets.add(product);
             itemNos.add(product.itemNo());
         }
@@ -69,7 +73,7 @@ public class CatalogProductImportService {
         for (MfdsProduct product : targets) {
             String category = toCategory(product);
             String summary = toIngredientSummary(product.baseStandard());
-            String mainFunction = firstFunction(product.mainFunction());   // ← 이 줄 추가
+            String mainFunction = firstFunction(product.mainFunction());
             CatalogProduct existing = saved.get(product.itemNo());
             if (existing != null) {
                 existing.updateFromMfds(product.productName(), product.manufacturer(), mainFunction, product.intakeMethod(), product.intakeCaution(), category, summary);
@@ -175,32 +179,41 @@ public class CatalogProductImportService {
         return false;
     }
 
-    // 카테고리 자동 분류: 제품명과 주된 기능성에 들어 있는 단어로 판단 (위에서부터 먼저 맞는 것)
+    // 카테고리 자동 분류: 제품명으로 먼저 판단하고, 없으면 주된 기능성으로 판단
     // 식약처 데이터에 카테고리 칸이 없어서 화면 표시용으로만 정함
     private String toCategory(MfdsProduct product) {
-        String text = product.productName();
-        if (product.mainFunction() != null) {
-            text = text + " " + product.mainFunction();
+        String category = findCategory(product.productName());
+        if (category == null && product.mainFunction() != null) {
+            category = findCategory(product.mainFunction());
         }
-        if (text.contains("홍삼") || text.contains("인삼") || text.contains("진세노사이드")){
+        if (category == null) {
+            return "기타";
+        }
+        return category;
+    }
+
+    // 글에 들어 있는 단어로 카테고리 찾기 (위에서부터 먼저 맞는 것), 없으면 null
+    // 미네랄을 비타민보다 먼저 확인 (예: "7030칼슘마그비타"는 미네랄)
+    private String findCategory(String text) {
+        if (text.contains("홍삼") || text.contains("인삼") || text.contains("진세노사이드")) {
             return "홍삼";
         }
-        if (text.contains("유산균") || text.contains("프로바이오틱스")){
+        if (text.contains("유산균") || text.contains("프로바이오틱스")) {
             return "유산균";
         }
         if (text.contains("오메가") || text.contains("EPA") || text.contains("DHA")) {
-            return "오메가";
+            return "오메가3";
         }
-        if(text.contains("루테인")) {
-            return "루테인";
-        }
-        if (text.contains("비타민") || text.contains("VITAMIN") || text.contains("Vitamin")){
-            return  "비타민";
+        if (text.contains("루테인")) {
+            return "눈 건강";
         }
         if (text.contains("칼슘") || text.contains("마그네슘") || text.contains("아연") || text.contains("철")) {
             return "미네랄";
         }
-        return "기타";
+        if (text.contains("비타민") || text.contains("VITAMIN") || text.contains("Vitamin")) {
+            return "비타민";
+        }
+        return null;
     }
 
     private String toIngredientSummary(String baseStandard){
@@ -211,35 +224,44 @@ public class CatalogProductImportService {
         int count = 0;
         for(String line : baseStandard.split("\n")) {
             int colon = line.indexOf(":");
-            int mark = line.indexOf("표시량(");
-            //"성분 : 표시량(" 모양이 아닌 줄은 건너뜀 (성상, 대장균군 등)
-            if (colon < 0 || mark < 0 || colon > mark){
+            int mark = line.indexOf("표시량");
+            // "성분 : … 표시량 …" 모양이 아닌 줄은 건너뜀 (성상, 납, 대장균군 등)
+            if (colon < 0 || mark < colon) {
                 continue;
             }
-            //성분 이름: ":" 앞부분에서 앞쪽 번호 표시 "(2)", "②" 등을 뗌
-            String name = line.substring(0, colon).trim();
-            int start = 0;
-            while (start < name.length() && !Character.isLetter(name.charAt(start))) {
-                start++;
-            }
-            name = name.substring(start).trim();
+            String item = null;  // 이 줄에서 찾은 "성분 양" (예: "칼슘 229.8mg")
 
-            //함량: "표시량(" 바로 뒤부터 "/" 또는 ")" 앞까지
-            int amountStart = mark + 4;
-            int amountEnd = line.indexOf("/", amountStart);
-            int close = line.indexOf(")", amountStart);
-            if(amountEnd < 0 || (close >= 0 && close < amountEnd)) {
-                amountEnd = close;
+            // "표시량" 뒤의 공백과 "("를 건너뛰고 숫자가 나오면 함량이 "표시량" 뒤에 있는 형식
+            int amountStart = mark + 3;
+            while (amountStart < line.length() && (line.charAt(amountStart) == ' ' || line.charAt(amountStart) == '(')) {
+                amountStart++;
             }
-            if(name.isEmpty() || amountEnd < 0) {
+            if (amountStart < line.length() && Character.isDigit(line.charAt(amountStart))) {
+                // 형식 1: "(2) 비타민 C : 표시량(500 mg/2 g)의 80~150%", "2)칼슘 : 표시량 250㎎/920㎎ 의 80~150%"
+                String name = removeNumberMark(line.substring(0, colon));
+                int amountEnd = line.indexOf("/", amountStart);
+                int close = line.indexOf(")", amountStart);
+                if (amountEnd < 0 || (close >= 0 && close < amountEnd)) {
+                    amountEnd = close;
+                }
+                if (!name.isEmpty() && amountEnd > amountStart) {
+                    item = name + " " + line.substring(amountStart, amountEnd).replace(" ", "");
+                }
+            } else {
+                // 형식 2: "2)칼슘 229.8mg/920mg : 표시량의 80~150%" (함량이 ":" 앞에 있음)
+                String before = line.substring(0, colon);
+                int slash = before.indexOf("/");
+                if (slash > 0) {
+                    item = removeNumberMark(before.substring(0, slash));
+                }
+            }
+            if (item == null || item.isEmpty()) {
                 continue;
             }
-            String amount = line.substring(amountStart, amountEnd).replace(" ", "");
-
-            if(count > 0) {
+            if (count > 0) {
                 summary = summary + ", ";
             }
-            summary = summary + name + " " + amount;
+            summary = summary + item;
             count++;
             if (count == 2) {
                 break;
@@ -253,5 +275,14 @@ public class CatalogProductImportService {
             summary = summary.substring(0, 255);
         }
         return summary;
+    }
+
+    // 앞쪽 번호 표시 "(2)", "②", "2)" 등을 떼고 성분 이름부터 남김
+    private String removeNumberMark(String text) {
+        int start = 0;
+        while (start < text.length() && !Character.isLetter(text.charAt(start))) {
+            start++;
+        }
+        return text.substring(start).trim();
     }
 }
