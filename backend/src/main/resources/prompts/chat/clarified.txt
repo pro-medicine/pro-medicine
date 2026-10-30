@@ -1,0 +1,7 @@
+사용자 첫 입력
+{{text}}
+
+되묻기 질문: {{question}}
+사용자 답: {{answer}}
+
+첫 입력과 답을 합쳐서 정리한다. 이번에는 needs_clarification을 false, clarification을 null로 하고 search_query를 만든다.

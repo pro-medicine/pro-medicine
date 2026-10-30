@@ -8,8 +8,17 @@ import { getRecommendedProducts } from "../api/recommendationApi";
  * - recommendationId: 추천 결과 id
  * - ingredient: 성분 코드 (MAGNESIUM 등)
  * - nameOf: 성분 코드 → 한글 이름
+ * - products (선택): 이미 받은 제품 목록 (V4 대화창 트랙 1 응답). 주면 API를 부르지 않고 이 목록을 그린다
+ * - notice (선택): products와 같이 보일 안내 문구
  */
-export default function ProductRecommendations({ recommendationId, ingredient, nameOf }) {
+export default function ProductRecommendations({ recommendationId, ingredient, nameOf, products, notice }) {
+  if (products) {
+    return <ProductList products={products} notice={notice} ingredient={ingredient} nameOf={nameOf} />;
+  }
+  return <FetchedProducts recommendationId={recommendationId} ingredient={ingredient} nameOf={nameOf} />;
+}
+
+function FetchedProducts({ recommendationId, ingredient, nameOf }) {
   const [state, setState] = useState({ loading: true, data: null, error: null });
 
   useEffect(() => {
@@ -30,6 +39,12 @@ export default function ProductRecommendations({ recommendationId, ingredient, n
   }
 
   const { products = [], notice, message } = state.data ?? {};
+  return (
+    <ProductList products={products} notice={notice} message={message} ingredient={ingredient} nameOf={nameOf} />
+  );
+}
+
+function ProductList({ products, notice, message, ingredient, nameOf }) {
   if (products.length === 0) {
     return <p className="rec-prod-status">{message || "지금은 추천할 제품이 없어요"}</p>;
   }

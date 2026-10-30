@@ -1,14 +1,14 @@
--- AI_SETUP: 설문·AI 성분 추천·맞춤 질문·리뷰 제품 추천(V1~V3)에 필요한 테이블과 데이터를 한 번에 맞추는 SQL (MySQL)
+-- AI_SETUP: 설문·AI 성분 추천·맞춤 질문·리뷰 제품 추천·대화창(V1~V4)에 필요한 테이블과 데이터를 한 번에 맞추는 SQL (MySQL)
 -- 실행 위치: 각자 PC의 MySQL (yakssok DB 선택 후 실행). MySQL Workbench에서 파일을 열어 전체 실행해도 된다
 --   예) mysql -u root -p --default-character-set=utf8mb4 yakssok < backend/docs/sql/AI_SETUP.sql
 -- 실행 순서
 --   1) 서버를 한 번 실행해서 테이블을 만든다 (ddl-auto: update). 이미 실행해 둔 DB면 건너뛴다
 --   2) 이 파일 하나를 실행한다. 예전 STEP02~18 파일은 실행하지 않는다 (docs/sql/archive/에 기록만 남김)
 -- 하는 일
---   - AI 테이블 16개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
+--   - AI 테이블 19개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
 --     surveys, survey_questions, question_options, survey_responses, survey_answers, drugs, ingredient_standards,
---     recommendation_rules, llm_call_logs, ai_question_sessions, ai_question_turns, ai_recommendations,
---     ai_recommendation_items, product_ingredients, review_mentions, review_product_scores
+--     recommendation_rules, llm_call_logs, ai_question_sessions, ai_question_turns, ai_chat_sessions, ai_chat_turns,
+--     ai_chat_results, ai_recommendations, ai_recommendation_items, product_ingredients, review_mentions, review_product_scores
 --   - 기준 데이터만 넣는다: 설문 v1, 약물 마스터, 성분 기준값(KDRI-2025), 추천 규칙, 리뷰 제품 데이터. 회원 등 예시 데이터는 넣지 않는다
 --   - 다른 팀원 테이블(users, health_profiles, user_*, catalog_products, intake_*, notifications 등)의 데이터는 지우지 않는다
 --     · catalog_products: 리뷰 제품 컬럼·키 추가(없을 때만) + 리뷰 제품 87개 upsert (data_source = DSLD·MFDS). 기존 행은 그대로
@@ -38,6 +38,9 @@ DROP TABLE IF EXISTS `review_mentions`;
 DROP TABLE IF EXISTS `product_ingredients`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
+DROP TABLE IF EXISTS `ai_chat_results`;
+DROP TABLE IF EXISTS `ai_chat_turns`;
+DROP TABLE IF EXISTS `ai_chat_sessions`;
 DROP TABLE IF EXISTS `ai_question_turns`;
 DROP TABLE IF EXISTS `ai_question_sessions`;
 DROP TABLE IF EXISTS `llm_call_logs`;
@@ -147,7 +150,7 @@ CREATE TABLE `llm_call_logs` (
   `eval_run_id` varchar(50) DEFAULT NULL,
   `session_id` bigint DEFAULT NULL COMMENT 'ai_question_sessions 참조 (V2 호출만, FK 없음, STEP 14)',
   `pipeline_version` varchar(10) NOT NULL,
-  `call_tag` varchar(30) NOT NULL COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE',
+  `call_tag` varchar(30) NOT NULL COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE, CHAT_PARSE, CHAT_PARSE_REPAIR, CHAT_EMBED',
   `model` varchar(60) NOT NULL,
   `prompt_version` varchar(20) NOT NULL,
   `input_tokens` int DEFAULT NULL,
@@ -198,10 +201,55 @@ CREATE TABLE `ai_question_turns` (
   UNIQUE KEY `uq_pq_turn` (`session_id`,`turn_no`),
   CONSTRAINT `fk_pq_turns_session` FOREIGN KEY (`session_id`) REFERENCES `ai_question_sessions` (`session_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `ai_chat_sessions` (
+  `chat_session_id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `status` varchar(20) NOT NULL COMMENT 'OPEN, CLARIFYING, SEARCHING, DONE, FALLBACK_PENDING, RED_FLAG, FAILED',
+  `pregnancy` varchar(20) DEFAULT NULL COMMENT 'NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING (19~50세 여성만)',
+  `clarified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '되묻기 1번 했는지 (최대 1번)',
+  `extra_medications` json DEFAULT NULL COMMENT '대화에서 뽑은 약 [{drugId, drugClass, name}] (프로필에 저장 안 함)',
+  `extra_conditions` json DEFAULT NULL COMMENT '대화에서 뽑은 질환 코드',
+  `started_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `completed_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`chat_session_id`),
+  KEY `idx_chat_sessions_user` (`user_id`,`started_at`),
+  KEY `idx_chat_sessions_started` (`started_at`),
+  CONSTRAINT `fk_chat_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `ai_chat_turns` (
+  `chat_turn_id` bigint NOT NULL AUTO_INCREMENT,
+  `chat_session_id` bigint NOT NULL,
+  `turn_no` int NOT NULL COMMENT '1 = 첫 입력, 2 = 되묻기 답',
+  `user_text` varchar(300) NOT NULL COMMENT '대화 원문 (건강 정보, 90일 뒤 삭제)',
+  `parse_output` json DEFAULT NULL COMMENT 'LLM 구조화 결과 그대로',
+  `clarification` json DEFAULT NULL COMMENT '보여준 되묻기 {question, options}',
+  `llm_call_log_ids` json DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`chat_turn_id`),
+  UNIQUE KEY `uq_chat_turn` (`chat_session_id`,`turn_no`),
+  CONSTRAINT `fk_chat_turns_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `ai_chat_results` (
+  `chat_result_id` bigint NOT NULL AUTO_INCREMENT,
+  `chat_session_id` bigint NOT NULL,
+  `track` varchar(20) NOT NULL COMMENT 'REVIEW (트랙 1), RULE_BASED (트랙 2)',
+  `recommendation_id` bigint DEFAULT NULL COMMENT '트랙 2 ai_recommendations id (FK 없음)',
+  `cards` json DEFAULT NULL COMMENT '트랙 1 카드·제품 스냅샷',
+  `hit_mention_ids` json DEFAULT NULL COMMENT 'τ를 넘은 언급 id와 sim (검수·평가용)',
+  `top_similarity` decimal(5,4) DEFAULT NULL,
+  `excluded` json DEFAULT NULL COMMENT '제외 성분·제외 제품 수',
+  `data_version` datetime DEFAULT NULL COMMENT '사용한 review_product_scores.computed_at',
+  `latency_ms` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`chat_result_id`),
+  UNIQUE KEY `uq_chat_results_session` (`chat_session_id`),
+  CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_recommendations` (
   `recommendation_id` bigint NOT NULL AUTO_INCREMENT,
   `response_id` bigint DEFAULT NULL COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
   `session_id` bigint DEFAULT NULL COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
+  `chat_session_id` bigint DEFAULT NULL COMMENT 'V4 대화창 트랙 2 (90일 삭제 후 NULL)',
   `summary` text,
   `model_name` varchar(60) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -212,6 +260,8 @@ CREATE TABLE `ai_recommendations` (
   PRIMARY KEY (`recommendation_id`),
   KEY `FK_survey_responses_TO_ai_recommendations_1` (`response_id`),
   KEY `fk_ai_recommendations_session` (`session_id`),
+  KEY `fk_ai_recommendations_chat_session` (`chat_session_id`),
+  CONSTRAINT `fk_ai_recommendations_chat_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`) REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL,
   CONSTRAINT `FK_survey_responses_TO_ai_recommendations_1` FOREIGN KEY (`response_id`) REFERENCES `survey_responses` (`response_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

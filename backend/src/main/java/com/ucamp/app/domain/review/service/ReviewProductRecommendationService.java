@@ -47,8 +47,8 @@ public class ReviewProductRecommendationService {
     private final ReviewProductProperties properties;
     private final MeterRegistry meterRegistry;
 
-    // 안전 필터를 통과한 후보 하나 (정렬용 값 포함)
-    private record Scored(Candidate candidate, BigDecimal finalScore, List<String> alsoContains,
+    // 안전 필터를 통과한 후보 하나 (정렬용 값 포함). V4 대화창 추천도 같은 순위·브랜드 제한을 쓰려고 public
+    public record Scored(Candidate candidate, BigDecimal finalScore, List<String> alsoContains,
                           ProductSafetyFilter.Result safety) {
     }
 
@@ -137,7 +137,7 @@ public class ReviewProductRecommendationService {
     }
 
     // 동점: 최종 점수(소수 셋째 자리) → 추천 약사 수 많은 순 → 마지막 추천일 최신 → 비추천 적은 순 → 경고 없는 제품 → id 작은 순
-    static final Comparator<Scored> ORDER = Comparator
+    public static final Comparator<Scored> ORDER = Comparator
             .comparing(Scored::finalScore, Comparator.reverseOrder())
             .thenComparing(s -> s.candidate().recommendChannels(), Comparator.reverseOrder())
             .thenComparing(s -> s.candidate().lastPublishedAt(), Comparator.nullsLast(Comparator.reverseOrder()))
@@ -146,7 +146,7 @@ public class ReviewProductRecommendationService {
             .thenComparingLong(s -> s.candidate().catalogProductId());
 
     // 최대 N개, 같은 브랜드 최대 M개 (브랜드 없는 제품은 제한하지 않음). 부족하면 있는 만큼
-    private List<Scored> pick(List<Scored> passed) {
+    public List<Scored> pick(List<Scored> passed) {
         ReviewProductProperties.Products limits = properties.getProducts();
         List<Scored> sorted = new ArrayList<>(passed);
         sorted.sort(ORDER);
