@@ -138,7 +138,7 @@ public class NutritionService {
         if (text.contains("칼슘")) {
             return Nutrient.CALCIUM;
         }
-        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가")) {
+        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가3")) {
             return Nutrient.OMEGA3;
         }
         return null;
