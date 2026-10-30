@@ -12,7 +12,7 @@ import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
 import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
-import MyStats from "./MyStats";
+import MyStats, { FriendStats } from "./MyStats";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
@@ -46,7 +46,7 @@ function toSupplementCard(item, index) {
     ingredient: item.ingredientSummary ?? "-",
     amount: item.packageSize ?? "-",
     price:
-      item.price === null ? "-" : `${item.price.toLocaleString("ko-KR")}원`,
+      item.price == null ? "-" : `${item.price.toLocaleString("ko-KR")}원`,
     category: item.category ?? (isManual ? "직접 입력" : "영양제"),
     color: cardColors[index % cardColors.length],
     time: scheduleText(item.schedules ?? []),
@@ -77,6 +77,21 @@ export default function ProfileScreen({
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
+
+  // 친구 화면: "나와 비교" 문구에 쓸 내 연속 복용일
+  const [myStreak, setMyStreak] = useState(null);
+  useEffect(() => {
+    if (isMine) return;
+    let ignore = false;
+    fetchIntakeStats(MY_USER_ID)
+      .then((loaded) => {
+        if (!ignore) setMyStreak(loaded?.streakDays ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [isMine]);
 
   useEffect(() => {
     if (!isMine) return;
@@ -127,14 +142,6 @@ export default function ProfileScreen({
     : (friend.supplements ?? []).map(toSupplementCard); // 내 정보 API를 못 불러오면 기존 예시 이름을 보여줌
   const name = friend?.name ?? user?.nickname ?? "김민지";
   const initial = friend?.initial ?? name.charAt(0);
-  // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
-  const streak = isMine ? (stats?.streakDays ?? "-") : (friend.streak ?? 0);
-  const productCount = isMine
-    ? (stats?.activeProductCount ?? "-")
-    : (friend.supplementCount ?? supplements.length);
-  const monthlyRate = isMine
-    ? (stats?.monthlyRate ?? "-")
-    : (friend.monthlyRate ?? "-");
 
   if (isMine && editing) {
     return (
@@ -213,7 +220,13 @@ export default function ProfileScreen({
       {/* 머리: 큰 아바타 + 이름(화면 제목) + 오른쪽 버튼 (내 화면: 프로필 편집 / 친구: 안부지킴이·삭제) */}
       <TopBar
         back={onBack}
-        avatar={<span className="avatar xlarge">{initial}</span>}
+        avatar={
+          <span
+            className={`avatar xlarge${isMine ? "" : ` is-${friend.color ?? "mint"}${(friend.streak ?? 0) > 0 ? " is-streaking" : ""}`}`}
+          >
+            {initial}
+          </span>
+        }
         title={
           <>
             {name}
@@ -242,29 +255,7 @@ export default function ProfileScreen({
       {isMine ? (
         <MyStats stats={stats} />
       ) : (
-        <section className="stats-grid">
-          <div>
-            <span>연속 복용</span>
-            <strong>
-              {streak}
-              <small>일</small>
-            </strong>
-          </div>
-          <div>
-            <span>복용 영양제</span>
-            <strong>
-              {productCount}
-              <small>개</small>
-            </strong>
-          </div>
-          <div>
-            <span>이번 달 달성률</span>
-            <strong>
-              {monthlyRate}
-              <small>%</small>
-            </strong>
-          </div>
-        </section>
+        <FriendStats friend={friend} supplements={supplements} myStreak={myStreak} />
       )}
       {isMine ? (
         <IntakeCalendar fetchProgress={getMyCalendarProgress} fetchDay={getMyDayIntakes} />

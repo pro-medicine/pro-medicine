@@ -20,7 +20,12 @@ function toFriendDetail(data, fallback) {
     initial: data.nickname?.charAt(0) ?? "?",
     color: fallback?.color ?? "mint",
     relation: fallback?.relation ?? "친구",
-    status: data.status ?? "아직 복용 기록이 없어요",
+    mutual: fallback?.mutual, // 서로 친구면 초록 칩
+    // 이름 아래 한 줄: 연속 복용일 기준
+    status:
+      (data.streak ?? 0) > 0
+        ? `${data.streak}일째 꾸준히 챙기는 중`
+        : "오늘부터 다시 시작해요",
     streak: data.streak ?? 0,
     supplements: data.supplements ?? [],
     completed: data.completed ?? 0,
