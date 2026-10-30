@@ -40,6 +40,24 @@ export default function App() {
     [userId],
   );
 
+  // KST 자정이 지나면 홈(오늘 먹을 영양제 목록·복용 알림 카드)을 새 날짜로 함께 다시 불러온다.
+  // 홈을 켜 둔 채 날짜가 바뀌어도 어제 목록에 체크해서 어제 날짜로 저장되지 않게 한다.
+  useEffect(() => {
+    const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    let timer;
+    const scheduleNextMidnight = () => {
+      const now = Date.now();
+      const nextMidnight = (Math.floor((now + KST_OFFSET_MS) / DAY_MS) + 1) * DAY_MS - KST_OFFSET_MS;
+      timer = setTimeout(() => {
+        setHomeRefreshKey((key) => key + 1);
+        scheduleNextMidnight(); // 다음 날 자정도 이어서 예약
+      }, nextMidnight - now + 1000);
+    };
+    scheduleNextMidnight();
+    return () => clearTimeout(timer);
+  }, []);
+
   // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
   const openNotifications = (event) => {
     const rect = event?.currentTarget?.getBoundingClientRect?.();
