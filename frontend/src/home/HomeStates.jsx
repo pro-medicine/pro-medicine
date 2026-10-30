@@ -1,47 +1,5 @@
-// 홈 상태별 화면 (#67 홈 공통 상태) — 모두 완료 / 영양제 없음 / 불러오는 중 / 체크 결과 토스트
-import { StreakBadge } from "./PromiseCard";
-
-const CONFETTI = [
-  { left: "8%", top: "18%", size: 8, round: false, color: "var(--primary)", rotate: 20 },
-  { left: "18%", top: "72%", size: 6, round: true, color: "#f2c94c", rotate: 0 },
-  { left: "84%", top: "20%", size: 7, round: false, color: "#6fcf97", rotate: 40 },
-  { left: "90%", top: "66%", size: 9, round: true, color: "var(--primary)", rotate: 0 },
-  { left: "72%", top: "10%", size: 5, round: true, color: "#f2994a", rotate: 0 },
-  { left: "30%", top: "12%", size: 6, round: false, color: "#6fcf97", rotate: 60 },
-];
-
-/** 오늘 영양제를 모두 챙겼을 때 */
-export function AllDoneCard({ streakDays }) {
-  return (
-    <section className="home-done" aria-live="polite">
-      {CONFETTI.map((c, i) => (
-        <span
-          key={i}
-          className="home-confetti"
-          aria-hidden="true"
-          style={{
-            left: c.left,
-            top: c.top,
-            width: c.size,
-            height: c.size,
-            borderRadius: c.round ? "50%" : 2,
-            background: c.color,
-            "--rotate": `${c.rotate}deg`,
-            animationDelay: `${i * 0.06}s`,
-          }}
-        />
-      ))}
-      <span className="home-done-check" aria-hidden="true">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 12 4 4L19 6" />
-        </svg>
-      </span>
-      <strong>오늘의 약속을 모두 지켰어요</strong>
-      <p>내일도 같은 시간에 알려드릴게요</p>
-      {streakDays > 0 && <StreakBadge days={streakDays} />}
-    </section>
-  );
-}
+// 홈 상태별 화면 (#67 홈 공통 상태) — 영양제 없음 / 불러오는 중 / 체크 결과 토스트
+// (모두 완료 상태는 PromiseCard가 "오늘의 약속을 모두 지켰어요"로 바뀌어서 보여준다)
 
 /** 등록한 영양제가 없을 때 (첫 사용) */
 export function EmptySupplements({ onAdd }) {
@@ -91,7 +49,7 @@ export function HomeSkeleton() {
             </section>
           </div>
           <aside className="home-side">
-            <section className="home-promise">
+            <section className="home-promise is-loading">
               <span className="home-skel home-skel-ring" />
               <span className="home-skel-lines">
                 <span className="home-skel" style={{ width: "80%", height: 14 }} />

@@ -1,4 +1,4 @@
-// 오늘의 복용 타임라인 (#67 홈 시안 A) — 아침 → 점심 → 저녁을 시간 순서대로 보여주고 복용 체크
+// 오늘의 복용 타임라인 (#67 홈 시안 A, 색은 초록 3 시안) — 아침 → 점심 → 저녁을 시간 순서대로 보여주고 복용 체크
 // 각 줄(카드)을 누르면 복용 체크 / 해제. "지금" 선은 홈이 오늘 날짜를 보여줄 때만 표시한다.
 import { useEffect, useState } from "react";
 import { kstToday } from "./homeApi";
@@ -55,9 +55,7 @@ export default function TodaySupplements({ supplements, done, total, pendingIds 
     <section className="home-today">
       <div className="home-card-head">
         <h3 className="home-card-title">오늘의 복용 타임라인</h3>
-        <span className="home-card-hint">
-          {total === 0 ? "" : `${done}/${total} 완료 · 눌러서 복용 체크`}
-        </span>
+        {total > 0 && <span className="home-tl-chip">{done}/{total} 완료</span>}
       </div>
 
       {total === 0 ? (

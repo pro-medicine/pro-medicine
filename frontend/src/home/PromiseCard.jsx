@@ -1,4 +1,4 @@
-// 오늘의 약속 카드: 원형 진행률 + 남은 개수 문구 + 연속 복용 배지 (#67 홈 시안 A)
+// 오늘의 약속 카드 (초록 그라데이션, 초록 3 시안): 원형 진행률 + 남은 개수 문구 + 연속 복용 배지 (#67 홈 시안 A)
 // (props: percent, remain, total, streakDays — 챙긴 개수 = total - remain)
 const SIZE = 112;
 const STROKE = 10;
@@ -12,8 +12,51 @@ function subText(remain, total) {
     return `${remain}개만 더 챙기면 오늘 완료예요`;
 }
 
+// 모두 완료했을 때 카드 위에 뿌리는 색종이 (장식)
+const CONFETTI = [
+    { left: "8%", top: "14%", size: 7, round: false, color: "#ffffff", rotate: 20 },
+    { left: "20%", top: "80%", size: 5, round: true, color: "#f2c94c", rotate: 0 },
+    { left: "86%", top: "16%", size: 6, round: false, color: "#b9f3d6", rotate: 40 },
+    { left: "92%", top: "70%", size: 8, round: true, color: "#ffe8a3", rotate: 0 },
+    { left: "70%", top: "8%", size: 5, round: true, color: "#f2994a", rotate: 0 },
+    { left: "36%", top: "10%", size: 5, round: false, color: "#b9f3d6", rotate: 60 },
+];
+
 export default function PromiseCard({ percent, remain, total, streakDays }) {
     const done = total - remain;
+
+    // 오늘 영양제를 모두 챙기면 원형 그래프 자리가 완료 화면으로 바뀐다
+    if (total > 0 && remain === 0) {
+        return (
+            <section className="home-promise is-done" aria-live="polite">
+                {CONFETTI.map((c, i) => (
+                    <span
+                        key={i}
+                        className="home-confetti"
+                        aria-hidden="true"
+                        style={{
+                            left: c.left,
+                            top: c.top,
+                            width: c.size,
+                            height: c.size,
+                            borderRadius: c.round ? "50%" : 2,
+                            background: c.color,
+                            "--rotate": `${c.rotate}deg`,
+                            animationDelay: `${i * 0.06}s`,
+                        }}
+                    />
+                ))}
+                <span className="home-done-check" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m5 12 4 4L19 6" />
+                    </svg>
+                </span>
+                <strong className="home-done-title">오늘의 약속을 모두 지켰어요</strong>
+                <p className="home-done-sub">{total}개 모두 챙겼어요<br />내일도 같은 시간에 알려드릴게요</p>
+                {streakDays > 0 && <StreakBadge days={streakDays} />}
+            </section>
+        );
+    }
     const offset = CIRCUMFERENCE * (1 - percent / 100);
 
     return (
