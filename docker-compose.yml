@@ -8,11 +8,12 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       TZ: Asia/Seoul
       LANG: C.UTF-8
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --skip-character-set-client-handshake
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci --skip-character-set-client-handshake
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./backend/docs/sql/STEP06_seed_ingredient_standards.sql:/docker-entrypoint-initdb.d/02_seed_ingredient_standards.sql
+      - ./backend/docs/sql/STEP09_proposal_notification_dedup.sql:/docker-entrypoint-initdb.d/02_notification_dedup.sql
+      - ./backend/docs/sql/AI_SETUP.sql:/docker-entrypoint-initdb.d/03_ai_setup.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
