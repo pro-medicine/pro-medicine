@@ -1208,7 +1208,8 @@
 }
 
 /* ───────── 설정 · 친구에게 복용 현황 공개 (#84 은서) — #67 디자인 토큰으로 맞춤 ───────── */
-.share-setting {
+.share-setting,
+.account-setting {
   align-items: center;
   background: var(--white);
   border: 1px solid var(--line);
@@ -1219,18 +1220,21 @@
   padding: 18px 20px;
 }
 
-.share-setting > div {
+.share-setting > div,
+.account-setting > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.share-setting strong {
+.share-setting strong,
+.account-setting strong {
   display: block;
   font-size: 15px;
 }
 
-.share-setting small {
+.share-setting small,
+.account-setting small {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
@@ -1336,4 +1340,13 @@
   .switch span {
     transition: none;
   }
+}
+
+/* 설정: 계정 · 로그아웃 (#52 로그인 연동) */
+.account-setting {
+  margin-top: 12px;
+}
+
+.account-setting small {
+  overflow-wrap: anywhere;
 }

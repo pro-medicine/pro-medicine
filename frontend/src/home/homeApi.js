@@ -1,78 +1,117 @@
-import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
 
-// 팀 공통 api/client.js와 같은 환경변수. 비워두면 vite /api 프록시 사용 (권장)
-// 백엔드를 직접 호출하려면 전역 CORS 설정 필요 (WebConfig, 팀 협의 사항)
+import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
+import { fetchWithAuth } from "../auth/authApi";
+
+// 팀 공통 api/client.js와 동일한 환경변수 사용
+// 비워두면 Vite /api 프록시 사용 (권장)
+// 로컬 직접 호출 시: VITE_API_URL=http://localhost:8080
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
-// 팀 예시 데이터 기준일(2026-10-21) 확인용. 비워두면 서버가 오늘 날짜 사용
+// 테스트용 날짜. 없으면 한국 시간 기준 오늘 날짜 사용
 const HOME_DATE = import.meta.env.VITE_HOME_DATE;
 
-// DB에 색상 컬럼이 없어서 화면에서 순서대로 지정
+// DB에 색상 컬럼이 없어 화면에서 순서대로 지정
 const COLORS = ["#d6b44c", "#6f99a1", "#a68fb8"];
 
-// 공통 fetch 함수: 실패하면 에러를 던진다
-async function request(path, options) {
-    const res = await fetch(`${BASE_URL}${path}`, {
-        headers: { "Content-Type": "application/json" },
+// 공통 요청 함수
+// JWT Access Token 자동 첨부 및 만료 시 Refresh Token 갱신
+async function request(path, options = {}) {
+    const res = await fetchWithAuth(`${BASE_URL}${path}`, {
         ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers ?? {}),
+        },
     });
-    if (!res.ok) throw new Error(`${res.status} ${path}`);
+
+    if (!res.ok) {
+        throw new Error(`${res.status} ${path}`);
+    }
+
     return res.status === 204 ? null : res.json();
 }
 
-// 오늘 날짜 "yyyy-MM-dd" (toISOString은 UTC라 한국 날짜가 하루 밀릴 수 있어서 직접 만듦)
+// 한국 시간 기준 오늘 날짜 yyyy-MM-dd
 function todayString() {
-    // const d = new Date();
-    // const mm = String(d.getMonth() + 1).padStart(2, "0");
-    // const dd = String(d.getDate()).padStart(2, "0");
-    // return `${d.getFullYear()}-${mm}-${dd}`;
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
-
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Seoul",
+    }).format(new Date());
 }
 
-/** 홈 화면 데이터: user + 알림 + 오늘 복용 목록을 합쳐서 예전 /api/home 모양으로 */
+/**
+ * 홈 화면 데이터 조회
+ * 사용자 정보 + 안 읽은 알림 + 오늘 복용 목록
+ */
 export async function getHome(userId) {
     try {
         const date = HOME_DATE ?? todayString();
+
         const [user, unread, supplements] = await Promise.all([
             request(`/api/v1/users/${userId}`),
-            request(`/api/v1/notifications/unread-count`, {
-                headers: { "X-User-Id": String(userId) },
+
+            request("/api/v1/notifications/unread-count", {
+                headers: {
+                    "X-User-Id": String(userId),
+                },
             }),
+
             request(`/api/v1/intakes/today?date=${date}`, {
-                headers: { "X-User-Id": String(userId) },
+                headers: {
+                    "X-User-Id": String(userId),
+                },
             }),
         ]);
 
         const data = {
-            userName: user.data.nickname,                       // ApiResponse로 감싸져 있어서 .data
+            userName: user.data.nickname,
             today: date,
-            hasUnreadNotifications: unread.data.unreadCount > 0, // ApiResponse로 감싸져 있어서 .data
+            hasUnreadNotifications: unread.data.unreadCount > 0,
             supplements: (supplements ?? []).map((s, i) => ({
                 ...s,
                 color: s.color ?? COLORS[i % COLORS.length],
             })),
         };
-        return { data, isSample: false };
+
+        return {
+            data,
+            isSample: false,
+        };
     } catch (e) {
-        console.warn("[home] 홈 데이터 호출 실패 → 예시 데이터 사용", e);
-        return { data: SAMPLE_HOME, isSample: true };
+        console.warn(
+            "[home] 홈 데이터 호출 실패 → 예시 데이터 사용",
+            e
+        );
+
+        return {
+            data: SAMPLE_HOME,
+            isSample: true,
+        };
     }
 }
 
-/** POST /api/v1/intakes : 복용 체크 저장 (화면에 표시 중인 날짜로 저장) */
+/**
+ * 복용 체크 저장
+ * POST /api/v1/intakes
+ */
 export async function updateIntake(userId, scheduleId, taken, date) {
-    return request(`/api/v1/intakes`, {
+    return request("/api/v1/intakes", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-User-Id": String(userId),
         },
-        body: JSON.stringify({ scheduleId, taken, date }),
+        body: JSON.stringify({
+            scheduleId,
+            taken,
+            date,
+        }),
     });
 }
 
-/** 맞춤 추천 요청 — 요청/응답 형식은 영준(AI)과 협의 필요 */
+/**
+ * 맞춤 영양제 추천
+ * 영준(AI) 담당 API와 추후 연동
+ */
 export async function getRecommendation(answers) {
     try {
         return await request("/api/home/recommend", {
@@ -80,17 +119,29 @@ export async function getRecommendation(answers) {
             body: JSON.stringify(answers),
         });
     } catch (e) {
-        console.warn("[home] 추천 API 호출 실패 → 예시 추천 사용", e);
+        console.warn(
+            "[home] 추천 API 호출 실패 → 예시 추천 사용",
+            e
+        );
+
         return SAMPLE_RECOMMEND;
     }
 }
 
-/** GET /api/v1/notifications/intake-summary : 홈 복용 알림 카드 (다음 알림 + 이번 주 제시간 복용률) */
+/**
+ * 홈 복용 알림 카드 조회 - develop 신규 기능
+ *
+ * GET /api/v1/notifications/intake-summary
+ *
+ * 다음 복용 알림 + 이번 주 제시간 복용률
+ * JWT의 사용자 ID로 조회하므로 X-User-Id 헤더 불필요
+ */
 export async function getIntakeSummary(userId) {
-    const res = await request(`/api/v1/notifications/intake-summary`, {
-        headers: { "X-User-Id": String(userId) },
-    });
-    return res.data; // ApiResponse로 감싸져 있어서 .data
+    const res = await request(
+        "/api/v1/notifications/intake-summary"
+    );
+
+    return res.data;
 }
 
 /** GET /api/v1/intakes/stats : 연속 복용 일수 (홈 "N일 연속 복용 중" 배지) */

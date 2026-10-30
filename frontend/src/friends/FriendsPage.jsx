@@ -7,7 +7,7 @@ import FollowRequestModal from "./FollowRequestModal";
 import FriendDetailPage from "./FriendDetailPage";
 import { getWatching } from "../api/guardianApi";
 import { getFollowRequests } from "../api/followApi";
-import { fetchIntakeStats, fetchUser, MY_USER_ID } from "../api/mypageApi";
+import { fetchIntakeStats, fetchUser } from "../api/mypageApi";
 import FriendRanking from "./FriendRanking";
 import { RequestCard, GuardianCard, FriendTipCard } from "./FriendSideCards";
 
@@ -30,9 +30,9 @@ function toFriend(item, index) {
 }
 
 // openFriendUserId: 알림의 "친구 보기"로 들어오면 그 친구 상세부터 보여줌
-export default function FriendsPage({ onNotifications, openFriendUserId = null }) {
+export default function FriendsPage({ userId, onNotifications, openFriendUserId = null }) {
   // TODO: 로그인 연동 후 실제 사용자 id
-  const userId = 1;
+  // const userId = 1;
 
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");
@@ -85,7 +85,7 @@ export default function FriendsPage({ onNotifications, openFriendUserId = null }
         if (!ignore) setRequests([]);
       });
     // 랭킹의 "나": 내 연속 복용일 + 닉네임 (못 불러오면 나를 빼고 친구끼리만 보여줌)
-    Promise.all([fetchIntakeStats(MY_USER_ID), fetchUser(MY_USER_ID).catch(() => null)])
+    Promise.all([fetchIntakeStats(userId), fetchUser(userId).catch(() => null)])
       .then(([stats, user]) => {
         if (ignore) return;
         setMe({

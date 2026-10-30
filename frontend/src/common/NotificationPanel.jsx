@@ -56,7 +56,7 @@ function timeAgo(createdAt, now = new Date()) {
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose, onNavigate, onChanged }) {
+export default function NotificationPanel({ userId, anchor, refreshKey, onRead, onClose, onNavigate, onChanged }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });

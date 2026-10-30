@@ -35,7 +35,8 @@ function todayLabel() {
 
 /**
  * props (App.jsx에서 전달)
- * - onStart(tab?): 서비스 시작 (tab을 주면 그 화면으로, 없으면 홈)
+ * - onStart(tab?, mode?): 로그인·회원가입 화면으로 (mode: "login" | "signup", 기본 회원가입)
+ *   tab을 주면 로그인 후 그 화면으로, 없으면 홈
  */
 export default function LandingPage({ onStart }) {
   const [checked, setChecked] = useState([1]);
@@ -83,11 +84,10 @@ export default function LandingPage({ onStart }) {
             <button type="button" className="active" onClick={() => scrollTo("landing-top")}>소개</button>
             <button type="button" onClick={() => scrollTo("landing-features")}>기능</button>
             <button type="button" onClick={() => scrollTo("landing-steps")}>이용 방법</button>
-            <button type="button" onClick={() => onStart("disposal")}>폐의약품 지도</button>
+            <button type="button" onClick={() => onStart("disposal", "login")}>폐의약품 지도</button>
           </nav>
           <div className="landing-nav-actions">
-            {/* TODO: 로그인(#52) 연동 후 로그인 화면으로 */}
-            <button type="button" className="landing-login" onClick={() => onStart()}>로그인</button>
+            <button type="button" className="landing-login" onClick={() => onStart("home", "login")}>로그인</button>
             <button type="button" className="btn btn-dark btn-sm" onClick={() => onStart()}>시작하기</button>
           </div>
         </div>

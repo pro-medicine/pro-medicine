@@ -1,0 +1,631 @@
+/* 로그인 · 회원가입 화면 (#52 + #67 새 디자인)
+   색 역할: 초록 = 브랜드·완료 / 검정 = 누를 것 / 주황 = 연속 복용 */
+
+.auth-page {
+  background: var(--page-bg);
+  min-height: 100vh;
+}
+
+/* ───────── 상단 ───────── */
+.auth-header {
+  background: rgba(250, 250, 250, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.auth-header-inner {
+  align-items: center;
+  display: flex;
+  height: 72px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: var(--content-width);
+  padding: 0 24px;
+}
+
+.auth-header-switch {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 14px;
+  gap: 10px;
+  margin: 0;
+}
+
+.auth-header-switch button {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  height: 34px;
+  padding: 0 14px;
+}
+
+.auth-header-switch button:not(:disabled):hover {
+  border-color: var(--faint);
+}
+
+/* ───────── 본문: 소개 패널 + 입력 카드 ───────── */
+.auth-content {
+  align-items: center;
+  display: grid;
+  gap: 56px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  margin: 0 auto;
+  max-width: 1040px;
+  min-height: calc(100vh - 72px);
+  padding: 48px 24px 64px;
+}
+
+.auth-page.is-signup .auth-content {
+  align-items: start;
+}
+
+/* 왼쪽 소개 패널 */
+.auth-brand-panel {
+  background: linear-gradient(150deg, #e9f9f1 0%, #d4f3e4 100%);
+  border-radius: 28px;
+  overflow: hidden;
+  padding: 48px 44px;
+  position: relative;
+}
+
+.auth-brand-panel::after {
+  background: radial-gradient(circle, rgba(14, 159, 110, 0.16) 0%, rgba(14, 159, 110, 0) 70%);
+  content: "";
+  height: 320px;
+  pointer-events: none;
+  position: absolute;
+  right: -110px;
+  top: -110px;
+  width: 320px;
+}
+
+.auth-page.is-signup .auth-brand-panel {
+  position: sticky;
+  top: 104px;
+}
+
+.auth-eyebrow {
+  color: #0b7f58;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin: 0 0 14px;
+}
+
+.auth-brand-panel h2 {
+  color: var(--ink);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.32;
+  margin: 0;
+  word-break: keep-all;
+}
+
+.auth-brand-sub {
+  color: #3f5a4d;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 14px 0 32px;
+}
+
+/* 미리보기 카드 */
+.auth-preview {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(11, 127, 88, 0.06), 0 14px 34px rgba(11, 127, 88, 0.12);
+  max-width: 360px;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-preview-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.auth-preview-head strong {
+  font-size: 15px;
+}
+
+.auth-preview-streak {
+  background: var(--streak-soft);
+  border-radius: 999px;
+  color: var(--streak);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 10px;
+}
+
+.auth-preview ul {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-preview li {
+  align-items: center;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  padding: 9px 8px;
+}
+
+.auth-preview li > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-preview li b {
+  font-size: 14px;
+}
+
+.auth-preview li small {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.auth-preview li.is-done b {
+  color: var(--muted);
+}
+
+.auth-preview li em {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+
+.auth-preview-check {
+  align-items: center;
+  border: 2px solid var(--accent-line);
+  border-radius: 50%;
+  color: var(--white);
+  display: flex;
+  flex: 0 0 auto;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.auth-preview li.is-done .auth-preview-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.auth-preview-bar {
+  background: var(--primary-soft);
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.auth-preview-bar span {
+  background: var(--primary);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.auth-preview-foot {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+
+/* ───────── 입력 카드 ───────── */
+.auth-card {
+  background: var(--white);
+  border-radius: 24px;
+  box-shadow: var(--card-shadow);
+  padding: 32px;
+}
+
+.auth-tabs {
+  background: var(--surface);
+  border-radius: 999px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 26px;
+  padding: 4px;
+}
+
+.auth-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  height: 40px;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.auth-tabs button.active {
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(17, 23, 20, 0.08), 0 2px 8px rgba(17, 23, 20, 0.06);
+  color: var(--ink);
+}
+
+.auth-card-head h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.auth-card-head p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0 24px;
+  word-break: keep-all;
+}
+
+.auth-card form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.auth-field > span,
+.auth-field > label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-field input,
+.auth-input-wrap input {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  height: 50px;
+  outline: none;
+  padding: 0 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.auth-field input::placeholder {
+  color: var(--faint);
+}
+
+.auth-field input:hover {
+  border-color: var(--accent-line);
+}
+
+.auth-field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+.auth-field input[aria-invalid="true"] {
+  border-color: var(--alert);
+}
+
+.auth-field input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 4px #fdecec;
+}
+
+.auth-input-wrap {
+  display: block;
+  position: relative;
+}
+
+.auth-input-wrap input {
+  padding-right: 48px;
+}
+
+.auth-eye {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--faint);
+  display: flex;
+  height: 36px;
+  justify-content: center;
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  width: 36px;
+}
+
+.auth-eye:hover,
+.auth-eye[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.auth-hint {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.auth-hint.is-ok {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.auth-hint.is-error {
+  color: var(--alert);
+  font-weight: 700;
+}
+
+.auth-profile-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+}
+
+/* 성별: 알약 모양 선택 */
+.auth-segment {
+  background: var(--surface);
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 50px;
+  padding: 4px;
+}
+
+.auth-segment button {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.auth-segment button.active {
+  background: var(--ink);
+  color: var(--white);
+}
+
+/* 체크박스 (로그인 유지 · 약관 동의) */
+.auth-check {
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 9px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.auth-check input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.auth-check-box {
+  align-items: center;
+  background: var(--white);
+  border: 1.5px solid var(--accent-line);
+  border-radius: 6px;
+  color: transparent;
+  display: flex;
+  flex: 0 0 auto;
+  height: 20px;
+  justify-content: center;
+  transition: background-color 0.15s, border-color 0.15s;
+  width: 20px;
+}
+
+.auth-check input:checked + .auth-check-box {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+.auth-check input:focus-visible + .auth-check-box {
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+.auth-options {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: -2px;
+}
+
+.auth-options > button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.auth-options > button:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.auth-notice {
+  background: var(--primary-soft);
+  border-radius: 12px;
+  color: #0b7f58;
+  font-size: 13px;
+  font-weight: 700;
+  margin: -8px 0 18px;
+  padding: 11px 14px;
+}
+
+.auth-error {
+  background: #fdecec;
+  border-radius: 12px;
+  color: #c4282d;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0;
+  padding: 11px 14px;
+}
+
+.auth-submit {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.auth-submit:not(:disabled):hover {
+  background: var(--accent-hover);
+}
+
+.auth-switch {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 20px 0 0;
+  text-align: center;
+}
+
+.auth-switch button {
+  background: transparent;
+  border: 0;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+  margin-left: 6px;
+  padding: 0;
+}
+
+.auth-switch button:hover {
+  text-decoration: underline;
+}
+
+/* ───────── 로그인 확인 중 · 확인 실패 (App.jsx) ───────── */
+.auth-splash {
+  align-items: center;
+  background: var(--page-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+}
+
+.auth-splash strong {
+  font-size: 18px;
+}
+
+.auth-splash p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+.auth-splash-mark {
+  animation: auth-pulse 1.2s ease-in-out infinite;
+  background: var(--primary);
+  border-radius: 50%;
+  height: 14px;
+  margin-bottom: 8px;
+  width: 14px;
+}
+
+.auth-splash-mark.is-error {
+  animation: none;
+  background: var(--alert);
+}
+
+@keyframes auth-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 159, 110, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(14, 159, 110, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-splash-mark {
+    animation: none;
+  }
+}
+
+/* ───────── 좁은 화면 ───────── */
+@media (max-width: 900px) {
+  .auth-content {
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+    min-height: 0;
+    padding: 28px 20px 48px;
+  }
+
+  .auth-brand-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-header-inner {
+    height: 60px;
+    padding: 0 16px;
+  }
+
+  .auth-header-switch {
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .auth-content {
+    padding: 16px 16px 40px;
+  }
+
+  .auth-card {
+    border-radius: 20px;
+    padding: 24px 20px;
+  }
+
+  .auth-card-head h1 {
+    font-size: 22px;
+  }
+
+  .auth-profile-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-header-switch > :first-child {
+    display: none;
+  }
+}

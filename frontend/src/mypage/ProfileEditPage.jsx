@@ -4,7 +4,6 @@ import {
   fetchConditions,
   fetchHealthProfile,
   fetchUser,
-  MY_USER_ID,
   saveConditions,
   saveHealthProfile,
   updateNickname,
@@ -110,7 +109,7 @@ function toForm(user, profile) {
   };
 }
 
-export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
+export default function ProfileEditPage({userId, onBack, onSaved, onNotifications }) {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState(emptyForm);
   // 선택한 질환 이름 목록, 빈 배열이면 "없음"
@@ -123,9 +122,9 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
 
   useEffect(() => {
     Promise.all([
-      fetchUser(MY_USER_ID),
-      fetchHealthProfile(MY_USER_ID),
-      fetchConditions(MY_USER_ID),
+      fetchUser(userId),
+      fetchHealthProfile(userId),
+      fetchConditions(userId),
     ])
       .then(([loadedUser, profile, loadedConditions]) => {
         setUser(loadedUser);
@@ -170,12 +169,12 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
     try {
       if (form.nickname.trim() !== user.nickname) {
         currentItem = "닉네임";
-        savedUser = await updateNickname(MY_USER_ID, form.nickname);
+        savedUser = await updateNickname(userId, form.nickname);
         setUser(savedUser);
         savedItems.push("닉네임");
       }
       currentItem = "건강 정보";
-      await saveHealthProfile(MY_USER_ID, {
+      await saveHealthProfile(userId, {
         birthYear: toNumber(form.birthYear),
         gender: toNullable(form.gender),
         height: toNumber(form.height),
@@ -188,7 +187,7 @@ export default function ProfileEditPage({ onBack, onSaved, onNotifications }) {
       });
       savedItems.push("건강 정보");
       currentItem = "질환";
-      await saveConditions(MY_USER_ID, conditions);
+      await saveConditions(userId, conditions);
       onSaved(savedUser);
       setMessage({ type: "success", text: "저장되었어요." });
     } catch (e) {

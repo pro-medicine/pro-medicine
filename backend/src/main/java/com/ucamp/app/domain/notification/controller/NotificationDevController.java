@@ -5,6 +5,9 @@ import com.ucamp.app.domain.intake.service.IntakeService;
 import com.ucamp.app.domain.notification.entity.NotificationType;
 import com.ucamp.app.domain.notification.service.NotificationService;
 import com.ucamp.app.domain.user.repository.UserRepository;
+import com.ucamp.app.global.auth.CurrentUserId;
+import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +29,7 @@ import java.util.UUID;
  * 로컬 테스트 전용: 새 알림을 바로 만들어서 실시간(SSE) 팝업을 확인한다.
  * application.yml 에 app.dev.notification-test: true 가 있을 때만 생성된다. (기본은 꺼짐 → 운영에는 없음)
  *
- * 예) POST /api/v1/notifications/dev/test?userId=1&type=GUARDIAN
+ * 예) POST /api/v1/notifications/dev/test?type=GUARDIAN  (Authorization: Bearer 로그인 토큰 → 로그인한 사용자에게 생성)
  *    type: INTAKE_REMINDER, FRIEND_GOAL_ACHIEVED, NEW_FOLLOWER, FOLLOW_ACCEPTED, GUARDIAN (기본 INTAKE_REMINDER)
  *    알림을 일으킨 사람은 docs/sql/notification-test-data.sql 의 예시 사용자(9801~9804)가 있으면 그 사람으로 넣는다.
  */
@@ -57,8 +60,11 @@ public class NotificationDevController {
 
     @PostMapping("/test")
     public ResponseEntity<Map<String, String>> createTestNotification(
-            @RequestParam Long userId,
+            @CurrentUserId Long userId,
             @RequestParam(defaultValue = "INTAKE_REMINDER") NotificationType type) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
         Long actorId = ACTORS.get(type);
         if (actorId != null && !userRepository.existsById(actorId)) {
             actorId = null; // 예시 사용자를 안 넣었으면 보낸 사람 없이 만든다

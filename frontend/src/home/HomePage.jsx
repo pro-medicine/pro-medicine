@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
  * - onAddSupplement: 영양제가 없을 때 "영양제 등록하기" → 마이페이지 영양제 등록 화면으로
  */
 export default function HomePage({
-  userId = 1,
+  userId,
   onOpenNotifications,
   onSurvey,
   refreshKey,
