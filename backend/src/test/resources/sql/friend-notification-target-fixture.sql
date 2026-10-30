@@ -2,14 +2,14 @@
 -- 예시 데이터(schema.sql)·다른 테스트 데이터와 겹치지 않도록 9200번대 id를 사용한다.
 -- 테스트 트랜잭션 안에서 실행되어 테스트가 끝나면 롤백된다.
 
-INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at) VALUES
-                                                                                                                                (9201, 'friend-test-9201@example.com', 'test-hash', '친구테스트9201', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9202, 'friend-test-9202@example.com', 'test-hash', '친구테스트9202', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9203, 'friend-test-9203@example.com', 'test-hash', '친구테스트9203', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9204, 'friend-test-9204@example.com', 'test-hash', '친구테스트9204', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9205, 'friend-test-9205@example.com', 'test-hash', '친구테스트9205', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9206, 'friend-test-9206@example.com', 'test-hash', '친구테스트9206', TRUE, FALSE, NOW(), NOW()),
-                                                                                                                                (9207, 'friend-test-9207@example.com', 'test-hash', '친구테스트9207', TRUE, FALSE, NOW(), NOW());
+INSERT INTO users (user_id, email, password_hash, nickname, share_intake_status, sensitive_consent, created_at, updated_at, last_active_at) VALUES
+                                                                                                                                (9201, 'friend-test-9201@example.com', 'test-hash', '친구테스트9201', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9202, 'friend-test-9202@example.com', 'test-hash', '친구테스트9202', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9203, 'friend-test-9203@example.com', 'test-hash', '친구테스트9203', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9204, 'friend-test-9204@example.com', 'test-hash', '친구테스트9204', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9205, 'friend-test-9205@example.com', 'test-hash', '친구테스트9205', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9206, 'friend-test-9206@example.com', 'test-hash', '친구테스트9206', TRUE, FALSE, NOW(), NOW(), NOW()),
+                                                                                                                                (9207, 'friend-test-9207@example.com', 'test-hash', '친구테스트9207', TRUE, FALSE, NOW(), NOW(), NOW());
 
 -- 9201을 기준으로
 -- 9202 → 9201 수락됨       : 알림 받음

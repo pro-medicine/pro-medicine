@@ -4,6 +4,7 @@ import com.ucamp.app.domain.intake.dto.IntakeRequest;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
+import com.ucamp.app.domain.user.service.UserService;
 import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import com.ucamp.app.global.exception.BusinessException;
@@ -30,10 +31,11 @@ public class IntakeController {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final IntakeService intakeService;
+    private final UserService userService;
 
     // 복용 체크 저장: POST /api/v1/intakes  (헤더 X-User-Id, body { scheduleId, taken, date })
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> updateIntake(
+    public ResponseEntity<Void> updateIntake(
             @CurrentUserId Long userId,
             @RequestBody IntakeRequest req
     ) {
@@ -57,6 +59,7 @@ public class IntakeController {
     ) {
         requireLogin(userId);
         LocalDate target = date != null ? date : LocalDate.now(KST);
+        userService.markActive(userId);
         return ResponseEntity.ok(intakeService.getTodayIntakes(userId, target));
     }
 

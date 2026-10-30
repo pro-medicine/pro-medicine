@@ -19,12 +19,7 @@ import java.time.temporal.ChronoUnit; // 달력 범위
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.ArrayList;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -198,6 +193,37 @@ public class IntakeService {
         return completedDates;
     }
 
+    public Map<Long, Integer> getStreakDays(Collection<Long> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        LocalDate today = LocalDate.now(KST);
+        LocalDate from = today.minusDays(MAX_STREAK_DAYS);
+        // 1. 사용자별 일정, 일정 id → 사용자 id
+        Map<Long, List<IntakeSchedule>> schedulesByUser = new HashMap<>();
+        Map<Long, Long> ownerBySchedule = new HashMap<>();
+        for (IntakeSchedule schedule : intakeScheduleRepository.findActiveSchedulesByUserIds(userIds)) {
+            Long ownerId = schedule.getUserProduct().getUser().getId();
+            schedulesByUser.computeIfAbsent(ownerId, id -> new ArrayList<>()).add(schedule);
+            ownerBySchedule.put(schedule.getScheduleId(), ownerId);
+        }
 
+        // 2. 사용자별 { 날짜 → 먹은 scheduleId }
+        Map<Long, Map<LocalDate, Set<Long>>> takenByUser = new HashMap<>();
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakesByUserIds(userIds, from, today)) {
+            Long ownerId = ownerBySchedule.get(taken.scheduleId());
+            if (ownerId == null) continue;   // 꺼진 일정의 기록은 계산에서 제외 (단일 조회와 동일)
+            takenByUser
+                    .computeIfAbsent(ownerId, id -> new HashMap<>())
+                    .computeIfAbsent(taken.intakeDate(), d -> new HashSet<>())
+                    .add(taken.scheduleId());
+        }
 
+        // 3. 사용자별 스트릭 (일정이 없으면 0)
+        Map<Long, Integer> result = new HashMap<>();
+        for (Long userId : userIds) {
+            List<IntakeSchedule> schedules = schedulesByUser.getOrDefault(userId, List.of());
+            Map<LocalDate, Set<Long>> takenByDate = takenByUser.getOrDefault(userId, Map.of());
+            result.put(userId, streakDays(schedules, takenByDate, today));
+        }
+        return result;
+    }
 }

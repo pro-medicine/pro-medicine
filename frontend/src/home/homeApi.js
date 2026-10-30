@@ -84,3 +84,11 @@ export async function getRecommendation(answers) {
         return SAMPLE_RECOMMEND;
     }
 }
+
+/** GET /api/v1/notifications/intake-summary : 홈 복용 알림 카드 (다음 알림 + 이번 주 제시간 복용률) */
+export async function getIntakeSummary(userId) {
+    const res = await request(`/api/v1/notifications/intake-summary`, {
+        headers: { "X-User-Id": String(userId) },
+    });
+    return res.data; // ApiResponse로 감싸져 있어서 .data
+}
