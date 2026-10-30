@@ -59,11 +59,15 @@ public enum ErrorCode {
     INVALID_INACTIVITY_DAYS(HttpStatus.BAD_REQUEST, "F007", "기간은 1일 이상이어야 합니다."),
     ALREADY_GUARDIAN(HttpStatus.CONFLICT, "F008", "이미 등록된 지킴이입니다."),
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F009", "지킴이 설정을 찾을 수 없습니다."),
+    INTAKE_NOT_SHARED(HttpStatus.FORBIDDEN, "F010", "정보가 비공개 상태입니다."),
 
     // DISPOSAL
     DISPOSAL_INVALID_QUERY(HttpStatus.BAD_REQUEST, "D001", "검색어는 1~100자로 입력해주세요."),
     DISPOSAL_KAKAO_API_ERROR(HttpStatus.BAD_GATEWAY, "D002", "카카오 장소 검색 API 호출에 실패했습니다."),
-    DISPOSAL_INVALID_LOCATION(HttpStatus.BAD_REQUEST, "D003", "올바른 위치 좌표와 검색 반경(500/1000/2000/3000m)을 입력해주세요.");
+    DISPOSAL_INVALID_LOCATION(HttpStatus.BAD_REQUEST, "D003", "올바른 위치 좌표와 검색 반경(500/1000/2000/3000m)을 입력해주세요."),
+
+    // CALENDAR
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
