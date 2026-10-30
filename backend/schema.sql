@@ -243,7 +243,7 @@ CREATE TABLE `calendar_events` (
                                                               'SUPPLEMENT',
                                                               'INJECTION',
                                                               'MEDICATION',
-                                                              'ONE_TIME_INTAKE'
+                                                              'ONE_TIME_INTAKE',
                                                               'APPOINTMENT',
                                                               'OTHER'
                                           )),
