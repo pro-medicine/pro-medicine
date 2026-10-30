@@ -90,9 +90,15 @@ public class NutritionService {
             if(!totals.containsKey(nutrient)){
                 continue;
             }
-            double intake = round1(totals.get(nutrient));
+            double total = totals.get(nutrient);
             double recommended = nutrient.getRecommendationAmount(gender);
-            int percent = (int) Math.round(intake * 100.0 / recommended);
+            // 섭취율은 반올림 전 합계로 계산
+            int percent = (int) Math.round(total * 100.0 / recommended);
+            // 화면 표시용 섭취량: 소수 둘째 자리까지, 0.004처럼 아주 작은 양이 0으로 보이지 않게 그때는 원래 값
+            double intake = round2(total);
+            if (intake == 0) {
+                intake = total;
+            }
             nutrients.add(new NutrientIntakeResponse(
                     nutrient.getDisplayName(),
                     nutrient.getUnit(),
@@ -102,6 +108,7 @@ public class NutritionService {
             ));
         }
         return new NutritionResponse(userId, nutrients, sample, unsupportedCount);
+
     }
 
     // 식약처 성분 요약 글을 성분별 함량으로 바꿈
@@ -118,21 +125,32 @@ public class NutritionService {
             Nutrient nutrient = findNutrient(text.replace(" ", ""));
             // 단위 뒤에 붙는 표기 떼기 (예: "11mgα-TE" → "11mg", "700㎍RAE" → "700㎍")
             text = text.replace("α-TE", "").replace("RAE", "").replace("DFE", "").trim();
-            // 게이지에 없는 성분이거나, 단위가 게이지 단위와 다르면 건너뜀
-            if (nutrient == null || !text.endsWith(nutrient.getUnit())) {
+            // 게이지에 없는 성분이면 건너뜀
+            if (nutrient == null) {
                 continue;
             }
+            // 게이지 단위와 같으면 그대로, 게이지가 ㎍인데 mg로 적혀 있으면 1000배 (예: 비타민 A "0.7mgRAE" → 700㎍)
+            String unit = nutrient.getUnit();
+            double multiplier = 1;
+            if (!text.endsWith(unit)) {
+                if ("㎍".equals(unit) && text.endsWith("mg")) {
+                    unit = "mg";
+                    multiplier = 1000;
+                } else {
+                    continue;
+                }
+            }
 
-            //단위 바로 앞의 숫자 부분 찾기 (뒤에서부터 숫자와 점이 이어지는 곳까지)
-            int end = text.length() - nutrient.getUnit().length();
+            // 단위 바로 앞의 숫자 부분 찾기 (뒤에서부터 숫자와 점이 이어지는 곳까지)
+            int end = text.length() - unit.length();
             int start = end;
-            while (start > 0 && (Character.isDigit(text.charAt(start-1)) || text.charAt(start - 1) == '.')) {
+            while (start > 0 && (Character.isDigit(text.charAt(start - 1)) || text.charAt(start - 1) == '.')) {
                 start--;
             }
             if (start == end) {
                 continue;
             }
-            double amount = Double.parseDouble(text.substring(start, end));
+            double amount = Double.parseDouble(text.substring(start, end)) * multiplier;
 
             // EPA, DHA처럼 같은 성분이 두 번 나오면 더함
             double before = amounts.getOrDefault(nutrient, 0.0);
@@ -188,8 +206,8 @@ public class NutritionService {
         return null;
     }
 
-    // 소수 첫째 자리까지 (더하다 생기는 0.30000000000000004 같은 값 정리)
-    private double round1(double value) {
-        return Math.round(value * 10) / 10.0;
+    // 소수 둘째 자리까지 (더하다 생기는 0.30000000000000004 같은 값 정리)
+    private double round2(double value) {
+        return Math.round(value * 100) / 100.0;
     }
 }

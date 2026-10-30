@@ -21,8 +21,8 @@ public enum Nutrient {
     MAGNESIUM("마그네슘", "mg", 370, 280),
     ZINC("아연", "mg", 10, 8),
     IRON("철", "mg", 10, 14),
-    // 오메가3(EPA+DHA)는 섭취기준에 없어 식약처 기능성 최소량 500mg 사용
-    OMEGA3("오메가3", "mg", 500, 500);
+    // 오메가3는 EPA+DHA 합계 (한국인 영양소 섭취기준 2020 30~49세 충분섭취량)
+    OMEGA3("오메가3", "mg", 400, 260);
 
     private final String displayName;
     private final String unit;

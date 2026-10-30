@@ -483,11 +483,8 @@ function NutritionManagement() {
   // 복용 중이지만 함량 정보가 없어 계산에서 빠진 영양제 수
   const unsupportedCount = nutrition?.unsupportedCount ?? 0;
 
-  // 섭취량이 모두 0이면 계산할 영양제가 없는 것 → 게이지 대신 안내
-  let hasIntake = false;
-  for (const item of nutrients) {
-    if (item.intakeAmount > 0) hasIntake = true;
-  }
+  // 서버가 먹는 성분만 보내므로, 목록이 비어 있으면 계산할 영양제가 없는 것 → 게이지 대신 안내
+  const hasIntake = nutrients.length > 0;
 
   return (
     <section className="nutrition-management">
@@ -495,7 +492,10 @@ function NutritionManagement() {
         <div>
           <span className="section-label">DAILY NUTRITION</span>
           <h2>나의 영양관리</h2>
-          <p>복용 중인 영양제를 기준으로 성별에 맞는 하루 권장량과 비교했어요.</p>
+          <p>
+            복용 중인 영양제를 기준으로 성별별 하루 권장량과 비교했어요. 성별
+            정보가 없으면 남성 기준을 사용해요.
+          </p>
         </div>
         <span className="nutrition-date">
           {nutrition?.sample ? "오늘 기준 · 예시 데이터" : "오늘 기준"}
