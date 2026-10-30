@@ -20,6 +20,15 @@ services:
       interval: 5s
       retries: 20
 
+  redis:
+    image: redis:7.2
+    container_name: oneonone-redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+
   backend:
     build: ./backend
     env_file: ./backend/.env
@@ -53,3 +62,4 @@ services:
 
 volumes:
   mysql-data:
+  redis_data:
