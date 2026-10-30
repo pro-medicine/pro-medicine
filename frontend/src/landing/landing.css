@@ -130,6 +130,19 @@
   font-size: 17px;
 }
 
+/* 미리보기는 실제 기록이 아닌 예시 데이터임을 표시 */
+.landing-sample-chip {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  margin-left: 6px;
+  padding: 3px 8px;
+  vertical-align: 2px;
+}
+
 .landing-preview-head span {
   color: var(--faint);
   font-size: 13px;

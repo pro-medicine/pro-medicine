@@ -12,10 +12,7 @@ import { updateIntake } from "../home/homeApi";
 export async function completeIntakeFromNotification(userId, item) {
   const date = item.scheduledAt.slice(0, 10); // "2026-10-30"
   const time = item.scheduledAt.slice(11, 16); // "12:30"
-  const list = await api.get("/api/v1/intakes/today", {
-    params: { date },
-    headers: { "X-User-Id": userId },
-  });
+  const list = await api.get("/api/v1/intakes/today", { params: { date } });
   const targets = (list ?? []).filter((s) => s.remindAt === time && !s.taken);
   for (const target of targets) {
     await updateIntake(userId, target.id, true, date);

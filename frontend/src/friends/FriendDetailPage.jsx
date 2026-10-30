@@ -52,7 +52,11 @@ export default function FriendDetailPage({
   // 확인 / 취소 화면: { title, message, confirmLabel, danger, onConfirm }
   const [confirm, setConfirm] = useState(null);
   const askConfirm = (options) => {
-    if (document.activeElement instanceof HTMLElement) openerRef.current = document.activeElement;
+    // 다른 창(설정 모달 등) 안의 버튼에서 열면 그 버튼은 곧 사라지므로, 처음 창을 연 버튼을 그대로 복원 대상으로 둔다
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && !active.closest('[role="dialog"], [role="alertdialog"]')) {
+      openerRef.current = active;
+    }
     setConfirm(options);
   };
   const openerRef = useRef(null);

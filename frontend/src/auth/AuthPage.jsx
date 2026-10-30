@@ -67,7 +67,9 @@ function BrandPanel({ isSignup }) {
 
       <div className="auth-preview">
         <div className="auth-preview-head">
-          <strong>오늘 복용</strong>
+          <strong>
+            오늘 복용 <em className="auth-sample-chip">예시</em>
+          </strong>
           <span className="auth-preview-streak">🔥 12일 연속</span>
         </div>
         <ul>
@@ -319,23 +321,25 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
                       onChange={(event) => setAge(event.target.value)}
                     />
                   </label>
-                  <div className="auth-field">
-                    <span id="auth-gender-label">성별</span>
-                    <div className="auth-segment" role="radiogroup" aria-labelledby="auth-gender-label">
+                  {/* 성별: 실제 라디오 버튼 (방향키로 이동·선택 가능), 알약 모양으로 보이게만 꾸밈 */}
+                  <fieldset className="auth-field auth-fieldset">
+                    <legend>성별</legend>
+                    <div className="auth-segment">
                       {GENDERS.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          role="radio"
-                          aria-checked={gender === option}
-                          className={gender === option ? "active" : ""}
-                          onClick={() => setGender(option)}
-                        >
-                          {option}
-                        </button>
+                        <label key={option} className={gender === option ? "active" : ""}>
+                          <input
+                            type="radio"
+                            name="auth-gender"
+                            value={option}
+                            required
+                            checked={gender === option}
+                            onChange={() => setGender(option)}
+                          />
+                          <span>{option}</span>
+                        </label>
                       ))}
                     </div>
-                  </div>
+                  </fieldset>
                 </div>
 
                 <label className="auth-check">

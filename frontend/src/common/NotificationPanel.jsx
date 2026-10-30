@@ -317,56 +317,48 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
               const view = viewOf(item);
               const unread = !item.read;
               return (
+                // 항목 전체가 아닌 "제목 영역 버튼"만 누르는 대상 → 안의 수락·거절 버튼도 스크린 리더가 따로 읽을 수 있음
                 <article
                   className={unread ? "notification-item unread" : "notification-item"}
                   key={item.notificationId}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${view.label}: ${item.title}${unread ? ", 안 읽음" : ""}`}
-                  onClick={() => handleItemClick(item)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault(); // Space로 페이지가 스크롤되지 않게
-                      handleItemClick(item);
-                    }
-                  }}
                 >
-                  <TypeIcon item={item} size={36} />
-                  <div>
-                    <h3>{item.title}</h3>
-                    <span className="notification-meta">
-                      {view.label} · {timeAgo(item.createdAt)}
-                    </span>
-                    {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 */}
-                    {unread && canRespondFollow(item) && (
-                      <span className="noti-follow-actions">
-                        <button
-                          type="button"
-                          className="is-accept"
-                          disabled={busyId === item.notificationId}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            respondFollow(item, "ACCEPTED");
-                          }}
-                          onKeyDown={(event) => event.stopPropagation()}
-                        >
-                          수락
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busyId === item.notificationId}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            respondFollow(item, "REJECTED");
-                          }}
-                          onKeyDown={(event) => event.stopPropagation()}
-                        >
-                          거절
-                        </button>
+                  <button
+                    type="button"
+                    className="notification-item-main"
+                    aria-label={`${view.label}: ${item.title}${unread ? ", 안 읽음" : ""}`}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <TypeIcon item={item} size={36} />
+                    <span className="notification-item-text">
+                      <strong className="notification-item-title">{item.title}</strong>
+                      <span className="notification-meta">
+                        {view.label} · {timeAgo(item.createdAt)}
                       </span>
-                    )}
-                  </div>
-                  {unread && <i />}
+                    </span>
+                  </button>
+                  {unread && <i aria-hidden="true" />}
+                  {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 (제목 버튼과 형제 요소) */}
+                  {unread && canRespondFollow(item) && (
+                    <span className="noti-follow-actions">
+                      <button
+                        type="button"
+                        className="is-accept"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 수락`}
+                        onClick={() => respondFollow(item, "ACCEPTED")}
+                      >
+                        수락
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 거절`}
+                        onClick={() => respondFollow(item, "REJECTED")}
+                      >
+                        거절
+                      </button>
+                    </span>
+                  )}
                 </article>
               );
             })}

@@ -91,9 +91,40 @@
   align-items: flex-start;
   border-radius: 14px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr auto;
+  gap: 0 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 14px;
+}
+
+/* 누르는 영역: 아이콘 + 제목·시간 (수락·거절 버튼은 이 버튼 밖, 아랫줄) */
+.notification-item-main {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0;
+  text-align: left;
+}
+
+.notification-item-main:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.notification-item-text {
+  display: block;
+  min-width: 0;
+}
+
+.notification-item .noti-follow-actions {
+  grid-column: 1 / -1;
+  padding-left: 48px; /* 아이콘(36) + 간격(12) 만큼 들여서 제목과 줄 맞춤 */
 }
 
 .notification-item:hover {
@@ -126,8 +157,10 @@
   opacity: 0.75;
 }
 
-.notification-item h3 {
+.notification-item h3,
+.notification-item-title {
   color: var(--ink);
+  display: block;
   word-break: keep-all;
   font-size: 14px;
   font-weight: 500;
@@ -136,7 +169,8 @@
   margin: 0;
 }
 
-.notification-item.unread h3 {
+.notification-item.unread h3,
+.notification-item.unread .notification-item-title {
   font-weight: 700;
 }
 
@@ -598,10 +632,6 @@
 }
 
 /* 알림 클릭 가능 표시, 읽을 알림이 없을 때 "모두 읽음" 버튼 흐리게 */
-.notification-item[role="button"] {
-  cursor: pointer;
-}
-
 .read-all:disabled {
   color: var(--faint);
   cursor: default;

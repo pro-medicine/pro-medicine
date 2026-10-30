@@ -198,3 +198,9 @@
   .rec-card-head { flex-direction: column; gap: 4px; }
   .rec-dose { text-align: left; }
 }
+
+/* 아주 좁은 화면(320~400px): 버튼이 한 줄에 안 들어가면 줄바꿈, 주 버튼(다음·제출)은 아랫줄 전체 너비 */
+@media (max-width: 400px) {
+  .rec-nav { flex-wrap: wrap; row-gap: 12px; }
+  .rec-nav .rec-button.primary { flex: 1 0 100%; order: 1; }
+}

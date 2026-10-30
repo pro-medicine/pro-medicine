@@ -205,7 +205,10 @@ export default function App() {
   // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
   const refreshAfterNotificationAction = () => {
     setHomeRefreshKey((key) => key + 1);
-    if (tab === "friends") setFriendsKey((k) => k + 1);
+    if (tab === "friends") {
+      setFriendTarget(null); // 예전에 알림으로 연 친구 상세가 다시 열리지 않게
+      setFriendsKey((k) => k + 1);
+    }
   };
 
   // 알림 패널의 버튼 → 해당 화면으로 이동 (안부지킴이: 친구 상세 / 복용 알림: 홈)

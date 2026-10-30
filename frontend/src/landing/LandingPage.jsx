@@ -116,7 +116,9 @@ export default function LandingPage({ onStart }) {
           <div className="landing-preview" aria-label="오늘 먹을 영양제 예시">
             <div className="landing-preview-list">
               <div className="landing-preview-head">
-                <strong>오늘 먹을 영양제</strong>
+                <strong>
+                  오늘 먹을 영양제 <em className="landing-sample-chip">예시</em>
+                </strong>
                 <span>{todayLabel()}</span>
               </div>
               <ul>

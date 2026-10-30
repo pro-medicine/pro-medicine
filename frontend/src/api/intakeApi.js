@@ -1,16 +1,16 @@
 import { api } from "./client";
 
+// 로그인 사용자는 client.js가 붙이는 Bearer 토큰으로 서버가 구분한다 (X-User-Id 헤더 불필요)
+
 export function getMyCalendar(start, end) {
   return api.get("/api/v1/intakes/calendar", {
     params: { start, end },
-    headers: { "X-User-Id": 1 }, // TODO: 로그인 연동 후 제거
   });
 }
 
 export function getMyDayIntakes(date) {
   return api.get("/api/v1/intakes/today", {
     params: { date },
-    headers: { "X-User-Id": 1 }, // 달력과 같은 방식 (TODO: 로그인 연동 후 제거)
   });
 }
 
@@ -18,6 +18,5 @@ export function getMyDayIntakes(date) {
 export function getMyCalendarProgress(start, end) {
   return api.get("/api/v1/intakes/calendar/progress", {
     params: { start, end },
-    headers: { "X-User-Id": 1 }, // TODO: 로그인 연동 후 제거
   });
 }

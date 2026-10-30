@@ -31,8 +31,6 @@ function toFriend(item, index) {
 
 // openFriendUserId: 알림의 "친구 보기"로 들어오면 그 친구 상세부터 보여줌
 export default function FriendsPage({ userId, onNotifications, openFriendUserId = null }) {
-  // TODO: 로그인 연동 후 실제 사용자 id
-  // const userId = 1;
 
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");
@@ -63,11 +61,12 @@ export default function FriendsPage({ userId, onNotifications, openFriendUserId 
     setRequestsOpen(true);
   };
 
+  // 처음 불러올 때만 "불러오는 중..."을 보여줌 (친구 신청 수락·모달 닫기 등으로 다시 불러올 때는 기존 목록을 유지해서 깜빡이지 않게)
+  const loadedRef = useRef(false);
+
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
-    setError("");
-    setWatchingIds(new Set());
+    if (!loadedRef.current) setLoading(true);
     getWatching(userId)
       .then((data) => {
         if (ignore) return;
@@ -104,6 +103,7 @@ export default function FriendsPage({ userId, onNotifications, openFriendUserId 
         if (!ignore) {
           setFriends((data ?? []).map(toFriend));
           setError("");
+          loadedRef.current = true;
         }
       })
       .catch((err) => {
@@ -126,7 +126,8 @@ export default function FriendsPage({ userId, onNotifications, openFriendUserId 
       <FriendDetailPage
         userId={userId}
         friendUserId={selectedFriend.userId}
-        fallback={selectedFriend}
+        // 알림에서 바로 들어오면 { userId }만 있어서, 목록을 불러온 뒤에는 목록 정보(서로 친구 여부 등)를 사용
+        fallback={friendsById.get(selectedFriend.userId) ?? selectedFriend}
         onBack={() => {
           setSelectedFriend(null);
           setReloadKey((k) => k + 1);

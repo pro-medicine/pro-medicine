@@ -77,6 +77,11 @@
   white-space: nowrap;
 }
 
+/* 반경 선택: 키보드로 들어오면 검색창처럼 테두리로 포커스 표시 */
+.map-screen .disposal-radius-label:focus-within {
+  border-color: var(--accent);
+}
+
 .map-screen .disposal-radius-label select {
   background: transparent;
   border: 0;

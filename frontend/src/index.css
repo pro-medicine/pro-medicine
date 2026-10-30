@@ -19,7 +19,7 @@
   --primary-line: #b9e3cf;
   --ink: #111714;
   --muted: #6a736f;
-  --faint: #9aa29e;
+  --faint: #6c7470; /* 작은 안내 글자: 흰색·배경색 위 대비 4.5:1 이상 (WCAG AA) */
   --line: #eceeed;
   --surface: #f7f9f8;
   --alert: #e5484d;
