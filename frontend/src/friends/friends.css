@@ -1135,3 +1135,89 @@ button.fr-rank-row:hover {
 .fr-rank-name .fr-me-tag {
   margin-left: -2px;
 }
+
+/* ───────── 확인 / 취소 화면 (#67) ───────── */
+.confirm-dialog {
+  max-width: 360px;
+  padding: 28px 24px 22px;
+  text-align: center;
+}
+
+.confirm-dialog-icon {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 50%;
+  color: var(--primary-hover);
+  display: inline-flex;
+  font-size: 22px;
+  font-weight: 800;
+  height: 48px;
+  justify-content: center;
+  margin-bottom: 14px;
+  width: 48px;
+}
+
+.confirm-dialog-icon.is-danger {
+  background: #fff1f1;
+  color: var(--alert);
+}
+
+.confirm-dialog h2 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.confirm-dialog p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 8px 0 0;
+  word-break: keep-all;
+}
+
+.confirm-dialog-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 22px;
+}
+
+.confirm-dialog-actions button {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  height: 46px;
+}
+
+.confirm-dialog-actions .is-cancel { background: #f1f3f2; color: var(--ink); }
+.confirm-dialog-actions .is-primary { background: var(--accent); color: var(--white); }
+.confirm-dialog-actions .is-danger { background: var(--alert); color: var(--white); }
+
+.confirm-dialog-actions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* ───────── 친구 상세 머리 (#67): 친구 삭제 왼쪽 · 안부지킴이 오른쪽 ───────── */
+/* 좁은 화면: 알림 종은 오른쪽 위(뒤로 가기 버튼 줄), 버튼 줄은 양 끝으로 */
+@media (max-width: 620px) {
+  .profile-screen:not(.is-mine) .app-header {
+    position: relative;
+  }
+
+  .profile-screen:not(.is-mine) .header-actions {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .profile-screen:not(.is-mine) .header-actions .notification-button {
+    position: absolute;
+    right: 0;
+    top: 28px;
+  }
+}

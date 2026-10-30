@@ -11,6 +11,7 @@ import {
   changeGuardianDays,
 } from "../api/guardianApi";
 import GuardianDaysModal from "../friends/GuardianModal";
+import ConfirmDialog from "./ConfirmDialog";
 
 function toFriendDetail(data, fallback) {
   return {
@@ -48,6 +49,12 @@ export default function FriendDetailPage({
   const [guardianMsg, setGuardianMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [daysOpen, setDaysOpen] = useState(false);
+  // 확인 / 취소 화면: { title, message, confirmLabel, danger, onConfirm }
+  const [confirm, setConfirm] = useState(null);
+  const askConfirm = (options) => {
+    if (document.activeElement instanceof HTMLElement) openerRef.current = document.activeElement;
+    setConfirm(options);
+  };
   const openerRef = useRef(null);
 
   // 친구 상세 조회
@@ -125,13 +132,17 @@ export default function FriendDetailPage({
     setDaysOpen(false);
   };
 
-  const handleCancelGuardian = async () => {
-    if (!window.confirm("안부지킴이를 취소할까요?")) return;
-    await runGuardian(
-      () => removeGuardian(userId, guardian.guardianSettingId),
-      "안부지킴이를 취소했어요.",
-    );
+  // 설정 모달의 "안부지킴이 해지" → 설정 모달을 닫고 확인 화면
+  const handleCancelGuardian = () => {
     setDaysOpen(false);
+    askConfirm({
+      title: "안부지킴이를 해제할까요?",
+      message: `해제하면 ${friend?.name ?? "이 친구"}님이 오래 접속하지 않아도 알림을 받지 않아요.`,
+      confirmLabel: "해제",
+      danger: true,
+      onConfirm: () =>
+        runGuardian(() => removeGuardian(userId, guardian.guardianSettingId), "안부지킴이를 해제했어요."),
+    });
   };
 
   const pendingIncoming = incoming && !incoming.active; // 상대가 보낸 신청 대기
@@ -154,40 +165,50 @@ export default function FriendDetailPage({
   const handleGuardianClick = () => {
     const name = friend?.name ?? "이 친구";
     if (pendingIncoming) {
-      if (
-        window.confirm(
-          `${name}님의 안부지킴이 신청을 수락하시겠습니까?\n수락하면 내 접속 여부를 알 수 있어요.`,
-        )
-      ) {
-        runGuardian(
-          () => acceptGuardian(userId, incoming.guardianSettingId),
-          "안부지킴이를 수락했어요.",
-        );
-      }
+      askConfirm({
+        title: "안부지킴이 신청을 수락할까요?",
+        message: `수락하면 ${name}님이 내 접속 여부를 알 수 있어요.`,
+        confirmLabel: "수락",
+        onConfirm: () =>
+          runGuardian(() => acceptGuardian(userId, incoming.guardianSettingId), "안부지킴이를 수락했어요."),
+      });
       return;
     }
 
     if (incoming?.active) {
-      if (window.confirm(`${name}님의 안부지킴이를 해지할까요?`)) {
-        runGuardian(() => removeGuardian(userId, incoming.guardianSettingId));
-      }
+      askConfirm({
+        title: "안부지킴이를 해제할까요?",
+        message: `해제하면 ${name}님이 더 이상 내 접속 여부를 알 수 없어요.`,
+        confirmLabel: "해제",
+        danger: true,
+        onConfirm: () =>
+          runGuardian(() => removeGuardian(userId, incoming.guardianSettingId), "안부지킴이를 해제했어요."),
+      });
       return;
     }
 
     if (!guardian) {
-      if (window.confirm("이 친구에게 안부지킴이를 신청할까요?")) {
-        runGuardian(
-          () => requestGuardian(userId, friendUserId, 3),
-          "안부지킴이를 신청했어요. 상대가 수락하면 알림을 받을 수 있어요.",
-        );
-      }
+      askConfirm({
+        title: "안부지킴이를 신청할까요?",
+        message: `${name}님이 수락하면, 3일 이상 접속하지 않을 때 알림을 받아요.`,
+        confirmLabel: "신청",
+        onConfirm: () =>
+          runGuardian(
+            () => requestGuardian(userId, friendUserId, 3),
+            "안부지킴이를 신청했어요. 상대가 수락하면 알림을 받을 수 있어요.",
+          ),
+      });
       return;
     }
 
     if (!guardian.active) {
-      if (window.confirm("안부지킴이 신청을 취소할까요?")) {
-        runGuardian(() => removeGuardian(userId, guardian.guardianSettingId));
-      }
+      askConfirm({
+        title: "안부지킴이 신청을 취소할까요?",
+        message: `${name}님에게 보낸 안부지킴이 신청을 취소해요.`,
+        confirmLabel: "신청 취소",
+        danger: true,
+        onConfirm: () => runGuardian(() => removeGuardian(userId, guardian.guardianSettingId)),
+      });
       return;
     }
 
@@ -196,12 +217,18 @@ export default function FriendDetailPage({
     setDaysOpen(true);
   };
 
-  const handleDeleteFriend = async () => {
+  const handleDeleteFriend = () => {
     if (deleting) return;
-    if (
-      !window.confirm(`${friend?.name ?? "이 친구"}님을 친구에서 삭제할까요?`)
-    )
-      return;
+    askConfirm({
+      title: "친구를 삭제할까요?",
+      message: `${friend?.name ?? "이 친구"}님을 친구 목록에서 삭제해요. 다시 친구가 되려면 친구 신청을 새로 보내야 해요.`,
+      confirmLabel: "삭제",
+      danger: true,
+      onConfirm: deleteFriendNow,
+    });
+  };
+
+  const deleteFriendNow = async () => {
     setDeleting(true);
     setGuardianMsg("");
     try {
@@ -292,12 +319,27 @@ export default function FriendDetailPage({
         onNotifications={onNotifications}
         topBarActions={
           <>
-            {guardianButton}
             {deleteButton}
+            {guardianButton}
           </>
         }
       />
       {guardianMsg && <p className="guardian-toast">{guardianMsg}</p>}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          danger={confirm.danger}
+          busy={guardianBusy || deleting}
+          openerRef={openerRef}
+          onCancel={() => setConfirm(null)}
+          onConfirm={async () => {
+            await confirm.onConfirm();
+            setConfirm(null);
+          }}
+        />
+      )}
       {daysOpen && guardian?.active && (
         <GuardianDaysModal
           name={friend.name}
