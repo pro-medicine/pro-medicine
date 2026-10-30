@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   getNotifications,
   getUnreadCount,
-  markNotificationRead,
   subscribeNotifications,
 } from "./api/notificationApi";
 import NotificationToast from "./common/NotificationToast";
+import DevNotificationTester from "./common/DevNotificationTester";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -120,6 +120,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
+  const refreshAfterNotificationAction = () => {
+    setHomeRefreshKey((key) => key + 1);
+    if (tab === "friends") setFriendsKey((k) => k + 1);
+  };
+
   // 알림 패널의 버튼 → 해당 화면으로 이동 (안부지킴이: 친구 상세 / 복용 알림: 홈)
   const navigateFromNotification = ({ tab: nextTab, friendUserId }) => {
     setNotificationsOpen(false);
@@ -200,6 +206,9 @@ export default function App() {
 
       {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
 
+      {/* 개발 중에만: 새 알림 팝업 테스트 버튼 (빌드에는 포함되지 않음) */}
+      {import.meta.env.DEV && <DevNotificationTester userId={userId} onFake={setToast} />}
+
       {toast && (
         <NotificationToast
           key={toast.notificationId}
@@ -209,12 +218,9 @@ export default function App() {
             const bell = document.querySelector(".top-nav-bell");
             openNotifications(bell?.offsetParent ? { currentTarget: bell } : null);
           }}
-          onAction={(item, target) => {
-            markNotificationRead(userId, item.notificationId)
-              .then(() => setHomeRefreshKey((key) => key + 1))
-              .catch((err) => console.error(err));
-            navigateFromNotification(target);
-          }}
+          userId={userId}
+          onNavigate={navigateFromNotification}
+          onChanged={refreshAfterNotificationAction}
         />
       )}
 
@@ -226,6 +232,7 @@ export default function App() {
           onRead={() => setHomeRefreshKey((key) => key + 1)}
           onClose={closeNotifications}
           onNavigate={navigateFromNotification}
+          onChanged={refreshAfterNotificationAction}
         />
       )}
     </div>

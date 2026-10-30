@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { viewOf } from "./notificationTypes";
 import TypeIcon from "./NotificationTypeIcon";
 import {
+  canCompleteIntake,
+  canRespondFollow,
+  completeIntakeFromNotification,
+  respondFollowFromNotification,
+} from "./notificationActions";
+import {
   getNotifications,
   getUnreadCount,
   markAllNotificationsRead,
@@ -50,7 +56,7 @@ function timeAgo(createdAt, now = new Date()) {
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose, onNavigate }) {
+export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose, onNavigate, onChanged }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
@@ -129,6 +135,42 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
     onNavigate?.(target);
   };
 
+  // 알림에서 바로 처리 (복용 완료 / 친구 신청 수락·거절) → 결과 문구를 위에 잠깐 보여주고 읽음 처리
+  const [busyId, setBusyId] = useState(null);
+  const [notice, setNotice] = useState(null); // { text, ok }
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  const runAction = async (item, run) => {
+    if (busyId) return;
+    setBusyId(item.notificationId);
+    try {
+      const text = await run();
+      setNotice({ text, ok: true });
+      await handleItemClick(item);
+      onChanged?.();
+    } catch (err) {
+      console.error(err);
+      setNotice({ text: "처리하지 못했어요. 다시 시도해 주세요", ok: false });
+    } finally {
+      setBusyId(null);
+    }
+  };
+  const completeIntake = (item) =>
+    runAction(item, async () => {
+      const count = await completeIntakeFromNotification(userId, item);
+      return count > 0 ? `영양제 ${count}개를 복용 완료했어요` : "이미 모두 챙겼어요";
+    });
+  const respondFollow = (item, status) =>
+    runAction(item, async () => {
+      const done = await respondFollowFromNotification(userId, item, status);
+      if (!done) return "이미 처리된 친구 신청이에요";
+      return status === "ACCEPTED" ? "친구 신청을 수락했어요" : "친구 신청을 거절했어요";
+    });
+
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
   // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
   // - 오늘 복용 알림: 지금 먹을 영양제 → 민트 카드
@@ -198,6 +240,12 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
         </div>
 
         <div className="notification-list">
+          {notice && (
+            <p className={`noti-notice${notice.ok ? "" : " is-error"}`} role="status">
+              {notice.ok && "✓ "}
+              {notice.text}
+            </p>
+          )}
           {loading && <p className="notification-state">알림을 불러오는 중...</p>}
           {!loading && result.error && (
             <p className="notification-state">{result.error}</p>
@@ -238,11 +286,25 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
               <TypeIcon item={intakeAlert} solid />
               <div className="noti-pin-text">
                 <p>{intakeAlert.title}</p>
-                <span className="notification-meta">{hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요</span>
+                <span className="notification-meta">
+                  {canCompleteIntake(intakeAlert)
+                    ? `${intakeAlert.scheduledAt.slice(11, 16)} 알림 · 여기서 바로 체크할 수 있어요`
+                    : `${hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요`}
+                </span>
               </div>
-              <button type="button" onClick={() => readAndGo(intakeAlert, { tab: "home" })}>
-                체크하기
-              </button>
+              {canCompleteIntake(intakeAlert) ? (
+                <button
+                  type="button"
+                  disabled={busyId === intakeAlert.notificationId}
+                  onClick={() => completeIntake(intakeAlert)}
+                >
+                  복용 완료
+                </button>
+              ) : (
+                <button type="button" onClick={() => readAndGo(intakeAlert, { tab: "home" })}>
+                  체크하기
+                </button>
+              )}
             </section>
           )}
 
@@ -275,6 +337,34 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
                     <span className="notification-meta">
                       {view.label} · {timeAgo(item.createdAt)}
                     </span>
+                    {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 */}
+                    {unread && canRespondFollow(item) && (
+                      <span className="noti-follow-actions">
+                        <button
+                          type="button"
+                          className="is-accept"
+                          disabled={busyId === item.notificationId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            respondFollow(item, "ACCEPTED");
+                          }}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
+                          수락
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId === item.notificationId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            respondFollow(item, "REJECTED");
+                          }}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
+                          거절
+                        </button>
+                      </span>
+                    )}
                   </div>
                   {unread && <i />}
                 </article>

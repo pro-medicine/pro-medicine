@@ -65,3 +65,11 @@ export function subscribeNotifications(userId, onNotification) {
     source.addEventListener("notification", onNotification);
     return () => source.close();
 }
+
+/**
+ * 로컬 테스트 전용: 새 알림 하나 만들기 (백엔드 app.dev.notification-test: true 일 때만 동작)
+ * 만들어지면 SSE 신호가 와서 새 알림 팝업이 뜬다.
+ */
+export function createTestNotification(userId, type) {
+    return api.post("/api/v1/notifications/dev/test", null, { params: { userId, type } });
+}
