@@ -509,7 +509,7 @@
 .fr-avatar.is-blue { background: #e6f0ff; color: #2f5fd0; }
 .fr-avatar.is-yellow { background: #fff4d6; color: #a86b00; }
 .fr-avatar.is-pink { background: #ffe8ef; color: #c2416b; }
-.fr-avatar.is-me { background: var(--ink); color: var(--white); }
+.fr-avatar.is-me { background: #e3f6ee; color: #0b7f58; }
 
 /* ───────── 랭킹 카드 ───────── */
 .fr-rank {
@@ -697,7 +697,16 @@ button.fr-rank-row:hover {
 }
 
 .fr-rank-row.is-me {
-  background: var(--primary-soft);
+  background: #f4faf7;
+}
+
+/* 내 이름 옆 작은 회색 "(나)" */
+.fr-me-tag {
+  color: var(--faint);
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 4px;
 }
 
 .fr-rank-no {
@@ -784,7 +793,6 @@ button.fr-rank-row:hover {
 
 .fr-chip.is-friend { background: var(--primary-soft); color: var(--primary-hover); }
 .fr-chip.is-follow { border: 1px solid var(--line); color: var(--muted); }
-.fr-chip.is-me { background: var(--ink); color: var(--white); }
 
 .fr-guard-icon {
   color: var(--primary-hover);
@@ -1122,4 +1130,8 @@ button.fr-rank-row:hover {
   .fr-bar-track span {
     transition: none;
   }
+}
+
+.fr-rank-name .fr-me-tag {
+  margin-left: -2px;
 }

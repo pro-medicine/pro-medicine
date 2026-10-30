@@ -19,7 +19,7 @@ function Flame({ size = 14 }) {
 export function FriendAvatar({ person, size = "md" }) {
   return (
     <span className={`fr-avatar is-${size} ${person.isMe ? "is-me" : `is-${person.color}`}`} aria-hidden="true">
-      {person.isMe ? "나" : person.initial}
+      {person.isMe ? person.name.charAt(0) : person.initial}
     </span>
   );
 }
@@ -73,7 +73,10 @@ function Podium({ top3 }) {
               <FriendAvatar person={p} size={place === 1 ? "xl" : "lg"} />
               <span className="fr-medal">{p.rank}</span>
             </span>
-            <strong>{p.isMe ? "나" : p.name}</strong>
+            <strong>
+              {p.name}
+              {p.isMe && <span className="fr-me-tag">(나)</span>}
+            </strong>
             <span className="fr-days">
               <Flame />
               {p.streak}일
@@ -192,7 +195,7 @@ export default function FriendRanking({
                 <span className="fr-rank-name">
                   <strong>{p.name}</strong>
                   {p.isMe ? (
-                    <span className="fr-chip is-me">나</span>
+                    <span className="fr-me-tag">(나)</span>
                   ) : (
                     <span className={`fr-chip ${p.mutual ? "is-friend" : "is-follow"}`}>
                       {p.mutual ? "친구" : "팔로우"}
