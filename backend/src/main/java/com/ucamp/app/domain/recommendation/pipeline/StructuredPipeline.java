@@ -30,9 +30,9 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
 
     /** 프롬프트 폴더(src/main/resources/prompts/{dir})와 기록용 프롬프트 버전 */
     protected record Prompt(String dir, String version) {
-        static final Prompt V1 = new Prompt("v1", "v1.1");
-        static final Prompt V2 = new Prompt("v2", "v2.1");
-        static final Prompt V4 = new Prompt("v4", "v4.2");
+        static final Prompt V1 = new Prompt("v1", "v1.2");
+        static final Prompt V2 = new Prompt("v2", "v2.2");
+        static final Prompt V4 = new Prompt("v4", "v4.3");
     }
 
     /** 버전마다 켜는 기능 */
@@ -105,8 +105,14 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
                 .build();
     }
 
-    /** 기록용 프롬프트 버전. V2 정밀 추천(맞춤 질문 답 포함)은 뒤에 -p를 붙여 구분한다 (예: v4.2-p) */
+    /**
+     * 기록용 프롬프트 버전. V2 정밀 추천(맞춤 질문 답 포함)은 뒤에 -p, V4 대화창 트랙 2는 -c를 붙여 구분한다 (예: v4.3-p, v4.3-c).
+     * 결과 캐시 키에도 들어가므로 같은 입력이어도 V1·V2·V4 결과가 섞이지 않는다
+     */
     private String promptVersion(RecommendationInput input) {
+        if (input.isChat()) {
+            return options.prompt().version() + "-c";
+        }
         return input.isPersonalized() ? options.prompt().version() + "-p" : options.prompt().version();
     }
 

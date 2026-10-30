@@ -272,6 +272,7 @@ export default function FriendDetailPage({
     <>
       <ProfileScreen
         friend={friend}
+        viewerId={userId}
         onBack={onBack}
         onNotifications={onNotifications}
         topBarActions={

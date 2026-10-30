@@ -9,8 +9,9 @@ import java.util.List;
 /**
  * 추천 파이프라인의 정규화 입력. 설문 응답 + (회원이면) 프로필을 합친 값이다.
  * 값은 설문 value_code 그대로 (smoking = NONE, HALF_PACK …). 평가 러너도 이 객체를 직접 만들어 넣는다.
- * responseId, evalRunId, sessionId는 기록용 메타데이터라 추천 내용(캐시 키 등)에 쓰지 않는다.
+ * responseId, evalRunId, sessionId, chatSessionId는 기록용 메타데이터라 추천 내용(캐시 키 등)에 쓰지 않는다.
  * V2 정밀 추천은 설문 없이 프로필 + 회차 임신 답 + personalizedAnswers로 만든다 (responseId = null, sessionId = 회차).
+ * V4 대화창 트랙 2는 프로필 + 대화 속 약·질환 + 대화 원문(personalizedAnswers)으로 만든다 (chatSessionId = 대화 세션).
  */
 @Builder(toBuilder = true)
 public record RecommendationInput(
@@ -34,7 +35,8 @@ public record RecommendationInput(
         Long responseId,
         String evalRunId,
         List<PersonalizedAnswer> personalizedAnswers,
-        Long sessionId
+        Long sessionId,
+        Long chatSessionId
 ) {
     public static final String MEMBER = "MEMBER";
     public static final String GUEST = "GUEST";
@@ -48,6 +50,11 @@ public record RecommendationInput(
 
     public List<PersonalizedAnswer> personalizedAnswersOrEmpty() {
         return personalizedAnswers == null ? List.of() : personalizedAnswers;
+    }
+
+    /** V4 대화창 트랙 2 입력인지 (대화 세션에서 만든 입력) */
+    public boolean isChat() {
+        return chatSessionId != null;
     }
 
     /** V2 정밀 추천 입력인지 (맞춤 질문 회차에서 만든 입력) */

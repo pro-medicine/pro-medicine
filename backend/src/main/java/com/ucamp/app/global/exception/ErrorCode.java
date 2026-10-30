@@ -34,6 +34,13 @@ public enum ErrorCode {
     PERSONALIZED_INVALID_ANSWER(HttpStatus.BAD_REQUEST, "PQ004", "답변이 올바르지 않습니다."),
     PERSONALIZED_QUESTION_FAILED(HttpStatus.BAD_GATEWAY, "PQ005", "잠시 후 다시 시도해 주세요."),
 
+    // CHAT (AI 추천 V4 대화창). C 접두사는 다른 기능이 쓸 수 있어 CH를 쓴다
+    CHAT_PROFILE_INCOMPLETE(HttpStatus.CONFLICT, "CH001", "건강정보를 먼저 등록해 주세요."),
+    CHAT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "CH002", "대화를 찾을 수 없습니다."),
+    CHAT_ALREADY_FINISHED(HttpStatus.CONFLICT, "CH003", "이미 결과가 나온 대화입니다. 새 대화로 시작해 주세요."),
+    CHAT_INVALID_INPUT(HttpStatus.BAD_REQUEST, "CH004", "입력은 1~300자로 써 주세요."),
+    CHAT_PARSE_FAILED(HttpStatus.BAD_GATEWAY, "CH005", "잠시 후 다시 시도해 주세요."),
+
     // PRODUCT
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "영양제를 찾을 수 없습니다."),
     PRODUCT_ALREADY_ADDED(HttpStatus.CONFLICT, "P002", "이미 등록한 영양제입니다."),

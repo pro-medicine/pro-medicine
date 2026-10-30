@@ -4,6 +4,7 @@ import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
 import RecommendBanner from "./RecommendBanner";
+import IntakeAlarmCard from "./IntakeAlarmCard";
 import "./home.css";
 import { useEffect, useRef, useState } from "react";
 
@@ -16,14 +17,15 @@ import { useEffect, useRef, useState } from "react";
 export default function HomePage({
   userId = 1,
   onOpenNotifications,
-  onSurvey, refreshKey,
-
+  onSurvey,
+  refreshKey,
 }) {
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
   const [error, setError] = useState(""); // 저장 실패 메시지
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
+  const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
@@ -74,7 +76,8 @@ export default function HomePage({
     setPendingIds((prev) => [...prev, id]);
 
     try {
-      await updateIntake(userId, id, next);
+      await updateIntake(userId, id, next, home.today); // 화면에 표시 중인 날짜로 저장
+      setIntakeSavedKey((k) => k + 1);
     } catch (e) {
       setTaken(id, !next);
       setError("복용 체크를 저장하지 못했어요. 잠시 후 다시 시도해주세요.", e);
@@ -89,10 +92,10 @@ export default function HomePage({
     <div className="home-page">
       <div className="home-inner">
         <HomeHeader
-            userName={home.userName}
-            today={home.today}
-            hasUnread={home.hasUnreadNotifications}
-            onBellClick={onOpenNotifications}
+          userName={home.userName}
+          today={home.today}
+          hasUnread={home.hasUnreadNotifications}
+          onBellClick={onOpenNotifications}
         />
 
         {isSample && (
@@ -100,6 +103,12 @@ export default function HomePage({
         )}
 
         <PromiseCard percent={percent} remain={total - done} total={total} />
+
+        <IntakeAlarmCard
+          userId={userId}
+          refreshKey={`${refreshKey}-${intakeSavedKey}`}
+          isSample={isSample}
+        />
 
         <TodaySupplements
           supplements={supplements}
@@ -109,7 +118,6 @@ export default function HomePage({
           onToggle={handleToggle}
         />
         {error && <p className="home-error">{error}</p>}
-
         {/* TODO: 추천 설문 모달 만들면 연결 */}
         <RecommendBanner onClick={onSurvey} />
       </div>

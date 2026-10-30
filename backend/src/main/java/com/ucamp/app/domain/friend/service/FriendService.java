@@ -5,6 +5,11 @@ import com.ucamp.app.domain.friend.dto.FriendResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
+import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
+import com.ucamp.app.domain.intake.service.IntakeService;
+import com.ucamp.app.domain.product.dto.MySupplementResponse;
+import com.ucamp.app.domain.product.service.MySupplementService;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
@@ -13,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,26 +32,48 @@ public class FriendService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final IntakeService intakeService;
+    private final MySupplementService mySupplementService;
 
     public List<FriendResponse> getFriends(Long userId) {
-        List<Follow> follows = followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
-        Map<Long, User> users = userRepository
-                .findAllById(follows.stream()
-                        .map(Follow::getFollowingId).toList()).stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        // 나를 팔로우하는 사람 -> 서로 팔로우 하는지 판단하기 위해서
+        List<Follow> follows = followRepository
+                .findByFollowerIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        List<Long> friendIds = follows.stream().map(Follow::getFollowingId).toList();
+
+        Map<Long, User> users = userRepository.findAllById(friendIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
         Set<Long> followsMe = followRepository.findByFollowingIdAndStatus(userId, FollowStatus.ACCEPTED).stream()
                 .map(Follow::getFollowerId)
                 .collect(Collectors.toSet());
+        Map<Long, Integer> streaks = intakeService.getStreakDays(users.keySet());   // 일괄 계산
+
         return follows.stream()
-                .filter(follow -> users.containsKey(follow.getFollowingId()))
-                .map(follow -> FriendResponse.of(follow.getFollowId(), users.get(follow.getFollowingId()), followsMe.contains(follow.getFollowingId()))).toList();
+                .filter(f -> users.containsKey(f.getFollowingId()))
+                .map(f -> FriendResponse.of(
+                        f.getFollowId(),
+                        users.get(f.getFollowingId()),
+                        followsMe.contains(f.getFollowingId()),
+                        streaks.getOrDefault(f.getFollowingId(), 0)))
+                .toList();
     }
 
     public FriendDetailResponse getFriend(Long userId, Long friendUserId) {
         getAcceptedFollow(userId, friendUserId);
-        User friend = userRepository.findById(friendUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        return FriendDetailResponse.from(friend);
+        User friend = getUser(friendUserId);
+        IntakeStatsResponse stats = intakeService.getStats(friendUserId);
+        List<MySupplementResponse> supplements = mySupplementService.getMyActiveSupplements(friendUserId);
+        return FriendDetailResponse.of(friend, stats, supplements);
+    }
+
+    public List<LocalDate> getFriendCalendar(Long userId, Long friendUserId, LocalDate start, LocalDate end) {
+        getAcceptedFollow(userId, friendUserId);
+        // TODO: 친구 캘린터 공개/비공개 설정 기능 생기면 추가
+        return intakeService.getCompletedDates(friendUserId, start, end);
+    }
+
+    public List<TodayIntakeResponse> getFriendIntakes(Long userId, Long friendUserId, LocalDate date) {
+        getAcceptedFollow(userId, friendUserId);
+        return intakeService.getTodayIntakes(friendUserId, date);
     }
 
     @Transactional
@@ -58,5 +86,10 @@ public class FriendService {
         return followRepository
                 .findByFollowerIdAndFollowingIdAndStatus(userId, friendUserId, FollowStatus.ACCEPTED)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FRIEND));
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

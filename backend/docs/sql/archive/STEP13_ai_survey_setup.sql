@@ -1,7 +1,7 @@
 -- STEP 13: 기존 팀원 로컬 DB를 설문·AI 성분 추천을 쓸 수 있는 상태로 맞추는 셋업 SQL (MySQL)
 -- 실행 위치: 각자 PC의 MySQL (yakssok DB 선택 후 실행). MySQL Workbench에서 파일을 열어 전체 실행해도 된다
 --   예) mysql -u root -p yakssok < backend/docs/sql/STEP13_ai_survey_setup.sql
--- 이 파일 하나만 실행하면 된다. STEP02·06·07·12 시드를 따로 실행할 필요 없음 (서버를 먼저 켜지 않아도 동작)
+-- 이 파일 하나만 실행하면 된다. STEP02·06·07·12·15·16 시드를 따로 실행할 필요 없음 (서버를 먼저 켜지 않아도 동작)
 -- 여러 번 실행해도 안전하다 (IF NOT EXISTS, INSERT IGNORE, 조건부 DELETE·UPDATE)
 -- 다른 팀원 테이블(users, follows, notifications, intake_*, user_products, catalog_products 등)의 데이터는 건드리지 않는다
 -- ※ 시드 파일과 내용이 겹친다. STEP02·06·07·12 시드를 바꾸면 이 파일도 같이 고칠 것
@@ -12,6 +12,10 @@
 -- ============================================================
 
 -- 1-1) AI 테이블 (STEP 03·06·07). 정의는 schema.sql·엔티티와 같다
+-- MySQL Workbench safe update 모드에서도 조건부 DELETE·UPDATE가 되도록 잠깐 끄고, 끝에 원래 값으로 되돌림
+SET @old_safe_updates = @@SQL_SAFE_UPDATES;
+SET SQL_SAFE_UPDATES = 0;
+
 CREATE TABLE IF NOT EXISTS `llm_call_logs` (
     `llm_call_log_id`       BIGINT      NOT NULL AUTO_INCREMENT,
     `response_id`           BIGINT      NULL COMMENT 'survey_responses 참조 (평가 실행 중이면 null, FK 없음)',
@@ -199,7 +203,7 @@ INSERT IGNORE INTO question_options (option_id, question_id, value_code, label, 
 INSERT IGNORE INTO survey_questions (question_id, survey_id, code, question_text, answer_type, profile_key, is_sensitive, guest_visible, display_order) VALUES (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13);
 INSERT IGNORE INTO survey_questions (question_id, survey_id, code, question_text, answer_type, profile_key, is_sensitive, guest_visible, display_order) VALUES (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
 
--- 3-2) 약물 마스터 (STEP02_seed_drugs.sql, 계열 모름 D-U01~U08 포함)
+-- 3-2) 약물 마스터 (STEP02_seed_drugs.sql, 계열 모름 D-U01~U12 포함)
 -- 약물 마스터 시드 (STEP 02). 예시 데이터: domain-rules.md의 약물 계열별 대표 약 1개씩.
 -- drug_class 값은 recommendation_rules(STEP 07)의 DRUG 조건 코드와 같다.
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-001', '메트포르민', 'METFORMIN');
@@ -212,9 +216,14 @@ INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-007', '와파린
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-008', '레보티록신', 'LEVOTHYROXINE');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-009', '시프로플록사신', 'TETRA_QUINOLONE');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-010', '에스시탈로프람', 'SSRI');
--- 규칙 대상이 아닌 예시 약물 (schema.sql 예시 데이터와 같은 값). drug_class가 규칙에 없으면 약물 규칙이 적용되지 않는다
+-- 예시 약물 (schema.sql 예시 데이터와 같은 값). STEP 16부터 규칙 대상 (CALCIUM_CHANNEL_BLOCKER: R-30c3, STATIN: R-36)
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-011', '암로디핀', 'CALCIUM_CHANNEL_BLOCKER');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-012', '아토르바스타틴', 'STATIN');
+-- 성분 확장 (STEP 16): 새 약물 계열 대표 약. drug_class는 R-30b·R-31·R-33b·R-39의 DRUG 조건 코드와 같다
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-013', '클로피도그렐', 'ANTIPLATELET');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-014', '인슐린', 'INSULIN');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-015', '타크로리무스', 'IMMUNOSUPPRESSANT');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-016', '발프로산', 'ANTICONVULSANT');
 -- 약 이름을 모르고 계열만 아는 경우 (STEP 12). drug_class = 계열 모름 코드, 규칙은 R-U*로 WARN/TIMING 위주
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U01', '혈압약 (이름 모름)', 'ANTIHYPERTENSIVE_UNKNOWN');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U02', '이뇨제 (이름 모름)', 'DIURETIC_UNKNOWN');
@@ -224,6 +233,11 @@ INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U05', '항응고
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U06', '갑상선약 (이름 모름)', 'THYROID_MED_UNKNOWN');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U07', '항생제 (이름 모름)', 'ANTIBIOTIC_UNKNOWN');
 INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U08', '항우울제 (이름 모름)', 'ANTIDEPRESSANT_UNKNOWN');
+-- 성분 확장 (STEP 16): 계열 모름. drug_class를 대표 약과 같은 계열 코드로 두어 같은 규칙이 걸린다 (항암제는 계열 모름만)
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U09', '항혈소판제 (이름 모름)', 'ANTIPLATELET');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U10', '항암제 (이름 모름)', 'CHEMOTHERAPY');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U11', '면역억제제 (이름 모름)', 'IMMUNOSUPPRESSANT');
+INSERT IGNORE INTO drugs (drug_id, name, drug_class) VALUES ('D-U12', '뇌전증약 (이름 모름)', 'ANTICONVULSANT');
 
 -- 3-3) 옛 약물 ID → 새 ID. 복용 약 행은 지우지 않고 새 ID로 옮긴 뒤 옛 약물을 지운다
 --      (암로디핀 D-011, 메트포르민 D-001, 아토르바스타틴 D-012, 와파린 D-007)
@@ -248,9 +262,17 @@ INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, con
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'FOLATE', 'ALL', 19, NULL, NULL, 400, NULL, 'mcg DFE', 'NIH-ODS', 'S-11' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'FOLATE' AND `gender` <=> 'ALL' AND `age_min` <=> 19 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
 -- 철분 남성 19-50 (S-16). 상한은 TODO(출처 필요)라 NULL
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'IRON', 'M', 19, 50, NULL, 8, NULL, 'mg', 'NIH-ODS', 'S-16' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'IRON' AND `gender` <=> 'M' AND `age_min` <=> 19 AND `age_max` <=> 50 AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+-- 나이아신·비타민 B6 (S-26, S-28, NIH-ODS. KDRI-2025 원문 확보 시 교체). 나이아신 상한 35mg은 보충제 기준 (STEP 16)
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'NIACIN', 'M', 19, NULL, NULL, 16, 35, 'mg NE', 'NIH-ODS', 'S-26' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'NIACIN' AND `gender` <=> 'M' AND `age_min` <=> 19 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'NIACIN', 'F', 19, NULL, NULL, 14, 35, 'mg NE', 'NIH-ODS', 'S-26' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'NIACIN' AND `gender` <=> 'F' AND `age_min` <=> 19 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'VITAMIN_B6', 'ALL', 19, 50, NULL, 1.3, 100, 'mg', 'NIH-ODS', 'S-28' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'VITAMIN_B6' AND `gender` <=> 'ALL' AND `age_min` <=> 19 AND `age_max` <=> 50 AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'VITAMIN_B6', 'M', 51, NULL, NULL, 1.7, 100, 'mg', 'NIH-ODS', 'S-28' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'VITAMIN_B6' AND `gender` <=> 'M' AND `age_min` <=> 51 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'VITAMIN_B6', 'F', 51, NULL, NULL, 1.5, 100, 'mg', 'NIH-ODS', 'S-28' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'VITAMIN_B6' AND `gender` <=> 'F' AND `age_min` <=> 51 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
+-- 오메가3 (S-21). 상한 5000mg은 FDA 권고(EPA+DHA 보충제), 권장량 출처가 없어 NULL (STEP 16)
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) SELECT 'OMEGA3', 'ALL', 19, NULL, NULL, NULL, 5000, 'mg', 'NIH-ODS', 'S-21' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ingredient_standards WHERE `ingredient_code` <=> 'OMEGA3' AND `gender` <=> 'ALL' AND `age_min` <=> 19 AND `age_max` <=> NULL AND `condition_code` <=> NULL AND `standard_version` <=> 'NIH-ODS');
 
 -- 3-5) 추천 규칙 (STEP07_seed_recommendation_rules.sql, 계열 모름 R-U* 포함)
--- 추천 규칙 시드 (STEP 07). reference/domain-rules.md 3번 표 그대로: 회원 23 + 비회원 4 = 27행, STEP 12에서 계열 모름 12행, STEP 15에서 진단 질환 2행 추가(총 41행).
+-- 추천 규칙 시드 (STEP 07). reference/domain-rules.md 3번 표 그대로: 회원 23 + 비회원 4 = 27행, STEP 12에서 계열 모름 12행, STEP 15에서 진단 질환 2행, STEP 16에서 성분 확장 40행(회원 32 + 비회원 8) 추가(총 81행).
 -- 서비스 공개 전 약사 검토 필요. MySQL / H2(MySQL 모드) 공용. 운영 DB에는 수동 실행.
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-01', 'HABIT', 'SMOKING_CURRENT', 'VITAMIN_C', 'ADJUST', '흡연자는 비타민 C 필요량이 하루 35mg 많아요', FALSE, 'S-03, S-04', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-02', 'HABIT', 'SMOKING_CURRENT', 'BETA_CAROTENE', 'EXCLUDE', '흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요', FALSE, 'S-05, S-06', TRUE);
@@ -295,3 +317,47 @@ INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code
 -- 진단 질환 (STEP 15). 출처를 확인한 성분만, 기본 WARN (추천하되 상담 안내)
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-K01', 'DISEASE', 'KIDNEY', 'POTASSIUM', 'WARN', '신장 질환이 있으면 칼륨 보충제는 먼저 의사·약사와 상담하세요', FALSE, 'S-19', TRUE);
 INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-K02', 'DISEASE', 'KIDNEY', 'MAGNESIUM', 'WARN', '신장 기능이 떨어져 있으면 마그네슘이 몸에 쌓일 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-20', TRUE);
+-- 성분 확장 (STEP 16). 기본 WARN, 출처에 "피할 것"이 있거나 애매하면 EXCLUDE. 이름 아는 약 + 계열 모름(R-U*) 둘 다
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30', 'DRUG', 'WARFARIN', 'OMEGA3', 'WARN', '와파린과 고용량 오메가3를 함께 드시면 출혈 위험이 높아질 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-21, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U30', 'DRUG', 'ANTICOAGULANT_UNKNOWN', 'OMEGA3', 'WARN', '항응고제와 오메가3를 함께 드시면 출혈 위험이 높아질 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-21, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30b', 'DRUG', 'ANTIPLATELET', 'OMEGA3', 'WARN', '항혈소판제를 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U30c', 'DRUG', 'ANTIHYPERTENSIVE_UNKNOWN', 'OMEGA3', 'WARN', '혈압약을 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30c1', 'DRUG', 'ACE_INHIBITOR', 'OMEGA3', 'WARN', '혈압약을 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30c2', 'DRUG', 'ARB', 'OMEGA3', 'WARN', '혈압약을 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30c3', 'DRUG', 'CALCIUM_CHANNEL_BLOCKER', 'OMEGA3', 'WARN', '혈압약을 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-30c4', 'DRUG', 'THIAZIDE_LOOP_DIURETIC', 'OMEGA3', 'WARN', '혈압약을 드시면 오메가3는 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-31', 'DRUG', 'IMMUNOSUPPRESSANT', 'PROBIOTICS', 'EXCLUDE', '면역을 억제하는 약을 드시면 유산균은 피하고 의사·약사와 상담하세요', FALSE, 'S-22', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-32', 'STATUS', 'PREGNANT_OR_LACTATING', 'CURCUMIN', 'EXCLUDE', '임신·수유 중에는 강황·커큐민 보충제를 피하세요', FALSE, 'S-23, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-33', 'DRUG', 'WARFARIN', 'COQ10', 'WARN', '와파린을 드시면 코엔자임 Q10이 약효에 영향을 줄 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-24, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U33', 'DRUG', 'ANTICOAGULANT_UNKNOWN', 'COQ10', 'WARN', '항응고제를 드시면 코엔자임 Q10은 먼저 의사·약사와 상담하세요', FALSE, 'S-24, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-33b', 'DRUG', 'INSULIN', 'COQ10', 'WARN', '인슐린을 쓰시면 코엔자임 Q10은 먼저 의사·약사와 상담하세요', FALSE, 'S-24', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U33b', 'DRUG', 'ANTIDIABETIC_UNKNOWN', 'COQ10', 'WARN', '당뇨약 종류에 따라 코엔자임 Q10과 상호작용할 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-24', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-33c', 'DRUG', 'CHEMOTHERAPY', 'COQ10', 'WARN', '항암 치료 중에는 코엔자임 Q10을 먼저 의사와 상담하세요', FALSE, 'S-24', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-33d', 'STATUS', 'PREGNANT_OR_LACTATING', 'COQ10', 'EXCLUDE', '임신·수유 중에는 코엔자임 Q10을 피하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-34', 'DISEASE', 'KIDNEY', 'COLLAGEN', 'WARN', '신장 질환이 있으면 콜라겐은 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-34b', 'STATUS', 'PREGNANT_OR_LACTATING', 'COLLAGEN', 'EXCLUDE', '임신·수유 중에는 콜라겐 보충제를 피하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-35', 'DRUG', 'WARFARIN', 'GLUCOSAMINE', 'WARN', '와파린과 글루코사민을 함께 드시면 출혈 위험이 높아질 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-25', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U35', 'DRUG', 'ANTICOAGULANT_UNKNOWN', 'GLUCOSAMINE', 'WARN', '항응고제와 글루코사민을 함께 드시면 출혈 위험이 높아질 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-25', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-35b', 'DISEASE', 'DIABETES', 'GLUCOSAMINE', 'WARN', '글루코사민은 일부 사람에게서 혈당을 올릴 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-25', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-35c', 'STATUS', 'PREGNANT_OR_LACTATING', 'GLUCOSAMINE', 'EXCLUDE', '임신·수유 중에는 글루코사민을 피하세요', FALSE, 'S-25, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-36', 'DRUG', 'STATIN', 'NIACIN', 'WARN', '스타틴을 드시면 고용량 나이아신은 권장되지 않아요. 의사·약사와 상담하세요', FALSE, 'S-26', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-36b', 'DRUG', 'METFORMIN', 'NIACIN', 'WARN', '고용량 나이아신은 혈당을 올려 당뇨약 효과를 방해할 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-26, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U36b', 'DRUG', 'ANTIDIABETIC_UNKNOWN', 'NIACIN', 'WARN', '고용량 나이아신은 혈당을 올려 당뇨약 효과를 방해할 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-26, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-36c', 'DISEASE', 'DIABETES', 'NIACIN', 'WARN', '고용량 나이아신은 혈당을 올릴 수 있어요. 의사·약사와 상담하세요', FALSE, 'S-26', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-36d', 'DRUG', 'WARFARIN', 'NIACIN', 'WARN', '항응고제를 드시면 나이아신은 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-U36d', 'DRUG', 'ANTICOAGULANT_UNKNOWN', 'NIACIN', 'WARN', '항응고제를 드시면 나이아신은 먼저 의사·약사와 상담하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-36e', 'STATUS', 'PREGNANT_OR_LACTATING', 'NIACIN', 'EXCLUDE', '임신·수유 중에는 나이아신 보충제를 피하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-37', 'STATUS', 'PREGNANT_OR_LACTATING', 'MILK_THISTLE', 'EXCLUDE', '임신·수유 중에는 밀크씨슬을 피하세요', FALSE, 'S-27, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-38', 'STATUS', 'PREGNANT_OR_LACTATING', 'LUTEIN', 'EXCLUDE', '임신·수유 중에는 루테인 보충제를 피하세요', FALSE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-39', 'DRUG', 'ANTICONVULSANT', 'VITAMIN_B6', 'WARN', '뇌전증 약을 드시면 비타민 B6는 먼저 의사·약사와 상담하세요', FALSE, 'S-28', TRUE);
+-- 성분 확장 비회원 보수 규칙 (STEP 16). 회원 규칙에 EXCLUDE가 있는 성분은 비회원 추천에서 전부 제외 (R-G1~R-G4와 같은 기준)
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G5', 'STATUS', 'GUEST', 'CURCUMIN', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-23, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G6', 'STATUS', 'GUEST', 'COQ10', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G7', 'STATUS', 'GUEST', 'COLLAGEN', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G8', 'STATUS', 'GUEST', 'GLUCOSAMINE', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-25, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G9', 'STATUS', 'GUEST', 'NIACIN', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G10', 'STATUS', 'GUEST', 'MILK_THISTLE', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-27, S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G11', 'STATUS', 'GUEST', 'LUTEIN', 'EXCLUDE', '임신·수유 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-30', TRUE);
+INSERT IGNORE INTO recommendation_rules (rule_id, condition_type, condition_code, target_ingredient, action, message_ko, guest_excluded, source_id, active) VALUES ('R-G12', 'STATUS', 'GUEST', 'PROBIOTICS', 'EXCLUDE', '복용 중인 약에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요', TRUE, 'S-22', TRUE);
+
+SET SQL_SAFE_UPDATES = @old_safe_updates;

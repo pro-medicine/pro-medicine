@@ -6,9 +6,10 @@ public record FriendResponse(
         Long followId,
         Long userId,
         String nickname,
-        boolean mutual
+        boolean mutual,
+        int streakDays
 ) {
-    public static FriendResponse of(Long followId, User friend, boolean mutual) {
-        return new FriendResponse(followId, friend.getId(), friend.getNickname(), mutual);
+    public static FriendResponse of(Long followId, User friend, boolean mutual, int streakDays) {
+        return new FriendResponse(followId, friend.getId(), friend.getNickname(), mutual, streakDays);
     }
 }

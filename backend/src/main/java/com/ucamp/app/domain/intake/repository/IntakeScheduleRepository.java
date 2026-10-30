@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, Long> {
@@ -116,10 +117,14 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
             LEFT JOIN intake_records ir ON ir.schedule_id = s.schedule_id
                                        AND ir.intake_date = :date
             WHERE up.user_id = :userId
-              AND up.is_active = TRUE
-              AND s.is_enabled = TRUE
-              AND (up.start_date IS NULL OR up.start_date <= :date)
-            ORDER BY s.remind_at
+                                  AND (up.start_date IS NULL OR up.start_date <= :date)
+                                  AND (
+                                        -- 그날 먹어야 했던 일정: 현재 켜져 있고, 그날 이전에 만들어진 것
+                                        (up.is_active = TRUE AND s.is_enabled = TRUE AND DATE(s.created_at) <= :date)
+                                        -- 또는 그날 실제로 먹은 기록이 있는 일정 (지금은 꺼졌어도 포함)
+                                        OR ir.status = 'TAKEN'
+                                      )
+                                ORDER BY s.remind_at
             """, nativeQuery = true)
     List<SupplementRow> findTodaySupplements(@Param("userId") Long userId, @Param("date") LocalDate date);
 
@@ -142,4 +147,14 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
             """)
     List<IntakeSchedule> findActiveSchedules(@Param("userId") Long userId);
 
+    // 여러 사용자의 복용 중인 일정 (친구 목록 스트릭용)
+    @Query("""
+        SELECT s FROM IntakeSchedule s
+        JOIN FETCH s.userProduct up
+        JOIN FETCH up.user u
+        WHERE u.id IN :userIds
+          AND up.isActive = true
+          AND s.isEnabled = true
+        """)
+    List<IntakeSchedule> findActiveSchedulesByUserIds(@Param("userIds") Collection<Long> userIds);
 }   // 끝

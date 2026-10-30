@@ -57,7 +57,7 @@ public class GuardianController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> remove(
+    public ResponseEntity<Void> remove(
             @RequestParam Long userId, @PathVariable Long id) {
         guardianService.remove(userId, id);
         return ResponseEntity.noContent().build();

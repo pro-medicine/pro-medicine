@@ -61,7 +61,7 @@ class FallbackTest {
         assertThat(r.notice()).isEqualTo(RuleOnlyPipeline.NOTICE);
         assertThat(r.items()).extracting(RecommendationResponse.Item::ingredient)
                 .containsExactly("VITAMIN_C", "VITAMIN_D");
-        assertThat(r.items().get(0).amount()).isEqualByComparingTo("125");
+        assertThat(r.items().get(0).amount()).isEqualByComparingTo("135"); // 흡연 성인 KDRI 100 + 35
         assertThat(meterRegistry.find("recommendation.fallback").counter().count()).isGreaterThanOrEqualTo(1);
     }
 

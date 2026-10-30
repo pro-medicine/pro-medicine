@@ -1,14 +1,11 @@
-// 추천 결과 (담당: 영준) — 추천 성분 카드, 제외 성분, 안내 문구
+// 추천 결과 (담당: 영준) — 추천 성분 카드, 제외 성분, 안내 문구, 성분별 제품 추천(V3)
+import { useEffect, useState } from "react";
+import { getProductAvailability } from "../api/recommendationApi";
+import IngredientCard from "./IngredientCard";
+import ProductRecommendations from "./ProductRecommendations";
 
 const EMPTY_TEXT =
   "입력하신 건강 정보로는 지금 바로 권할 성분이 없어요. 복용 중인 약이나 질환이 있다면 의사·약사와 상담해 주세요.";
-
-// 숫자 표시 (100.00 → 100, 2.5 → 2.5)
-function formatNumber(value) {
-  const n = Number(value);
-  if (Number.isNaN(n)) return value;
-  return n.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
-}
 
 /**
  * props (RecommendationModal에서 전달)
@@ -35,6 +32,21 @@ export default function ResultStep({
   );
   const excluded = result.excludedItems ?? [];
 
+  // V3: 성분별 [제품 추천 보기] 버튼 노출 여부 (통과 제품이 1개 이상인 성분만). 실패하면 버튼을 숨긴다
+  const recommendationId = result.recommendationId;
+  const [availability, setAvailability] = useState({});
+  const [openIngredient, setOpenIngredient] = useState(null);
+  useEffect(() => {
+    if (!recommendationId || items.length === 0) return undefined;
+    let alive = true;
+    getProductAvailability(recommendationId)
+      .then((data) => alive && setAvailability(data ?? {}))
+      .catch(() => alive && setAvailability({}));
+    return () => {
+      alive = false;
+    };
+  }, [recommendationId, items.length]);
+
   return (
     <div className="rec-result">
       {result.fallback && (
@@ -52,40 +64,25 @@ export default function ResultStep({
         <div className="rec-empty">{EMPTY_TEXT}</div>
       ) : (
         <ul className="rec-cards">
-          {items.map((item) => {
-            const unit = item.unit || ingredients[item.ingredient]?.unit || "";
-            return (
-              <li className="rec-card" key={item.ingredient}>
-                <div className="rec-card-head">
-                  <strong>{nameOf(item.ingredient)}</strong>
-                  <span className="rec-dose">
-                    {item.amount != null
-                      ? `하루 ${formatNumber(item.amount)}${unit} 추가`
-                      : item.doseNote || "용량 정보 없음"}
-                  </span>
-                </div>
-                {item.amount != null && item.doseNote && (
-                  <small className="rec-hint">{item.doseNote}</small>
-                )}
-                <small className="rec-intake">
-                  {item.intakeStatus === "KNOWN"
-                    ? `현재 섭취량 ${formatNumber(item.currentIntake ?? 0)}${unit} 반영`
-                    : "현재 섭취량 미반영"}
-                </small>
-                {item.reason && <p className="rec-reason">{item.reason}</p>}
-                {item.warnings?.length > 0 && (
-                  <ul className="rec-warnings">
-                    {item.warnings.map((w) => (
-                      <li key={w}>{w}</li>
-                    ))}
-                  </ul>
-                )}
-                <button type="button" className="rec-product" disabled>
-                  제품 추천 보기 (준비 중)
-                </button>
-              </li>
-            );
-          })}
+          {items.map((item) => (
+            <IngredientCard
+              key={item.ingredient}
+              item={item}
+              name={nameOf(item.ingredient)}
+              unit={ingredients[item.ingredient]?.unit || ""}
+              showProducts={Boolean(availability[item.ingredient])}
+              productsOpen={openIngredient === item.ingredient}
+              onToggleProducts={() =>
+                setOpenIngredient((cur) => (cur === item.ingredient ? null : item.ingredient))
+              }
+            >
+              <ProductRecommendations
+                recommendationId={recommendationId}
+                ingredient={item.ingredient}
+                nameOf={nameOf}
+              />
+            </IngredientCard>
+          ))}
         </ul>
       )}
 

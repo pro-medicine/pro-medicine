@@ -7,12 +7,12 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 493,
+      "inputTokens" : 615,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "VALIDATION_FAIL",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001
     }, {
       "attemptNo" : 1,
@@ -21,12 +21,12 @@
       "callTag" : "RECOMMEND_REPAIR",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 541,
+      "inputTokens" : 663,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "PARSE_FAIL",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001
     } ],
     "metrics" : {
@@ -45,7 +45,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -59,7 +59,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -86,7 +86,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     }, {
       "attemptNo" : 0,
@@ -100,7 +100,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -114,7 +114,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -141,7 +141,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     } ],
     "result" : {
@@ -153,7 +153,7 @@
       "model" : "gpt-6.1-sol-fake",
       "parseSuccess" : false,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "summary" : null
     }
   },
@@ -165,12 +165,12 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 453,
+      "inputTokens" : 575,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "SUCCESS",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7002
     } ],
     "metrics" : {
@@ -195,7 +195,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7002,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -209,7 +209,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -236,7 +236,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     } ],
     "result" : {
@@ -244,7 +244,7 @@
       "failureReason" : null,
       "fallback" : false,
       "items" : [ {
-        "amount" : "75",
+        "amount" : "1E+2",
         "appliedRuleIds" : null,
         "currentIntake" : null,
         "doseNote" : "현재 섭취량 미반영",
@@ -256,16 +256,16 @@
         "unit" : "mg",
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "0",
         "appliedRuleIds" : [ "R-06" ],
-        "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "currentIntake" : "10",
+        "doseNote" : "추가 섭취 필요 없음",
         "excluded" : false,
         "ingredient" : "VITAMIN_D",
-        "intakeStatus" : null,
+        "intakeStatus" : "KNOWN",
         "reason" : "햇빛",
         "sortOrder" : 2,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
       }, {
         "amount" : null,
@@ -280,35 +280,35 @@
         "unit" : null,
         "warnings" : [ "흡연 여부에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요" ]
       }, {
-        "amount" : null,
+        "amount" : "3.5E+3",
         "appliedRuleIds" : [ "R-G1" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : true,
         "ingredient" : "POTASSIUM",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "혈압",
         "sortOrder" : 4,
-        "unit" : null,
+        "unit" : "mg",
         "warnings" : [ "복용 중인 약에 따라 위험할 수 있어 회원 맞춤 추천에서 확인해 드려요" ]
       }, {
-        "amount" : null,
+        "amount" : "2.4",
         "appliedRuleIds" : [ "R-05" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_B12",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "비건",
         "sortOrder" : 5,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : [ "비건 식단은 비타민 B12 보충이 필요한지 확인하세요" ]
       } ],
       "llmCallLogCount" : 1,
       "model" : "gpt-6.1-sol-fake",
       "parseSuccess" : true,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "summary" : "요약입니다"
     }
   },
@@ -320,12 +320,12 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 493,
+      "inputTokens" : 615,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "SUCCESS",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001
     } ],
     "metrics" : {
@@ -350,7 +350,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -364,7 +364,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -391,7 +391,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     } ],
     "result" : {
@@ -399,7 +399,7 @@
       "failureReason" : null,
       "fallback" : false,
       "items" : [ {
-        "amount" : "1E+2",
+        "amount" : "1.1E+2",
         "appliedRuleIds" : [ "R-01" ],
         "currentIntake" : "25",
         "doseNote" : null,
@@ -411,16 +411,16 @@
         "unit" : "mg",
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "1E+1",
         "appliedRuleIds" : [ "R-06" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_D",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "햇빛",
         "sortOrder" : 2,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
       }, {
         "amount" : null,
@@ -435,35 +435,35 @@
         "unit" : null,
         "warnings" : [ "흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요" ]
       }, {
-        "amount" : null,
+        "amount" : "3.5E+3",
         "appliedRuleIds" : [ "R-13" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : true,
         "ingredient" : "POTASSIUM",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "혈압",
         "sortOrder" : 4,
-        "unit" : null,
+        "unit" : "mg",
         "warnings" : [ "혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요" ]
       }, {
-        "amount" : null,
+        "amount" : "2.4",
         "appliedRuleIds" : null,
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_B12",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "비건",
         "sortOrder" : 5,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : null
       } ],
       "llmCallLogCount" : 1,
       "model" : "gpt-6.1-sol-fake",
       "parseSuccess" : true,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "summary" : "요약입니다"
     }
   },
@@ -475,12 +475,12 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 493,
+      "inputTokens" : 615,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "VALIDATION_FAIL",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001
     }, {
       "attemptNo" : 1,
@@ -489,12 +489,12 @@
       "callTag" : "RECOMMEND_REPAIR",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 541,
+      "inputTokens" : 663,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "SUCCESS",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001
     } ],
     "metrics" : {
@@ -519,7 +519,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -533,7 +533,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -560,7 +560,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     }, {
       "attemptNo" : 0,
@@ -574,7 +574,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7001,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -588,7 +588,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -615,7 +615,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     } ],
     "result" : {
@@ -623,7 +623,7 @@
       "failureReason" : null,
       "fallback" : false,
       "items" : [ {
-        "amount" : "1E+2",
+        "amount" : "1.1E+2",
         "appliedRuleIds" : [ "R-01" ],
         "currentIntake" : "25",
         "doseNote" : null,
@@ -635,16 +635,16 @@
         "unit" : "mg",
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "1E+1",
         "appliedRuleIds" : [ "R-06" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_D",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "햇빛",
         "sortOrder" : 2,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
       }, {
         "amount" : null,
@@ -659,35 +659,35 @@
         "unit" : null,
         "warnings" : [ "흡연자는 고용량 베타카로틴 보충제를 피하는 게 좋아요" ]
       }, {
-        "amount" : null,
+        "amount" : "3.5E+3",
         "appliedRuleIds" : [ "R-13" ],
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : true,
         "ingredient" : "POTASSIUM",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "혈압",
         "sortOrder" : 4,
-        "unit" : null,
+        "unit" : "mg",
         "warnings" : [ "혈압약(ACE 억제제) 복용 중 칼륨 보충은 전문가와 상담하세요" ]
       }, {
-        "amount" : null,
+        "amount" : "2.4",
         "appliedRuleIds" : null,
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_B12",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "비건",
         "sortOrder" : 5,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : null
       } ],
       "llmCallLogCount" : 2,
       "model" : "gpt-6.1-sol-fake",
       "parseSuccess" : true,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "summary" : "요약입니다"
     }
   },
@@ -699,12 +699,12 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : null,
       "httpStatus" : 200,
-      "inputTokens" : 438,
+      "inputTokens" : 560,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "SUCCESS",
       "outputTokens" : 50,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7004
     } ],
     "metrics" : {
@@ -725,7 +725,7 @@
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V3",
       "promptCache" : false,
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "responseId" : 7004,
       "schemaName" : "submit_recommendation",
       "schemas" : [ {
@@ -739,7 +739,7 @@
                 "properties" : {
                   "ingredient" : {
                     "description" : "성분 코드",
-                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT" ],
+                    "enum" : [ "VITAMIN_C", "VITAMIN_A", "BETA_CAROTENE", "VITAMIN_B1", "VITAMIN_B12", "VITAMIN_D", "VITAMIN_K", "FOLATE", "MAGNESIUM", "IRON", "CALCIUM", "ZINC", "POTASSIUM", "ST_JOHNS_WORT", "OMEGA3", "PROBIOTICS", "CURCUMIN", "COQ10", "COLLAGEN", "GLUCOSAMINE", "NIACIN", "MILK_THISTLE", "LUTEIN", "VITAMIN_B6" ],
                     "type" : "string"
                   },
                   "priority" : {
@@ -766,7 +766,7 @@
         },
         "strict" : true
       } ],
-      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -",
+      "system" : "너는 영양제 추천 도우미다. 사용자 정보를 보고 필요한 영양 성분과 그 이유를 추천해라.\n\n규칙:\n- 답은 반드시 정해진 JSON 형식(submit_recommendation 스키마) 하나로만 낸다. JSON 밖에 다른 글을 쓰지 않는다.\n- ingredient에는 아래 성분 코드만 쓴다.\n- priority는 1부터 빠짐없이 연속으로 매긴다. 같은 성분을 두 번 넣지 않는다.\n- 용량은 쓰지 마라. 용량은 서비스가 기준표로 따로 계산한다. reason에도 숫자 용량을 쓰지 않는다.\n\n성분 코드 (코드: 이름, 기준 단위):\n- VITAMIN_C: 비타민 C, mg\n- VITAMIN_A: 비타민 A (레티놀), mcg RAE\n- BETA_CAROTENE: 베타카로틴, mg\n- VITAMIN_B1: 비타민 B1 (티아민), mg\n- VITAMIN_B12: 비타민 B12, mcg\n- VITAMIN_D: 비타민 D, mcg\n- VITAMIN_K: 비타민 K, mcg\n- FOLATE: 엽산, mcg DFE\n- MAGNESIUM: 마그네슘, mg\n- IRON: 철분, mg\n- CALCIUM: 칼슘, mg\n- ZINC: 아연, mg\n- POTASSIUM: 칼륨, mg\n- ST_JOHNS_WORT: 세인트존스워트, -\n- OMEGA3: 오메가3 (EPA·DHA), mg\n- PROBIOTICS: 프로바이오틱스 (유산균), 억 CFU\n- CURCUMIN: 커큐민 (강황), mg\n- COQ10: 코엔자임 Q10, mg\n- COLLAGEN: 콜라겐, mg\n- GLUCOSAMINE: 글루코사민, mg\n- NIACIN: 나이아신 (비타민 B3), mg NE\n- MILK_THISTLE: 밀크씨슬 (실리마린), mg\n- LUTEIN: 루테인, mg\n- VITAMIN_B6: 비타민 B6, mg",
       "temperature" : null
     } ],
     "result" : {
@@ -774,7 +774,7 @@
       "failureReason" : null,
       "fallback" : false,
       "items" : [ {
-        "amount" : "75",
+        "amount" : "1E+2",
         "appliedRuleIds" : null,
         "currentIntake" : null,
         "doseNote" : "현재 섭취량 미반영",
@@ -786,16 +786,16 @@
         "unit" : "mg",
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "1E+1",
         "appliedRuleIds" : null,
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_D",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "햇빛",
         "sortOrder" : 2,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : null
       }, {
         "amount" : null,
@@ -810,35 +810,35 @@
         "unit" : null,
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "3.5E+3",
         "appliedRuleIds" : null,
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "POTASSIUM",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "혈압",
         "sortOrder" : 4,
-        "unit" : null,
+        "unit" : "mg",
         "warnings" : null
       }, {
-        "amount" : null,
+        "amount" : "2.4",
         "appliedRuleIds" : null,
         "currentIntake" : null,
-        "doseNote" : "기준값 미등록",
+        "doseNote" : "현재 섭취량 미반영",
         "excluded" : false,
         "ingredient" : "VITAMIN_B12",
-        "intakeStatus" : null,
+        "intakeStatus" : "UNKNOWN",
         "reason" : "비건",
         "sortOrder" : 5,
-        "unit" : null,
+        "unit" : "mcg",
         "warnings" : null
       } ],
       "llmCallLogCount" : 1,
       "model" : "gpt-6.1-sol-fake",
       "parseSuccess" : true,
       "pipelineVersion" : "V3",
-      "promptVersion" : "v2.1",
+      "promptVersion" : "v2.2",
       "summary" : "요약입니다"
     }
   }

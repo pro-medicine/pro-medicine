@@ -253,8 +253,23 @@ public class CatalogProductImportService {
                 int slash = before.indexOf("/");
                 if (slash > 0) {
                     item = removeNumberMark(before.substring(0, slash));
+                } else {
+                    // 형식 3: "비타민C : 표시량의 80% ~ 150 % (표시량 : 30 mg / 2,400 mg)" (괄호 안 두 번째 "표시량 :" 뒤에 함량)
+                    int inner = line.indexOf("표시량", mark + 3);
+                    int innerColon = -1;
+                    if (inner > 0) {
+                        innerColon = line.indexOf(":", inner);
+                    }
+                    if (innerColon > 0) {
+                        int innerSlash = line.indexOf("/", innerColon);
+                        String name = removeNumberMark(line.substring(0, colon));
+                        if (innerSlash > innerColon + 1 && !name.isEmpty()) {
+                            item = name + " " + line.substring(innerColon + 1, innerSlash).replace(" ", "");
+                        }
+                    }
                 }
             }
+
             if (item == null || item.isEmpty()) {
                 continue;
             }
