@@ -200,7 +200,9 @@ public class NutritionService {
         if (text.startsWith("철")) {
             return Nutrient.IRON;
         }
-        if (text.contains("EPA") || text.contains("DHA") || text.contains("오메가3")) {
+        // 오메가3는 권장량이 EPA+DHA 합계 기준이라, EPA나 DHA가 적힌 경우만 셈
+        // "오메가3 지방산 1000mg"처럼 EPA+DHA 양을 알 수 없는 항목은 게이지에서 뺌
+        if (text.contains("EPA") || text.contains("DHA")) {
             return Nutrient.OMEGA3;
         }
         return null;
