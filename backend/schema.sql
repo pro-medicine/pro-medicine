@@ -33,6 +33,7 @@ DROP TABLE IF EXISTS `catalog_products`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
+DROP TABLE IF EXISTS `auth_demographics`;
 DROP TABLE IF EXISTS `calendar_events`;
 DROP TABLE IF EXISTS `users`;
 
@@ -81,8 +82,20 @@ CREATE TABLE `users` (
                          `sensitive_consent_at`   DATETIME   NULL,
                          `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                          `updated_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
-                         `last_active_at` DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                         `last_active_at` DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                         UNIQUE KEY `uq_users_email` (`email`),
+                         UNIQUE KEY `uq_users_nickname` (`nickname`)
 );
+
+
+CREATE TABLE `auth_demographics` (
+                                     `user_id` BIGINT NOT NULL,
+                                     `age` INT NULL,
+                                     `gender` VARCHAR(20) NULL,
+                                     `terms_agreed_at` DATETIME NOT NULL,
+                                     PRIMARY KEY (`user_id`)
+);
+
 
 CREATE TABLE `user_products` (
                                  `user_product_id`   BIGINT   NOT NULL,
@@ -511,6 +524,16 @@ ALTER TABLE `calendar_events`
             REFERENCES `users` (`user_id`)
             ON DELETE CASCADE;
 
+ALTER TABLE `users`
+    MODIFY COLUMN `user_id` BIGINT NOT NULL AUTO_INCREMENT;
+
+
+ALTER TABLE `auth_demographics`
+    ADD CONSTRAINT `fk_auth_demographics_user`
+        FOREIGN KEY (`user_id`)
+            REFERENCES `users` (`user_id`);
+
+
 ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
                                                                            `user_product_id`
     );
@@ -695,7 +718,7 @@ ALTER TABLE `review_product_scores` ADD CONSTRAINT `fk_review_product_scores_pro
 
 -- ============================================================
 -- 예시 데이터 (개발/시연용)
---  * 모든 계정의 비밀번호: password1234!  (BCrypt 해시 저장)
+--  * 모든 계정의 비밀번호: password1234!  (PBKDF2 해시 저장)
 --  * 기준일: 2026-10-21 (오늘 김민지는 3개 중 1개 복용 -> 33%)
 --  * 제품명/제조사/수거 위치/좌표는 전부 가상의 샘플입니다.
 --  * PK를 직접 지정합니다. (AUTO_INCREMENT 테이블도 다음 값은 지정한 최대 PK 다음부터 이어집니다)
@@ -703,11 +726,11 @@ ALTER TABLE `review_product_scores` ADD CONSTRAINT `fk_review_product_scores_pro
 
 -- 사용자 (5명) ------------------------------------------------
 INSERT INTO `users` (`user_id`, `email`, `password_hash`, `nickname`, `share_intake_status`, `sensitive_consent`, `sensitive_consent_at`, `created_at`, `updated_at`) VALUES
-                                                                                                                                                                          (1, 'minji@example.com',  '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '김민지', TRUE,  TRUE,  '2026-10-01 09:00:00', '2026-10-01 09:00:00', '2026-10-01 09:00:00'),
-                                                                                                                                                                          (2, 'seojun@example.com', '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '김서준', TRUE,  TRUE,  '2026-10-02 10:00:00', '2026-10-02 10:00:00', '2026-10-02 10:00:00'),
-                                                                                                                                                                          (3, 'yujin@example.com',  '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '이유진', TRUE,  FALSE, NULL,                  '2026-10-03 11:00:00', '2026-10-03 11:00:00'),
-                                                                                                                                                                          (4, 'jiho@example.com',   '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '박지호', TRUE,  TRUE,  '2026-10-04 12:00:00', '2026-10-04 12:00:00', '2026-10-04 12:00:00'),
-                                                                                                                                                                          (5, 'eunseo@example.com', '$2a$10$8dVc84v3JUy3B042vtUO6uU4n02w3ksd7X0tuY9fJU0JwRseHXJXm', '최은서', FALSE, FALSE, NULL,                  '2026-10-05 13:00:00', '2026-10-05 13:00:00');
+                                                                                                                                                                          (1, 'minji@example.com',  'pbkdf2_sha256$600000$enlOOCprTjiszMt5pxzrFw==$Xl8ejsUNDw+t4nWpMkrzmCg/UVh3JnCr7ixp28kq8YU=', '김민지', TRUE,  TRUE,  '2026-10-01 09:00:00', '2026-10-01 09:00:00', '2026-10-01 09:00:00'),
+                                                                                                                                                                          (2, 'seojun@example.com', 'pbkdf2_sha256$600000$i6J4MVoFqXa/4oblImfTEg==$RkVRSEjuk05JKlsACJZJuXELT42c8ow4vEoXVVIWPKk=', '김서준', TRUE,  TRUE,  '2026-10-02 10:00:00', '2026-10-02 10:00:00', '2026-10-02 10:00:00'),
+                                                                                                                                                                          (3, 'yujin@example.com',  'pbkdf2_sha256$600000$EsUM7WnLCogw6Xw1JzbTNg==$PdI0ujT5VnfH/voNMkmMrgnGk3zUwISBYtQKJaZNAMA=', '이유진', TRUE,  FALSE, NULL,                  '2026-10-03 11:00:00', '2026-10-03 11:00:00'),
+                                                                                                                                                                          (4, 'jiho@example.com',   'pbkdf2_sha256$600000$AdCXaRecNGG5OahL7700Dg==$s8RAqfBjqPfRwnJ78vAn8PohgR/UhsgBLpTNGzFPPlo=', '박지호', TRUE,  TRUE,  '2026-10-04 12:00:00', '2026-10-04 12:00:00', '2026-10-04 12:00:00'),
+                                                                                                                                                                          (5, 'eunseo@example.com', 'pbkdf2_sha256$600000$NOUZZCq0Mv6i6t9wZldO4g==$QTGHvonfaH+Zd5i/T4mB+n/1iTDvmZ3kg+XQV1poBxw=', '최은서', FALSE, FALSE, NULL,                  '2026-10-05 13:00:00', '2026-10-05 13:00:00');
 
 -- 건강 프로필 -------------------------------------------------
 -- 생활습관 컬럼의 값은 추천 설문 선택지의 value_code와 같습니다. (backend/docs/api/survey-api.md 5번 표)

@@ -1,4 +1,3 @@
-// 홈 상단: 날짜 + 인사말 + 알림(종) 버튼
 
 // today: "yyyy-MM-dd" (홈 목록 조회·저장과 같은 KST 날짜) → "10월 27일 화요일"
 function formatDate(today) {
@@ -10,35 +9,55 @@ function formatDate(today) {
     }).format(new Date(`${today}T00:00:00+09:00`));
 }
 
-export default function HomeHeader({ userName, today, hasUnread, onBellClick }) {
+export default function HomeHeader({
+  userName, 
+  today, 
+  hasUnread, 
+  onBellClick, 
+  headerActions, 
+}) {
     return (
         <header className="home-header">
+
+            {/* 왼쪽: 날짜와 인사말 */}
             <div>
                 <p className="home-date">{formatDate(today)}</p>
                 <h1 className="home-hello">안녕하세요, {userName}님</h1>
             </div>
 
-            <button
-                type="button"
-                className="home-bell"
-                onClick={onBellClick}
-                aria-label="알림 열기"
-            >
-                <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+            {/* 오른쪽: 로그아웃 + 알림 */}
+            <div className="home-header-controls">
+
+                {/* App.jsx에서 전달한 사용자 정보와 로그아웃 버튼 */}
+                {headerActions}
+
+                {/* 기존 알림 버튼 */}
+                <button
+                    type="button"
+                    className="home-bell"
+                    onClick={onBellClick}
+                    aria-label="알림 열기"
                 >
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                </svg>
-                {hasUnread && <span className="home-bell-dot" />}
-            </button>
+                    <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                    </svg>
+
+                    {hasUnread && (
+                        <span className="home-bell-dot" />
+                    )}
+                </button>
+
+            </div>
         </header>
     );
 }

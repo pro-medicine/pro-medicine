@@ -1,6 +1,6 @@
 package com.ucamp.app.domain.disposal.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { TopBar } from "../shared/ui";
 import {
   addMySupplement,
-  MY_USER_ID,
   searchCatalogProducts,
   updateSupplementSchedules,
 } from "../api/mypageApi";
@@ -46,6 +45,7 @@ function initialSchedules(savedSchedules) {
 // 흐름: 제품 검색 → 제품 선택 → 복용 일정 선택 → 등록 → 마이페이지로 돌아감
 // target(내 영양제 1개)을 받으면 수정 모드: 제품은 고정, 복용 일정만 바꿈 (카드의 시계 버튼)
 export default function SupplementAddPage({
+  userId,
   target,
   onBack,
   onSaved,
@@ -94,6 +94,13 @@ export default function SupplementAddPage({
   };
 
   const submit = async () => {
+    // 로그인 사용자 ID 확인
+    if (userId == null) {
+      setMessage("로그인 사용자 정보를 확인할 수 없어요.");
+      return;
+    }
+
+    // 기존 제품 선택 검사 유지
     if (!isEdit && !selected) {
       setMessage("등록할 제품을 골라 주세요.");
       return;
@@ -120,12 +127,12 @@ export default function SupplementAddPage({
     try {
       if (isEdit) {
         await updateSupplementSchedules(
-          MY_USER_ID,
+          userId,
           target.userProductId,
           picked,
         );
       } else {
-        await addMySupplement(MY_USER_ID, {
+        await addMySupplement(userId, {
           catalogProductId: selected.catalogProductId,
           schedules: picked,
         });
