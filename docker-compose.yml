@@ -1,0 +1,55 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: yakssok
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+      LANG: C.UTF-8
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci --skip-character-set-client-handshake
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./backend/docs/sql/STEP09_proposal_notification_dedup.sql:/docker-entrypoint-initdb.d/02_notification_dedup.sql
+      - ./backend/docs/sql/AI_SETUP.sql:/docker-entrypoint-initdb.d/03_ai_setup.sql
+      - ./backend/docs/sql/AI_SETUP_2.sql:/docker-entrypoint-initdb.d/04_ai_setup_2.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      MYSQL_URL: jdbc:mysql://mysql:3306/yakssok?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+      MYSQL_USERNAME: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/yakssok?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # 무중단 배포 중 백엔드 2개가 잠깐 같이 떠도 메모리가 부족하지 않도록 제한
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    volumes:
+      # 빌드된 화면 파일을 이미지에 넣지 않고 연결만 해서, 배포 때 nginx를 재시작하지 않아도 됨
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      # 배포 스크립트가 nginx가 보낼 백엔드를 지정하는 폴더
+      - ./frontend/upstream:/etc/nginx/upstream:ro
+    depends_on:
+      - backend
+
+volumes:
+  mysql-data:

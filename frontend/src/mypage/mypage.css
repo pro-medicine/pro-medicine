@@ -642,6 +642,14 @@
   font-size: 12px;
 }
 
+/* 섭취 방법이 길면 2줄까지만 보이고 나머지는 ... 처리 */
+.supplement-search-item small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 /* 복용 일정: 끼니 체크 → 식전·식후 칩 + 알림 시각 */
 .supplement-schedule-row {
   align-items: center;
@@ -1175,5 +1183,157 @@
     font-size: 13px;
     height: 38px;
     padding: 0 14px;
+  }
+
+  /* 이름은 한 줄로 (설정 버튼까지 3개가 들어가도 줄바꿈하지 않게) */
+  .profile-screen.is-mine .header-title h1 {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-screen.is-mine .header-actions {
+    gap: 6px;
+  }
+
+  .profile-screen.is-mine .header-actions .btn {
+    font-size: 12px;
+    padding: 0 10px;
+  }
+
+  .profile-screen.is-mine .header-actions .round-button {
+    height: 36px;
+    width: 36px;
+  }
+}
+
+/* ───────── 설정 · 친구에게 복용 현황 공개 (#84 은서) — #67 디자인 토큰으로 맞춤 ───────── */
+.share-setting {
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.share-setting > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-setting strong {
+  display: block;
+  font-size: 15px;
+}
+
+.share-setting small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.switch {
+  background: #d5dbd8;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 3px;
+  transition: background-color 0.15s ease;
+  width: 48px;
+}
+
+.switch span {
+  background: var(--white);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(17, 23, 20, 0.2);
+  display: block;
+  height: 22px;
+  transition: transform 0.15s ease;
+  width: 22px;
+}
+
+.switch.on {
+  background: var(--primary);
+}
+
+.switch.on span {
+  transform: translateX(20px);
+}
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 친구가 복용 현황을 비공개로 둔 경우 */
+.share-hidden {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.settings-overlay {
+  align-items: center;
+  background: rgba(17, 23, 20, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 100;
+}
+
+.settings-panel {
+  background: var(--white);
+  border-radius: var(--radius-modal);
+  box-shadow: 0 24px 60px rgba(17, 23, 20, 0.18);
+  box-sizing: border-box;
+  max-width: 440px;
+  padding: 28px;
+  width: 100%;
+}
+
+.settings-panel:focus {
+  outline: none;
+}
+
+.settings-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.settings-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.settings-header button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch span {
+    transition: none;
   }
 }

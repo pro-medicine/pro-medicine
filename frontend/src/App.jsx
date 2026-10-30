@@ -5,6 +5,7 @@ import {
   subscribeNotifications,
 } from "./api/notificationApi";
 import NotificationToast from "./common/NotificationToast";
+import ChatLauncher from "./chat";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
@@ -202,6 +203,7 @@ export default function App() {
       <main>{renderContent()}</main>
 
       <BottomNav tab={tab} onChange={changeTab} />
+      <ChatLauncher userId={userId} />
 
       {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
 

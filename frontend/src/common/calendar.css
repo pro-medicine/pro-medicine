@@ -279,3 +279,204 @@ li.taken .day-mark {
     transition: none;
   }
 }
+
+/* ───────── 일정 (#84 은서) — #67 디자인 토큰으로 색만 맞춤 ───────── */
+button.calendar-day {
+  position: relative;
+}
+
+/* 일정이 있는 날: 우측 상단 작은 파란 점 (모두 완료한 일정이면 회색) */
+.calendar-event-dot {
+  background: #2f5fd0;
+  border: 1.5px solid var(--white);
+  border-radius: 50%;
+  height: 8px;
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 8px;
+}
+
+.calendar-event-dot.all-done {
+  background: #c4cbc7;
+}
+
+.calendar-legend i.calendar-legend-event {
+  background: #2f5fd0;
+  border: 0;
+  height: 8px;
+  width: 8px;
+}
+
+/* 날짜 모달 */
+.calendar-modal {
+  max-width: 440px;
+}
+
+.calendar-modal-section {
+  margin-top: 20px;
+}
+
+.calendar-modal-section h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.calendar-modal-section ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.calendar-modal-section li {
+  align-items: center;
+  background: var(--surface);
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.calendar-modal-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.calendar-modal-row h3 {
+  margin: 0;
+}
+
+.event-add-button {
+  align-items: center;
+  background: var(--primary-soft);
+  border: 0;
+  border-radius: 999px;
+  color: var(--primary-hover);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.event-type {
+  background: #e6f0ff;
+  border-radius: 999px;
+  color: #2f5fd0;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+}
+
+.event-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.event-actions button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.event-actions button:hover {
+  color: var(--ink);
+}
+
+.event-form {
+  display: grid;
+  gap: 12px;
+}
+
+.event-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+}
+
+.event-form input,
+.event-form select,
+.event-form textarea {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 11px 12px;
+}
+
+.event-form input:focus,
+.event-form select:focus,
+.event-form textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.event-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.event-form-actions button {
+  background: #f1f3f2;
+  border: 0;
+  border-radius: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  flex: 1;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  height: 44px;
+}
+
+.event-form-actions .primary {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.event-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.event-check {
+  align-items: center;
+  background: var(--white);
+  border: 1.5px solid #cdd4d0;
+  border-radius: 50%;
+  color: var(--white);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.event-item.completed .event-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.event-item.completed .day-copy strong {
+  color: var(--faint);
+  text-decoration: line-through;
+}

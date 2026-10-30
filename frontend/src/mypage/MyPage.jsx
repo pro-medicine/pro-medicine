@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
@@ -7,7 +7,16 @@ import {
   fetchUser,
   MY_USER_ID,
   removeMySupplement,
+  updateShareIntake,
 } from "../api/mypageApi";
+import {
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  updateCalendarEventStatus,
+} from "../api/calendarEventApi";
+import { useModalFocus } from "../common/useModalFocus";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
@@ -56,6 +65,33 @@ function toSupplementCard(item, index) {
   };
 }
 
+function SettingsModal({ onClose, openerRef, children }) {
+  const panelRef = useModalFocus(onClose, openerRef);
+
+  return (
+    <div className="settings-overlay" role="presentation" onMouseDown={onClose}>
+      <section
+        ref={panelRef}
+        className="settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabIndex={-1}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="settings-header">
+          <h2 id="settings-title">설정</h2>
+          <button type="button" aria-label="설정 닫기" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {children}
+      </section>
+    </div>
+  );
+}
+
 export default function ProfileScreen({
   friend,
   viewerId,
@@ -66,6 +102,9 @@ export default function ProfileScreen({
 }) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  // 친구가 복용 현황을 비공개로 두면 통계·달력·영양제 대신 안내만 보여줌
+  const hidden = !isMine && friend.shared === false;
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(null);
   // 내 영양제 카드 목록, null 이면 아직 불러오는 중
@@ -78,6 +117,30 @@ export default function ProfileScreen({
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
+  const [sharing, setSharing] = useState(false);
+  const shared = user?.shareIntakeStatus ?? false;
+  const settingsOpenerRef = useRef(null);
+
+  const openSettings = () => {
+    settingsOpenerRef.current = document.activeElement;
+    setShowSettings(true);
+  };
+
+  const toggleShare = async () => {
+    if (sharing || !user) return;
+    setSharing(true);
+    try {
+      const updated = await updateShareIntake(MY_USER_ID, !shared);
+      setUser((prev) => ({
+        ...prev,
+        shareIntakeStatus: updated.shareIntakeStatus,
+      }));
+    } catch (e) {
+      window.alert(e.message || "공개 설정을 바꾸지 못했어요.");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   useEffect(() => {
     if (!isMine) return;
@@ -226,6 +289,7 @@ export default function ProfileScreen({
         subtitle={isMine ? "건강한 하루를 만드는 중" : undefined}
         description={isMine ? undefined : friend?.status}
         onNotifications={onNotifications}
+        onSettings={isMine ? openSettings : undefined}
         actions={
           isMine ? (
             <button className="btn btn-outline" type="button" onClick={openEdit}>
@@ -237,8 +301,36 @@ export default function ProfileScreen({
         }
       />
 
-      {/* 내 화면: 그래프 통계 카드 3개 / 친구 화면: 숫자 통계 3칸 */}
-      {isMine ? (
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} openerRef={settingsOpenerRef}>
+          <section className="share-setting">
+            <div>
+              <strong>친구에게 복용 현황 공개</strong>
+              <small>
+                {shared
+                  ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
+                  : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
+              </small>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={shared}
+              aria-label="친구에게 복용 현황 공개"
+              className={`switch ${shared ? "on" : ""}`}
+              disabled={sharing || !user}
+              onClick={toggleShare}
+            >
+              <span />
+            </button>
+          </section>
+        </SettingsModal>
+      )}
+
+      {/* 내 화면: 그래프 통계 카드 3개 / 친구 화면: 같은 그래프 (비공개면 안내) */}
+      {hidden ? (
+        <p className="share-hidden">{name}님이 복용 현황을 공개하지 않았어요.</p>
+      ) : isMine ? (
         <MyStats stats={stats} />
       ) : (
         // 친구 상세: 친구 상세 API의 통계 값을 마이페이지 통계와 같은 모양으로 넘김
@@ -253,18 +345,27 @@ export default function ProfileScreen({
           }}
         />
       )}
-      {isMine ? (
-        <IntakeCalendar fetchProgress={getMyCalendarProgress} fetchDay={getMyDayIntakes} />
-      ) : (
-        <IntakeCalendar
-          key={friend.userId}
-          title={`${name}님의 복용 달력`}
-          fetchDates={(s, e) =>
-            getFriendCalendar(viewerId, friend.userId, s, e)
-          }
-          fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
-        />
-      )}
+      {!hidden &&
+        (isMine ? (
+          <IntakeCalendar
+            fetchProgress={getMyCalendarProgress}
+            fetchDay={getMyDayIntakes}
+            fetchEvents={getCalendarEvents}
+            createEvent={createCalendarEvent}
+            updateEvent={updateCalendarEvent}
+            updateEventStatus={updateCalendarEventStatus}
+            deleteEvent={deleteCalendarEvent}
+          />
+        ) : (
+          <IntakeCalendar
+            key={friend.userId}
+            title={`${name}님의 복용 달력`}
+            fetchDates={(s, e) =>
+              getFriendCalendar(viewerId, friend.userId, s, e)
+            }
+            fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
+          />
+        ))}
 
       {/* 내 화면: 나의 영양관리(왼쪽) + 내가 먹는 영양제(오른쪽) / 친구 화면: 영양제만 */}
       <div className={isMine ? "profile-columns" : "profile-columns single"}>
@@ -292,7 +393,10 @@ export default function ProfileScreen({
           {isMine && !supplementError && mySupplementList?.length === 0 && (
             <p className="section-description">아직 등록된 영양제가 없어요.</p>
           )}
-          {!isMine && supplements.length === 0 && (
+          {!isMine && hidden && (
+            <p className="section-description">{name}님이 복용 현황을 공개하지 않았어요.</p>
+          )}
+          {!isMine && !hidden && supplements.length === 0 && (
             <p className="section-description">아직 등록된 영양제가 없어요.</p>
           )}
           {/* 아침 · 점심 · 저녁 시간대별 묶음 (#67 영양제 시안 B) */}

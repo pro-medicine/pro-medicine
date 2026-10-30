@@ -65,3 +65,7 @@ export function updateSupplementSchedules(userId, userProductId, schedules) {
 export function searchCatalogProducts(keyword) {
   return api.get("/api/v1/catalog-products", { params: { keyword } });
 }
+
+export function updateShareIntake(userId, shared) {
+  return api.patch(`/api/v1/users/${userId}/share-intake`, { shared });
+}

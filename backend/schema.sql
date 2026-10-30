@@ -11,6 +11,9 @@ DROP TABLE IF EXISTS `question_options`;
 DROP TABLE IF EXISTS `survey_questions`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
+DROP TABLE IF EXISTS `ai_chat_results`;
+DROP TABLE IF EXISTS `ai_chat_turns`;
+DROP TABLE IF EXISTS `ai_chat_sessions`;
 DROP TABLE IF EXISTS `ai_question_turns`;
 DROP TABLE IF EXISTS `ai_question_sessions`;
 DROP TABLE IF EXISTS `survey_responses`;
@@ -23,10 +26,14 @@ DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `intake_records`;
 DROP TABLE IF EXISTS `intake_schedules`;
 DROP TABLE IF EXISTS `user_products`;
+DROP TABLE IF EXISTS `review_product_scores`;
+DROP TABLE IF EXISTS `review_mentions`;
+DROP TABLE IF EXISTS `product_ingredients`;
 DROP TABLE IF EXISTS `catalog_products`;
 DROP TABLE IF EXISTS `guardian_settings`;
 DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
+DROP TABLE IF EXISTS `calendar_events`;
 DROP TABLE IF EXISTS `users`;
 
 -- ============================================================
@@ -102,7 +109,71 @@ CREATE TABLE `catalog_products` (
                                     `ingredient_summary`   VARCHAR(255)   NULL,
                                     `package_size`   VARCHAR(100)   NULL,
                                     `price`   INT   NULL,
-                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+    -- STEP 17: 리뷰 제품 추천 (V3). 주연님 검색·상세는 이 컬럼을 쓰지 않는다
+                                    `name_ko`   VARCHAR(255)   NULL   COMMENT '화면 표시용 한글 이름. 없으면 product_name',
+                                    `brand`   VARCHAR(255)   NULL,
+                                    `data_source`   VARCHAR(20)   NOT NULL   DEFAULT 'SAMPLE'   COMMENT 'DSLD, MFDS, MANUAL, SAMPLE',
+                                    `external_id`   VARCHAR(64)   NULL   COMMENT 'DSLD 라벨 ID / 품목제조신고번호',
+                                    `is_active`   BOOLEAN   NOT NULL   DEFAULT TRUE   COMMENT '단종·비노출이면 FALSE',
+                                    `blocked_kr`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '국내 반입 차단 성분(멜라토닌 등) 포함',
+                                    `image_key`   VARCHAR(500)   NULL   COMMENT 'S3 키 (리팩토링 때 사용)',
+                                    `updated_at`   DATETIME   NULL   COMMENT '리뷰 데이터 import 시각',
+                                    UNIQUE KEY `uk_catalog_products_source_external` (`data_source`, `external_id`)
+);
+
+-- 리뷰 제품 추천 (STEP 17). 서버는 읽기만 하고 월 1회 SQL import로 채운다. ingredient_code = IngredientCode 24개 + OTHER
+CREATE TABLE `product_ingredients` (
+                                       `product_ingredient_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                       `catalog_product_id`   BIGINT   NOT NULL,
+                                       `ingredient_code`   VARCHAR(30)   NOT NULL   COMMENT 'IngredientCode 24개 또는 OTHER',
+                                       `ingredient_name`   VARCHAR(100)   NOT NULL   COMMENT '라벨 원래 이름',
+                                       `amount_per_day`   DECIMAL(12,3)   NULL   COMMENT 'DSLD만. NULL = 들어 있음',
+                                       `unit`   VARCHAR(20)   NULL,
+                                       `source`   VARCHAR(20)   NULL   COMMENT 'DSLD_LABEL, MFDS_FUNCTIONAL, MANUAL',
+                                       PRIMARY KEY (`product_ingredient_id`),
+                                       UNIQUE KEY `uk_product_ingredients` (`catalog_product_id`, `ingredient_code`, `ingredient_name`)
+);
+
+CREATE TABLE `review_mentions` (
+                                   `mention_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                   `video_id`   VARCHAR(20)   NOT NULL,
+                                   `mention_no`   INT   NOT NULL,
+                                   `channel_id`   VARCHAR(30)   NOT NULL   COMMENT '약사 채널 (점수 계산용, 화면 노출 안 함)',
+                                   `published_at`   DATE   NULL,
+                                   `catalog_product_id`   BIGINT   NULL   COMMENT '제품 확정 못 하면 NULL',
+                                   `resolve_status`   VARCHAR(20)   NOT NULL   COMMENT 'RESOLVED, PENDING_REVIEW',
+                                   `product_name_ko`   VARCHAR(255)   NULL,
+                                   `brand_en`   VARCHAR(255)   NULL,
+                                   `ingredients`   JSON   NULL   COMMENT '["MAGNESIUM"] 어떤 성분 제품으로 말했나',
+                                   `stance`   VARCHAR(15)   NOT NULL   COMMENT 'RECOMMEND, NOT_RECOMMEND, NEUTRAL',
+                                   `is_sponsored`   BOOLEAN   NOT NULL   DEFAULT FALSE,
+                                   `purpose_tags`   JSON   NULL   COMMENT 'V4용',
+                                   `cautions`   JSON   NULL   COMMENT '[{category, text}]',
+                                   `context`   VARCHAR(400)   NULL   COMMENT 'V4 검색용, API로 내보내지 않음',
+                                   `embedding`   MEDIUMBLOB   NULL   COMMENT 'context 벡터 float32 x 1536 (V4용)',
+                                   `embedding_model`   VARCHAR(80)   NULL,
+                                   `start_sec`   INT   NULL,
+                                   `evidence_quote`   TEXT   NULL   COMMENT '검수용, API로 내보내지 않음',
+                                   `prompt_version`   VARCHAR(30)   NULL,
+                                   PRIMARY KEY (`mention_id`),
+                                   UNIQUE KEY `uk_review_mentions_video` (`video_id`, `mention_no`),
+                                   KEY `idx_review_mentions_product` (`catalog_product_id`)
+);
+
+CREATE TABLE `review_product_scores` (
+                                         `ingredient_code`   VARCHAR(30)   NOT NULL,
+                                         `catalog_product_id`   BIGINT   NOT NULL,
+                                         `base_score`   DECIMAL(8,3)   NOT NULL,
+                                         `recommend_channels`   INT   NOT NULL   DEFAULT 0,
+                                         `not_recommend_channels`   INT   NOT NULL   DEFAULT 0,
+                                         `last_published_at`   DATE   NULL,
+                                         `common_cautions`   JSON   NULL   COMMENT '2명 이상 약사가 말한 주의점',
+                                         `mention_ids`   JSON   NULL,
+                                         `computed_at`   DATETIME   NULL,
+                                         PRIMARY KEY (`ingredient_code`, `catalog_product_id`),
+                                         KEY `idx_review_product_scores_rank` (`ingredient_code`, `base_score` DESC),
+                                         KEY `idx_review_product_scores_product` (`catalog_product_id`)
 );
 
 CREATE TABLE `notifications` (
@@ -155,6 +226,36 @@ CREATE TABLE `disposal_locations` (
                                       `source_updated_at`   DATETIME   NULL
 );
 
+CREATE TABLE `calendar_events` (
+                                  `event_id` BIGINT NOT NULL AUTO_INCREMENT,
+                                  `user_id` BIGINT NOT NULL,
+                                  `event_type` VARCHAR(30) NOT NULL,
+                                  `title` VARCHAR(150) NOT NULL,
+                                  `scheduled_at` DATETIME NOT NULL,
+                                  `notes` VARCHAR(1000) NULL,
+                                  `status` VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
+                                  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                                  PRIMARY KEY (`event_id`),
+
+                                  CONSTRAINT `chk_calendar_event_type`
+                                      CHECK (`event_type` IN (
+                                                              'SUPPLEMENT',
+                                                              'INJECTION',
+                                                              'MEDICATION',
+                                                              'ONE_TIME_INTAKE',
+                                                              'APPOINTMENT',
+                                                              'OTHER'
+                                          )),
+
+                                  CONSTRAINT `chk_calendar_event_status`
+                                      CHECK (`status` IN (
+                                                          'PLANNED',
+                                                          'COMPLETED',
+                                                          'CANCELED'
+                                          ))
+);
+
 CREATE TABLE `ai_recommendation_items` (
                                            `recommendation_item_id`   BIGINT   NOT NULL,
                                            `recommendation_id`   BIGINT   NOT NULL,
@@ -175,6 +276,7 @@ CREATE TABLE `ai_recommendations` (
                                       `recommendation_id`   BIGINT   NOT NULL,
                                       `response_id`   BIGINT   NULL   COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
                                       `session_id`   BIGINT   NULL   COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
+                                      `chat_session_id`   BIGINT   NULL   COMMENT 'V4 대화창 트랙 2 (90일 삭제 후 NULL)',
                                       `summary`   TEXT   NULL,
                                       `model_name`   VARCHAR(60)   NULL,
                                       `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
@@ -191,7 +293,7 @@ CREATE TABLE `llm_call_logs` (
                                  `eval_run_id`   VARCHAR(50)   NULL,
                                  `session_id`   BIGINT   NULL   COMMENT 'ai_question_sessions 참조 (V2 호출만, FK 없음, STEP 14)',
                                  `pipeline_version`   VARCHAR(10)   NOT NULL,
-                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE',
+                                 `call_tag`   VARCHAR(30)   NOT NULL   COMMENT 'RECOMMEND, RECOMMEND_REPAIR, PQ_QUESTION, PQ_QUESTION_REPAIR, PQ_QUESTION_BATCH, PQ_QUESTION_FOLLOWUP_BATCH, PQ_QUESTION_HEDGE, CHAT_PARSE, CHAT_PARSE_REPAIR, CHAT_EMBED',
                                  `model`   VARCHAR(60)   NOT NULL,
                                  `prompt_version`   VARCHAR(20)   NOT NULL,
                                  `input_tokens`   INT   NULL,
@@ -272,6 +374,51 @@ CREATE TABLE `ai_question_turns` (
                                      `answered_at`   DATETIME   NULL,
                                      PRIMARY KEY (`turn_id`),
                                      UNIQUE KEY `uq_pq_turn` (`session_id`, `turn_no`)
+);
+
+-- AI 추천 V4: 대화창 (증상 문장 → 성분 + 제품). 대화 원문·대화 속 약·질환은 프로필에 저장하지 않고 여기에만 남긴다 (90일 뒤 삭제)
+CREATE TABLE `ai_chat_sessions` (
+                                    `chat_session_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                    `user_id`   BIGINT   NOT NULL,
+                                    `status`   VARCHAR(20)   NOT NULL   COMMENT 'OPEN, CLARIFYING, SEARCHING, DONE, FALLBACK_PENDING, RED_FLAG, FAILED',
+                                    `pregnancy`   VARCHAR(20)   NULL   COMMENT 'NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING (19~50세 여성만)',
+                                    `clarified`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '되묻기 1번 했는지 (최대 1번)',
+                                    `extra_medications`   JSON   NULL   COMMENT '대화에서 뽑은 약 [{drugId, drugClass, name}]',
+                                    `extra_conditions`   JSON   NULL   COMMENT '대화에서 뽑은 질환 코드',
+                                    `started_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                    `completed_at`   DATETIME   NULL,
+                                    PRIMARY KEY (`chat_session_id`),
+                                    KEY `idx_chat_sessions_user` (`user_id`, `started_at`),
+                                    KEY `idx_chat_sessions_started` (`started_at`)
+);
+
+CREATE TABLE `ai_chat_turns` (
+                                 `chat_turn_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                 `chat_session_id`   BIGINT   NOT NULL,
+                                 `turn_no`   INT   NOT NULL   COMMENT '1 = 첫 입력, 2 = 되묻기 답',
+                                 `user_text`   VARCHAR(300)   NOT NULL   COMMENT '대화 원문 (건강 정보, 90일 뒤 삭제)',
+                                 `parse_output`   JSON   NULL   COMMENT 'LLM 구조화 결과 그대로',
+                                 `clarification`   JSON   NULL   COMMENT '보여준 되묻기 {question, options}',
+                                 `llm_call_log_ids`   JSON   NULL,
+                                 `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                 PRIMARY KEY (`chat_turn_id`),
+                                 UNIQUE KEY `uq_chat_turn` (`chat_session_id`, `turn_no`)
+);
+
+CREATE TABLE `ai_chat_results` (
+                                   `chat_result_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                   `chat_session_id`   BIGINT   NOT NULL,
+                                   `track`   VARCHAR(20)   NOT NULL   COMMENT 'REVIEW (트랙 1), RULE_BASED (트랙 2)',
+                                   `recommendation_id`   BIGINT   NULL   COMMENT '트랙 2 ai_recommendations id (FK 없음)',
+                                   `cards`   JSON   NULL   COMMENT '트랙 1 카드·제품 스냅샷',
+                                   `hit_mention_ids`   JSON   NULL   COMMENT 'τ를 넘은 언급 id와 sim',
+                                   `top_similarity`   DECIMAL(5,4)   NULL,
+                                   `excluded`   JSON   NULL   COMMENT '제외 성분·제외 제품 수',
+                                   `data_version`   DATETIME   NULL   COMMENT '사용한 review_product_scores.computed_at',
+                                   `latency_ms`   INT   NULL,
+                                   `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                   PRIMARY KEY (`chat_result_id`),
+                                   UNIQUE KEY `uq_chat_results_session` (`chat_session_id`)
 );
 
 CREATE TABLE `intake_schedules` (
@@ -358,6 +505,11 @@ ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (
 ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
                                                            `user_id`
     );
+ALTER TABLE `calendar_events`
+    ADD CONSTRAINT `fk_calendar_event_user`
+        FOREIGN KEY (`user_id`)
+            REFERENCES `users` (`user_id`)
+            ON DELETE CASCADE;
 
 ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
                                                                            `user_product_id`
@@ -382,6 +534,7 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `PK_AI_RECOMMENDATIONS` PRIMARY 
 ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY (
                                                                                  `schedule_id`
     );
+
 
 ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (
                                                                `survey_id`
@@ -423,6 +576,8 @@ ALTER TABLE `ai_recommendations` MODIFY `recommendation_id` BIGINT NOT NULL AUTO
 ALTER TABLE `ai_recommendation_items` MODIFY `recommendation_item_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `user_products` MODIFY `user_product_id` BIGINT NOT NULL AUTO_INCREMENT;
 ALTER TABLE `intake_schedules` MODIFY `schedule_id` BIGINT NOT NULL AUTO_INCREMENT;
+-- STEP 17: CatalogProduct 엔티티도 IDENTITY
+ALTER TABLE `catalog_products` MODIFY `catalog_product_id` BIGINT NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
                                                                                           `user_id`
@@ -502,6 +657,10 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recom
         );
 
 -- STEP 14: 회원이 삭제되면 회차·질문도 삭제. 회차가 90일 뒤 삭제되면 추천 결과는 남기고 session_id만 비운다
+-- 엔티티 AiRecommendationItem.recommendation(@ManyToOne)과 같은 FK (2026-10-29 대조 때 빠진 것을 발견해 추가)
+ALTER TABLE `ai_recommendation_items` ADD CONSTRAINT `FK_ai_recommendations_TO_ai_recommendation_items_1` FOREIGN KEY (`recommendation_id`)
+    REFERENCES `ai_recommendations` (`recommendation_id`);
+
 ALTER TABLE `ai_question_sessions` ADD CONSTRAINT `fk_pq_sessions_user` FOREIGN KEY (`user_id`)
     REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
@@ -510,6 +669,29 @@ ALTER TABLE `ai_question_turns` ADD CONSTRAINT `fk_pq_turns_session` FOREIGN KEY
 
 ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`)
     REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL;
+
+-- V4 대화창: 세션 삭제(90일) 시 턴·결과는 삭제, 트랙 2 추천은 남기고 chat_session_id만 비운다
+ALTER TABLE `ai_chat_sessions` ADD CONSTRAINT `fk_chat_sessions_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_chat_turns` ADD CONSTRAINT `fk_chat_turns_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_chat_results` ADD CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_chat_session` FOREIGN KEY (`chat_session_id`)
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL;
+
+-- STEP 17: 리뷰 제품 추천. 제품이 삭제되면 성분·점수는 삭제, 언급은 남기고 제품 id만 비운다
+ALTER TABLE `product_ingredients` ADD CONSTRAINT `fk_product_ingredients_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE;
+
+ALTER TABLE `review_mentions` ADD CONSTRAINT `fk_review_mentions_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE SET NULL;
+
+ALTER TABLE `review_product_scores` ADD CONSTRAINT `fk_review_product_scores_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE;
 
 -- ============================================================
 -- 예시 데이터 (개발/시연용)
@@ -544,7 +726,8 @@ INSERT INTO `user_conditions` (`user_condition_id`, `user_id`, `condition_name`,
                                                                                                    (3, 4, 'DIABETES',     '2026-10-04 12:00:00');
 
 -- 의약품 사전과 복용 중인 약 (예시 데이터, docs/sql/STEP02_seed_drugs.sql과 같은 내용) ----
--- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 규칙 대상이 아닌 예시 약물
+-- drug_class 값은 recommendation_rules의 DRUG 조건 코드와 같다. D-011·D-012는 STEP 16부터 규칙 대상(R-30c3, R-36)인 예시 약물
+-- D-013~D-016, D-U09~D-U12는 성분 확장(STEP 16)의 새 약물 계열 (ANTIPLATELET, INSULIN, IMMUNOSUPPRESSANT, ANTICONVULSANT, CHEMOTHERAPY)
 INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-001', '메트포르민',           'METFORMIN'),
                                                           ('D-002', '오메프라졸',           'PPI'),
@@ -558,6 +741,10 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-010', '에스시탈로프람',       'SSRI'),
                                                           ('D-011', '암로디핀',             'CALCIUM_CHANNEL_BLOCKER'),
                                                           ('D-012', '아토르바스타틴',       'STATIN'),
+                                                          ('D-013', '클로피도그렐',         'ANTIPLATELET'),
+                                                          ('D-014', '인슐린',               'INSULIN'),
+                                                          ('D-015', '타크로리무스',         'IMMUNOSUPPRESSANT'),
+                                                          ('D-016', '발프로산',             'ANTICONVULSANT'),
                                                           ('D-U01', '혈압약 (이름 모름)',     'ANTIHYPERTENSIVE_UNKNOWN'),
                                                           ('D-U02', '이뇨제 (이름 모름)',     'DIURETIC_UNKNOWN'),
                                                           ('D-U03', '당뇨약 (이름 모름)',     'ANTIDIABETIC_UNKNOWN'),
@@ -565,7 +752,11 @@ INSERT INTO `drugs` (`drug_id`, `name`, `drug_class`) VALUES
                                                           ('D-U05', '항응고제 (이름 모름)',   'ANTICOAGULANT_UNKNOWN'),
                                                           ('D-U06', '갑상선약 (이름 모름)',   'THYROID_MED_UNKNOWN'),
                                                           ('D-U07', '항생제 (이름 모름)',     'ANTIBIOTIC_UNKNOWN'),
-                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN');
+                                                          ('D-U08', '항우울제 (이름 모름)',   'ANTIDEPRESSANT_UNKNOWN'),
+                                                          ('D-U09', '항혈소판제 (이름 모름)', 'ANTIPLATELET'),
+                                                          ('D-U10', '항암제 (이름 모름)',     'CHEMOTHERAPY'),
+                                                          ('D-U11', '면역억제제 (이름 모름)', 'IMMUNOSUPPRESSANT'),
+                                                          ('D-U12', '뇌전증약 (이름 모름)',   'ANTICONVULSANT');
 
 INSERT INTO `user_medications` (`user_medication_id`, `user_id`, `drug_id`, `unmatched_name`, `updated_at`) VALUES
                                                                                                                 (1, 2, 'D-011', NULL,                   '2026-10-02 10:00:00'),
@@ -702,82 +893,82 @@ INSERT INTO `surveys` (`survey_id`, `version`, `status`) VALUES
     (1, 'v1', 'ACTIVE');
 
 INSERT INTO `survey_questions` (`question_id`, `survey_id`, `code`, `question_text`, `answer_type`, `profile_key`, `is_sensitive`, `guest_visible`, `display_order`) VALUES
-    (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
-    (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
-    (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
-    (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
-    (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
-    (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
-    (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
-    (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
-    (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
-    (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
-    (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
-    (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
-    (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),
-    (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
+                                                                                                                                                                         (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
+                                                                                                                                                                         (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
+                                                                                                                                                                         (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
+                                                                                                                                                                         (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
+                                                                                                                                                                         (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
+                                                                                                                                                                         (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
+                                                                                                                                                                         (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
+                                                                                                                                                                         (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
+                                                                                                                                                                         (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
+                                                                                                                                                                         (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
+                                                                                                                                                                         (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
+                                                                                                                                                                         (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
+                                                                                                                                                                         (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),
+                                                                                                                                                                         (14, 1, 'Q-SUPPLEMENTS', '복용 중인 영양제 성분과 함량을 알려주세요', 'TEXT', NULL, FALSE, TRUE, 14);
 
 INSERT INTO `question_options` (`option_id`, `question_id`, `value_code`, `label`, `display_order`) VALUES
-    (1, 1, 'M', '남성', 1),
-    (2, 1, 'F', '여성', 2),
-    (3, 3, 'NONE', '안 피움', 1),
-    (4, 3, 'HALF_PACK', '하루 반 갑 이하', 2),
-    (5, 3, 'ONE_PACK', '하루 1갑', 3),
-    (6, 3, 'TWO_PACK_PLUS', '하루 2갑 이상', 4),
-    (7, 4, 'NONE', '안 마심', 1),
-    (8, 4, 'LOW', '가끔', 2),
-    (9, 4, 'HIGH', '자주', 3),
-    (10, 5, 'NONE', '안 마심', 1),
-    (11, 5, 'LOW', '하루 1~2잔', 2),
-    (12, 5, 'HIGH', '하루 3잔 이상', 3),
-    (13, 6, 'OMNI', '일반식', 1),
-    (14, 6, 'VEGETARIAN', '채식(유제품·달걀 포함)', 2),
-    (15, 6, 'VEGAN', '비건', 3),
-    (16, 7, 'LOW', '거의 실내에 있어요', 1),
-    (17, 7, 'NORMAL', '보통이에요', 2),
-    (18, 8, 'GOOD', '좋아요', 1),
-    (19, 8, 'NORMAL', '보통이에요', 2),
-    (20, 8, 'POOR', '잘 못 자요', 3),
-    (21, 9, 'LOW', '거의 없어요', 1),
-    (22, 9, 'NORMAL', '보통이에요', 2),
-    (23, 9, 'HIGH', '자주 피곤해요', 3),
-    (24, 10, 'SLEEP', '수면', 1),
-    (25, 10, 'FATIGUE', '피로 회복', 2),
-    (26, 10, 'IMMUNITY', '면역', 3),
-    (27, 10, 'BONE', '뼈 건강', 4),
-    (28, 10, 'EYE', '눈 건강', 5),
-    (29, 11, 'NOT_APPLICABLE', '해당 없음', 1),
-    (30, 11, 'POSSIBLE', '임신 가능성 있음', 2),
-    (31, 11, 'PREGNANT', '임신 중', 3),
-    (32, 11, 'LACTATING', '수유 중', 4),
-    (33, 12, 'NONE', '없음', 1),
-    (34, 12, 'HYPERTENSION', '고혈압', 2),
-    (35, 12, 'DIABETES', '당뇨', 3),
-    (36, 12, 'THYROID', '갑상선 질환', 4),
-    (37, 12, 'KIDNEY', '신장 질환', 5);
+                                                                                                        (1, 1, 'M', '남성', 1),
+                                                                                                        (2, 1, 'F', '여성', 2),
+                                                                                                        (3, 3, 'NONE', '안 피움', 1),
+                                                                                                        (4, 3, 'HALF_PACK', '하루 반 갑 이하', 2),
+                                                                                                        (5, 3, 'ONE_PACK', '하루 1갑', 3),
+                                                                                                        (6, 3, 'TWO_PACK_PLUS', '하루 2갑 이상', 4),
+                                                                                                        (7, 4, 'NONE', '안 마심', 1),
+                                                                                                        (8, 4, 'LOW', '가끔', 2),
+                                                                                                        (9, 4, 'HIGH', '자주', 3),
+                                                                                                        (10, 5, 'NONE', '안 마심', 1),
+                                                                                                        (11, 5, 'LOW', '하루 1~2잔', 2),
+                                                                                                        (12, 5, 'HIGH', '하루 3잔 이상', 3),
+                                                                                                        (13, 6, 'OMNI', '일반식', 1),
+                                                                                                        (14, 6, 'VEGETARIAN', '채식(유제품·달걀 포함)', 2),
+                                                                                                        (15, 6, 'VEGAN', '비건', 3),
+                                                                                                        (16, 7, 'LOW', '거의 실내에 있어요', 1),
+                                                                                                        (17, 7, 'NORMAL', '보통이에요', 2),
+                                                                                                        (18, 8, 'GOOD', '좋아요', 1),
+                                                                                                        (19, 8, 'NORMAL', '보통이에요', 2),
+                                                                                                        (20, 8, 'POOR', '잘 못 자요', 3),
+                                                                                                        (21, 9, 'LOW', '거의 없어요', 1),
+                                                                                                        (22, 9, 'NORMAL', '보통이에요', 2),
+                                                                                                        (23, 9, 'HIGH', '자주 피곤해요', 3),
+                                                                                                        (24, 10, 'SLEEP', '수면', 1),
+                                                                                                        (25, 10, 'FATIGUE', '피로 회복', 2),
+                                                                                                        (26, 10, 'IMMUNITY', '면역', 3),
+                                                                                                        (27, 10, 'BONE', '뼈 건강', 4),
+                                                                                                        (28, 10, 'EYE', '눈 건강', 5),
+                                                                                                        (29, 11, 'NOT_APPLICABLE', '해당 없음', 1),
+                                                                                                        (30, 11, 'POSSIBLE', '임신 가능성 있음', 2),
+                                                                                                        (31, 11, 'PREGNANT', '임신 중', 3),
+                                                                                                        (32, 11, 'LACTATING', '수유 중', 4),
+                                                                                                        (33, 12, 'NONE', '없음', 1),
+                                                                                                        (34, 12, 'HYPERTENSION', '고혈압', 2),
+                                                                                                        (35, 12, 'DIABETES', '당뇨', 3),
+                                                                                                        (36, 12, 'THYROID', '갑상선 질환', 4),
+                                                                                                        (37, 12, 'KIDNEY', '신장 질환', 5);
 
 -- 설문 응답: 1번은 김민지(회원, 민감 항목 포함), 2번은 비회원. 일부 문항만 답한 예시 ------------
 INSERT INTO `survey_responses` (`response_id`, `survey_id`, `user_id`, `respondent_type`, `includes_sensitive`, `status`, `submitted_at`) VALUES
-    (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
-    (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
+                                                                                                                                              (1, 1, 1,    'MEMBER', TRUE,  'SUBMITTED', '2026-10-21 10:00:00'),
+                                                                                                                                              (2, 1, NULL, 'GUEST',  FALSE, 'SUBMITTED', '2026-10-21 11:00:00');
 
 -- 1번: 여성(2), 1998년생, 비흡연(3), 자주 피곤(23), 원하는 효과 피로 회복(25), 임신·수유 해당 없음(29)
 -- 2번: 남성(1), 잘 못 잠(20), 원하는 효과 수면(24)
 INSERT INTO `survey_answers` (`answer_id`, `response_id`, `question_id`, `option_id`, `value_number`, `value_text`) VALUES
-    (1, 1, 1,  2,    NULL,    NULL),
-    (2, 1, 2,  NULL, 1998.00, NULL),
-    (3, 1, 3,  3,    NULL,    NULL),
-    (4, 1, 9,  23,   NULL,    NULL),
-    (5, 1, 10, 25,   NULL,    NULL),
-    (6, 1, 11, 29,   NULL,    NULL),
-    (7, 2, 1,  1,    NULL,    NULL),
-    (8, 2, 8,  20,   NULL,    NULL),
-    (9, 2, 10, 24,   NULL,    NULL);
+                                                                                                                        (1, 1, 1,  2,    NULL,    NULL),
+                                                                                                                        (2, 1, 2,  NULL, 1998.00, NULL),
+                                                                                                                        (3, 1, 3,  3,    NULL,    NULL),
+                                                                                                                        (4, 1, 9,  23,   NULL,    NULL),
+                                                                                                                        (5, 1, 10, 25,   NULL,    NULL),
+                                                                                                                        (6, 1, 11, 29,   NULL,    NULL),
+                                                                                                                        (7, 2, 1,  1,    NULL,    NULL),
+                                                                                                                        (8, 2, 8,  20,   NULL,    NULL),
+                                                                                                                        (9, 2, 10, 24,   NULL,    NULL);
 
 -- AI 추천 결과 (김민지의 설문 응답 기준). ingredient_name은 성분 코드(IngredientCode), 용량·규칙 컬럼은 기본값 ----
 INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `summary`, `model_name`, `created_at`) VALUES
     (1, 1, '자주 피곤하다고 답해주신 내용을 중심으로 비타민 B12와 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
 
 INSERT INTO `ai_recommendation_items` (`recommendation_item_id`, `recommendation_id`, `ingredient_name`, `reason`, `sort_order`) VALUES
-    (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
-    (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);
+                                                                                                                                     (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
+                                                                                                                                     (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);

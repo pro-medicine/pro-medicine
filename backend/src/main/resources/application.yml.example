@@ -20,3 +20,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+
+# 식약처 건강기능식품 API 키 (backend/.env에 MFDS_API_KEY=... , 없어도 서버는 켜지고 import만 실패)
+mfds:
+  api-key: ${MFDS_API_KEY:}

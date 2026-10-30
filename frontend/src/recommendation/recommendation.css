@@ -151,7 +151,23 @@
 .rec-reason { margin-top: 8px !important; font-size: 14px; line-height: 1.6; color: var(--muted); }
 .rec-warnings { margin-top: 12px !important; padding: 12px 14px !important; border-radius: 12px; background: var(--r-warn-bg); font-size: 13px; line-height: 1.6; color: var(--r-warn-text); }
 .rec-warnings li + li { margin-top: 4px; }
-.rec-product { margin-top: 12px; height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--faint) !important; font-size: 13px; cursor: not-allowed !important; }
+.rec-product { width: 100%; margin-top: 12px; padding: 10px; border: 1px solid var(--r-yellow-line); border-radius: 12px; background: var(--r-yellow-soft); color: var(--r-gold); font-weight: 600; cursor: pointer; }
+.rec-product.open { background: var(--r-card); }
+/* V3 제품 추천 */
+.rec-prod { margin-top: 10px; }
+.rec-prod-caption { display: block; margin-bottom: 8px; font-size: 12px; color: var(--r-sub); }
+.rec-prod-status { margin-top: 10px; font-size: 13px; color: var(--r-sub); }
+.rec-prod-list { display: flex; flex-direction: column; gap: 8px; }
+.rec-prod-item { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--r-line); border-radius: 14px; background: var(--r-bg); }
+.rec-prod-thumb { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: var(--r-card); }
+.rec-prod-thumb.placeholder { display: flex; align-items: center; justify-content: center; border: 1px solid var(--r-line); font-weight: 700; color: var(--r-gold); }
+.rec-prod-body { flex: 1; min-width: 0; }
+.rec-prod-brand { display: block; font-size: 11px; font-weight: 700; color: var(--r-gold); }
+.rec-prod-name { display: block; font-size: 14px; word-break: keep-all; }
+.rec-prod-also { display: block; margin-top: 4px; font-size: 12px; color: var(--r-text); }
+.rec-prod-cautions { margin-top: 6px !important; font-size: 12px; line-height: 1.5; color: var(--r-sub); }
+.rec-prod-cautions li::before { content: "· "; }
+.rec-prod-notice { display: block; margin-top: 8px; font-size: 11px; line-height: 1.5; color: var(--r-sub); }
 
 .rec-excluded { margin-top: 12px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; }
 .rec-excluded summary { font-size: 14px; font-weight: 700; cursor: pointer; }

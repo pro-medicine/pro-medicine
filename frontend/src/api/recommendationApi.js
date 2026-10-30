@@ -94,3 +94,17 @@ export function createPersonalizedRecommendation(userId, sessionId) {
     userHeader(userId),
   );
 }
+
+// ---------- V3 약사 리뷰 기반 제품 추천 ----------
+
+// 성분별 [제품 추천 보기] 버튼 노출 여부 → { MAGNESIUM: true, VITAMIN_D: false }
+export function getProductAvailability(recommendationId) {
+  return api.get(`/api/v1/recommendations/${recommendationId}/products/availability`);
+}
+
+// 성분 카드의 추천 제품 (최대 3개) → { ingredient, products, excludedCount, notice, message }
+export function getRecommendedProducts(recommendationId, ingredient) {
+  return api.get(`/api/v1/recommendations/${recommendationId}/products`, {
+    params: { ingredient },
+  });
+}

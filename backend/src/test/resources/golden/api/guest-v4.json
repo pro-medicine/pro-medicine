@@ -35,11 +35,14 @@
         "excludedItems" : [ ],
         "fallback" : false,
         "items" : [ {
+          "amount" : 10,
           "appliedRuleIds" : [ "R-06" ],
-          "doseNote" : "기준값 미등록",
+          "doseNote" : "현재 섭취량 미반영",
           "ingredient" : "VITAMIN_D",
+          "intakeStatus" : "UNKNOWN",
           "reason" : "가짜 응답: 햇빛 노출이 적은 경우를 가정",
           "sortOrder" : 1,
+          "unit" : "mcg",
           "warnings" : [ "햇빛 노출이 적으면 비타민 D 부족 위험이 있어요" ]
         } ],
         "modelName" : "gpt-6.1-sol-fake",
@@ -51,7 +54,7 @@
       "message" : "성공",
       "success" : true
     },
-    "raw" : "{\"code\":\"S000\",\"data\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"가짜 응답입니다\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_D\",\"reason\":\"가짜 응답: 햇빛 노출이 적은 경우를 가정\",\"sortOrder\":1,\"doseNote\":\"기준값 미등록\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]}],\"excludedItems\":[],\"fallback\":false},\"message\":\"성공\",\"success\":true}",
+    "raw" : "{\"code\":\"S000\",\"data\":{\"recommendationId\":0,\"responseId\":0,\"status\":\"DONE\",\"errorCode\":null,\"modelName\":\"gpt-6.1-sol-fake\",\"summary\":\"가짜 응답입니다\",\"createdAt\":\"-\",\"items\":[{\"ingredient\":\"VITAMIN_D\",\"reason\":\"가짜 응답: 햇빛 노출이 적은 경우를 가정\",\"sortOrder\":1,\"amount\":10,\"unit\":\"mcg\",\"intakeStatus\":\"UNKNOWN\",\"doseNote\":\"현재 섭취량 미반영\",\"warnings\":[\"햇빛 노출이 적으면 비타민 D 부족 위험이 있어요\"],\"appliedRuleIds\":[\"R-06\"]}],\"excludedItems\":[],\"fallback\":false},\"message\":\"성공\",\"success\":true}",
     "status" : 200
   },
   "unknownResponse" : {
