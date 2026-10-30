@@ -384,7 +384,7 @@ function NutritionManagement() {
         <div>
           <span className="section-label">DAILY NUTRITION</span>
           <h2>나의 영양관리</h2>
-          <p>복용 중인 영양제를 기준으로 성인 하루 권장량과 비교했어요.</p>
+          <p>복용 중인 영양제를 기준으로 성별에 맞는 하루 권장량과 비교했어요.</p>
         </div>
         <span className="nutrition-date">
           {nutrition?.sample ? "오늘 기준 · 예시 데이터" : "오늘 기준"}
