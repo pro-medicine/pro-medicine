@@ -3,6 +3,7 @@ package com.ucamp.app.infra.llm.guard;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,18 +11,22 @@ import java.util.UUID;
  * LLM 가드 총괄 (V5 보안). 요청 진입 시점에서 호출한다.
  * 순서: 차단 목록 → inflight 잠금 → 분/일 제한 → 기능 예산/킬스위치.
  * Redis 장애 시 fail-open (분/일 제한만 건너뜀, 차단 목록은 DB 조회).
+ * 경고 누적: INJECTION/OUTPUT_INVALID → 24시간 내 3회=30분 정지, 6회=24시간 정지, 이후=영구 차단.
  */
 @Slf4j
 public class LlmGuard {
     private final LlmGuardProperties properties;
     private final LlmBlocklistRepository blocklistRepository;
+    private final LlmUserStrikeRepository strikeRepository;
     private final LlmRateLimiter rateLimiter; // null이면 Redis 없음
 
     public LlmGuard(LlmGuardProperties properties,
                      LlmBlocklistRepository blocklistRepository,
+                     LlmUserStrikeRepository strikeRepository,
                      LlmRateLimiter rateLimiter) {
         this.properties = properties;
         this.blocklistRepository = blocklistRepository;
+        this.strikeRepository = strikeRepository;
         this.rateLimiter = rateLimiter;
     }
 
@@ -109,5 +114,30 @@ public class LlmGuard {
     public void releaseInflight(Long userId, String lockValue) {
         if (userId == null || rateLimiter == null) return;
         rateLimiter.releaseInflight(userId, lockValue);
+    }
+
+    /**
+     * 경고 기록 + 누적에 따라 정지/차단 (INJECTION, OUTPUT_INVALID만).
+     * 24시간 내 경고 횟수: suspendThreshold → 30분 정지, longSuspendThreshold → 24시간 정지, 그 이후 → 영구 차단.
+     */
+    public void recordStrike(Long userId, String reason) {
+        if (userId == null) return;
+        try {
+            strikeRepository.save(new LlmUserStrike(userId, reason));
+            long recent = strikeRepository.countRecent(userId, LocalDateTime.now().minusHours(24));
+            LlmGuardProperties.Strikes s = properties.getStrikes();
+            if (recent > s.getLongSuspendThreshold()) {
+                blocklistRepository.save(LlmBlocklist.permanentBlock(userId, "STRIKE_PERMANENT"));
+                log.warn("llm guard: permanent block userId={}, strikes={}", userId, recent);
+            } else if (recent >= s.getLongSuspendThreshold()) {
+                blocklistRepository.save(LlmBlocklist.suspend(userId, "STRIKE_LONG_SUSPEND", s.getLongSuspendSeconds()));
+                log.warn("llm guard: 24h suspend userId={}, strikes={}", userId, recent);
+            } else if (recent >= s.getSuspendThreshold()) {
+                blocklistRepository.save(LlmBlocklist.suspend(userId, "STRIKE_SUSPEND", s.getSuspendSeconds()));
+                log.info("llm guard: 30min suspend userId={}, strikes={}", userId, recent);
+            }
+        } catch (Exception e) {
+            log.error("llm guard: failed to record strike userId={}, reason={}", userId, reason, e);
+        }
     }
 }

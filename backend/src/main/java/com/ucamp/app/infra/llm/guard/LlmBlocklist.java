@@ -44,6 +44,10 @@ public class LlmBlocklist {
         return b;
     }
 
+    public static LlmBlocklist suspend(Long userId, String reason, int seconds) {
+        return suspend(userId, reason, LocalDateTime.now().plusSeconds(seconds));
+    }
+
     public static LlmBlocklist permanentBlock(Long userId, String reason) {
         LlmBlocklist b = new LlmBlocklist();
         b.userId = userId;

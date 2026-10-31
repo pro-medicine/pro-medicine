@@ -19,7 +19,8 @@ public class LlmGuardConfig {
     @Bean
     public LlmGuard llmGuard(LlmGuardProperties properties,
                               LlmBlocklistRepository blocklistRepository,
+                              LlmUserStrikeRepository strikeRepository,
                               ObjectProvider<LlmRateLimiter> rateLimiter) {
-        return new LlmGuard(properties, blocklistRepository, rateLimiter.getIfAvailable());
+        return new LlmGuard(properties, blocklistRepository, strikeRepository, rateLimiter.getIfAvailable());
     }
 }

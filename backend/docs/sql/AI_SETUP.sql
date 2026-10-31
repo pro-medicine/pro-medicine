@@ -5,7 +5,7 @@
 --   1) 서버를 한 번 실행해서 테이블을 만든다 (ddl-auto: update). 이미 실행해 둔 DB면 건너뛴다
 --   2) 이 파일 하나를 실행한다. 예전 STEP02~18 파일은 실행하지 않는다 (docs/sql/archive/에 기록만 남김)
 -- 하는 일
---   - AI 테이블 20개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
+--   - AI 테이블 21개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
 --     surveys, survey_questions, question_options, survey_responses, survey_answers, drugs, ingredient_standards,
 --     recommendation_rules, llm_call_logs, ai_question_sessions, ai_question_turns, ai_chat_sessions, ai_chat_turns,
 --     ai_chat_results, ai_recommendations, ai_recommendation_items, product_ingredients, review_mentions, review_product_scores
@@ -43,6 +43,8 @@ DROP TABLE IF EXISTS `ai_chat_turns`;
 DROP TABLE IF EXISTS `ai_chat_sessions`;
 DROP TABLE IF EXISTS `ai_question_turns`;
 DROP TABLE IF EXISTS `ai_question_sessions`;
+DROP TABLE IF EXISTS `llm_user_strikes`;
+DROP TABLE IF EXISTS `llm_blocklist`;
 DROP TABLE IF EXISTS `llm_call_logs`;
 DROP TABLE IF EXISTS `survey_answers`;
 DROP TABLE IF EXISTS `survey_responses`;
@@ -176,6 +178,14 @@ CREATE TABLE `llm_blocklist` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_blocklist_user_active` (`user_id`, `blocked_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `llm_user_strikes` (
+  `strike_id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `reason` varchar(30) NOT NULL COMMENT 'INJECTION, OUTPUT_INVALID',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`strike_id`),
+  KEY `idx_strikes_user_created` (`user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_question_sessions` (
   `session_id` bigint NOT NULL AUTO_INCREMENT,

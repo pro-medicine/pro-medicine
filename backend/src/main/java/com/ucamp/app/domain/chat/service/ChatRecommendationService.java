@@ -142,6 +142,7 @@ public class ChatRecommendationService {
 
         // 사전 필터: 인젝션 패턴 탐지 (LLM 호출 없이 차단)
         if (ChatPreFilter.detect(text).isPresent()) {
+            llmGuard.recordStrike(userId, "INJECTION");
             countResult("injection");
             return ChatMessageResponse.offTopic(id);
         }
@@ -151,6 +152,7 @@ public class ChatRecommendationService {
 
         // 되묻기 답에도 사전 필터 적용
         if (answering && ChatPreFilter.detect(text).isPresent()) {
+            llmGuard.recordStrike(userId, "INJECTION");
             countResult("injection");
             return ChatMessageResponse.offTopic(id);
         }
@@ -161,6 +163,7 @@ public class ChatRecommendationService {
                     ? parser.parse(state.firstText(), shown == null ? "" : shown.question(), text, userId)
                     : parser.parse(text, null, null, userId));
         } catch (ChatParseException e) {
+            llmGuard.recordStrike(userId, "OUTPUT_INVALID");
             countResult("error");
             throw new BusinessException(ErrorCode.CHAT_PARSE_FAILED);
         }
