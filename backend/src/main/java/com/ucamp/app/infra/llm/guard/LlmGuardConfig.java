@@ -1,5 +1,6 @@
 package com.ucamp.app.infra.llm.guard;
 
+import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,10 +18,17 @@ public class LlmGuardConfig {
     }
 
     @Bean
+    public FeatureBudgetCounter featureBudgetCounter(LlmCallLogRepository logRepository) {
+        return new FeatureBudgetCounter(logRepository);
+    }
+
+    @Bean
     public LlmGuard llmGuard(LlmGuardProperties properties,
                               LlmBlocklistRepository blocklistRepository,
                               LlmUserStrikeRepository strikeRepository,
-                              ObjectProvider<LlmRateLimiter> rateLimiter) {
-        return new LlmGuard(properties, blocklistRepository, strikeRepository, rateLimiter.getIfAvailable());
+                              ObjectProvider<LlmRateLimiter> rateLimiter,
+                              FeatureBudgetCounter featureBudgetCounter) {
+        return new LlmGuard(properties, blocklistRepository, strikeRepository,
+                rateLimiter.getIfAvailable(), featureBudgetCounter);
     }
 }

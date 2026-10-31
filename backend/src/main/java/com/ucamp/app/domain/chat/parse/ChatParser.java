@@ -10,6 +10,7 @@ import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmUnavailableException;
+import com.ucamp.app.infra.llm.guard.LlmGuardProperties;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class ChatParser {
 
     private final LlmClient llmClient;
     private final LlmProperties llmProperties;
+    private final LlmGuardProperties guardProperties;
     private final PromptTemplates promptTemplates;
     private final LlmCallLogService llmCallLogService;
     private final DrugCatalog drugCatalog;
@@ -141,7 +143,7 @@ public class ChatParser {
                 .model(llmProperties.getModel())
                 .system(system)
                 .messages(List.of(LlmMessage.user(user)))
-                .maxTokens(MAX_TOKENS)
+                .maxTokens(guardProperties.getMaxTokensFor("chat"))
                 .reasoningEffort(REASONING_EFFORT)
                 .outputSchema(schema)
                 .callTag(tag)

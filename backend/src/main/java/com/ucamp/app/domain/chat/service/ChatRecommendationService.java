@@ -12,7 +12,9 @@ import com.ucamp.app.domain.chat.parse.ChatParse;
 import com.ucamp.app.domain.chat.parse.ChatParseException;
 import com.ucamp.app.domain.chat.parse.ChatParser;
 import com.ucamp.app.domain.chat.parse.ChatPreFilter;
+import com.ucamp.app.domain.chat.parse.DrugCatalog;
 import com.ucamp.app.domain.chat.parse.RedFlagDetector;
+import com.ucamp.app.domain.chat.parse.ServerDrugDetector;
 import com.ucamp.app.domain.chat.scoring.ReviewTrack;
 import com.ucamp.app.domain.chat.vector.ReviewVectorIndex;
 import com.ucamp.app.domain.personalized.service.PregnancyQuestion;
@@ -26,6 +28,7 @@ import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.infra.llm.embed.EmbeddingClient;
 import com.ucamp.app.infra.llm.guard.LlmGuard;
+import com.ucamp.app.infra.llm.guard.LlmGuardException;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -130,7 +133,7 @@ public class ChatRecommendationService {
             sessionStore.update(id, s -> s.answerPregnancy(answered));
         }
 
-        // 서버 응급·위기 키워드 (RedFlag → 사전 필터 → LLM 순서)
+        // 서버 응급·위기 키워드 (RedFlag → 예산 → 사전 필터 → LLM 순서)
         java.util.Optional<String> serverRedFlag = RedFlagDetector.detect(text);
         if (serverRedFlag.isPresent()) {
             int turnNo = state.turnCount() + 1;
@@ -138,6 +141,11 @@ public class ChatRecommendationService {
             sessionStore.update(id, AiChatSession::markRedFlag);
             countResult("red_flag");
             return ChatMessageResponse.redFlag(id, serverRedFlag.get(), RedFlagDetector.notice(serverRedFlag.get()));
+        }
+
+        // V5: chat 예산 확인 (RedFlag 뒤 — 위기 문장은 예산 초과 날에도 안내)
+        if (llmGuard.isFeatureBudgetExceeded("chat")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
         }
 
         // 사전 필터: 인젝션 패턴 탐지 (LLM 호출 없이 차단)
@@ -193,6 +201,13 @@ public class ChatRecommendationService {
 
         // ② 안전 입력: 프로필 + 대화 속 약·질환 (세션에 저장, 프로필에는 저장하지 않음)
         ChatInputAssembler.Extracted extracted = chatInputAssembler.match(parse, parsed.drugs());
+        // V5 서버 약 탐지: LLM이 놓친 약 이름을 서버에서 직접 찾아 합침
+        List<DrugCatalog.Entry> serverDrugs = ServerDrugDetector.detect(text, parsed.drugs());
+        if (answering) {
+            serverDrugs = new ArrayList<>(serverDrugs);
+            serverDrugs.addAll(ServerDrugDetector.detect(state.firstText(), parsed.drugs()));
+        }
+        extracted = chatInputAssembler.unionServerDetected(extracted, serverDrugs);
         RecommendationInput input = chatInputAssembler.assemble(userId, pregnancy, extracted);
         sessionStore.saveTurn(id, turnNo, text, raw, null, logIds);
         String meds = chatInputAssembler.writeMedications(extracted.medications());
@@ -234,6 +249,10 @@ public class ChatRecommendationService {
         }
 
         // ④ 트랙 2: 대화 원문을 personalizedAnswers로 넣어 기존 파이프라인 (비동기)
+        // V5: recommendation 예산 확인 (track 2 진입 전 동기 확인 — 초과 시 ai_recommendations 행 만들지 않음)
+        if (llmGuard.isFeatureBudgetExceeded("recommendation")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
         RecommendationInput fallbackInput = input.toBuilder()
                 .personalizedAnswers(chatAnswers(answering ? state.firstText() : text, shown, answering ? text : null))
                 .chatSessionId(id)

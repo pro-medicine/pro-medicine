@@ -19,15 +19,18 @@ public class LlmGuard {
     private final LlmBlocklistRepository blocklistRepository;
     private final LlmUserStrikeRepository strikeRepository;
     private final LlmRateLimiter rateLimiter; // null이면 Redis 없음
+    private final FeatureBudgetCounter featureBudgetCounter;
 
     public LlmGuard(LlmGuardProperties properties,
                      LlmBlocklistRepository blocklistRepository,
                      LlmUserStrikeRepository strikeRepository,
-                     LlmRateLimiter rateLimiter) {
+                     LlmRateLimiter rateLimiter,
+                     FeatureBudgetCounter featureBudgetCounter) {
         this.properties = properties;
         this.blocklistRepository = blocklistRepository;
         this.strikeRepository = strikeRepository;
         this.rateLimiter = rateLimiter;
+        this.featureBudgetCounter = featureBudgetCounter;
     }
 
     /**
@@ -69,16 +72,17 @@ public class LlmGuard {
             }
         }
 
-        // 4) 분/일 제한 (Redis, fail-open)
+        // 4) 분/일 제한 (Redis, fail-open, 기능별)
         if (rateLimiter != null) {
+            LlmGuardProperties.Limits featureLimits = properties.getLimitsFor(feature);
             try {
-                Optional<Long> minuteCount = rateLimiter.incrementMinute(userId);
-                if (minuteCount.isPresent() && minuteCount.get() > properties.getLimits().getPerMinute()) {
+                Optional<Long> minuteCount = rateLimiter.incrementMinute(userId, feature);
+                if (minuteCount.isPresent() && minuteCount.get() > featureLimits.getPerMinute()) {
                     releaseInflight(userId, lockValue);
                     throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
                 }
-                Optional<Long> dayCount = rateLimiter.incrementDay(userId);
-                if (dayCount.isPresent() && dayCount.get() > properties.getLimits().getPerDay()) {
+                Optional<Long> dayCount = rateLimiter.incrementDay(userId, feature);
+                if (dayCount.isPresent() && dayCount.get() > featureLimits.getPerDay()) {
                     releaseInflight(userId, lockValue);
                     throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 3600);
                 }
@@ -98,14 +102,16 @@ public class LlmGuard {
      */
     public boolean isFeatureBudgetExceeded(String feature) {
         int budget = properties.getDailyBudgetFor(feature);
-        if (rateLimiter == null) return false;
-        try {
-            long count = rateLimiter.getFeatureBudgetCount(feature);
-            return count >= budget;
-        } catch (Exception e) {
-            log.warn("Feature budget check failed, fail-open: {}", e.getMessage());
-            return false;
+        long memoryCount = featureBudgetCounter.get(feature);
+        long redisCount = 0;
+        if (rateLimiter != null) {
+            try {
+                redisCount = rateLimiter.getFeatureBudgetCount(feature);
+            } catch (Exception e) {
+                log.warn("Feature budget check Redis failed, using memory only: {}", e.getMessage());
+            }
         }
+        return Math.max(memoryCount, redisCount) >= budget;
     }
 
     /**

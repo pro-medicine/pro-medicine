@@ -70,6 +70,24 @@ public class ChatInputAssembler {
         return new Extracted(List.copyOf(meds), List.copyOf(parse.conditions()), List.copyOf(unmatched));
     }
 
+    /**
+     * 서버 약 탐지 결과를 LLM 매칭 결과에 합침 (중복 제거). situationHash·markSearching 전에 호출해야 한다.
+     */
+    public Extracted unionServerDetected(Extracted llmExtracted, List<DrugCatalog.Entry> serverDetected) {
+        if (serverDetected.isEmpty()) {
+            return llmExtracted;
+        }
+        List<RecommendationInput.Medication> meds = new ArrayList<>(llmExtracted.medications());
+        for (DrugCatalog.Entry entry : serverDetected) {
+            RecommendationInput.Medication med = new RecommendationInput.Medication(entry.drugId(), entry.drugClass(), entry.name());
+            boolean dup = meds.stream().anyMatch(p -> sameDrug(p, med));
+            if (!dup) {
+                meds.add(med);
+            }
+        }
+        return new Extracted(List.copyOf(meds), llmExtracted.conditions(), llmExtracted.unmatched());
+    }
+
     /** 프로필 + 대화 속 약·질환 (트랙 1 안전 판단·트랙 2 입력의 기본) */
     public RecommendationInput assemble(Long userId, String pregnancy, Extracted extracted) {
         RecommendationInput base = assembler.assembleForMember(userId, pregnancy);

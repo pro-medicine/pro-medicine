@@ -2,6 +2,7 @@ package com.ucamp.app.infra.llm.embed;
 
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.infra.llm.LlmProperties;
+import com.ucamp.app.infra.llm.guard.FeatureBudgetCounter;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -30,6 +31,7 @@ public class EmbeddingConfig {
     @Primary
     public EmbeddingClient embeddingClient(LlmProperties properties, FakeEmbeddingClient fake,
                                            ObjectProvider<EmbeddingModel> embeddingModels, LlmCallLogService logService,
+                                           FeatureBudgetCounter featureBudgetCounter,
                                            @Value("${chat.embedding.model:text-embedding-3-small}") String model) {
         EmbeddingClient raw = fake;
         String provider = "fake";
@@ -47,7 +49,7 @@ public class EmbeddingConfig {
             }
         }
         log.info("Embedding provider = {}, model = {}", provider, model);
-        return new LoggingEmbeddingClient(raw, logService);
+        return new LoggingEmbeddingClient(raw, logService, featureBudgetCounter);
     }
 
     /** 실제 API 설정인데 EmbeddingModel이 없을 때: 가짜 벡터로 조용히 대신하지 않고 호출마다 실패시킨다 */

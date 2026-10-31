@@ -19,8 +19,11 @@ public class LlmGuardProperties {
     /** 기능별 가드 ON/OFF. 키: recommendation, personalized, chat 등. Redis 키 llm:kill:{feature}가 우선 */
     private Map<String, Boolean> enabled = new HashMap<>();
 
-    /** 사용자별 분/일 제한 (요청 단위) */
+    /** 사용자별 분/일 제한 — 기본값 (기능별 설정이 없으면 이 값 사용) */
     private Limits limits = new Limits();
+
+    /** 기능별 분/일 제한. 키: recommendation, personalized, chat 등 */
+    private Map<String, Limits> featureLimits = new HashMap<>();
 
     /** inflight 잠금 TTL (초). 같은 사용자의 동시 LLM 요청을 하나로 제한 */
     private int inflightTtlSeconds = 120;
@@ -44,6 +47,11 @@ public class LlmGuardProperties {
 
     public int getMaxTokensFor(String feature) {
         return maxTokens.getOrDefault(feature, 2000);
+    }
+
+    /** 기능별 분/일 제한 조회. 기능별 설정이 없으면 기본 limits 사용 */
+    public Limits getLimitsFor(String feature) {
+        return featureLimits.getOrDefault(feature, limits);
     }
 
     @Getter

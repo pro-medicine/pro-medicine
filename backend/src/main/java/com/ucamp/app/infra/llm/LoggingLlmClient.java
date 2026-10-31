@@ -1,5 +1,6 @@
 package com.ucamp.app.infra.llm;
 
+import com.ucamp.app.infra.llm.guard.FeatureBudgetCounter;
 import com.ucamp.app.infra.llm.guard.LlmRateLimiter;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
@@ -15,8 +16,10 @@ import lombok.RequiredArgsConstructor;
 public class LoggingLlmClient implements LlmClient {
     private final LlmClient delegate;
     private final LlmCallLogService logService;
-    /** null이면 Redis 미사용 환경 (기능 예산 카운트 건너뜀) */
+    /** null이면 Redis 미사용 환경 (Redis 예산 카운트 건너뜀) */
     private final LlmRateLimiter rateLimiter;
+    /** 메모리 예산 카운터 (Redis 장애 시에도 작동) */
+    private final FeatureBudgetCounter featureBudgetCounter;
 
     @Override
     public LlmResponse call(LlmRequest request) {
@@ -59,10 +62,15 @@ public class LoggingLlmClient implements LlmClient {
                 .feature(request.feature());
     }
 
-    /** 기능 예산 카운트 (실제 LLM 호출 단위). Redis 미사용이면 건너뜀 */
+    /** 기능 예산 카운트 (실제 LLM 호출 단위). 메모리 + Redis 양쪽 모두 카운트 */
     private void countFeatureBudget(String feature) {
-        if (rateLimiter != null && feature != null && !feature.isEmpty()) {
-            rateLimiter.incrementFeatureBudget(feature);
+        if (feature != null && !feature.isEmpty()) {
+            if (featureBudgetCounter != null) {
+                featureBudgetCounter.increment(feature);
+            }
+            if (rateLimiter != null) {
+                rateLimiter.incrementFeatureBudget(feature);
+            }
         }
     }
 

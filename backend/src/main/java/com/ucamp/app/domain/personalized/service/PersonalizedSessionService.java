@@ -23,6 +23,7 @@ import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.guard.LlmGuard;
+import com.ucamp.app.infra.llm.guard.LlmGuardException;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -67,6 +68,10 @@ public class PersonalizedSessionService {
     }
 
     private PersonalizedSessionResponse doStart(Long userId) {
+        // V5: personalized 예산 초과 → 503
+        if (llmGuard.isFeatureBudgetExceeded("personalized")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
         RecommendationModeResponse mode = modeService.mode(userId);
         if (!mode.isV2()) {
             throw new ProfileIncompleteException(mode.missing());
@@ -98,6 +103,10 @@ public class PersonalizedSessionService {
     }
 
     private PersonalizedSessionResponse doAnswer(Long userId, Long sessionId, Long turnId, List<Integer> selected) {
+        // V5: personalized 예산 초과 → 503
+        if (llmGuard.isFeatureBudgetExceeded("personalized")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
         SessionState state = store.answer(userId, sessionId, turnId, selected);
         SessionState.TurnState answered = state.turns().stream().filter(t -> t.turnId().equals(turnId))
                 .findFirst().orElseThrow();

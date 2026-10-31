@@ -35,15 +35,15 @@ public class LlmRateLimiter {
     /**
      * 분당 카운트를 1 올리고 현재 값 반환. Redis 장애 시 empty (fail-open).
      */
-    public Optional<Long> incrementMinute(Long userId) {
-        return increment("llm:rate:" + userId + ":minute:" + minuteKey(), 120);
+    public Optional<Long> incrementMinute(Long userId, String feature) {
+        return increment("llm:rate:" + userId + ":" + feature + ":minute:" + minuteKey(), 120);
     }
 
     /**
      * 일일 카운트를 1 올리고 현재 값 반환. Redis 장애 시 empty (fail-open).
      */
-    public Optional<Long> incrementDay(Long userId) {
-        return increment("llm:rate:" + userId + ":day:" + dayKey(), 90000);
+    public Optional<Long> incrementDay(Long userId, String feature) {
+        return increment("llm:rate:" + userId + ":" + feature + ":day:" + dayKey(), 90000);
     }
 
     /**
