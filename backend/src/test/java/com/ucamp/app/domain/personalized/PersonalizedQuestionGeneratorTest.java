@@ -57,9 +57,9 @@ class PersonalizedQuestionGeneratorTest {
         LlmRequest request = fake.requests().get(0);
         assertThat(request.callTag()).isEqualTo(LlmRequest.TAG_PQ_QUESTION);
         assertThat(request.reasoningEffort()).isEqualTo("low");
-        assertThat(request.maxTokens()).isEqualTo(500);
+        assertThat(request.maxTokens()).isEqualTo(600);
         assertThat(request.messages().get(0).text()).contains("- topic: CONCERN_OPEN (불편한 점)")
-                .contains("- answerType: MULTI").contains("메트포르민(METFORMIN)").contains("없음 (이 회차의 첫 질문)");
+                .contains("- answerType: MULTI").contains("메트포르민").contains("METFORMIN").contains("없음 (이 회차의 첫 질문)");
         LlmCallLog log = logRepository.findById(q.callLogId()).orElseThrow();
         assertThat(log.getSessionId()).isEqualTo(9001L);
         assertThat(log.getCallTag()).isEqualTo("PQ_QUESTION");

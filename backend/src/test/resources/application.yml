@@ -1,6 +1,8 @@
 # 테스트 전용 설정. 메인 application.yml 대신 이 파일이 로드된다 (같은 이름이라 클래스패스에서 우선).
 # 실제 MySQL 없이 H2(MySQL 모드)로 테스트를 돌린다.
 spring:
+  profiles:
+    active: test
   application:
     name: pro-medicine-test
 
@@ -20,9 +22,6 @@ spring:
       hibernate:
         format_sql: false
 
-# 테스트용 JWT 비밀키 (32바이트 Base64). 운영 환경과 다른 값이어야 한다.
-JWT_SECRET_BASE64: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cw==
-
   # 테스트 픽스처 (예시 데이터). 운영 시드는 backend/docs/sql/ 에 있고 앱 시작 시 자동으로 넣지 않는다.
   sql:
     init:
@@ -33,3 +32,6 @@ JWT_SECRET_BASE64: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cw==
         - classpath:sql/seed-drugs.sql
         - classpath:sql/seed-ingredient-standards.sql
         - classpath:sql/seed-recommendation-rules.sql
+
+# 테스트용 JWT 비밀키 (32바이트 Base64). 운영 환경과 다른 값이어야 한다.
+JWT_SECRET_BASE64: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cw==

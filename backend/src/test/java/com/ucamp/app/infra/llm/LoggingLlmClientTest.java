@@ -29,7 +29,7 @@ class LoggingLlmClientTest {
     void 성공_호출을_기록하고_행_ID를_돌려준다() {
         LlmClient delegate = req -> LlmResponse.builder().text("ok").model("gpt-6.1-sol")
                 .usage(new LlmUsage(100, 20, 5, 0)).latencyMs(1234).build();
-        LoggingLlmClient client = new LoggingLlmClient(delegate, logService, null);
+        LoggingLlmClient client = new LoggingLlmClient(delegate, logService, null, null);
 
         LlmResponse res = client.call(request("eval-1"));
 
@@ -51,10 +51,10 @@ class LoggingLlmClientTest {
     void 실패_호출도_기록한다_HTTP_오류와_타임아웃() {
         LoggingLlmClient httpError = new LoggingLlmClient(req -> {
             throw new LlmCallException(LlmCallException.Kind.HTTP_ERROR, 503, null, 50, "x", null);
-        }, logService, null);
+        }, logService, null, null);
         LoggingLlmClient timeout = new LoggingLlmClient(req -> {
             throw new LlmCallException(LlmCallException.Kind.TIMEOUT, null, null, 30000, "t", null);
-        }, logService, null);
+        }, logService, null, null);
 
         assertThatThrownBy(() -> httpError.call(request("eval-2")))
                 .isInstanceOfSatisfying(LlmCallException.class, e -> assertThat(e.getCallLogId()).isNotNull());
@@ -68,7 +68,7 @@ class LoggingLlmClientTest {
 
     @Test
     void 파이프라인이_outcome을_바꿀_수_있다() {
-        LoggingLlmClient client = new LoggingLlmClient(req -> LlmResponse.builder().text("x").model("m").build(), logService, null);
+        LoggingLlmClient client = new LoggingLlmClient(req -> LlmResponse.builder().text("x").model("m").build(), logService, null, null);
         LlmResponse res = client.call(request(null));
 
         logService.markOutcome(res.callLogId(), LlmCallLog.PARSE_FAIL);

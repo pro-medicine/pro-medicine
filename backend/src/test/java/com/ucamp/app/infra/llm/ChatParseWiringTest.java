@@ -91,7 +91,7 @@ class ChatParseWiringTest {
         assertThat(system).contains("ANTICOAGULANT_UNKNOWN: 항응고제 (이름 모름)").contains("WARFARIN: 와파린");
         LlmCallLog log = logRepository.findById(parsed.logIds().get(0)).orElseThrow();
         assertThat(log.getCallTag()).isEqualTo(ChatParser.TAG_CHAT_PARSE);
-        assertThat(log.getPromptVersion()).isEqualTo("chat-v2");
+        assertThat(log.getPromptVersion()).isEqualTo("chat-v3");
     }
 
     @Test
