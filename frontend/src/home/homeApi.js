@@ -143,3 +143,14 @@ export async function getIntakeSummary(userId) {
 
     return res.data;
 }
+
+/** GET /api/v1/intakes/stats : 연속 복용 일수 (홈 "N일 연속 복용 중" 배지) */
+export async function getStreakDays(userId) {
+    const res = await request(`/api/v1/intakes/stats?userId=${userId}`);
+    return res.data?.streakDays ?? 0;
+}
+
+/** 오늘(KST) 날짜 "yyyy-MM-dd" — 홈이 오늘을 보여주는지 확인할 때 사용 */
+export function kstToday() {
+    return todayString();
+}

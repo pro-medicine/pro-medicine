@@ -210,8 +210,8 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
     <div className="screen profile-screen">
       <TopBar
         back={onBack}
-        title="내 정보"
-        subtitle="프로필 편집"
+        title="프로필 편집"
+        description="추천과 영양 계산에 쓰이는 정보예요. 언제든 바꿀 수 있어요."
         onNotifications={onNotifications}
       />
 
@@ -230,98 +230,97 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
         >
           <section className="profile-edit-card">
             <h2>기본 정보</h2>
-            <label className="profile-edit-field">
-              <span>닉네임</span>
-              <input
-                value={form.nickname}
-                maxLength={50}
-                onChange={(event) => change("nickname", event.target.value)}
-              />
-            </label>
-            <p className="profile-edit-hint">이메일 {user.email}</p>
-          </section>
-
-          <section className="profile-edit-card">
-            <h2>건강 정보</h2>
-            <div className="profile-edit-grid">
-              <label className="profile-edit-field">
-                <span>출생연도</span>
+            <div className="profile-edit-row">
+              <span className="profile-edit-label">
+                닉네임
+                <small>친구가 나를 찾을 때 쓰는 이름이에요</small>
+              </span>
+              <div>
                 <input
-                  type="number"
-                  min={1900}
-                  max={2100}
-                  value={form.birthYear}
-                  onChange={(event) => change("birthYear", event.target.value)}
+                  className="profile-edit-input"
+                  aria-label="닉네임"
+                  value={form.nickname}
+                  maxLength={50}
+                  onChange={(event) => change("nickname", event.target.value)}
                 />
-              </label>
-              <label className="profile-edit-field">
-                <span>성별</span>
-                <select
-                  value={form.gender}
-                  onChange={(event) => change("gender", event.target.value)}
-                >
-                  <option value="">선택 안 함</option>
-                  {/* 설문 Q-GENDER 와 같은 값 (M / F) */}
-                  <option value="M">남성</option>
-                  <option value="F">여성</option>
-                  {/* 예전에 다른 값으로 저장된 경우에도 그대로 보이게 */}
-                  {form.gender !== "" &&
-                    form.gender !== "M" &&
-                    form.gender !== "F" && (
-                      <option value={form.gender}>{form.gender}</option>
-                    )}
-                </select>
-              </label>
-              <label className="profile-edit-field">
-                <span>키 (cm)</span>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  value={form.height}
-                  onChange={(event) => change("height", event.target.value)}
-                />
-              </label>
-              <label className="profile-edit-field">
-                <span>몸무게 (kg)</span>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  value={form.weight}
-                  onChange={(event) => change("weight", event.target.value)}
-                />
-              </label>
-              {choiceFields.map((field) => (
-                <label className="profile-edit-field" key={field.key}>
-                  <span>{field.label}</span>
-                  <select
-                    value={form[field.key]}
-                    onChange={(event) => change(field.key, event.target.value)}
-                  >
-                    <option value="">선택 안 함</option>
-                    {field.options.map(([value, text]) => (
-                      <option key={value} value={value}>
-                        {text}
-                      </option>
-                    ))}
-                    {/* 예전에 다른 값으로 저장된 경우에도 그대로 보이게 */}
-                    {form[field.key] !== "" &&
-                      !field.options.some(
-                        ([value]) => value === form[field.key],
-                      ) && (
-                        <option value={form[field.key]}>
-                          {form[field.key]}
-                        </option>
-                      )}
-                  </select>
-                </label>
-              ))}
+                <p className="profile-edit-hint">이메일 {user.email}</p>
+              </div>
             </div>
           </section>
 
           <section className="profile-edit-card">
+            <h2>건강 정보</h2>
+            <div className="profile-edit-row">
+              <span className="profile-edit-label">기본 건강 정보</span>
+              <div className="profile-edit-grid">
+                <label className="profile-edit-field">
+                  <span>출생연도</span>
+                  <input
+                    type="number"
+                    min={1900}
+                    max={2100}
+                    value={form.birthYear}
+                    onChange={(event) => change("birthYear", event.target.value)}
+                  />
+                </label>
+                <label className="profile-edit-field">
+                  <span>키 (cm)</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={form.height}
+                    onChange={(event) => change("height", event.target.value)}
+                  />
+                </label>
+                <label className="profile-edit-field">
+                  <span>몸무게 (kg)</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={form.weight}
+                    onChange={(event) => change("weight", event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="profile-edit-row">
+              <span className="profile-edit-label">성별</span>
+              {/* 설문 Q-GENDER 와 같은 값 (M / F) */}
+              <ChoiceChips
+                label="성별"
+                value={form.gender}
+                options={[
+                  ["M", "남성"],
+                  ["F", "여성"],
+                ]}
+                onChange={(value) => change("gender", value)}
+              />
+            </div>
+
+            {choiceFields.map((field) => (
+              <div className="profile-edit-row" key={field.key}>
+                <span className="profile-edit-label">{field.label}</span>
+                <ChoiceChips
+                  label={field.label}
+                  value={form[field.key]}
+                  options={field.options}
+                  onChange={(value) => change(field.key, value)}
+                />
+              </div>
+            ))}
+          </section>
+
+          <section className="profile-edit-card">
             <h2>질환</h2>
+            <div className="profile-edit-row">
+            <span className="profile-edit-label">
+              질환
+              <small>여러 개 등록할 수 있어요</small>
+            </span>
+            <div>
             {conditions.length === 0 ? (
               <p className="profile-edit-hint">등록된 질환이 없어요.</p>
             ) : (
@@ -368,6 +367,8 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
                 + 질환 추가
               </button>
             )}
+            </div>
+            </div>
           </section>
 
           {message && (
@@ -376,11 +377,38 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
             </p>
           )}
 
-          <button className="profile-edit-save" type="submit" disabled={saving}>
-            {saving ? "저장 중..." : "저장"}
-          </button>
+          <div className="profile-edit-footer">
+            <button className="btn btn-outline btn-lg" type="button" onClick={onBack}>
+              취소
+            </button>
+            <button className="btn btn-primary btn-lg" type="submit" disabled={saving}>
+              {saving ? "저장 중..." : "저장"}
+            </button>
+          </div>
         </form>
       )}
+    </div>
+  );
+}
+
+// 선택지 칩 한 줄 (선택 안 함 포함). 예전에 다른 값으로 저장된 경우에도 칩으로 보이게 한다
+function ChoiceChips({ label, value, options, onChange }) {
+  const known = value === "" || options.some(([optionValue]) => optionValue === value);
+  const all = [["", "선택 안 함"], ...options, ...(known ? [] : [[value, value]])];
+  return (
+    <div className="profile-edit-chips" role="radiogroup" aria-label={label}>
+      {all.map(([optionValue, text]) => (
+        <button
+          key={optionValue || "none"}
+          type="button"
+          role="radio"
+          aria-checked={value === optionValue}
+          className={value === optionValue ? "choice active" : "choice"}
+          onClick={() => onChange(optionValue)}
+        >
+          {text}
+        </button>
+      ))}
     </div>
   );
 }

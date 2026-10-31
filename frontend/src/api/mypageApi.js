@@ -19,7 +19,7 @@ export function saveHealthProfile(userId, form) {
   return api.put(`/api/v1/users/${userId}/health-profile`, form);
 }
 
-// 연속 복용일, 복용 중인 영양제 수, 이번 달 달성률
+// 연속 복용일(+최고 기록), 복용 중인 영양제 수, 이번 주·이번 달 달성률, 요일별·주차별 그래프 데이터
 export function fetchIntakeStats(userId) {
   return api.get("/api/v1/intakes/stats", { params: { userId } });
 }

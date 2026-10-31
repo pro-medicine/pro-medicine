@@ -219,8 +219,8 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
       >
         <div className="rec-header">
           <div>
-            <span className="rec-eyebrow">AI PERSONALIZED</span>
-            <h2>맞춤 질문 추천</h2>
+            <span className="rec-eyebrow">맞춤 영양 추천</span>
+            <h2>맞춤 질문</h2>
           </div>
           <button
             type="button"

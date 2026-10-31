@@ -1,6 +1,8 @@
 package com.ucamp.app.domain.intake.service;
 
+import com.ucamp.app.domain.intake.dto.DayProgress;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
+import com.ucamp.app.domain.intake.dto.WeekRate;
 import com.ucamp.app.domain.intake.dto.TakenIntake;
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import com.ucamp.app.domain.intake.repository.IntakeRecordRepository;
@@ -17,6 +19,7 @@ import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import java.time.temporal.ChronoUnit; // 달력 범위
 
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -55,12 +58,100 @@ public class IntakeService {
             takenByDate.computeIfAbsent(taken.intakeDate(), date -> new HashSet<>()).add(taken.scheduleId());
         }
 
+        int streak = streakDays(schedules, takenByDate, today);
+
+        // 최근 1년 하루별 진행도 → 최고 연속 기록
+        List<DayProgress> lastYear = progressBetween(schedules, takenByDate, from, today);
+
+        // 이번 주 월~일 (오늘 이후 날짜는 0/0)
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
+        List<DayProgress> weekDays = new ArrayList<>();
+        for (LocalDate day = monday; day.isBefore(monday.plusDays(7)); day = day.plusDays(1)) {
+            weekDays.add(day.isAfter(today) ? new DayProgress(day, 0, 0) : dayProgress(schedules, takenByDate, day));
+        }
+
+        // 이번 달 1일 ~ 오늘 → 주차별 달성률
+        List<DayProgress> thisMonth = progressBetween(schedules, takenByDate, today.withDayOfMonth(1), today);
+
         return new IntakeStatsResponse(
                 userId,
-                streakDays(schedules, takenByDate, today),
+                streak,
                 intakeRecordRepository.countActiveSupplements(userId), //수정
-                monthlyRate(schedules, takenByDate, today)
+                monthlyRate(schedules, takenByDate, today),
+                Math.max(streak, bestStreak(lastYear)),
+                rate(weekDays),
+                weekDays,
+                monthWeeks(thisMonth, today)
         );
+    }
+
+    // 하루 진행도: 그날 먹어야 했던 일정 수 / 그중 먹은 수
+    private DayProgress dayProgress(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate, LocalDate day) {
+        Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
+        int expected = 0;
+        int taken = 0;
+        for (IntakeSchedule schedule : schedules) {
+            if (isScheduledOn(schedule, day)) {
+                expected++;
+                if (takenIds.contains(schedule.getScheduleId())) {
+                    taken++;
+                }
+            }
+        }
+        return new DayProgress(day, expected, taken);
+    }
+
+    private List<DayProgress> progressBetween(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate,
+                                              LocalDate start, LocalDate end) {
+        List<DayProgress> days = new ArrayList<>();
+        for (LocalDate day = start; !day.isAfter(end); day = day.plusDays(1)) {
+            days.add(dayProgress(schedules, takenByDate, day));
+        }
+        return days;
+    }
+
+    // 날짜순 진행도 목록에서 "모두 복용한 날"이 가장 길게 이어진 일수
+    // 먹을 일정이 없던 날(expected 0)도 연속을 끊는다 (현재 연속 복용 계산과 같은 기준)
+    static int bestStreak(List<DayProgress> days) {
+        int best = 0;
+        int run = 0;
+        for (DayProgress day : days) {
+            run = day.completed() ? run + 1 : 0;
+            best = Math.max(best, run);
+        }
+        return best;
+    }
+
+    // (먹은 수 합 / 먹어야 했던 수 합) * 100, 먹을 일정이 없으면 0
+    static int rate(List<DayProgress> days) {
+        long expected = 0;
+        long taken = 0;
+        for (DayProgress day : days) {
+            expected += day.expected();
+            taken += day.taken();
+        }
+        return expected == 0 ? 0 : (int) Math.round(taken * 100.0 / expected);
+    }
+
+    // 이번 달을 월요일 기준 주차로 나눠 주차별 달성률 계산
+    // days: 이번 달 1일 ~ 오늘의 진행도, 아직 오지 않은 주는 rate null
+    static List<WeekRate> monthWeeks(List<DayProgress> days, LocalDate today) {
+        LocalDate first = today.withDayOfMonth(1);
+        LocalDate last = today.withDayOfMonth(today.lengthOfMonth());
+        List<WeekRate> weeks = new ArrayList<>();
+        int week = 1;
+        for (LocalDate start = first; !start.isAfter(last); week++) {
+            LocalDate sunday = start.with(DayOfWeek.SUNDAY);
+            LocalDate end = sunday.isAfter(last) ? last : sunday;
+            LocalDate from = start;
+            List<DayProgress> inWeek = days.stream()
+                    .filter(d -> !d.date().isBefore(from) && !d.date().isAfter(end))
+                    .toList();
+            boolean hasSchedule = inWeek.stream().anyMatch(d -> d.expected() > 0);
+            weeks.add(new WeekRate(week, start, end, start.isAfter(today) || !hasSchedule ? null : rate(inWeek)));
+            start = end.plusDays(1);
+        }
+        return weeks;
     }
 
     // 그날 먹어야 하는 일정을 모두 먹은 날이 오늘(또는 어제)부터 며칠 연속인지
@@ -156,9 +247,33 @@ public class IntakeService {
                     dto.setName(row.getName());
                     dto.setDesc(row.getDesc());
                     dto.setTaken(row.getTaken() != null && row.getTaken().intValue() == 1); // 먹었으면 true
+                    dto.setMealSlot(row.getMealSlot());
+                    dto.setRemindAt(toHourMinute(row.getRemindAt()));
+                    dto.setCompletedAt(toHourMinute(row.getCompletedAt()));
                     return dto;
                 })
                 .toList();
+    }
+
+    // native query의 시간 값 → "HH:mm" (DB 드라이버에 따라 Time / LocalTime / Timestamp / LocalDateTime 으로 올 수 있음)
+    static String toHourMinute(Object value) {
+        if (value == null) return null;
+        java.time.LocalTime time;
+        if (value instanceof java.time.LocalTime t) {
+            time = t;
+        } else if (value instanceof java.sql.Time t) {
+            time = t.toLocalTime();
+        } else if (value instanceof java.time.LocalDateTime t) {
+            time = t.toLocalTime();
+        } else if (value instanceof java.sql.Timestamp t) {
+            time = t.toLocalDateTime().toLocalTime();
+        } else {
+            String text = value.toString();               // "08:00:00" 또는 "2026-10-29 08:10:00"
+            int split = Math.max(text.indexOf(' '), text.indexOf('T'));
+            if (split >= 0) text = text.substring(split + 1);
+            return text.length() >= 5 ? text.substring(0, 5) : text;
+        }
+        return String.format("%02d:%02d", time.getHour(), time.getMinute());
     }
 
     // 달력 만들기 부분
@@ -191,6 +306,26 @@ public class IntakeService {
             }
         }
         return completedDates;
+    }
+
+    // 마이페이지 달력: 날짜별 진행도 (오늘 이후 날짜는 제외)
+    public List<DayProgress> getDailyProgress(Long userId, LocalDate start, LocalDate end) {
+        if (start.isAfter(end) || ChronoUnit.DAYS.between(start, end) + 1 > MAX_CALENDAR_DAYS) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        LocalDate today = LocalDate.now(KST);
+        if (start.isAfter(today)) return List.of();
+        LocalDate until = end.isAfter(today) ? today : end;
+
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
+        Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
+        for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, start, until)) {
+            takenByDate.computeIfAbsent(taken.intakeDate(), d -> new HashSet<>()).add(taken.scheduleId());
+        }
+        return progressBetween(schedules, takenByDate, start, until);
     }
 
     public Map<Long, Integer> getStreakDays(Collection<Long> userIds) {

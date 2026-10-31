@@ -96,6 +96,9 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
         String getName();
         String getDesc();
         Number getTaken();   // MySQL은 true/false를 1/0으로 줌
+        String getMealSlot();      // BREAKFAST / LUNCH / DINNER (홈 타임라인용)
+        Object getRemindAt();      // 알림 시각 (TIME)
+        Object getCompletedAt();   // 그날 체크한 시각 (DATETIME, 안 먹었으면 null)
     }
 
     // ② 그날 먹어야 할 일정 + 그날 복용 기록
@@ -110,7 +113,10 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
                    ) AS timing,
                    COALESCE(cp.product_name, up.manual_product_name) AS name,
                    COALESCE(cp.main_function, '') AS `desc`,
-                   IFNULL(ir.status = 'TAKEN', 0) AS taken
+                   IFNULL(ir.status = 'TAKEN', 0) AS taken,
+                   s.meal_slot AS mealSlot,
+                   s.remind_at AS remindAt,
+                   CASE WHEN ir.status = 'TAKEN' THEN ir.completed_at END AS completedAt
             FROM intake_schedules s
             JOIN user_products up ON up.user_product_id = s.user_product_id
             LEFT JOIN catalog_products cp ON cp.catalog_product_id = up.catalog_product_id

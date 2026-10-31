@@ -1,64 +1,41 @@
-.profile-hero {
-  align-items: center;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  display: flex;
-  padding: 28px 32px;
-}
+/* 마이페이지 · 친구 상세(ProfileScreen) · 프로필 편집 · 영양제 등록 — #67 시안 B */
 
+/* ───────── 머리: 큰 아바타 + 이름 ───────── */
 .avatar.xlarge {
-  border: 0;
-  font-size: 23px;
-  height: 78px;
-  margin: 0 20px 0 0;
-  width: 78px;
-}
-
-.profile-name {
-  flex: 1;
-}
-
-.profile-name > span {
-  color: #a68b28;
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.profile-name h2 {
   font-size: 24px;
-  letter-spacing: -0.04em;
-  margin: 2px 0;
+  height: 68px;
+  width: 68px;
 }
 
-.profile-name p {
-  color: var(--muted);
-  font-size: 11px;
-  margin: 0;
+.profile-screen .header-title h1 {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.edit-button {
-  background: white;
-  border: 1px solid #deded7;
-  border-radius: 9px;
-  color: #696b63;
-  font-size: 10px;
-  padding: 9px 12px;
+.profile-relation {
+  font-size: 12px;
+  letter-spacing: 0;
 }
 
+/* ───────── 통계 3칸 ───────── */
 .stats-grid {
-  background: var(--yellow-soft);
-  border: 1px solid #f1e4aa;
-  border-radius: 20px;
+  background: var(--white);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-card);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin-top: 16px;
-  padding: 20px;
+  padding: 26px 0;
 }
 
 .stats-grid div {
-  border-right: 1px solid #eadc9e;
-  text-align: center;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 30px;
 }
 
 .stats-grid div:last-child {
@@ -66,381 +43,603 @@
 }
 
 .stats-grid span {
-  color: #8d825a;
-  display: block;
-  font-size: 9px;
-  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .stats-grid strong {
-  font-size: 21px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .stats-grid small {
-  font-size: 10px;
-  margin-left: 2px;
+  color: var(--faint);
+  font-size: 15px;
+  font-weight: 500;
+  margin-left: 3px;
 }
 
+.profile-screen .calendar-card,
+.profile-screen > section + section {
+  margin-top: 24px;
+}
+
+/* ───────── 아래 2단: 나의 영양관리 + 내가 먹는 영양제 ───────── */
+.profile-columns {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 380px minmax(0, 1fr);
+  margin-top: 24px;
+}
+
+.profile-columns.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 나의 영양관리 */
 .nutrition-management {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  margin-top: 18px;
+  background: var(--white);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-card);
   padding: 26px 28px;
 }
 
 .nutrition-heading {
   align-items: flex-start;
   display: flex;
+  gap: 12px;
   justify-content: space-between;
 }
 
 .nutrition-heading h2 {
-  font-size: 20px;
-  letter-spacing: -0.04em;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 
 .nutrition-heading p {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1.5;
   margin: 6px 0 0;
 }
 
 .nutrition-date {
-  background: var(--yellow-soft);
-  border-radius: 20px;
-  color: #8a7423;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 6px 9px;
+  color: var(--faint);
+  flex-shrink: 0;
+  font-size: 12px;
 }
 
 .nutrition-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  margin-top: 25px;
+  margin-top: 22px;
 }
 
 .nutrition-row {
   align-items: center;
   display: grid;
-  gap: 16px;
-  grid-template-columns: 145px 1fr 48px;
+  gap: 14px;
+  grid-template-columns: 88px minmax(0, 1fr) 40px;
 }
 
-.nutrition-name strong,
-.nutrition-name span {
-  display: block;
+.nutrition-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .nutrition-name strong {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .nutrition-name span {
-  color: #9b9c95;
-  font-size: 8px;
-  margin-top: 2px;
+  color: var(--faint);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nutrition-gauge {
-  background: #f0f0eb;
-  border-radius: 20px;
-  height: 9px;
+  background: var(--surface);
+  border-radius: 999px;
+  height: 8px;
   overflow: hidden;
 }
 
 .nutrition-gauge > span {
-  background: var(--yellow-deep);
-  border-radius: inherit;
+  background: var(--primary);
+  border-radius: 999px;
   display: block;
   height: 100%;
+  transition: width 0.4s ease;
 }
 
-.nutrition-gauge > span.green {
-  background: #8eaf91;
-}
-
-.nutrition-gauge > span.purple {
-  background: #ad96bb;
-}
-
-.nutrition-gauge > span.orange {
-  background: #dfa06c;
-}
-
-.nutrition-gauge > span.blue {
-  background: #82aab4;
+.nutrition-gauge > span.low {
+  background: #e8a23a;
 }
 
 .nutrition-percent {
+  color: var(--faint);
+  font-size: 12px;
   text-align: right;
 }
 
-.nutrition-percent strong,
-.nutrition-percent span {
-  display: block;
+.nutrition-percent.low {
+  color: #c27f17;
+  font-weight: 700;
 }
 
-.nutrition-percent strong {
-  font-size: 13px;
-}
-
-.nutrition-percent span {
-  color: #7c9c80;
-  font-size: 7px;
+.nutrition-percent.ok {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .nutrition-notice {
-  align-items: center;
-  background: var(--yellow-pale);
-  border: 1px solid #f2e7b2;
-  border-radius: 11px;
-  color: #887329;
+  align-items: flex-start;
+  background: var(--surface);
+  border-radius: 12px;
+  color: var(--muted);
   display: flex;
-  gap: 9px;
-  margin-top: 23px;
-  padding: 11px 13px;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 14px 16px;
+}
+
+.nutrition-notice .icon {
+  color: var(--faint);
+  margin-top: 2px;
 }
 
 .nutrition-notice p {
-  font-size: 9px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.6;
   margin: 0;
 }
 
-.profile-hero.clickable {
-  cursor: pointer;
+.nutrition-empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 18px 0 0;
 }
 
-.profile-edit {
+/* 내가 먹는 영양제 */
+.profile-screen .products-section {
+  background: var(--white);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-card);
+  margin: 0;
+  padding: 24px 28px 10px;
+}
+
+.products-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
+.products-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.products-head h2 span {
+  color: var(--faint);
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.profile-screen .section-description {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 14px 0 18px;
+}
+
+.product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.product-row {
+  align-items: center;
   display: grid;
   gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto 110px auto;
+  padding: 18px 0;
 }
 
-.profile-edit-card {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 24px 26px;
+.product-row + .product-row {
+  border-top: 1px solid var(--line);
+}
+
+.profile-columns.single .product-row {
+  grid-template-columns: minmax(0, 1fr) auto 140px;
+}
+
+.product-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.product-row-main strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.product-row-main small {
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.product-row-time {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.product-row-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.product-row-actions button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--faint);
+  cursor: pointer;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.product-row-actions button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.product-row-actions button:last-child:hover {
+  color: var(--alert);
+}
+
+.product-row-actions button:disabled {
+  cursor: wait;
+  opacity: 0.4;
+}
+
+/* ───────── 프로필 편집 · 영양제 등록 공통 ───────── */
+.profile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 
 .profile-edit-card h2 {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
   font-size: 18px;
-  letter-spacing: -0.04em;
-  margin: 0 0 16px;
+  font-weight: 700;
+  gap: 10px;
+  letter-spacing: -0.03em;
+  margin: 0;
+  padding-bottom: 14px;
+}
+
+/* 왼쪽 항목 이름 + 오른쪽 입력 */
+.profile-edit-row {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  padding: 24px 0;
+}
+
+.profile-edit-row:last-child {
+  border-bottom: 0;
+}
+
+.profile-edit-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  font-weight: 700;
+  gap: 4px;
+  padding-top: 10px;
+}
+
+.profile-edit-label small {
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.profile-edit-input,
+.profile-edit-field input,
+.profile-edit-field select,
+.profile-edit-condition-picker,
+.supplement-search-row input,
+.supplement-schedule-row input[type="time"] {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 15px;
+  height: 48px;
+  outline: none;
+  padding: 0 16px;
+}
+
+.profile-edit-input:focus,
+.profile-edit-field input:focus,
+.profile-edit-field select:focus,
+.supplement-search-row input:focus,
+.supplement-schedule-row input[type="time"]:focus {
+  border-color: var(--accent);
+}
+
+.profile-edit-input {
+  max-width: 380px;
+  width: 100%;
 }
 
 .profile-edit-grid {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 168px));
 }
 
 .profile-edit-field {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .profile-edit-field span {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
 }
 
 .profile-edit-field input,
 .profile-edit-field select {
-  background: #fafaf6;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 13px;
-  padding: 10px 12px;
+  width: 100%;
+}
+
+.profile-edit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .profile-edit-hint {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--faint);
+  font-size: 13px;
   margin: 8px 0 0;
 }
 
-.profile-edit-message {
-  color: var(--muted);
-  font-size: 11px;
-  margin: 0;
-  text-align: center;
-}
-
-.profile-edit-message.error {
-  color: #c4473a;
-}
-
-.profile-edit-message.success {
-  color: #4f8a4b;
-}
-
-.profile-edit-save {
-  background: var(--yellow-soft);
-  border: 1px solid #efdfa0;
-  border-radius: 12px;
-  color: #776520;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 14px;
-}
-
-.profile-edit-save:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
+/* 질환: 칩 + 추가 */
 .profile-edit-conditions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   list-style: none;
-  margin: 0;
+  margin: 0 0 12px;
   padding: 0;
 }
 
 .profile-edit-conditions li {
   align-items: center;
-  background: var(--yellow-soft);
-  border: 1px solid #efdfa0;
-  border-radius: 20px;
-  color: #776520;
-  display: flex;
-  font-size: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 14px;
   font-weight: 700;
   gap: 6px;
-  padding: 7px 8px 7px 14px;
+  height: 42px;
+  padding: 0 10px 0 17px;
 }
 
 .profile-edit-conditions li button {
-  background: none;
+  background: transparent;
   border: 0;
-  color: #a99447;
-  font-size: 11px;
-  line-height: 1;
-  padding: 2px 4px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
 }
 
-.profile-edit-condition-add,
-.profile-edit-condition-picker {
-  background: #fafaf6;
-  border: 1px dashed #d8d8cf;
-  border-radius: 10px;
-  color: #696b63;
-  font-size: 12px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  width: 100%;
-}
-
-.profile-edit-condition-picker {
-  border-style: solid;
+.profile-edit-condition-add {
+  background: var(--white);
+  border: 1px dashed var(--faint);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  height: 42px;
+  padding: 0 17px;
 }
 
 .profile-edit-condition-add:disabled {
-  cursor: default;
-  opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
-/* 내 영양제 카드: 오른쪽 위 수정 / 삭제 버튼 */
-.supplement-card-wrap {
-  position: relative;
+.profile-edit-condition-picker {
+  max-width: 300px;
+  width: 100%;
 }
 
-/* 감싼 div 높이만큼 카드도 늘려서, 같은 줄 카드 높이를 맞춤 */
-.supplement-card-wrap > .supplement-card {
-  height: 100%;
+.profile-edit-message {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
 }
 
-.supplement-card-actions {
+.profile-edit-message.error {
+  color: var(--alert);
+}
+
+.profile-edit-message.success {
+  color: var(--primary);
+}
+
+/* 아래 버튼줄: (요약) · 취소 · 저장/등록 */
+.profile-edit-footer {
+  align-items: center;
+  border-top: 1px solid var(--line);
   display: flex;
-  gap: 6px;
-  position: absolute;
-  right: 12px;
-  top: 12px;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 24px;
 }
 
-.supplement-card-actions button {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: #696b63;
-  font-size: 11px;
+.supplement-summary {
+  color: var(--ink);
+  font-size: 15px;
   font-weight: 700;
-  padding: 5px 10px;
+  margin: 0 auto 0 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.supplement-card-actions button:last-child {
-  color: #c4473a;
+/* ───────── 영양제 등록 ───────── */
+.profile-screen .profile-edit .profile-edit-card {
+  background: var(--white);
 }
 
-.supplement-card-actions button:disabled {
-  opacity: 0.5;
+/* 프로필 편집·영양제 등록: 섹션마다 흰 카드 (배경이 연한 회색이라 카드로 구분) */
+.profile-screen .profile-edit .profile-edit-card {
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-card);
+  padding: 26px 28px;
 }
 
-/* 영양제 등록 페이지 */
+.profile-screen .profile-edit:has(.supplement-schedule-row) .profile-edit-card h2 {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-screen .profile-edit:has(.supplement-schedule-row) {
+  gap: 24px;
+}
+
+.step-num {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 50%;
+  color: var(--white);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
 .supplement-search-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .supplement-search-row input {
-  background: #fafaf6;
-  border: 1px solid var(--line);
-  border-radius: 10px;
   flex: 1;
-  font-size: 13px;
   min-width: 0;
-  padding: 10px 12px;
 }
 
-.supplement-search-row button {
-  background: var(--yellow-soft);
-  border: 1px solid #efdfa0;
-  border-radius: 10px;
-  color: #776520;
-  font-weight: 700;
-  padding: 0 16px;
+.supplement-search-row .btn {
+  height: 48px;
 }
 
 .supplement-search-results {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   list-style: none;
-  margin: 12px 0 0;
-  max-height: 280px;
-  overflow-y: auto;
+  margin: 14px 0 0;
   padding: 0;
 }
 
 .supplement-search-item {
-  background: white;
+  background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
+  cursor: pointer;
   display: grid;
-  gap: 2px;
-  padding: 10px 12px;
+  gap: 2px 14px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  padding: 16px 20px;
   text-align: left;
   width: 100%;
 }
 
+.supplement-search-item::before {
+  border: 1.5px solid #d4d9d6;
+  border-radius: 50%;
+  box-sizing: border-box;
+  content: "";
+  grid-row: 1 / span 3;
+  height: 20px;
+  margin-top: 2px;
+  width: 20px;
+}
+
+.supplement-search-item > * {
+  grid-column: 2;
+}
+
+.supplement-search-item:hover {
+  border-color: var(--accent-line);
+}
+
 .supplement-search-item.selected {
-  background: var(--yellow-soft);
-  border-color: #e2c94a;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.supplement-search-item.selected::before {
+  border: 6px solid var(--accent);
 }
 
 .supplement-search-item strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.supplement-search-item span {
+  color: var(--muted);
   font-size: 13px;
 }
 
-.supplement-search-item span,
 .supplement-search-item small {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--faint);
+  font-size: 12px;
 }
 
 /* 섭취 방법이 길면 2줄까지만 보이고 나머지는 ... 처리 */
@@ -451,150 +650,621 @@
   overflow: hidden;
 }
 
+/* 복용 일정: 끼니 체크 → 식전·식후 칩 + 알림 시각 */
 .supplement-schedule-row {
   align-items: center;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr 96px 120px;
-  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 12px;
+  min-height: 60px;
+  padding: 10px 20px;
+}
+
+.supplement-schedule-row.checked {
+  border-color: var(--accent);
 }
 
 .supplement-schedule-check {
   align-items: center;
+  cursor: pointer;
   display: flex;
-  font-size: 13px;
-  gap: 6px;
+  font-size: 15px;
+  gap: 10px;
+  min-width: 80px;
 }
 
-.supplement-schedule-row select,
-.supplement-schedule-row input[type="time"] {
-  background: #fafaf6;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 12px;
-  padding: 8px;
-}
-
-.supplement-schedule-row select:disabled,
-.supplement-schedule-row input:disabled {
-  opacity: 0.5;
-}
-
-/* 마이페이지 섹션 제목 (공통 스타일에서 빠져서 마이페이지 안에서만 다시 지정) */
-.profile-screen .section-title-row {
-  align-items: flex-end;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.profile-screen .section-label {
-  color: #af922a;
-  display: block;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  margin-bottom: 6px;
-}
-
-.profile-screen .section-title-row h2 {
-  font-size: 21px;
-  letter-spacing: -0.045em;
-  margin: 0;
-}
-
-.profile-screen .products-section {
-  margin-top: 36px;
-}
-
-.profile-screen .section-description {
-  color: var(--muted);
-  font-size: 10px;
-  margin: 0 0 18px;
-}
-
-.profile-screen .add-friend-button {
-  align-items: center;
-  background: var(--yellow-soft);
-  border: 1px solid #efdfa0;
-  border-radius: 9px;
-  color: #776520;
-  display: flex;
-  font-size: 10px;
+.supplement-schedule-row.checked .supplement-schedule-check {
   font-weight: 700;
-  gap: 4px;
-  padding: 8px 10px;
 }
 
-/* 나의 영양관리: 섭취량이 없을 때 안내 */
-.nutrition-empty {
-  color: var(--muted);
-  font-size: 11px;
-  margin: 22px 0 0;
+.supplement-schedule-check input {
+  accent-color: var(--accent);
+  height: 18px;
+  width: 18px;
 }
 
-/* 좁은 화면(410px 이하): 편집·복용 일정 칸이 카드 밖으로 넘치지 않게 열 수를 줄인다 */
-@media (max-width: 410px) {
-  /* 건강 정보: 2열 → 1열 */
-  .profile-edit-grid {
-    grid-template-columns: 1fr;
+.supplement-relation {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supplement-relation .choice {
+  height: 38px;
+  padding: 0 15px;
+}
+
+.supplement-schedule-row input[type="time"] {
+  height: 44px;
+  width: 150px;
+}
+
+/* ───────── 좁은 화면 ───────── */
+@media (max-width: 900px) {
+  .profile-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .avatar.xlarge {
+    font-size: 20px;
+    height: 54px;
+    width: 54px;
   }
 
-  /* 복용 일정: 3열(끼니 | 식전후 | 시각) → 위에 끼니, 아래에 식전후·시각 2칸 */
-  .supplement-schedule-row {
+  .stats-grid {
+    padding: 18px 0;
+  }
+
+  .stats-grid div {
+    padding: 0 14px;
+  }
+
+  .stats-grid span {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .stats-grid strong {
+    font-size: 26px;
+  }
+
+  .nutrition-management,
+  .profile-screen .products-section {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .product-row,
+  .profile-columns.single .product-row {
+    gap: 6px 12px;
+    grid-template-areas:
+      "main actions"
+      "meta actions";
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .product-row-main {
+    grid-area: main;
+  }
+
+  .product-row .chip {
+    display: none;
+  }
+
+  .product-row-time {
+    font-size: 13px;
+    grid-area: meta;
+  }
+
+  .product-row-actions {
+    grid-area: actions;
+  }
+
+  .profile-edit-row {
+    gap: 12px;
+    grid-template-columns: 1fr;
+    padding: 18px 0;
+  }
+
+  .profile-edit-label {
+    padding-top: 0;
+  }
+
+  .profile-edit-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .supplement-summary {
+    display: none;
+  }
+
+  .profile-edit-footer .btn {
+    flex: 1;
+  }
+
+  .supplement-schedule-row input[type="time"] {
+    width: 100%;
+  }
+}
+
+/* ───────── 내 통계 카드 3개 (#67 마이페이지 시안 B) ───────── */
+.my-stats {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1.25fr 1.25fr;
+}
+
+.my-stat-card {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px 26px;
+}
+
+.my-stat-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.my-stat-big {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.my-stat-big small {
+  color: var(--faint);
+  font-size: 15px;
+  font-weight: 600;
+  margin-left: 3px;
+}
+
+.my-stat-top {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 연속 복용 */
+.my-stat-streak {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 12px;
+}
+
+.my-stat-best {
+  align-items: center;
+  background: var(--streak-soft);
+  border-radius: 999px;
+  color: var(--streak);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 4px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.my-stat-message {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: auto 0 0;
+  white-space: pre-line;
+}
+
+/* 이번 주: 요일 막대 */
+.my-week-bars {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.my-week-bar {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.my-week-track {
+  align-items: flex-end;
+  display: flex;
+  height: 90px;
+  justify-content: center;
+  width: 100%;
+}
+
+.my-week-track span {
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: block;
+  height: 6px;
+  transition: height 0.5s ease;
+  width: 22px;
+}
+
+.my-week-bar.is-full .my-week-track span {
+  background: var(--primary);
+}
+
+.my-week-bar.is-part .my-week-track span {
+  background: #8fd3b6;
+}
+
+/* 하나도 못 먹은 날 / 먹을 영양제가 없던 날: 바닥에 얇은 회색 */
+.my-week-bar.is-zero .my-week-track span,
+.my-week-bar.is-none .my-week-track span {
+  background: var(--line);
+}
+
+/* 오늘 이후: 점선 */
+.my-week-bar.is-future .my-week-track span {
+  border: 1.5px dashed #d5dbd8;
+  height: 90px;
+}
+
+.my-week-bar em {
+  color: var(--faint);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.my-week-bar.is-today em {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* 이번 달: 주차별 꺾은선 */
+.my-month-chart {
+  display: block;
+  margin-top: 10px;
+  overflow: visible;
+  width: 100%;
+}
+
+.my-month-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.my-month-dot {
+  fill: var(--primary);
+  stroke: var(--primary);
+  stroke-width: 2.5;
+}
+
+.my-month-dot.is-current {
+  fill: var(--white);
+}
+
+.my-month-labels {
+  display: flex;
+}
+
+.my-month-labels span {
+  color: var(--faint);
+  flex: 1;
+  font-size: 12px;
+  text-align: center;
+}
+
+.my-month-labels span.is-current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.my-month-empty {
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: auto 0 0;
+  padding-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .my-stats {
     grid-template-columns: 1fr 1fr;
   }
 
-  .supplement-schedule-check {
+  .my-stats > :first-child {
     grid-column: 1 / -1;
   }
 }
 
-.share-setting {
+@media (max-width: 600px) {
+  .my-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-week-track span {
+    transition: none;
+  }
+}
+
+/* ───────── 친구 상세 (#67): 아바타 색 ───────── */
+.avatar.xlarge.is-mint { background: #e3f6ee; color: #0b7f58; }
+.avatar.xlarge.is-blue { background: #e6f0ff; color: #2f5fd0; }
+.avatar.xlarge.is-yellow { background: #fff4d6; color: #a86b00; }
+.avatar.xlarge.is-pink { background: #ffe8ef; color: #c2416b; }
+
+/* 연속 복용 중인 친구: 주황 테두리 */
+.avatar.xlarge.is-streaking {
+  box-shadow: inset 0 0 0 3px var(--streak), inset 0 0 0 6px var(--white);
+}
+
+
+/* ───────── 먹는 영양제: 시간대별 묶음 (#67 영양제 시안 B) ───────── */
+.supp-group + .supp-group {
+  margin-top: 10px;
+}
+
+.supp-group-head {
   align-items: center;
-  background: white;
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 0 8px;
+}
+
+.supp-group-head small {
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.supp-slot-mark {
+  display: inline-flex;
+  font-size: 15px;
+  justify-content: center;
+  width: 18px;
+}
+
+.supp-slot-mark.is-morning { color: var(--streak); }
+.supp-slot-mark.is-lunch { color: #a86b00; }
+.supp-slot-mark.is-evening { color: #2f5fd0; }
+.supp-slot-mark.is-none { color: var(--faint); }
+
+.supp-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.supp-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.supp-tile {
+  align-items: center;
+  border-radius: 12px;
+  display: flex;
+  flex-shrink: 0;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.supp-tile.is-mint, .supp-chip.is-mint { background: #e3f6ee; color: #0b7f58; }
+.supp-tile.is-blue, .supp-chip.is-blue { background: #e6f0ff; color: #2f5fd0; }
+.supp-tile.is-yellow, .supp-chip.is-yellow { background: #fff4d6; color: #a86b00; }
+.supp-tile.is-purple, .supp-chip.is-purple { background: #f1eeff; color: #6741d9; }
+.supp-tile.is-gray, .supp-chip.is-gray { background: #f1f3f2; color: var(--muted); }
+
+.supp-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.supp-name {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.supp-name strong {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supp-chip {
+  border-radius: 999px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+}
+
+.supp-main small {
+  color: var(--faint);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supp-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.supp-actions button {
+  align-items: center;
+  background: #f4f6f5;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.supp-actions button:hover {
+  color: var(--ink);
+}
+
+.supp-actions button.is-danger {
+  color: var(--alert);
+}
+
+.supp-actions button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  .supp-chip {
+    display: none;
+  }
+}
+
+/* 좁은 화면: 내 마이페이지는 다른 화면처럼 프로필 편집·알림 버튼을 오른쪽 위에 둔다 (줄바꿈하지 않음) */
+@media (max-width: 620px) {
+  .profile-screen.is-mine .app-header {
+    flex-wrap: nowrap;
+  }
+
+  .profile-screen.is-mine .header-title-row {
+    gap: 12px;
+  }
+
+  /* 폭이 좁아서 "건강한 하루를 만드는 중" 문구는 숨기고 이름만 */
+  .profile-screen.is-mine .header-title-row > div > span {
+    display: none;
+  }
+
+  .profile-screen.is-mine .avatar.xlarge {
+    font-size: 18px;
+    height: 48px;
+    margin-right: 0;
+    width: 48px;
+  }
+
+  .profile-screen.is-mine .header-actions {
+    align-self: flex-start;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .profile-screen.is-mine .header-actions .btn {
+    font-size: 13px;
+    height: 38px;
+    padding: 0 14px;
+  }
+
+  /* 이름은 한 줄로 (설정 버튼까지 3개가 들어가도 줄바꿈하지 않게) */
+  .profile-screen.is-mine .header-title h1 {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-screen.is-mine .header-actions {
+    gap: 6px;
+  }
+
+  .profile-screen.is-mine .header-actions .btn {
+    font-size: 12px;
+    padding: 0 10px;
+  }
+
+  .profile-screen.is-mine .header-actions .round-button {
+    height: 36px;
+    width: 36px;
+  }
+}
+
+/* ───────── 설정 · 친구에게 복용 현황 공개 (#84 은서) — #67 디자인 토큰으로 맞춤 ───────── */
+.share-setting,
+.account-setting {
+  align-items: center;
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 16px;
   display: flex;
-  gap: 14px;
+  gap: 16px;
   justify-content: space-between;
-  margin: 14px 0;
-  padding: 16px 18px;
+  padding: 18px 20px;
 }
 
-.share-setting strong {
+.share-setting > div,
+.account-setting > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-setting strong,
+.account-setting strong {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
 }
 
-.share-setting small {
+.share-setting small,
+.account-setting small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: keep-all;
 }
 
 .switch {
-  background: #d8d9d2;
+  background: #d5dbd8;
   border: 0;
   border-radius: 999px;
   cursor: pointer;
   flex: 0 0 auto;
-  height: 26px;
+  height: 28px;
   padding: 3px;
-  transition: 150ms ease;
-  width: 46px;
+  transition: background-color 0.15s ease;
+  width: 48px;
 }
 
 .switch span {
-  background: white;
+  background: var(--white);
   border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(17, 23, 20, 0.2);
   display: block;
-  height: 20px;
-  transition: 150ms ease;
-  width: 20px;
+  height: 22px;
+  transition: transform 0.15s ease;
+  width: 22px;
 }
 
 .switch.on {
-  background: var(--yellow-deep);
+  background: var(--primary);
 }
 
 .switch.on span {
@@ -606,88 +1276,77 @@
   opacity: 0.5;
 }
 
+/* 친구가 복용 현황을 비공개로 둔 경우 */
 .share-hidden {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
   color: var(--muted);
-  font-size: 12px;
-  margin: 14px 0;
-  padding: 28px 20px;
+  font-size: 14px;
+  margin: 0;
+  padding: 36px 20px;
   text-align: center;
 }
 
 .settings-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
   align-items: center;
+  background: rgba(17, 23, 20, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.35);
+  position: fixed;
+  z-index: 100;
 }
 
 .settings-panel {
-  width: 100%;
-  max-width: 440px;
-  padding: 32px;
-  border: 1px solid #eeede6;
-  border-radius: 24px;
-  background: #fff;
+  background: var(--white);
+  border-radius: var(--radius-modal);
+  box-shadow: 0 24px 60px rgba(17, 23, 20, 0.18);
   box-sizing: border-box;
+  max-width: 440px;
+  padding: 28px;
+  width: 100%;
+}
+
+.settings-panel:focus {
+  outline: none;
 }
 
 .settings-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-}
-
-.settings-panel .share-setting {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 22px 20px;
-  border: 1px solid #e9e8e0;
-  border-radius: 18px;
-  background: #fff;
-  box-sizing: border-box;
+  margin-bottom: 20px;
 }
 
 .settings-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   margin: 0;
-  font-size: 24px;
 }
 
 .settings-header button {
-  border: 0;
   background: transparent;
-  font-size: 22px;
+  border: 0;
+  color: var(--muted);
   cursor: pointer;
+  font-size: 20px;
 }
 
-.settings-panel .share-setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 22px 20px;
-  border: 1px solid #e9e8e0;
-  border-radius: 18px;
-  background: #fff;
-  box-sizing: border-box;
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch span {
+    transition: none;
+  }
 }
 
-.settings-panel .share-setting > div {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* 설정: 계정 · 로그아웃 (#52 로그인 연동) */
+.account-setting {
+  margin-top: 12px;
 }
 
-.settings-panel .share-setting small {
-  color: #858579;
-  line-height: 1.6;
+.account-setting small {
+  overflow-wrap: anywhere;
 }
