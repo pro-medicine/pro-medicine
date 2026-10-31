@@ -98,9 +98,10 @@ public class InputFormatter {
     // 이름(계열). 약 마스터에 없는 약은 이름만
     private static String medicationName(RecommendationInput.Medication m) {
         if (m.drugClass() == null) {
-            return m.name();
+            return sanitizeMedName(m.name());
         }
-        return (m.name() != null ? m.name() : "") + "(" + m.drugClass() + ")";
+        String name = m.name() != null ? sanitizeMedName(m.name()) : "";
+        return name + "(" + m.drugClass() + ")";
     }
 
     private static void add(List<String> lines, String label, String code, Map<String, String> labels) {
@@ -111,8 +112,30 @@ public class InputFormatter {
 
     private static String medication(RecommendationInput.Medication m) {
         if (m.drugClass() != null) {
-            return m.drugClass() + " 계열" + (m.name() != null ? "(" + m.name() + ")" : "");
+            return m.drugClass() + " 계열" + (m.name() != null ? "(" + sanitizeMedName(m.name()) + ")" : "");
         }
-        return "기타 약(" + m.name() + ")";
+        return "기타 약(" + sanitizeMedName(m.name()) + ")";
+    }
+
+    /** 약 이름 새니타이징 (V5 보안): 제어문자·줄바꿈 제거, 허용 문자만, 40자 제한, <user_text> 구분자 */
+    static String sanitizeMedName(String name) {
+        if (name == null) return "";
+        // 제어문자·줄바꿈 제거, 연속 공백 축소
+        String s = name.replaceAll("[\\p{Cntrl}\\r\\n]+", " ").replaceAll("\\s{2,}", " ").strip();
+        // 허용 문자만 남김: 한글, 영문, 숫자, 공백, -, (, ), ·
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if ((c >= '가' && c <= '힣') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9') || c == ' ' || c == '-' || c == '(' || c == ')' || c == '·') {
+                sb.append(c);
+            }
+        }
+        s = sb.toString().strip();
+        // 40자 제한
+        if (s.length() > 40) {
+            s = s.substring(0, 40);
+        }
+        return "<user_text>" + s + "</user_text>";
     }
 }

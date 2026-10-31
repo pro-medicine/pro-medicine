@@ -34,7 +34,8 @@ import java.util.stream.Collectors;
 public class ChatParser {
     public static final String PIPELINE_VERSION = "chat-v1";
     // chat-v2 (2026-10-29): search_query에 약·약 계열·질환 이름을 넣지 않는다 (서버도 약 이름을 검사해 1회 재요청)
-    public static final String PROMPT_VERSION = "chat-v2";
+    // chat-v3 (V5 보안): <user_text> 구분자, 시스템 프롬프트 강화
+    public static final String PROMPT_VERSION = "chat-v3";
     public static final String TAG_CHAT_PARSE = "CHAT_PARSE";
     public static final String TAG_CHAT_PARSE_REPAIR = "CHAT_PARSE_REPAIR";
     static final int MAX_TOKENS = 800;
@@ -61,6 +62,11 @@ public class ChatParser {
      * @param answer            되묻기 답 (첫 입력이면 null)
      */
     public Parsed parse(String text, String clarifiedQuestion, String answer) {
+        // 사용자 입력에서 구분자 리터럴 제거 (인젝션으로 구분자를 닫으려는 시도 차단)
+        text = stripDelimiters(text);
+        if (answer != null) {
+            answer = stripDelimiters(answer);
+        }
         List<DrugCatalog.Entry> drugs = drugCatalog.all();
         Map<String, List<String>> classes = drugCatalog.classes(drugs);
         List<String> conditionCodes = ConditionCodeResolver.DISEASES.stream().sorted().toList();
@@ -168,5 +174,11 @@ public class ChatParser {
     static String conditionList(List<String> codes) {
         return codes.stream().map(c -> "- " + c + ": " + CONDITION_LABELS.getOrDefault(c, c))
                 .collect(Collectors.joining("\n"));
+    }
+
+    /** 사용자 입력에서 <user_text>, </user_text> 리터럴 제거 */
+    static String stripDelimiters(String s) {
+        if (s == null) return null;
+        return s.replace("<user_text>", "").replace("</user_text>", "");
     }
 }

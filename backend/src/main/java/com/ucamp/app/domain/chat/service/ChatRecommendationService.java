@@ -11,6 +11,7 @@ import com.ucamp.app.domain.chat.entity.AiChatSession;
 import com.ucamp.app.domain.chat.parse.ChatParse;
 import com.ucamp.app.domain.chat.parse.ChatParseException;
 import com.ucamp.app.domain.chat.parse.ChatParser;
+import com.ucamp.app.domain.chat.parse.ChatPreFilter;
 import com.ucamp.app.domain.chat.parse.RedFlagDetector;
 import com.ucamp.app.domain.chat.scoring.ReviewTrack;
 import com.ucamp.app.domain.chat.vector.ReviewVectorIndex;
@@ -129,8 +130,31 @@ public class ChatRecommendationService {
             sessionStore.update(id, s -> s.answerPregnancy(answered));
         }
 
+        // 서버 응급·위기 키워드 (RedFlag → 사전 필터 → LLM 순서)
+        java.util.Optional<String> serverRedFlag = RedFlagDetector.detect(text);
+        if (serverRedFlag.isPresent()) {
+            int turnNo = state.turnCount() + 1;
+            sessionStore.saveTurn(id, turnNo, text, null, null, "[]");
+            sessionStore.update(id, AiChatSession::markRedFlag);
+            countResult("red_flag");
+            return ChatMessageResponse.redFlag(id, serverRedFlag.get(), RedFlagDetector.notice(serverRedFlag.get()));
+        }
+
+        // 사전 필터: 인젝션 패턴 탐지 (LLM 호출 없이 차단)
+        if (ChatPreFilter.detect(text).isPresent()) {
+            countResult("injection");
+            return ChatMessageResponse.offTopic(id);
+        }
+
         boolean answering = state.answeringClarification();
         ChatParse.Clarification shown = answering ? readClarification(state.clarificationQuestion()) : null;
+
+        // 되묻기 답에도 사전 필터 적용
+        if (answering && ChatPreFilter.detect(text).isPresent()) {
+            countResult("injection");
+            return ChatMessageResponse.offTopic(id);
+        }
+
         ChatParser.Parsed parsed;
         try {
             parsed = timed("parse", () -> answering
