@@ -76,7 +76,7 @@ class ChatParseWiringTest {
                 "conditions", List.of()))
                 .replace("\"clarification\":{}", "\"clarification\":null")));
 
-        ChatParser.Parsed parsed = parser.parse("요즘 야근이 많아서 피곤하고 잠을 못 자요. 와파린 먹어요", null, null);
+        ChatParser.Parsed parsed = parser.parse("요즘 야근이 많아서 피곤하고 잠을 못 자요. 와파린 먹어요", null, null, 1L);
 
         assertThat(parsed.parse().searchQuery()).isEqualTo("야근으로 피로가 쌓이고 잠들기 어려운 사람에게 추천");
         assertThat(parsed.parse().medications()).hasSize(1);

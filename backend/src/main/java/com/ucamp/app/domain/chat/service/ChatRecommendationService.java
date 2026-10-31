@@ -158,8 +158,8 @@ public class ChatRecommendationService {
         ChatParser.Parsed parsed;
         try {
             parsed = timed("parse", () -> answering
-                    ? parser.parse(state.firstText(), shown == null ? "" : shown.question(), text)
-                    : parser.parse(text, null, null));
+                    ? parser.parse(state.firstText(), shown == null ? "" : shown.question(), text, userId)
+                    : parser.parse(text, null, null, userId));
         } catch (ChatParseException e) {
             countResult("error");
             throw new BusinessException(ErrorCode.CHAT_PARSE_FAILED);

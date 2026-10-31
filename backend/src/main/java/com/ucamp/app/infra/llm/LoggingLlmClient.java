@@ -1,5 +1,6 @@
 package com.ucamp.app.infra.llm;
 
+import com.ucamp.app.infra.llm.guard.LlmRateLimiter;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
@@ -8,14 +9,18 @@ import lombok.RequiredArgsConstructor;
  * 모든 LLM 호출을 llm_call_logs에 남기는 데코레이터.
  * HTTP 결과로 outcome(SUCCESS / TIMEOUT / HTTP_ERROR)을 정하고, 행 ID를 응답(또는 예외)에 담는다.
  * 파싱·검증 실패는 파이프라인이 markOutcome으로 고친다.
+ * V5: 기능 예산 카운트도 이 계층에서 한다 (prefetch·hedge·repair 모두 포함).
  */
 @RequiredArgsConstructor
 public class LoggingLlmClient implements LlmClient {
     private final LlmClient delegate;
     private final LlmCallLogService logService;
+    /** null이면 Redis 미사용 환경 (기능 예산 카운트 건너뜀) */
+    private final LlmRateLimiter rateLimiter;
 
     @Override
     public LlmResponse call(LlmRequest request) {
+        countFeatureBudget(request.feature());
         long start = System.nanoTime();
         try {
             LlmResponse response = delegate.call(request);
@@ -49,7 +54,16 @@ public class LoggingLlmClient implements LlmClient {
                 .callTag(request.callTag() == null ? LlmRequest.TAG_RECOMMEND : request.callTag())
                 .model(model == null ? "unknown" : truncate(model, LlmCallLog.MODEL_LENGTH))
                 .promptVersion(request.promptVersion() == null ? "-" : request.promptVersion())
-                .attemptNo(request.attemptNoOrDefault());
+                .attemptNo(request.attemptNoOrDefault())
+                .userId(request.userId())
+                .feature(request.feature());
+    }
+
+    /** 기능 예산 카운트 (실제 LLM 호출 단위). Redis 미사용이면 건너뜀 */
+    private void countFeatureBudget(String feature) {
+        if (rateLimiter != null && feature != null && !feature.isEmpty()) {
+            rateLimiter.incrementFeatureBudget(feature);
+        }
     }
 
     // 응답에 지연이 있으면(실제 HTTP 측정값) 그 값을, 없으면 데코레이터에서 잰 값을 쓴다

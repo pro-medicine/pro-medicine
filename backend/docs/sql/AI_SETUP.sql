@@ -5,7 +5,7 @@
 --   1) 서버를 한 번 실행해서 테이블을 만든다 (ddl-auto: update). 이미 실행해 둔 DB면 건너뛴다
 --   2) 이 파일 하나를 실행한다. 예전 STEP02~18 파일은 실행하지 않는다 (docs/sql/archive/에 기록만 남김)
 -- 하는 일
---   - AI 테이블 19개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
+--   - AI 테이블 20개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
 --     surveys, survey_questions, question_options, survey_responses, survey_answers, drugs, ingredient_standards,
 --     recommendation_rules, llm_call_logs, ai_question_sessions, ai_question_turns, ai_chat_sessions, ai_chat_turns,
 --     ai_chat_results, ai_recommendations, ai_recommendation_items, product_ingredients, review_mentions, review_product_scores
@@ -161,9 +161,12 @@ CREATE TABLE `llm_call_logs` (
   `attempt_no` int NOT NULL DEFAULT '1' COMMENT '네트워크 재시도(STEP 10)만 증가',
   `outcome` varchar(20) NOT NULL COMMENT 'SUCCESS, PARSE_FAIL, VALIDATION_FAIL, TIMEOUT, HTTP_ERROR',
   `http_status` int DEFAULT NULL,
+  `user_id` bigint DEFAULT NULL COMMENT 'V5: 호출한 사용자 (비회원·평가이면 null)',
+  `feature` varchar(30) DEFAULT NULL COMMENT 'V5: 기능 구분 (recommendation, personalized, chat)',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`llm_call_log_id`),
-  KEY `idx_llm_call_logs_eval_run_id` (`eval_run_id`)
+  KEY `idx_llm_call_logs_eval_run_id` (`eval_run_id`),
+  KEY `idx_llm_logs_user_day` (`user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `llm_blocklist` (
   `id` bigint NOT NULL AUTO_INCREMENT,

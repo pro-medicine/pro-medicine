@@ -36,7 +36,8 @@ public record RecommendationInput(
         String evalRunId,
         List<PersonalizedAnswer> personalizedAnswers,
         Long sessionId,
-        Long chatSessionId
+        Long chatSessionId,
+        Long userId
 ) {
     public static final String MEMBER = "MEMBER";
     public static final String GUEST = "GUEST";

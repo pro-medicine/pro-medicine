@@ -60,8 +60,9 @@ public class ChatParser {
     /**
      * @param clarifiedQuestion 되묻기 답일 때 앞서 보여준 질문 (첫 입력이면 null)
      * @param answer            되묻기 답 (첫 입력이면 null)
+     * @param userId            호출한 사용자 ID (llm_call_logs 기록용)
      */
-    public Parsed parse(String text, String clarifiedQuestion, String answer) {
+    public Parsed parse(String text, String clarifiedQuestion, String answer, Long userId) {
         // 사용자 입력에서 구분자 리터럴 제거 (인젝션으로 구분자를 닫으려는 시도 차단)
         text = stripDelimiters(text);
         if (answer != null) {
@@ -81,7 +82,7 @@ public class ChatParser {
         List<String> banned = drugCatalog.searchQueryBannedTerms(drugs);
 
         List<Long> logIds = new ArrayList<>();
-        LlmResponse first = call(system, user, schema, TAG_CHAT_PARSE);
+        LlmResponse first = call(system, user, schema, TAG_CHAT_PARSE, userId);
         addLogId(logIds, first.callLogId());
         ChatParseValidator.Result result = ChatParseValidator.validate(first.output(), classes.keySet(), conditionCodes,
                 banned);
@@ -91,7 +92,7 @@ public class ChatParser {
             llmCallLogService.markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
             String repairUser = user + "\n\n" + promptTemplates.render("chat/repair.txt",
                     Map.of("errors", PromptTemplates.bulletList(result.errors())));
-            LlmResponse repair = call(system, repairUser, schema, TAG_CHAT_PARSE_REPAIR);
+            LlmResponse repair = call(system, repairUser, schema, TAG_CHAT_PARSE_REPAIR, userId);
             addLogId(logIds, repair.callLogId());
             result = ChatParseValidator.validate(repair.output(), classes.keySet(), conditionCodes, banned);
             raw = repair.output();
@@ -135,7 +136,7 @@ public class ChatParser {
         return out;
     }
 
-    private LlmResponse call(String system, String user, LlmOutputSchema schema, String tag) {
+    private LlmResponse call(String system, String user, LlmOutputSchema schema, String tag, Long userId) {
         LlmRequest request = LlmRequest.builder()
                 .model(llmProperties.getModel())
                 .system(system)
@@ -146,6 +147,8 @@ public class ChatParser {
                 .callTag(tag)
                 .pipelineVersion(PIPELINE_VERSION)
                 .promptVersion(PROMPT_VERSION)
+                .userId(userId)
+                .feature("chat")
                 .build();
         try {
             return llmClient.call(request);

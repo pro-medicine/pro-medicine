@@ -78,6 +78,8 @@ public class QuestionBatchGenerator {
                 .pipelineVersion(PersonalizedQuestionGenerator.PIPELINE_VERSION)
                 .promptVersion(PersonalizedQuestionGenerator.PROMPT_VERSION)
                 .sessionId(req.sessionId())
+                .userId(req.known().userId())
+                .feature("personalized")
                 .build();
         LlmResponse response = llmClient.call(request);
         Result result = parse(req, response);

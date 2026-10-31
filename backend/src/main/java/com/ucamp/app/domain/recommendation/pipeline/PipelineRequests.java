@@ -23,6 +23,8 @@ final class PipelineRequests {
                 .promptVersion(promptVersion)
                 .responseId(input.responseId())
                 .evalRunId(input.evalRunId())
-                .sessionId(input.sessionId());
+                .sessionId(input.sessionId())
+                .userId(input.userId())
+                .feature("recommendation");
     }
 }

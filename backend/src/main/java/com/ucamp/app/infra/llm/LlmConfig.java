@@ -1,6 +1,7 @@
 package com.ucamp.app.infra.llm;
 
 import tools.jackson.databind.ObjectMapper;
+import com.ucamp.app.infra.llm.guard.LlmRateLimiter;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -43,11 +44,13 @@ public class LlmConfig {
     @Primary
     public LlmClient llmClient(LlmProperties properties, ObjectMapper objectMapper, FakeLlmClient fakeLlmClient,
                                ObjectProvider<ChatModel> chatModels, ChatProviderSupport chatProviderSupport,
-                               LlmCallLogService logService, ObjectProvider<CircuitBreakerRegistry> circuitBreakers,
+                               LlmCallLogService logService, ObjectProvider<LlmRateLimiter> rateLimiterProvider,
+                               ObjectProvider<CircuitBreakerRegistry> circuitBreakers,
                                ObjectProvider<RetryRegistry> retries, ObjectProvider<BulkheadRegistry> bulkheads,
                                MeterRegistry meterRegistry) {
         LlmClient client = new LoggingLlmClient(
-                rawClient(properties, objectMapper, fakeLlmClient, chatModels, chatProviderSupport), logService);
+                rawClient(properties, objectMapper, fakeLlmClient, chatModels, chatProviderSupport),
+                logService, rateLimiterProvider.getIfAvailable());
         log.info("LLM provider = {}, model = {}, resilience = {}", properties.getProvider(), properties.getModel(),
                 properties.getResilience().isEnabled());
         if (!properties.getResilience().isEnabled()) {

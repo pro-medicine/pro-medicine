@@ -125,6 +125,8 @@ public class PersonalizedQuestionGenerator {
                 .pipelineVersion(PIPELINE_VERSION)
                 .promptVersion(PROMPT_VERSION)
                 .sessionId(ctx.sessionId())
+                .userId(ctx.known().userId())
+                .feature("personalized")
                 .build();
         try {
             return hedgeValid == null ? llmClient.call(request) : hedge.call(request, hedgeValid);
