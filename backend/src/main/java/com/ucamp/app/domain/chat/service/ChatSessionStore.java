@@ -118,6 +118,21 @@ public class ChatSessionStore {
         return pending.recommendationId();
     }
 
+    /** V5: situation_hash 저장 */
+    @Transactional
+    public void saveSituationHash(Long chatSessionId, String hash) {
+        sessionRepository.findForUpdate(chatSessionId).ifPresent(s -> s.setSituationHash(hash));
+    }
+
+    /** V5: 같은 사용자·24시간·DONE·같은 해시인 세션의 결과 재사용 */
+    @Transactional(readOnly = true)
+    public Optional<AiChatResult> findReusable(Long userId, String hash) {
+        List<AiChatSession> sessions = sessionRepository.findReusable(userId, hash,
+                LocalDateTime.now().minusHours(24));
+        if (sessions.isEmpty()) return Optional.empty();
+        return resultRepository.findByChatSession_ChatSessionId(sessions.get(0).getChatSessionId());
+    }
+
     /** 서버 재시작 등으로 끝나지 못한 트랙 2 세션 */
     @Transactional(readOnly = true)
     public List<Long> fallbackPendingIds() {

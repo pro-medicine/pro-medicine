@@ -34,7 +34,8 @@ import java.util.Set;
 @Entity
 @Table(name = "ai_chat_sessions", indexes = {
         @Index(name = "idx_chat_sessions_user", columnList = "user_id, started_at"),
-        @Index(name = "idx_chat_sessions_started", columnList = "started_at")})
+        @Index(name = "idx_chat_sessions_started", columnList = "started_at"),
+        @Index(name = "idx_chat_sessions_hash", columnList = "user_id, situation_hash, completed_at")})
 @EntityListeners(AuditingEntityListener.class)
 public class AiChatSession {
 
@@ -78,6 +79,10 @@ public class AiChatSession {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "extra_conditions")
     private String extraConditions;
+
+    /** V5 같은 상황 재사용: 파싱 결과 + 안전 입력 + data_version SHA-256 해시 */
+    @Column(name = "situation_hash", length = 64)
+    private String situationHash;
 
     @CreatedDate
     @Column(name = "started_at", nullable = false, updatable = false)
@@ -126,6 +131,10 @@ public class AiChatSession {
 
     public void markFailed() {
         finish(FAILED);
+    }
+
+    public void setSituationHash(String hash) {
+        this.situationHash = hash;
     }
 
     // OFF_TOPIC·파싱 실패 후 다시 입력할 수 있게 되돌림 (되묻기 여부는 유지)

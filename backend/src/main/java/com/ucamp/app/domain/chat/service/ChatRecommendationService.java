@@ -200,6 +200,20 @@ public class ChatRecommendationService {
         sessionStore.update(id, s -> s.markSearching(meds, conds));
         String medicationNotice = extracted.hasUnmatched() ? ChatMessageResponse.UNMATCHED_MEDICATION_NOTICE : null;
 
+        // V5 같은 상황 재사용: 파싱 결과 + 안전 입력 + data_version 해시로 24시간 내 동일 결과 재사용
+        String situationHash = SituationHash.compute(parse, input, vectorIndex.dataVersion());
+        sessionStore.saveSituationHash(id, situationHash);
+        java.util.Optional<AiChatResult> reusable = sessionStore.findReusable(userId, situationHash);
+        if (reusable.isPresent()) {
+            AiChatResult r = reusable.get();
+            if (AiChatResult.REVIEW.equals(r.getTrack())) {
+                sessionStore.saveReviewResult(id, r.getCards(), r.getHitMentionIds(), r.getTopSimilarity(),
+                        r.getExcluded(), r.getDataVersion(), 0);
+                countResult("reuse");
+                return snapshot(id, r);
+            }
+        }
+
         // ③ 트랙 1
         List<ReviewVectorIndex.Hit> hits = search(parse.searchQuery());
         ReviewTrack.Result track1 = reviewTrack.run(hits, input);

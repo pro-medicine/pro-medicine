@@ -231,11 +231,13 @@ CREATE TABLE `ai_chat_sessions` (
   `clarified` tinyint(1) NOT NULL DEFAULT '0' COMMENT '되묻기 1번 했는지 (최대 1번)',
   `extra_medications` json DEFAULT NULL COMMENT '대화에서 뽑은 약 [{drugId, drugClass, name}] (프로필에 저장 안 함)',
   `extra_conditions` json DEFAULT NULL COMMENT '대화에서 뽑은 질환 코드',
+  `situation_hash` char(64) DEFAULT NULL COMMENT 'V5: 파싱결과+안전입력+data_version SHA-256 (같은 상황 재사용)',
   `started_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `completed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`chat_session_id`),
   KEY `idx_chat_sessions_user` (`user_id`,`started_at`),
   KEY `idx_chat_sessions_started` (`started_at`),
+  KEY `idx_chat_sessions_hash` (`user_id`,`situation_hash`,`completed_at`),
   CONSTRAINT `fk_chat_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_chat_turns` (
