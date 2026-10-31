@@ -165,6 +165,15 @@ CREATE TABLE `llm_call_logs` (
   PRIMARY KEY (`llm_call_log_id`),
   KEY `idx_llm_call_logs_eval_run_id` (`eval_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `llm_blocklist` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `reason` varchar(100) DEFAULT NULL COMMENT 'STRIKE_SUSPEND, STRIKE_LONG_SUSPEND, PERMANENT 등',
+  `blocked_until` datetime DEFAULT NULL COMMENT 'NULL이면 영구 차단',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_blocklist_user_active` (`user_id`, `blocked_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_question_sessions` (
   `session_id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL,

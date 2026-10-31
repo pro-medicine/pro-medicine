@@ -24,6 +24,7 @@ import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.infra.llm.embed.EmbeddingClient;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +69,7 @@ public class ChatRecommendationService {
     private final ChatFallbackRunner fallbackRunner;
     private final ChatProperties properties;
     private final ObjectMapper objectMapper;
+    private final LlmGuard llmGuard;
     private final MeterRegistry meterRegistry;
     // 같은 세션에 메시지가 동시에 와도 하나씩 처리한다 (LLM 호출 중에는 DB 잠금을 잡지 않는다)
     private final Map<Long, Object> sessionLocks = new ConcurrentHashMap<>();
@@ -91,13 +93,18 @@ public class ChatRecommendationService {
         if (text.isEmpty() || text.length() > properties.getInput().getMaxLength()) {
             throw new BusinessException(ErrorCode.CHAT_INVALID_INPUT);
         }
-        Object lock = sessionLocks.computeIfAbsent(chatSessionId, k -> new Object());
-        synchronized (lock) {
-            try {
-                return timed("total", () -> handle(userId, chatSessionId, text, request.pregnancy()));
-            } finally {
-                sessionLocks.remove(chatSessionId, lock);
+        String guardLock = llmGuard.checkAndLock(userId, "chat");
+        try {
+            Object lock = sessionLocks.computeIfAbsent(chatSessionId, k -> new Object());
+            synchronized (lock) {
+                try {
+                    return timed("total", () -> handle(userId, chatSessionId, text, request.pregnancy()));
+                } finally {
+                    sessionLocks.remove(chatSessionId, lock);
+                }
             }
+        } finally {
+            llmGuard.releaseInflight(userId, guardLock);
         }
     }
 

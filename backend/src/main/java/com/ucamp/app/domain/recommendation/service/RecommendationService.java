@@ -12,6 +12,7 @@ import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.infra.llm.LlmUnavailableException;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 추천 생성. recommendation.api-mode로 처리 구조를 고른다 (비교 측정용, 둘 다 유지).
  * - sync: 입력 조립 → 파이프라인 실행(LLM, 트랜잭션 없음) → 저장. 요청 스레드가 LLM 응답을 기다린다
  * - queue: PENDING 행 생성 → 큐 → 즉시 응답(202). 워커가 process()로 처리, 클라이언트는 GET으로 상태를 본다
- * 비회원도 자기 responseId로 호출할 수 있다 (가로채기 방지는 범위 밖, progress 미룬 것 참고).
+ * 비회원도 자기 responseId로 호출할 수 있다. 소유권 확인은 RecommendationAccess가 담당한다.
  */
 @Slf4j
 @Service
@@ -36,15 +37,24 @@ public class RecommendationService {
     private final StageTimer stageTimer;
     private final RecommendationQueue queue;
     private final RuleOnlyPipeline ruleOnlyPipeline;
+    private final RecommendationAccess recommendationAccess;
+    private final LlmGuard llmGuard;
     private final MeterRegistry meterRegistry;
     // 같은 responseId의 동시 접수를 한 번만 만들기 위한 잠금 (서버 한 대 기준. 여러 대면 DB 유니크나 Redis SETNX 필요)
     private final ConcurrentHashMap<Long, Object> submitLocks = new ConcurrentHashMap<>();
 
-    public RecommendationResponse create(Long responseId) {
+    public RecommendationResponse create(Long userId, Long responseId) {
         if (responseId == null) {
             throw new BusinessException(ErrorCode.RECOMMENDATION_INVALID_REQUEST);
         }
-        return properties.isQueueMode() ? submit(responseId) : createSync(responseId);
+        recommendationAccess.requireResponseOwned(userId, responseId);
+        String lockValue = llmGuard.checkAndLock(userId, "recommendation");
+        try {
+            return properties.isQueueMode() ? submit(responseId) : createSync(responseId);
+        } finally {
+            // queue 모드: PENDING 응답 시점에 해제 (백그라운드 호출은 기능 예산으로만 카운트)
+            llmGuard.releaseInflight(userId, lockValue);
+        }
     }
 
     private RecommendationResponse createSync(Long responseId) {
@@ -103,6 +113,12 @@ public class RecommendationService {
     }
 
     private RecommendationResult execute(RecommendationInput input, String version) {
+        // 기능 예산 초과 → 규칙 기반 폴백 (LLM 호출 없이)
+        if (llmGuard.isFeatureBudgetExceeded("recommendation")) {
+            log.warn("recommendation budget exceeded, rule-only fallback: responseId={}", input.responseId());
+            meterRegistry.counter("recommendation.fallback", "reason", "BUDGET_EXCEEDED").increment();
+            return ruleOnlyPipeline.run(input);
+        }
         try {
             return pipelineRegistry.get(version).run(input);
         } catch (LlmUnavailableException e) {

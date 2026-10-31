@@ -20,6 +20,9 @@ spring:
       hibernate:
         format_sql: false
 
+# 테스트용 JWT 비밀키 (32바이트 Base64). 운영 환경과 다른 값이어야 한다.
+JWT_SECRET_BASE64: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cw==
+
   # 테스트 픽스처 (예시 데이터). 운영 시드는 backend/docs/sql/ 에 있고 앱 시작 시 자동으로 넣지 않는다.
   sql:
     init:
