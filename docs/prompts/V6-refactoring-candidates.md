@@ -230,16 +230,16 @@ ChatSessionController.get
 | ID | 군 | 유형 | 위치 | 내용 | 근거 | 바꾸는 방법 | 운영 경로 영향 | 경계 영향 | 보안 영향 | 위험도 | 권장 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | R-B1 | B | DETOUR | `RecommendationService.java:58,70` | `ClientIpResolver.resolve(httpRequest)` 이중 호출. `create()`에서 guard용(L58)과 input 조립용(L70) 두 번 호출. 같은 요청에서 IP는 불변 | `create()` L58: guest 분기에서 IP 추출 → guard 호출. L70: `assembleForGuest(guestToken, httpRequest)` 내부에서 다시 IP 추출 | `create()` 시작에서 `String ip = ClientIpResolver.resolve(httpRequest)` 한 번 계산, 이후 재사용 | **없음** — 같은 IP 값, 같은 결과 | 없음 | 없음 | **낮음** | 정리 |
-| R-B2 | B | DUP | `infra/llm/guard/LlmGuard.java` | `checkAndLock` / `checkAndLockGuest` 구조 동일 (차단목록→진행중→분/일 제한→기능예산→킬스위치). `releaseInflight` / `releaseGuestInflight` 도 동일한 한 줄짜리. 분기 차이: guest는 blocklist 건너뛰고 IP 기반 키·한도 사용 | 두 메서드 모두: blocklist(회원만) → inflight lock → rate limit(분/일) → feature budget → killswitch 순서. guest는 blocklist skip + IP key + 다른 limit 값 | private 공통 메서드로 추출. 공개 API 시그니처 유지, 내부 분기로 회원/guest 구분. **확인 순서 보존 표**: | **없음** — 실행 순서·결과 동일 | 없음 | **확인 필요 — 아래 표로 증명** | **중간** | 정리 |
+| R-B2 | B | DUP | `infra/llm/guard/LlmGuard.java` | `checkAndLock` / `checkAndLockGuest` 구조 동일. 분기 차이: guest는 blocklist 건너뛰고 IP 기반 키·한도 사용 | 두 메서드 모두: killswitch(기능 ON/OFF + isKilled) → blocklist(회원만) → inflight lock → rate limit(분/일) 순서. guest는 blocklist skip + IP key + 다른 limit 값 | `checkKillswitch()` private 메서드 추출. 공개 API 시그니처 유지. **확인 순서 보존 표**: | **없음** — 실행 순서·결과 동일 | 없음 | **확인 필요 — 아래 표로 증명** | **중간** | 정리 |
 
 **R-B2 보안 확인 순서 표** (리팩토링 전후 동일해야 함):
 
 | 진입점 | 사용자 유형 | 확인 순서 (현재) | 확인 순서 (리팩토링 후) |
 |---|---|---|---|
-| V1 POST /recommendations | 회원 | blocklist → inflight → rate(분/일) → budget → killswitch | 동일 (isGuest=false) |
-| V1 POST /recommendations | 비회원 | ~~blocklist~~ → inflight(IP) → rate(IP,분/일) → budget → killswitch | 동일 (isGuest=true) |
-| V2 POST /recommendation | 회원 | blocklist → inflight → rate(분/일) → budget → killswitch | 동일 (isGuest=false) |
-| V4 POST /messages | 회원 | blocklist → inflight → rate(분/일) → budget("chat") → killswitch | 동일 (isGuest=false, feature="chat") |
+| V1 POST /recommendations | 회원 | killswitch → blocklist → inflight → rate(분/일) | 동일 (checkKillswitch → blocklist → inflight → rate) |
+| V1 POST /recommendations | 비회원 | killswitch → ~~blocklist~~ → inflight(IP) → rate(IP,분/일) | 동일 (checkKillswitch → inflight → rate) |
+| V2 POST /recommendation | 회원 | killswitch → blocklist → inflight → rate(분/일) | 동일 |
+| V4 POST /messages | 회원 | killswitch → blocklist → inflight → rate(분/일, feature="chat") | 동일 |
 | V4 Track 2 | 회원 | budget("recommendation") 만 (ChatFallbackRunner L69) | 동일 |
 
 | ID | 군 | 유형 | 위치 | 내용 | 근거 | 바꾸는 방법 | 운영 경로 영향 | 경계 영향 | 보안 영향 | 위험도 | 권장 |
