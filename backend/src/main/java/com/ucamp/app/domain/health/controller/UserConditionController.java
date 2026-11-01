@@ -19,6 +19,8 @@ public class UserConditionController {
 
     private final UserConditionService userConditionService;
 
+    // TODO: PathVariable 제거
+
     // 본인 질환정보 조회
     @GetMapping
     public ResponseEntity<ApiResponse<UserConditionsResponse>> getConditions(
@@ -31,6 +33,8 @@ public class UserConditionController {
                 ApiResponse.success(userConditionService.getConditions(userId))
         );
     }
+
+    @GetMapping("/")
 
     // 본인 질환정보 수정
     @PutMapping

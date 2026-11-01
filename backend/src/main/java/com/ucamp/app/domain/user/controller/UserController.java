@@ -22,6 +22,7 @@ public class UserController {
     private final UserService userService;
 
     // 사용자 정보 조회 - 본인만 허용
+    // TODO: userId -> me 등으로 변경, PathVariable 제거
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(
             @PathVariable Long userId,
