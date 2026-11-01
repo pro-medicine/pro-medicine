@@ -3,7 +3,7 @@ import { UnreadNotificationContext } from "../common/unreadNotificationContext";
 
 /**
  * SVG 아이콘
- * @param {{ name: "arrow"|"bell"|"check"|"chevron"|"clock"|"home"|"people"|"plus"|"pin"|"search"|"sparkles"|"trash"|"user", size?: number }} props
+ * @param {{ name: "arrow"|"bell"|"check"|"chevron"|"clock"|"home"|"pencil"|"people"|"plus"|"pin"|"search"|"sparkles"|"trash"|"user", size?: number }} props
  */
 
 export function Icon({ name, size = 20 }) {
@@ -34,6 +34,12 @@ export function Icon({ name, size = 20 }) {
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+      </>
+    ),
+    pencil: (
+      <>
+        <path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+        <path d="m15 5 4 4" />
       </>
     ),
     plus: <path d="M12 5v14M5 12h14" />,
@@ -348,7 +354,9 @@ export function SupplementCard({ supplement }) {
 export function TopBar({
   title,
   subtitle,
+  description,
   back,
+  avatar,
   onNotifications,
   actions,
   onSettings,
@@ -366,9 +374,13 @@ export function TopBar({
             <Icon name="arrow" />
           </button>
         )}
-        <div>
-          {subtitle && <span>{subtitle}</span>}
-          <h1>{title}</h1>
+        <div className="header-title-row">
+          {avatar}
+          <div>
+            {subtitle && <span>{subtitle}</span>}
+            <h1>{title}</h1>
+            {description && <p className="header-desc">{description}</p>}
+          </div>
         </div>
       </div>
 

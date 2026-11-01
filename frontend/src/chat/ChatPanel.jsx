@@ -44,9 +44,17 @@ export default function ChatPanel({ chat, onClose, openerRef }) {
       tabIndex={-1}
     >
       <header className="chat-header">
-        <div>
-          <span className="chat-eyebrow">AI 영양 상담</span>
-          <h2 id="chat-panel-title">약쏙 AI 영양 상담</h2>
+        <div className="chat-header-main">
+          <span className="chat-header-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </span>
+          <div>
+            <span className="chat-eyebrow">AI 영양 상담</span>
+            <h2 id="chat-panel-title">약쏙 AI 영양 상담</h2>
+          </div>
         </div>
         <button type="button" className="chat-close" aria-label="대화창 닫기" onClick={onClose}>
           ×

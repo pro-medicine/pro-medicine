@@ -46,8 +46,8 @@ export default function AddFriendModal({ userId, onClose, openerRef }) {
       >
         <div className="modal-header">
           <div>
-            <span className="section-label">ADD FRIEND</span>
-            <h2>친구 추가</h2>
+            <span className="section-label">친구 추가</span>
+            <h2>닉네임으로 친구 찾기</h2>
           </div>
           <button type="button" aria-label="닫기" onClick={onClose}>
             ×
