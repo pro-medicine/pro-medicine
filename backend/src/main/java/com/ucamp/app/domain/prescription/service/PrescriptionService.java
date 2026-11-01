@@ -51,7 +51,7 @@ public class PrescriptionService {
                 .build());
         String notes = (request.notes() == null || request.notes().isBlank()) ? null : request.notes().trim();
         List<CalendarEvent> events = new ArrayList<>();
-        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+        for (LocalDate d = start; !d.isAfter(scheduleEnd); d = d.plusDays(1)) {
             events.add(CalendarEvent.builder()
                     .userId(userId)
                     .prescriptionId(prescription.getPrescriptionId())
