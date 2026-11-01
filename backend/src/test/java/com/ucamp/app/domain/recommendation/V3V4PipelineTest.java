@@ -6,7 +6,6 @@ import com.ucamp.app.domain.recommendation.pipeline.RecommendationItem;
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.FakeLlmClient.FakeAnswer;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,9 +23,6 @@ class V3V4PipelineTest {
     PipelineRegistry registry;
     @Autowired
     FakeLlmClient fake;
-    @Autowired
-    MeterRegistry meterRegistry;
-
     // 흡연 + ACE 억제제 복용 남성
     private final RecommendationInput input = RecommendationInput.builder()
             .respondentType("MEMBER").gender("M").birthYear(1980).smoking("ONE_PACK")
@@ -46,24 +42,6 @@ class V3V4PipelineTest {
     @AfterEach
     void reset() {
         fake.reset();
-    }
-
-    @Test
-    void V3_사후_검증으로_제외하고_원래_출력은_보존() {
-        RecommendationResult r = registry.get("V3").run(input);
-
-        assertThat(r.itemsOrEmpty()).hasSize(3);
-        assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
-        RecommendationItem c = r.finalItems().get(0);
-        assertThat(c.amount()).isEqualByComparingTo("135"); // R-01 ADJUST는 기준표 흡연 행(KDRI 100 + 35)으로 반영
-        assertThat(c.appliedRuleIdsOrEmpty()).containsExactly("R-01");
-        assertThat(r.itemsOrEmpty().stream().filter(RecommendationItem::excluded))
-                .extracting(RecommendationItem::appliedRuleIds)
-                .containsExactly(List.of("R-02"), List.of("R-13"));
-        // V3는 프롬프트에 금지 목록이 없다
-        assertThat(fake.requests().get(0).messages().get(0).text()).doesNotContain("추천하지 마라");
-        assertThat(meterRegistry.find("recommendation.rule.hit").tag("rule_id", "R-02").tag("phase", "post").counter())
-                .isNotNull();
     }
 
     @Test

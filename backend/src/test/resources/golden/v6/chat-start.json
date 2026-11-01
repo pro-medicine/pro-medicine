@@ -1,0 +1,24 @@
+{
+  "female" : {
+    "hasPregnancyQuestion" : true,
+    "pregnancyQuestion" : {
+      "options" : [ {
+        "code" : "NOT_APPLICABLE",
+        "label" : "해당 없어요"
+      }, {
+        "code" : "POSSIBLE",
+        "label" : "임신 가능성이 있어요"
+      }, {
+        "code" : "PREGNANT",
+        "label" : "임신 중이에요"
+      }, {
+        "code" : "LACTATING",
+        "label" : "수유 중이에요"
+      } ],
+      "question" : "현재 임신 중이거나 수유 중이신가요?"
+    }
+  },
+  "male" : {
+    "hasPregnancyQuestion" : false
+  }
+}

@@ -280,6 +280,148 @@ class LlmGuardTest {
         assertThat(lock).isNotBlank();
     }
 
+    // ---------- 순서 검증: 킬스위치가 차단 목록보다 먼저 ----------
+
+    @Test
+    @DisplayName("기능 꺼짐 + 차단 회원 → LG_UNAVAILABLE, 차단 목록 조회 0회")
+    void killswitch_before_blocklist() {
+        properties.setEnabled(Map.of("chat", false));
+        blocklistRepo.activeBlock = Optional.of(LlmBlocklist.permanentBlock(1L, "TEST"));
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "chat"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_UNAVAILABLE));
+        assertThat(blocklistRepo.queryCount).isZero();
+    }
+
+    @Test
+    @DisplayName("기능 켜짐 + 영구 차단 → LG_BLOCKED")
+    void feature_enabled_permanent_block() {
+        blocklistRepo.activeBlock = Optional.of(LlmBlocklist.permanentBlock(1L, "TEST"));
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_BLOCKED));
+    }
+
+    @Test
+    @DisplayName("기능 켜짐 + 일시 정지 → LG_SUSPENDED + 남은 초 > 0")
+    void feature_enabled_temporary_suspend() {
+        blocklistRepo.activeBlock = Optional.of(LlmBlocklist.suspend(1L, "TEST", 1800));
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_SUSPENDED);
+                    assertThat(ex.getRetryAfterSeconds()).isGreaterThan(0);
+                });
+    }
+
+    // ---------- 비회원 순서 검증 ----------
+
+    @Test
+    @DisplayName("기능 꺼짐 + 비회원 → LG_UNAVAILABLE")
+    void guest_feature_disabled() {
+        properties.setEnabled(Map.of("recommendation", false));
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_UNAVAILABLE));
+    }
+
+    @Test
+    @DisplayName("IP null 비회원 → LG_RATE_LIMITED(60)")
+    void guest_null_ip_retry_after_60() {
+        assertThatThrownBy(() -> guard.checkAndLockGuest(null, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(60);
+                });
+    }
+
+    // ---------- retryAfter 값 검증 + inflight 해제 확인 ----------
+
+    @Test
+    @DisplayName("회원 inflight 실패 → retryAfter=5")
+    void member_inflight_retry_after_5() {
+        rateLimiter.inflightLocked = true;
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(5);
+                });
+    }
+
+    @Test
+    @DisplayName("회원 분당 초과 → retryAfter=60, inflight 해제 호출")
+    void member_minute_exceeded_releases_inflight() {
+        rateLimiter.minuteCount = 4L; // recommendation limit: 3/min
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(60);
+                });
+        assertThat(rateLimiter.inflightReleased).isTrue();
+    }
+
+    @Test
+    @DisplayName("회원 일일 초과 → retryAfter=3600, inflight 해제 호출")
+    void member_day_exceeded_releases_inflight() {
+        rateLimiter.dayCount = 21L; // recommendation limit: 20/day
+        assertThatThrownBy(() -> guard.checkAndLock(1L, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(3600);
+                });
+        assertThat(rateLimiter.inflightReleased).isTrue();
+    }
+
+    @Test
+    @DisplayName("비회원 inflight 실패 → retryAfter=5")
+    void guest_inflight_retry_after_5() {
+        rateLimiter.guestInflightLocked = true;
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(5);
+                });
+    }
+
+    @Test
+    @DisplayName("비회원 분당 초과 → retryAfter=60, guest inflight 해제 호출")
+    void guest_minute_exceeded_releases_inflight() {
+        rateLimiter.guestMinuteCount = 3L; // guest limit: 2/min
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(60);
+                });
+        assertThat(rateLimiter.guestInflightReleased).isTrue();
+    }
+
+    @Test
+    @DisplayName("비회원 일일 초과 → retryAfter=3600, guest inflight 해제 호출")
+    void guest_day_exceeded_releases_inflight() {
+        rateLimiter.guestDayCount = 4L; // guest limit: 3/day
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> {
+                    LlmGuardException ex = (LlmGuardException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED);
+                    assertThat(ex.getRetryAfterSeconds()).isEqualTo(3600);
+                });
+        assertThat(rateLimiter.guestInflightReleased).isTrue();
+    }
+
     // ---------- helpers ----------
 
     static LlmGuardProperties.Limits limits(int perMinute, int perDay) {
@@ -294,8 +436,9 @@ class LlmGuardTest {
     static class FakeBlocklistRepository implements LlmBlocklistRepository {
         Optional<LlmBlocklist> activeBlock = Optional.empty();
         LlmBlocklist saved;
+        int queryCount = 0;
 
-        @Override public Optional<LlmBlocklist> findActiveBlock(Long userId) { return activeBlock; }
+        @Override public Optional<LlmBlocklist> findActiveBlock(Long userId) { queryCount++; return activeBlock; }
         @Override public <S extends LlmBlocklist> S save(S entity) { saved = entity; return entity; }
 
         // unused JpaRepository methods
@@ -385,7 +528,8 @@ class LlmGuardTest {
         @Override public Optional<String> tryInflight(Long userId, String lockValue, int ttlSeconds) {
             return inflightLocked ? Optional.empty() : Optional.of(lockValue);
         }
-        @Override public void releaseInflight(Long userId, String lockValue) {}
+        boolean inflightReleased = false;
+        @Override public void releaseInflight(Long userId, String lockValue) { inflightReleased = true; }
         @Override public Optional<Long> incrementMinute(Long userId, String feature) { return Optional.of(minuteCount); }
         @Override public Optional<Long> incrementDay(Long userId, String feature) { return Optional.of(dayCount); }
         @Override public Optional<Long> incrementFeatureBudget(String feature) { return Optional.of(budgetCount); }

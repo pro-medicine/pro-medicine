@@ -9,7 +9,8 @@ import java.util.UUID;
 
 /**
  * LLM 가드 총괄 (V5 보안). 요청 진입 시점에서 호출한다.
- * 순서: 차단 목록 → inflight 잠금 → 분/일 제한 → 기능 예산/킬스위치.
+ * 회원 순서: 킬스위치(기능 ON/OFF + isKilled) → 차단 목록(DB) → inflight 잠금 → 분/일 제한.
+ * 게스트 순서: null IP → 킬스위치 → inflight 잠금 → 분/일 제한.
  * Redis 장애 시 fail-open (분/일 제한만 건너뜀, 차단 목록은 DB 조회).
  * 경고 누적: INJECTION/OUTPUT_INVALID → 24시간 내 3회=30분 정지, 6회=24시간 정지, 이후=영구 차단.
  */
@@ -34,26 +35,19 @@ public class LlmGuard {
     }
 
     /**
-     * 요청 진입 가드. 통과하면 inflight 잠금 값(UUID)을 반환한다.
+     * 회원 요청 진입 가드. 통과하면 inflight 잠금 값(UUID)을 반환한다.
      * 호출 측은 finally에서 {@link #releaseInflight}를 호출해야 한다.
-     *
-     * @param userId  요청자 (null이면 비회원 — 가드 건너뜀)
-     * @param feature 기능 이름 (recommendation, personalized, chat)
-     * @return inflight 잠금 UUID (Redis 없으면 dummy UUID)
-     * @throws LlmGuardException 차단/제한/예산 초과 시
+     * 순서: userId null → 킬스위치 → 차단 목록 → inflight → 분/일 제한.
      */
     public String checkAndLock(Long userId, String feature) {
-        // 비회원은 가드 건너뜀 (V1 설문 비회원 추천 허용)
         if (userId == null) {
             return UUID.randomUUID().toString();
         }
 
         // 1) 기능 ON/OFF + 킬스위치
-        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
-            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
-        }
+        checkKillswitch(feature);
 
-        // 2) 차단 목록 (DB 조회 — Redis 장애와 무관)
+        // 2) 차단 목록 (DB 조회 — Redis 장애와 무관, 회원만)
         Optional<LlmBlocklist> block = blocklistRepository.findActiveBlock(userId);
         if (block.isPresent()) {
             LlmBlocklist b = block.get();
@@ -87,7 +81,7 @@ public class LlmGuard {
                     throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 3600);
                 }
             } catch (LlmGuardException e) {
-                throw e; // 위에서 던진 거면 그대로
+                throw e;
             } catch (Exception e) {
                 log.warn("Rate limit check failed, fail-open: {}", e.getMessage());
             }
@@ -99,10 +93,7 @@ public class LlmGuard {
     /**
      * 게스트 요청 진입 가드. IP 기반 inflight 잠금 + 분/일 제한.
      * strike/blocklist는 게스트에 적용하지 않는다 (IP 변경이 쉬우므로).
-     *
-     * @param clientIp 클라이언트 IP (null이면 429)
-     * @param feature  기능 이름
-     * @return inflight 잠금 UUID
+     * 순서: null IP → 킬스위치 → inflight → 분/일 제한.
      */
     public String checkAndLockGuest(String clientIp, String feature) {
         if (clientIp == null || clientIp.isBlank()) {
@@ -110,9 +101,7 @@ public class LlmGuard {
         }
 
         // 킬스위치
-        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
-            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
-        }
+        checkKillswitch(feature);
 
         String lockValue = UUID.randomUUID().toString();
         if (rateLimiter != null) {
@@ -142,6 +131,12 @@ public class LlmGuard {
             }
         }
         return lockValue;
+    }
+
+    private void checkKillswitch(String feature) {
+        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
     }
 
     /** 게스트 inflight 잠금 해제 */

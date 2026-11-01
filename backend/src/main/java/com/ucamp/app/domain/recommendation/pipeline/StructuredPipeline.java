@@ -30,8 +30,6 @@ public abstract class StructuredPipeline implements RecommendationPipeline {
 
     /** 프롬프트 폴더(src/main/resources/prompts/{dir})와 기록용 프롬프트 버전 */
     protected record Prompt(String dir, String version) {
-        static final Prompt V1 = new Prompt("v1", "v1.3");
-        static final Prompt V2 = new Prompt("v2", "v2.3");
         static final Prompt V4 = new Prompt("v4", "v4.4");
     }
 

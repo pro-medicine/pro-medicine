@@ -48,7 +48,7 @@ public class RecommendationConditionLoader {
         AiRecommendation rec = recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
         // PENDING·FAILED는 items가 비어 있다
-        List<String> recommended = recommendationStore.get(recommendationId).items().stream()
+        List<String> recommended = recommendationStore.get(rec).items().stream()
                 .map(RecommendationResponse.Item::ingredient).toList();
         RecommendationInput input = input(rec);
         if (input == null) {
