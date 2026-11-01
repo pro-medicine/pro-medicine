@@ -58,7 +58,7 @@ public class PersonalizedRecommendationService {
         if (!state.is(AiQuestionSession.READY)) {
             throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_STATE);
         }
-        String lockValue = llmGuard.checkAndLock(userId, "recommendation");
+        String lockValue = llmGuard.checkAndLock(userId, RecommendationService.FEATURE);
         try {
             return doRecommend(userId, sessionId, state);
         } finally {

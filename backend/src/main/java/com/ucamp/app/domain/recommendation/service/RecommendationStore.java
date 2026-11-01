@@ -27,9 +27,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class RecommendationStore {
-    private static final List<String> ACTIVE_OR_DONE =
-            List.of(AiRecommendation.PENDING, AiRecommendation.PROCESSING, AiRecommendation.DONE);
-
     private final AiRecommendationRepository recommendationRepository;
     private final AiRecommendationItemRepository itemRepository;
     private final SurveyQueryService surveyQueryService;
@@ -54,24 +51,7 @@ public class RecommendationStore {
         return mapper.toResponse(rec, saveItems(rec, result));
     }
 
-    /** 비동기 API: 같은 응답의 진행 중·완료 작업 (멱등) */
-    @Transactional(readOnly = true)
-    public Optional<RecommendationResponse> findActiveOrDone(Long responseId) {
-        return recommendationRepository
-                .findFirstByResponse_ResponseIdAndStatusInOrderByRecommendationIdDesc(responseId, ACTIVE_OR_DONE)
-                .map(this::toResponse);
-    }
-
-    /** 비동기 API: PENDING 행 생성 */
-    @Transactional
-    public RecommendationResponse createPending(Long responseId) {
-        return mapper.toResponse(newRecommendation(responseId, AiRecommendation.PENDING, null, null), List.of());
-    }
-
-    /**
-     * V4 대화창 트랙 2: 대화 세션으로 PENDING 행 생성 (response_id·session_id = null, chat_session_id = 대화 세션).
-     * V1 큐 워커는 response가 없는 행을 가져가지 않으므로(markProcessing) 대화창 쪽 실행기가 complete·fail로 끝낸다
-     */
+    /** V4 대화창 트랙 2: 대화 세션으로 PENDING 행 생성 (response_id·session_id = null, chat_session_id = 대화 세션) */
     @Transactional
     public RecommendationResponse createPendingForChat(AiChatSession chatSession) {
         AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
@@ -81,19 +61,7 @@ public class RecommendationStore {
         return mapper.toResponse(rec, List.of());
     }
 
-    /** 워커: PENDING → PROCESSING. 이미 다른 워커가 가져갔거나 끝난 작업이면 empty */
-    @Transactional
-    public Optional<Long> markProcessing(Long recommendationId) {
-        return recommendationRepository.findById(recommendationId)
-                // 큐에는 V1(설문 기반) 추천만 들어온다. V2 정밀 추천(response 없음)은 항상 동기로 만든다
-                .filter(r -> AiRecommendation.PENDING.equals(r.getStatus()) && r.getResponse() != null)
-                .map(r -> {
-                    r.markProcessing();
-                    return r.getResponse().getResponseId();
-                });
-    }
-
-    /** 워커: 결과 저장 후 DONE */
+    /** 결과 저장 후 DONE (V4 대화창 트랙 2에서 사용) */
     @Transactional
     public void complete(Long recommendationId, RecommendationResult result) {
         AiRecommendation rec = recommendationRepository.findById(recommendationId)
@@ -105,12 +73,6 @@ public class RecommendationStore {
     @Transactional
     public void fail(Long recommendationId, String errorCode) {
         recommendationRepository.findById(recommendationId).ifPresent(r -> r.markFailed(truncate(errorCode, AiRecommendation.ERROR_CODE_LENGTH)));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Long> pendingIds() {
-        return recommendationRepository.findByStatusOrderByRecommendationIdAsc(AiRecommendation.PENDING).stream()
-                .map(AiRecommendation::getRecommendationId).toList();
     }
 
     @Transactional(readOnly = true)
@@ -130,6 +92,12 @@ public class RecommendationStore {
     public RecommendationResponse get(Long recommendationId) {
         return toResponse(recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND)));
+    }
+
+    /** 이미 로드한 엔티티로 응답 DTO 조립 (이중 조회 방지용) */
+    @Transactional(readOnly = true)
+    public RecommendationResponse get(AiRecommendation rec) {
+        return toResponse(rec);
     }
 
     private RecommendationResponse toResponse(AiRecommendation rec) {

@@ -4,9 +4,6 @@ import com.ucamp.app.domain.recommendation.dto.LatestRecommendationResponse;
 import com.ucamp.app.perf.LoggingNotificationSender;
 import com.ucamp.app.perf.NotificationSpikeSimulator;
 import com.ucamp.app.perf.NotificationSpikeSimulator.PlannedNotification;
-import com.ucamp.app.domain.recommendation.queue.InMemoryRecommendationQueue;
-import com.ucamp.app.domain.recommendation.queue.RecommendationQueue;
-import com.ucamp.app.domain.recommendation.queue.RedisRecommendationQueue;
 import com.ucamp.app.domain.recommendation.service.RecommendationReuseService;
 import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.domain.survey.service.SurveySubmitService;
@@ -15,12 +12,8 @@ import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.support.TestUsers;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Duration;
@@ -112,37 +105,4 @@ class NotificationAndReuseTest {
         assertThat(changed.reason()).isEqualTo(RecommendationReuseService.PROFILE_CHANGED);
     }
 
-    @Test
-    void 메모리_큐는_FIFO() throws Exception {
-        RecommendationQueue q = new InMemoryRecommendationQueue();
-        q.enqueue(1);
-        q.enqueue(2);
-
-        assertThat(q.size()).isEqualTo(2);
-        assertThat(q.poll(Duration.ofMillis(10))).contains(1L);
-        assertThat(q.poll(Duration.ofMillis(10))).contains(2L);
-        assertThat(q.poll(Duration.ofMillis(10))).isEmpty();
-    }
-
-    @Test
-    @EnabledIfEnvironmentVariable(named = "REDIS_HOST", matches = ".+")
-    void Redis_List_큐는_FIFO() throws Exception {
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(
-                new RedisStandaloneConfiguration(System.getenv("REDIS_HOST"), 6379));
-        factory.afterPropertiesSet();
-        try {
-            StringRedisTemplate template = new StringRedisTemplate(factory);
-            template.delete("rec:queue");
-            RecommendationQueue q = new RedisRecommendationQueue(template);
-            q.enqueue(10);
-            q.enqueue(11);
-
-            assertThat(q.size()).isEqualTo(2);
-            assertThat(q.poll(Duration.ofSeconds(1))).contains(10L);
-            assertThat(q.poll(Duration.ofSeconds(1))).contains(11L);
-            assertThat(q.poll(Duration.ofSeconds(1))).isEmpty();
-        } finally {
-            factory.destroy();
-        }
-    }
 }

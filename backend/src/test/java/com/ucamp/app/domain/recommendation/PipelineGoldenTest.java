@@ -111,7 +111,7 @@ class PipelineGoldenTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"V0", "V1", "V2", "V3", "V4", "V6", "V7", "V8", "RULE_ONLY"})
+    @ValueSource(strings = {"V4", "V6", "V7", "V8", "RULE_ONLY"})
     void 버전별_정상_재요청_실패_비회원(String version) {
         Map<String, Object> golden = new LinkedHashMap<>();
         fake.answerWith(MIXED);
