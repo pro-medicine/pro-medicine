@@ -86,7 +86,8 @@ public enum ErrorCode {
     DISPOSAL_INVALID_LOCATION(HttpStatus.BAD_REQUEST, "D003", "올바른 위치 좌표와 검색 반경(500/1000/2000/3000m)을 입력해주세요."),
 
     // CALENDAR
-    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다.");
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다."),
+    PRESCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "C002", "복약 일정을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
