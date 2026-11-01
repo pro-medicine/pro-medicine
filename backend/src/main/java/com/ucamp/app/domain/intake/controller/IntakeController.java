@@ -64,7 +64,6 @@ public class IntakeController {
     ) {
         requireLogin(userId);
         LocalDate target = date != null ? date : LocalDate.now(KST);
-        userService.markActive(userId);
         return ResponseEntity.ok(intakeService.getTodayIntakes(userId, target));
     }
 

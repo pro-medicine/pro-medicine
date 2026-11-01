@@ -17,6 +17,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 // users 테이블에는 created_at, updated_at만 있어서 Timestamped를 상속하지 않음
 @Getter
@@ -25,6 +26,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class User {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,7 +53,7 @@ public class User {
     private LocalDateTime sensitiveConsentAt;
 
     @Column(name = "last_active_at", nullable = false)
-    private LocalDateTime lastActiveAt = LocalDateTime.now();
+    private LocalDateTime lastActiveAt = LocalDateTime.now(KST);
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -87,11 +90,11 @@ public class User {
             return;
         }
         this.sensitiveConsent = true;
-        this.sensitiveConsentAt = LocalDateTime.now();
+        this.sensitiveConsentAt = LocalDateTime.now(KST);
     }
 
     // 마지막 접속일 체크용
     public void touchActive() {
-        this.lastActiveAt = LocalDateTime.now();
+        this.lastActiveAt = LocalDateTime.now(KST);
     }
 }

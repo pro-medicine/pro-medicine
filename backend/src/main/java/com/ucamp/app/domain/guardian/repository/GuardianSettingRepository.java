@@ -25,6 +25,4 @@ public interface GuardianSettingRepository extends JpaRepository<GuardianSetting
             "join fetch g.user u join fetch g.guardianUser " +
             "where g.isActive = true")
     List<GuardianSetting> findAllActiveWithUsers();
-
-    Optional<GuardianSetting> findByGuardianSettingId(Long guardianSettingId);
 }

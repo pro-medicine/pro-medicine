@@ -59,7 +59,6 @@ public class GuardianService {
         boolean isParty = setting.getUser().getId().equals(userId)
                 || setting.getGuardianUser().getId().equals(userId);
         if (!isParty) throw new BusinessException(ErrorCode.FORBIDDEN);
-        // TODO: soft delete?
         guardianSettingRepository.delete(setting);
     }
 
@@ -84,7 +83,7 @@ public class GuardianService {
     }
 
     private GuardianSetting get(Long id) {
-        return guardianSettingRepository.findByGuardianSettingId(id)
+        return guardianSettingRepository.findById(id)
                 .orElseThrow(()->new BusinessException(ErrorCode.SETTING_NOT_FOUND));
     }
 }
