@@ -30,9 +30,11 @@ class LlmGuardTest {
         properties.setFeatureLimits(Map.of(
                 "recommendation", limits(3, 20),
                 "personalized", limits(10, 30),
-                "chat", limits(6, 50)
+                "chat", limits(6, 50),
+                "guest", limits(2, 3)
         ));
-        properties.setDailyBudget(Map.of("recommendation", 100, "personalized", 50, "chat", 100));
+        properties.setDailyBudget(Map.of("recommendation", 100, "personalized", 50, "chat", 100,
+                "recommendation-guest", 300));
         properties.setInflightTtlSeconds(120);
 
         blocklistRepo = new FakeBlocklistRepository();
@@ -200,6 +202,84 @@ class LlmGuardTest {
         assertThat(blocklistRepo.saved.isPermanent()).isTrue();
     }
 
+    // ---------- 게스트 가드 ----------
+
+    @Test
+    @DisplayName("게스트 정상 통과 → UUID 반환")
+    void guest_normal_passes() {
+        String lock = guard.checkAndLockGuest("192.168.1.1", "recommendation");
+        assertThat(lock).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("게스트 IP null → 429")
+    void guest_null_ip_blocked() {
+        assertThatThrownBy(() -> guard.checkAndLockGuest(null, "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED));
+    }
+
+    @Test
+    @DisplayName("게스트 IP 빈 문자열 → 429")
+    void guest_blank_ip_blocked() {
+        assertThatThrownBy(() -> guard.checkAndLockGuest("  ", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED));
+    }
+
+    @Test
+    @DisplayName("게스트 동시 요청(inflight 잠금) → 두 번째 429")
+    void guest_inflight_lock() {
+        rateLimiter.guestInflightLocked = true;
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED));
+    }
+
+    @Test
+    @DisplayName("게스트 분당 제한 초과 → 429")
+    void guest_minute_limit() {
+        rateLimiter.guestMinuteCount = 3L; // guest limit: 2/min
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED));
+    }
+
+    @Test
+    @DisplayName("게스트 일일 제한 초과 → 429")
+    void guest_day_limit() {
+        rateLimiter.guestDayCount = 4L; // guest limit: 3/day
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_RATE_LIMITED));
+    }
+
+    @Test
+    @DisplayName("게스트 킬스위치 → 503")
+    void guest_killswitch() {
+        rateLimiter.killed = true;
+        assertThatThrownBy(() -> guard.checkAndLockGuest("10.0.0.1", "recommendation"))
+                .isInstanceOf(LlmGuardException.class)
+                .satisfies(e -> assertThat(((LlmGuardException) e).getErrorCode()).isEqualTo(ErrorCode.LG_UNAVAILABLE));
+    }
+
+    @Test
+    @DisplayName("게스트 inflight 잠금 해제는 releaseGuestInflight로")
+    void guest_inflight_release() {
+        String lock = guard.checkAndLockGuest("10.0.0.1", "recommendation");
+        guard.releaseGuestInflight("10.0.0.1", lock);
+        assertThat(rateLimiter.guestInflightReleased).isTrue();
+    }
+
+    @Test
+    @DisplayName("게스트 제한 이내 → 통과")
+    void guest_within_limit_passes() {
+        rateLimiter.guestMinuteCount = 1L;
+        rateLimiter.guestDayCount = 2L;
+        String lock = guard.checkAndLockGuest("10.0.0.1", "recommendation");
+        assertThat(lock).isNotBlank();
+    }
+
     // ---------- helpers ----------
 
     static LlmGuardProperties.Limits limits(int perMinute, int perDay) {
@@ -291,9 +371,13 @@ class LlmGuardTest {
     static class FakeRateLimiter extends LlmRateLimiter {
         boolean killed = false;
         boolean inflightLocked = false;
+        boolean guestInflightLocked = false;
         Long minuteCount = 0L;
         Long dayCount = 0L;
+        Long guestMinuteCount = 0L;
+        Long guestDayCount = 0L;
         long budgetCount = 0L;
+        boolean guestInflightReleased = false;
 
         FakeRateLimiter() { super(null); }
 
@@ -306,5 +390,15 @@ class LlmGuardTest {
         @Override public Optional<Long> incrementDay(Long userId, String feature) { return Optional.of(dayCount); }
         @Override public Optional<Long> incrementFeatureBudget(String feature) { return Optional.of(budgetCount); }
         @Override public long getFeatureBudgetCount(String feature) { return budgetCount; }
+
+        // guest methods
+        @Override public Optional<String> tryInflightGuest(String clientIp, String lockValue, int ttlSeconds) {
+            return guestInflightLocked ? Optional.empty() : Optional.of(lockValue);
+        }
+        @Override public void releaseInflightGuest(String clientIp, String lockValue) {
+            guestInflightReleased = true;
+        }
+        @Override public Optional<Long> incrementMinuteGuest(String clientIp, String feature) { return Optional.of(guestMinuteCount); }
+        @Override public Optional<Long> incrementDayGuest(String clientIp, String feature) { return Optional.of(guestDayCount); }
     }
 }

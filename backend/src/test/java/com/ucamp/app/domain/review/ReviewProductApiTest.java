@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
@@ -70,7 +71,8 @@ class ReviewProductApiTest {
     void 비회원_마그네슘_B6_추천_결과에서_마그네슘_제품() throws Exception {
         long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995)), "MAGNESIUM", "VITAMIN_B6");
 
-        String body = mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MAGNESIUM"))
+        String body = mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MAGNESIUM")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.ingredient").value("MAGNESIUM"))
@@ -87,7 +89,8 @@ class ReviewProductApiTest {
         // 약사·채널·리뷰 원문은 내보내지 않는다
         assertThat(body).doesNotContain("TESTCH").doesNotContain("context").doesNotContain("evidence").doesNotContain("예시 인용");
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.MAGNESIUM").value(true))
                 .andExpect(jsonPath("$.data.VITAMIN_B6").value(true));
@@ -99,7 +102,8 @@ class ReviewProductApiTest {
         long recId = recommend(user.getId(), List.of(choice(Q_GENDER, GENDER_M), number(Q_BIRTH, 1970),
                 choice(Q_PREGNANCY, PREGNANCY_NA), text(Q_MEDICATIONS, "[{\"drugId\":\"D-007\"}]")), "VITAMIN_D");
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "VITAMIN_D"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "VITAMIN_D")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products.length()").value(1))
                 .andExpect(jsonPath("$.data.products[0].catalogProductId").value(9312))
@@ -120,7 +124,8 @@ class ReviewProductApiTest {
 
         // 9314(오메가3 + 루테인)는 임신이라 같이 든 루테인(R-38) 때문에 제외
         mockMvc.perform(get("/api/v1/recommendations/" + rec.getRecommendationId() + "/products")
-                        .param("ingredient", "OMEGA3"))
+                        .param("ingredient", "OMEGA3")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products.length()").value(1))
                 .andExpect(jsonPath("$.data.products[0].catalogProductId").value(9315))
@@ -132,7 +137,8 @@ class ReviewProductApiTest {
     void 추천_결과에_없는_성분은_빈_목록과_안내() throws Exception {
         long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "ZINC"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "ZINC")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products.length()").value(0))
                 .andExpect(jsonPath("$.data.message").value(ReviewProductResponse.EMPTY_MESSAGE));
@@ -140,15 +146,19 @@ class ReviewProductApiTest {
 
     @Test
     void 없는_추천은_404_잘못되거나_빠진_성분_코드는_400() throws Exception {
-        mockMvc.perform(get("/api/v1/recommendations/999999/products").param("ingredient", "MAGNESIUM"))
+        mockMvc.perform(get("/api/v1/recommendations/999999/products").param("ingredient", "MAGNESIUM")
+                        .header("X-Guest-Token", "nonexistent"))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/recommendations/999999/products/availability"))
+        mockMvc.perform(get("/api/v1/recommendations/999999/products/availability")
+                        .header("X-Guest-Token", "nonexistent"))
                 .andExpect(status().isNotFound());
 
         long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MELATONIN"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MELATONIN")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isBadRequest());
     }
 
@@ -156,11 +166,14 @@ class ReviewProductApiTest {
     void availability는_통과_제품이_없는_성분을_false로() throws Exception {
         long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM", "ZINC");
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability")
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.MAGNESIUM").value(true))
                 .andExpect(jsonPath("$.data.ZINC").value(false));
     }
+
+    private String lastGuestToken;
 
     private long recommend(Long userId, List<Map<String, Object>> answers, String... ingredients) throws Exception {
         fake.answerWith(new FakeAnswer(java.util.Arrays.stream(ingredients)
@@ -168,13 +181,21 @@ class ReviewProductApiTest {
         var req = post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("answers", answers)));
         if (userId != null) {
-            req.header("X-User-Id", userId);
+            req.header("Authorization", bearer(userId));
         }
         String submitted = mockMvc.perform(req).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        long responseId = objectMapper.readTree(submitted).get("data").get("responseId").asLong();
+        JsonNode submitData = objectMapper.readTree(submitted).get("data");
+        long responseId = submitData.get("responseId").asLong();
+        lastGuestToken = userId == null && submitData.has("guestToken") ? submitData.get("guestToken").asString() : null;
 
-        String body = mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"responseId\":" + responseId + "}"))
+        var recReq = post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"responseId\":" + responseId + "}");
+        if (userId != null) {
+            recReq.header("Authorization", bearer(userId));
+        } else if (lastGuestToken != null) {
+            recReq.header("X-Guest-Token", lastGuestToken);
+        }
+        String body = mockMvc.perform(recReq)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode data = objectMapper.readTree(body).get("data");

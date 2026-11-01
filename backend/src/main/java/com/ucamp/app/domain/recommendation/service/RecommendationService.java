@@ -12,8 +12,10 @@ import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.global.metrics.StageTimer;
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.infra.llm.LlmUnavailableException;
+import com.ucamp.app.infra.llm.guard.ClientIpResolver;
 import com.ucamp.app.infra.llm.guard.LlmGuard;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,24 +45,38 @@ public class RecommendationService {
     // 같은 responseId의 동시 접수를 한 번만 만들기 위한 잠금 (서버 한 대 기준. 여러 대면 DB 유니크나 Redis SETNX 필요)
     private final ConcurrentHashMap<Long, Object> submitLocks = new ConcurrentHashMap<>();
 
-    public RecommendationResponse create(Long userId, Long responseId) {
+    public static final String FEATURE_GUEST = "recommendation-guest";
+
+    public RecommendationResponse create(Long userId, Long responseId,
+                                         String guestToken, HttpServletRequest httpRequest) {
         if (responseId == null) {
             throw new BusinessException(ErrorCode.RECOMMENDATION_INVALID_REQUEST);
         }
-        recommendationAccess.requireResponseOwned(userId, responseId);
-        String lockValue = llmGuard.checkAndLock(userId, "recommendation");
+        recommendationAccess.requireResponseOwned(userId, responseId, guestToken);
+        String lockValue;
+        if (userId == null) {
+            String clientIp = ClientIpResolver.resolve(httpRequest);
+            lockValue = llmGuard.checkAndLockGuest(clientIp, "recommendation");
+        } else {
+            lockValue = llmGuard.checkAndLock(userId, "recommendation");
+        }
         try {
-            return properties.isQueueMode() ? submit(responseId) : createSync(responseId);
+            String feature = userId == null ? FEATURE_GUEST : "recommendation";
+            return properties.isQueueMode() ? submit(responseId) : createSync(responseId, feature);
         } finally {
-            // queue 모드: PENDING 응답 시점에 해제 (백그라운드 호출은 기능 예산으로만 카운트)
-            llmGuard.releaseInflight(userId, lockValue);
+            if (userId != null) {
+                llmGuard.releaseInflight(userId, lockValue);
+            } else {
+                String clientIp = ClientIpResolver.resolve(httpRequest);
+                llmGuard.releaseGuestInflight(clientIp, lockValue);
+            }
         }
     }
 
-    private RecommendationResponse createSync(Long responseId) {
+    private RecommendationResponse createSync(Long responseId, String feature) {
         String version = properties.getPipelineVersion();
         return stageTimer.recordTotal(version, () -> {
-            RecommendationResult result = runPipeline(responseId, version);
+            RecommendationResult result = runPipeline(responseId, version, feature);
             return store.save(responseId, result);
         });
     }
@@ -99,9 +115,13 @@ public class RecommendationService {
         }
     }
 
-    private RecommendationResult runPipeline(Long responseId, String version) {
+    private RecommendationResult runPipeline(Long responseId, String version, String feature) {
         RecommendationInput input = stageTimer.record(StageTimer.ASSEMBLE, version, () -> assembler.assemble(responseId));
-        return execute(input, version);
+        return execute(input, version, feature);
+    }
+
+    private RecommendationResult runPipeline(Long responseId, String version) {
+        return runPipeline(responseId, version, "recommendation");
     }
 
     /**
@@ -109,18 +129,20 @@ public class RecommendationService {
      * LLM 장애(서킷 OPEN·재시도 소진)면 규칙 기반 폴백, 그 밖의 호출 실패는 R003
      */
     public RecommendationResult runInput(RecommendationInput input, String version) {
-        return stageTimer.recordTotal(version, () -> execute(input, version));
+        return stageTimer.recordTotal(version, () -> execute(input, version, "recommendation"));
     }
 
-    private RecommendationResult execute(RecommendationInput input, String version) {
+    private RecommendationResult execute(RecommendationInput input, String version, String feature) {
         // 기능 예산 초과 → 규칙 기반 폴백 (LLM 호출 없이)
-        if (llmGuard.isFeatureBudgetExceeded("recommendation")) {
-            log.warn("recommendation budget exceeded, rule-only fallback: responseId={}", input.responseId());
+        if (llmGuard.isFeatureBudgetExceeded(feature)) {
+            log.warn("recommendation budget exceeded, rule-only fallback: feature={}, responseId={}", feature, input.responseId());
             meterRegistry.counter("recommendation.fallback", "reason", "BUDGET_EXCEEDED").increment();
             return ruleOnlyPipeline.run(input);
         }
+        // feature 태그를 입력에 설정 → 파이프라인 → LlmRequest.feature로 전달
+        RecommendationInput tagged = input.toBuilder().feature(feature).build();
         try {
-            return pipelineRegistry.get(version).run(input);
+            return pipelineRegistry.get(version).run(tagged);
         } catch (LlmUnavailableException e) {
             // 서킷 OPEN·재시도 소진이면 규칙 기반 폴백 (각 파이프라인 코드는 바꾸지 않는다)
             log.warn("LLM unavailable, rule-only fallback: reason={}, responseId={}, sessionId={}", e.getReason(),

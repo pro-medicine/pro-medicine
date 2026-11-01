@@ -234,11 +234,15 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
     const submitAnswers = { ...answers };
     if (skippedQuestionId != null) delete submitAnswers[skippedQuestionId];
     try {
-      const { responseId } = await submitSurvey(
+      const submitResult = await submitSurvey(
         userId,
         survey.surveyId,
         toSubmitAnswers(survey.questions, submitAnswers),
       );
+      const { responseId, guestToken } = submitResult;
+      if (guestToken) {
+        sessionStorage.setItem("guestToken", guestToken);
+      }
       const data = await createRecommendation(userId, responseId);
       handleRecommendation(data, 0);
     } catch (e) {

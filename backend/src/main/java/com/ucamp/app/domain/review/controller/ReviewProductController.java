@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,18 +26,22 @@ public class ReviewProductController {
 
     // ingredient가 없거나 성분 코드가 아니면 400 (GlobalExceptionHandler가 누락 파라미터를 500으로 내므로 서비스에서 검증)
     @GetMapping
-    public ResponseEntity<ApiResponse<ReviewProductResponse>> products(@CurrentUserId Long userId,
-                                                                       @PathVariable Long recommendationId,
-                                                                       @RequestParam(required = false) String ingredient) {
-        recommendationAccess.requireOwned(userId, recommendationId);
+    public ResponseEntity<ApiResponse<ReviewProductResponse>> products(
+            @CurrentUserId Long userId,
+            @PathVariable Long recommendationId,
+            @RequestParam(required = false) String ingredient,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken) {
+        recommendationAccess.requireOwned(userId, recommendationId, guestToken);
         return ResponseEntity.ok(ApiResponse.success(service.recommend(recommendationId, ingredient)));
     }
 
     // 성분 코드 → 안전 필터를 통과한 제품이 1개 이상인지. 화면은 true일 때만 [제품 추천 보기] 버튼을 띄운다
     @GetMapping("/availability")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> availability(@CurrentUserId Long userId,
-                                                                          @PathVariable Long recommendationId) {
-        recommendationAccess.requireOwned(userId, recommendationId);
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> availability(
+            @CurrentUserId Long userId,
+            @PathVariable Long recommendationId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken) {
+        recommendationAccess.requireOwned(userId, recommendationId, guestToken);
         return ResponseEntity.ok(ApiResponse.success(service.availability(recommendationId)));
     }
 }

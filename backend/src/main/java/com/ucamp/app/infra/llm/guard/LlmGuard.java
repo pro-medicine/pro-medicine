@@ -97,6 +97,60 @@ public class LlmGuard {
     }
 
     /**
+     * 게스트 요청 진입 가드. IP 기반 inflight 잠금 + 분/일 제한.
+     * strike/blocklist는 게스트에 적용하지 않는다 (IP 변경이 쉬우므로).
+     *
+     * @param clientIp 클라이언트 IP (null이면 429)
+     * @param feature  기능 이름
+     * @return inflight 잠금 UUID
+     */
+    public String checkAndLockGuest(String clientIp, String feature) {
+        if (clientIp == null || clientIp.isBlank()) {
+            throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
+        }
+
+        // 킬스위치
+        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
+
+        String lockValue = UUID.randomUUID().toString();
+        if (rateLimiter != null) {
+            // inflight 잠금
+            Optional<String> locked = rateLimiter.tryInflightGuest(clientIp, lockValue, properties.getInflightTtlSeconds());
+            if (locked.isEmpty()) {
+                throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 5);
+            }
+
+            // 분/일 제한 (게스트 전용 설정)
+            LlmGuardProperties.Limits guestLimits = properties.getLimitsFor("guest");
+            try {
+                Optional<Long> minuteCount = rateLimiter.incrementMinuteGuest(clientIp, feature);
+                if (minuteCount.isPresent() && minuteCount.get() > guestLimits.getPerMinute()) {
+                    releaseGuestInflight(clientIp, lockValue);
+                    throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
+                }
+                Optional<Long> dayCount = rateLimiter.incrementDayGuest(clientIp, feature);
+                if (dayCount.isPresent() && dayCount.get() > guestLimits.getPerDay()) {
+                    releaseGuestInflight(clientIp, lockValue);
+                    throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 3600);
+                }
+            } catch (LlmGuardException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Guest rate limit check failed, fail-open: {}", e.getMessage());
+            }
+        }
+        return lockValue;
+    }
+
+    /** 게스트 inflight 잠금 해제 */
+    public void releaseGuestInflight(String clientIp, String lockValue) {
+        if (clientIp == null || rateLimiter == null) return;
+        rateLimiter.releaseInflightGuest(clientIp, lockValue);
+    }
+
+    /**
      * 기능 예산 확인 (LLM 호출 직전, 실제 호출 단위). 예산 초과 시 true 반환.
      * RecommendationService는 이걸로 RuleOnlyPipeline 폴백 결정.
      */

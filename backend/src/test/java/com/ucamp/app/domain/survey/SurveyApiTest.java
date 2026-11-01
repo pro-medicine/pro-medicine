@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
@@ -288,7 +289,7 @@ class SurveyApiTest {
     @Test
     void 민감정보_동의() throws Exception {
         User user = TestUsers.create(userRepository, false);
-        mockMvc.perform(post("/api/v1/users/me/sensitive-consent").header("X-User-Id", user.getId()))
+        mockMvc.perform(post("/api/v1/users/me/sensitive-consent").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.sensitiveConsent").value(true));
         mockMvc.perform(post("/api/v1/users/me/sensitive-consent"))
@@ -297,10 +298,13 @@ class SurveyApiTest {
 
     @Test
     void 약_검색과_성분_목록() throws Exception {
-        mockMvc.perform(get("/api/v1/drugs").param("keyword", "와파린"))
+        User user = TestUsers.create(userRepository, true);
+        mockMvc.perform(get("/api/v1/drugs").param("keyword", "와파린")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].drugClass").value("WARFARIN"));
-        mockMvc.perform(get("/api/v1/ingredients"))
+        mockMvc.perform(get("/api/v1/ingredients")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(24));
     }
@@ -310,7 +314,7 @@ class SurveyApiTest {
     private JsonNode getActive(Long userId) throws Exception {
         var req = get("/api/v1/surveys/active");
         if (userId != null) {
-            req.header("X-User-Id", userId);
+            req.header("Authorization", bearer(userId));
         }
         String body = mockMvc.perform(req).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("data");
@@ -321,7 +325,7 @@ class SurveyApiTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("answers", answers)));
         if (userId != null) {
-            req.header("X-User-Id", userId);
+            req.header("Authorization", bearer(userId));
         }
         return mockMvc.perform(req);
     }

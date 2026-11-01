@@ -5,6 +5,12 @@ function userHeader(userId) {
   return userId ? { headers: { "X-User-Id": userId } } : {};
 }
 
+// 비회원 토큰 헤더 (sessionStorage에 저장된 guestToken이 있으면 첨부)
+function guestTokenHeader() {
+  const token = sessionStorage.getItem("guestToken");
+  return token ? { "X-Guest-Token": token } : {};
+}
+
 // 진행 중인 설문 조회 (문항 + 회원이면 prefill, needsConfirm)
 export function getActiveSurvey(userId) {
   return api.get("/api/v1/surveys/active", userHeader(userId));
@@ -36,15 +42,14 @@ export function submitSurvey(userId, surveyId, answers) {
 
 // 추천 생성 (sync 모드면 DONE, queue 모드면 PENDING으로 온다)
 export function createRecommendation(userId, responseId) {
-  return api.post("/api/v1/recommendations", { responseId }, userHeader(userId));
+  const headers = { ...userHeader(userId).headers, ...guestTokenHeader() };
+  return api.post("/api/v1/recommendations", { responseId }, { headers });
 }
 
 // 추천 조회 (queue 모드 폴링용)
 export function getRecommendation(userId, recommendationId) {
-  return api.get(
-    `/api/v1/recommendations/${recommendationId}`,
-    userHeader(userId),
-  );
+  const headers = { ...userHeader(userId).headers, ...guestTokenHeader() };
+  return api.get(`/api/v1/recommendations/${recommendationId}`, { headers });
 }
 
 // ---------- V2 회원 맞춤 질문 (회원 전용) ----------
@@ -99,12 +104,17 @@ export function createPersonalizedRecommendation(userId, sessionId) {
 
 // 성분별 [제품 추천 보기] 버튼 노출 여부 → { MAGNESIUM: true, VITAMIN_D: false }
 export function getProductAvailability(recommendationId) {
-  return api.get(`/api/v1/recommendations/${recommendationId}/products/availability`);
+  const headers = guestTokenHeader();
+  return api.get(`/api/v1/recommendations/${recommendationId}/products/availability`, {
+    headers,
+  });
 }
 
 // 성분 카드의 추천 제품 (최대 3개) → { ingredient, products, excludedCount, notice, message }
 export function getRecommendedProducts(recommendationId, ingredient) {
+  const headers = guestTokenHeader();
   return api.get(`/api/v1/recommendations/${recommendationId}/products`, {
     params: { ingredient },
+    headers,
   });
 }

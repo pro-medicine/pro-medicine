@@ -19,6 +19,7 @@ import java.util.Map;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
+import static com.ucamp.app.support.TestJwt.bearer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -85,7 +86,7 @@ class RecommendationModeTest {
     void 설문에서_질환_약을_없음으로_답했으면_답한_것으로_본다() throws Exception {
         User user = members.create(true, BASIC, List.of(), List.of());
         var req = post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
-                .header("X-User-Id", user.getId())
+                .header("Authorization", bearer(user.getId()))
                 .content(objectMapper.writeValueAsString(Map.of("answers", List.of(
                         choice(Q_CONDITIONS, CONDITION_NONE), text(Q_MEDICATIONS, "[]")))));
         mockMvc.perform(req).andExpect(status().isOk());
@@ -95,12 +96,11 @@ class RecommendationModeTest {
 
     @Test
     void 비회원은_401() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me/recommendation-mode")).andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("E003"));
+        mockMvc.perform(get("/api/v1/users/me/recommendation-mode")).andExpect(status().isUnauthorized());
     }
 
     private ResultActions mode(User user) throws Exception {
-        return mockMvc.perform(get("/api/v1/users/me/recommendation-mode").header("X-User-Id", user.getId()))
+        return mockMvc.perform(get("/api/v1/users/me/recommendation-mode").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk());
     }
 }

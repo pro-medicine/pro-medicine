@@ -25,6 +25,6 @@ final class PipelineRequests {
                 .evalRunId(input.evalRunId())
                 .sessionId(input.sessionId())
                 .userId(input.userId())
-                .feature("recommendation");
+                .feature(input.feature() != null ? input.feature() : "recommendation");
     }
 }

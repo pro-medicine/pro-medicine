@@ -83,6 +83,35 @@ public class LlmRateLimiter {
         }
     }
 
+    // ---------- 게스트 (IP 기반) ----------
+
+    public Optional<Long> incrementMinuteGuest(String clientIp, String feature) {
+        return increment("llm:rate:guest:" + clientIp + ":" + feature + ":minute:" + minuteKey(), 120);
+    }
+
+    public Optional<Long> incrementDayGuest(String clientIp, String feature) {
+        return increment("llm:rate:guest:" + clientIp + ":" + feature + ":day:" + dayKey(), 90000);
+    }
+
+    public Optional<String> tryInflightGuest(String clientIp, String lockValue, int ttlSeconds) {
+        try {
+            Boolean ok = redis.opsForValue().setIfAbsent(
+                    "llm:inflight:guest:" + clientIp, lockValue, Duration.ofSeconds(ttlSeconds));
+            return Boolean.TRUE.equals(ok) ? Optional.of(lockValue) : Optional.empty();
+        } catch (Exception e) {
+            log.warn("Redis guest inflight lock failed, fail-open: {}", e.getMessage());
+            return Optional.of(lockValue);
+        }
+    }
+
+    public void releaseInflightGuest(String clientIp, String lockValue) {
+        try {
+            redis.execute(RELEASE_SCRIPT, List.of("llm:inflight:guest:" + clientIp), lockValue);
+        } catch (Exception e) {
+            log.warn("Redis guest inflight release failed: {}", e.getMessage());
+        }
+    }
+
     /**
      * 기능별 일일 호출 카운트를 1 올리고 현재 값 반환.
      */

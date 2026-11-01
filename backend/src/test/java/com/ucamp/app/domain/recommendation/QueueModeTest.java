@@ -64,9 +64,15 @@ class QueueModeTest {
         ExecutorService pool = Executors.newFixedThreadPool(8);
         List<Future<Long>> futures = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
-            Callable<Long> call = () -> body(mockMvc.perform(post("/api/v1/recommendations")
-                    .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}"))
-                    .andReturn().getResponse().getContentAsString()).get("recommendationId").asLong();
+            Callable<Long> call = () -> {
+                var req = post("/api/v1/recommendations")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}");
+                if (lastGuestToken != null) {
+                    req.header("X-Guest-Token", lastGuestToken);
+                }
+                return body(mockMvc.perform(req)
+                        .andReturn().getResponse().getContentAsString()).get("recommendationId").asLong();
+            };
             futures.add(pool.submit(call));
         }
         Set<Long> ids = new HashSet<>();
@@ -95,24 +101,38 @@ class QueueModeTest {
         assertThat(done.get("errorCode").asString()).isEqualTo("R003");
     }
 
+    private String lastGuestToken;
+
     private long submitSurvey() throws Exception {
         String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(Map.of("answers", List.of(choice(Q_GENDER, GENDER_M),
                                 choice(Q_SUN, SUN_LOW))))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return body(body).get("responseId").asLong();
+        JsonNode data = body(body);
+        if (data.has("guestToken")) {
+            lastGuestToken = data.get("guestToken").asString();
+        }
+        return data.get("responseId").asLong();
     }
 
     private JsonNode create(long responseId, int expectedStatus) throws Exception {
-        return body(mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"responseId\":" + responseId + "}"))
+        var req = post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"responseId\":" + responseId + "}");
+        if (lastGuestToken != null) {
+            req.header("X-Guest-Token", lastGuestToken);
+        }
+        return body(mockMvc.perform(req)
                 .andExpect(status().is(expectedStatus)).andReturn().getResponse().getContentAsString());
     }
 
     private JsonNode waitUntilFinished(long recommendationId) throws Exception {
         for (int i = 0; i < 100; i++) {
-            JsonNode data = body(mockMvc.perform(get("/api/v1/recommendations/" + recommendationId))
+            var req = get("/api/v1/recommendations/" + recommendationId);
+            if (lastGuestToken != null) {
+                req.header("X-Guest-Token", lastGuestToken);
+            }
+            JsonNode data = body(mockMvc.perform(req)
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
             String s = data.get("status").asString();
             if ("DONE".equals(s) || "FAILED".equals(s)) {

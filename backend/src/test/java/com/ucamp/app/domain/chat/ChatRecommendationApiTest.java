@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.CONDITION_NONE;
@@ -204,7 +205,7 @@ class ChatRecommendationApiTest {
         parseAs(Map.of());
         fakeEmbedding.setVector(QUERY, vector(9401));
 
-        JsonNode data = mockMvc.perform(post("/api/v1/chat/sessions/" + id + "/messages").header("X-User-Id", user.getId())
+        JsonNode data = mockMvc.perform(post("/api/v1/chat/sessions/" + id + "/messages").header("Authorization", bearer(user.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("text", "피곤하고 잠을 못 자요", "pregnancy", "PREGNANT"))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()
@@ -364,14 +365,17 @@ class ChatRecommendationApiTest {
         assertThat(rec.getSession()).isNull();
         assertThat(rec.getResponse()).isNull();
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recId)).andExpect(status().isOk())
+        mockMvc.perform(get("/api/v1/recommendations/" + recId).header("Authorization", bearer(user.getId())))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DONE"));
         // 프로필에는 약이 없다. 대화에서 말한 와파린으로 D3+K2(9311)가 빠지고 D3만(9312) 남는다
-        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "VITAMIN_D"))
+        mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "VITAMIN_D")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products.length()").value(1))
                 .andExpect(jsonPath("$.data.products[0].catalogProductId").value(9312));
-        String omega = mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "OMEGA3"))
+        String omega = mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "OMEGA3")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(omega).contains("와파린");
 
@@ -437,8 +441,7 @@ class ChatRecommendationApiTest {
 
     @Test
     void 비회원은_401() throws Exception {
-        mockMvc.perform(post("/api/v1/chat/sessions")).andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("E003"));
+        mockMvc.perform(post("/api/v1/chat/sessions")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/v1/chat/sessions/1/messages").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"피곤해요\"}")).andExpect(status().isUnauthorized());
     }
@@ -446,7 +449,7 @@ class ChatRecommendationApiTest {
     @Test
     void 건강정보가_없으면_등록_안내() throws Exception {
         User user = members.create(true, Map.of(), List.of(), List.of());
-        mockMvc.perform(post("/api/v1/chat/sessions").header("X-User-Id", user.getId()))
+        mockMvc.perform(post("/api/v1/chat/sessions").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CH001"));
     }
 
@@ -474,7 +477,7 @@ class ChatRecommendationApiTest {
         Long id = start(user);
         JsonNode result = send(user, id, "피곤하고 잠을 못 자요");
 
-        JsonNode again = mockMvc.perform(get("/api/v1/chat/sessions/" + id).header("X-User-Id", user.getId()))
+        JsonNode again = mockMvc.perform(get("/api/v1/chat/sessions/" + id).header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString().transform(this::data);
 
         assertThat(again.path("status").asString()).isEqualTo("DONE");
@@ -490,11 +493,11 @@ class ChatRecommendationApiTest {
     @Test
     void 대화_시작_19_50세_여성만_임신_질문() throws Exception {
         User male = members.fullMale(1980);
-        mockMvc.perform(post("/api/v1/chat/sessions").header("X-User-Id", male.getId())).andExpect(status().isOk())
+        mockMvc.perform(post("/api/v1/chat/sessions").header("Authorization", bearer(male.getId()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.pregnancyQuestion").doesNotExist());
         User female = members.create(true, Map.of("gender", "F", "birth_year", java.time.Year.now().getValue() - 30),
                 List.of("HYPERTENSION"), List.of("D-001"));
-        mockMvc.perform(post("/api/v1/chat/sessions").header("X-User-Id", female.getId())).andExpect(status().isOk())
+        mockMvc.perform(post("/api/v1/chat/sessions").header("Authorization", bearer(female.getId()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.pregnancyQuestion.options.length()").value(4))
                 .andExpect(jsonPath("$.data.pregnancyQuestion.options[2].code").value("PREGNANT"));
     }
@@ -505,7 +508,7 @@ class ChatRecommendationApiTest {
     User noMedicationMember() throws Exception {
         User user = members.create(true, Map.of("gender", "M", "birth_year", 1980), List.of(), List.of());
         mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
-                .header("X-User-Id", user.getId())
+                .header("Authorization", bearer(user.getId()))
                 .content(objectMapper.writeValueAsString(Map.of("answers", List.of(
                         choice(Q_CONDITIONS, CONDITION_NONE), text(Q_MEDICATIONS, "[]"))))))
                 .andExpect(status().isOk());
@@ -565,20 +568,20 @@ class ChatRecommendationApiTest {
     }
 
     Long start(User user) throws Exception {
-        String body = mockMvc.perform(post("/api/v1/chat/sessions").header("X-User-Id", user.getId()))
+        String body = mockMvc.perform(post("/api/v1/chat/sessions").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return data(body).path("chatSessionId").asLong();
     }
 
     Long startWithPregnancy(User user) throws Exception {
-        String body = mockMvc.perform(post("/api/v1/chat/sessions").header("X-User-Id", user.getId()))
+        String body = mockMvc.perform(post("/api/v1/chat/sessions").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.pregnancyQuestion.question").exists())
                 .andReturn().getResponse().getContentAsString();
         return data(body).path("chatSessionId").asLong();
     }
 
     ResultActions message(User user, Long id, String text) throws Exception {
-        return mockMvc.perform(post("/api/v1/chat/sessions/" + id + "/messages").header("X-User-Id", user.getId())
+        return mockMvc.perform(post("/api/v1/chat/sessions/" + id + "/messages").header("Authorization", bearer(user.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(Map.of("text", text))));
     }
 

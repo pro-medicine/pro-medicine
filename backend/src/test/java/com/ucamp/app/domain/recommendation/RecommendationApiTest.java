@@ -29,6 +29,7 @@ import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static com.ucamp.app.support.TestJwt.bearer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,17 +64,20 @@ class RecommendationApiTest {
 
     @Test
     void 비회원_설문_제출_후_추천_생성과_조회() throws Exception {
-        long responseId = submit(null, List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995),
-                choice(Q_SUN, SUN_LOW)));
+        String[] tokenHolder = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995),
+                choice(Q_SUN, SUN_LOW)), tokenHolder);
 
         String body = mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", tokenHolder[0])
                         .content("{\"responseId\":" + responseId + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].ingredient").value("VITAMIN_D")) // 기본 V4: 성분 코드
                 .andReturn().getResponse().getContentAsString();
         long recommendationId = objectMapper.readTree(body).get("data").get("recommendationId").asLong();
 
-        mockMvc.perform(get("/api/v1/recommendations/" + recommendationId))
+        mockMvc.perform(get("/api/v1/recommendations/" + recommendationId)
+                        .header("X-Guest-Token", tokenHolder[0]))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.responseId").value(responseId))
                 .andExpect(jsonPath("$.data.items.length()").value(1));
@@ -82,11 +86,14 @@ class RecommendationApiTest {
 
     @Test
     void 단계별_지연이_prometheus에_노출된다() throws Exception {
-        long responseId = submit(null, List.of(choice(Q_GENDER, GENDER_M)));
+        String[] tokenHolder = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_M)), tokenHolder);
         mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .header("X-Guest-Token", tokenHolder[0])
                 .content("{\"responseId\":" + responseId + "}")).andExpect(status().isOk());
 
-        String metrics = mockMvc.perform(get("/actuator/prometheus").accept(MediaType.TEXT_PLAIN)).andExpect(status().isOk())
+        String metrics = mockMvc.perform(get("/actuator/prometheus").accept(MediaType.TEXT_PLAIN)
+                .header("Authorization", bearer(1L))).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(metrics).contains("recommendation_stage_seconds")
@@ -152,10 +159,21 @@ class RecommendationApiTest {
         var req = post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("answers", answers)));
         if (userId != null) {
-            req.header("X-User-Id", userId);
+            req.header("Authorization", bearer(userId));
         }
         String body = mockMvc.perform(req).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode data = objectMapper.readTree(body).get("data");
+        return data.get("responseId").asLong();
+    }
+
+    /** 비회원 설문 제출 → responseId 반환 + tokenHolder[0]에 guestToken 저장 */
+    private long submitGuest(List<Map<String, Object>> answers, String[] tokenHolder) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("answers", answers))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        JsonNode data = objectMapper.readTree(body).get("data");
+        tokenHolder[0] = data.get("guestToken").asString();
         return data.get("responseId").asLong();
     }
 }

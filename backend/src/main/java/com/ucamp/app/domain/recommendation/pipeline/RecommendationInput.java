@@ -37,7 +37,9 @@ public record RecommendationInput(
         List<PersonalizedAnswer> personalizedAnswers,
         Long sessionId,
         Long chatSessionId,
-        Long userId
+        Long userId,
+        /** LLM 호출의 feature 태그 (recommendation / recommendation-guest). null이면 "recommendation" */
+        String feature
 ) {
     public static final String MEMBER = "MEMBER";
     public static final String GUEST = "GUEST";

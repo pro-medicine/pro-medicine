@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -155,7 +156,7 @@ class PersonalizedSessionApiTest {
         JsonNode s2 = data(answer(user, s, List.of(0)));
         long sessionId = s.get("sessionId").asLong();
 
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("READY"))
                 .andExpect(jsonPath("$.data.question").doesNotExist())
@@ -168,7 +169,7 @@ class PersonalizedSessionApiTest {
         answer(user, sessionId, s2.at("/question/turnId").asLong(), List.of(0)).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PQ003"));
         // 다시 그만하기는 그대로 READY
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(jsonPath("$.data.status").value("READY"));
     }
 
@@ -177,7 +178,7 @@ class PersonalizedSessionApiTest {
         User user = members.fullMale(1980);
         JsonNode s = data(start(user));
         assertThat(s.get("canStop").asBoolean()).isFalse();
-        mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PQ003"));
         assertThat(data(answer(user, s, List.of(0))).get("canStop").asBoolean()).isTrue();
@@ -188,16 +189,16 @@ class PersonalizedSessionApiTest {
         User user = female(Year.now().getValue() - 30);
         JsonNode s = data(start(user));
         long sessionId = s.get("sessionId").asLong();
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PQ003"));
 
         // 임신 질문만 답해도 아직 안 됨, LLM 질문까지 답하면 가능
         JsonNode s2 = data(answer(user, s, List.of(0)));
         assertThat(s2.get("canStop").asBoolean()).isFalse();
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict());
         data(answer(user, s2, List.of(0)));
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("READY"));
     }
 
@@ -207,7 +208,7 @@ class PersonalizedSessionApiTest {
         JsonNode s = data(start(user));
         long sessionId = s.get("sessionId").asLong();
 
-        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("ABANDONED"))
                 .andExpect(jsonPath("$.data.question").doesNotExist())
@@ -220,12 +221,12 @@ class PersonalizedSessionApiTest {
                 Integer.class, sessionId)).isZero();
 
         answer(user, s, List.of(0)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PQ003"));
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict());
-        mockMvc.perform(post(BASE + "/" + sessionId + "/recommendation").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/recommendation").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isConflict());
         // 다시 닫기는 그대로
-        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ABANDONED"));
         mockMvc.perform(post(BASE + "/" + sessionId + "/close")).andExpect(status().isUnauthorized());
     }
@@ -236,9 +237,9 @@ class PersonalizedSessionApiTest {
         JsonNode s = data(start(user));
         long sessionId = s.get("sessionId").asLong();
         answer(user, s, List.of(0));
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(jsonPath("$.data.status").value("READY"));
-        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("Authorization", bearer(user.getId())))
                 .andExpect(jsonPath("$.data.status").value("ABANDONED"));
     }
 
@@ -260,9 +261,9 @@ class PersonalizedSessionApiTest {
         JsonNode s = data(start(owner));
 
         answer(other, s, List.of(0)).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("PQ002"));
-        mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/stop").header("X-User-Id", other.getId()))
+        mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/stop").header("Authorization", bearer(other.getId())))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(post(BASE)).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("E003"));
+        mockMvc.perform(post(BASE)).andExpect(status().isUnauthorized());
         mockMvc.perform(post(BASE + "/1/stop")).andExpect(status().isUnauthorized());
     }
 
@@ -297,7 +298,7 @@ class PersonalizedSessionApiTest {
     }
 
     private ResultActions start(User user) throws Exception {
-        return mockMvc.perform(post(BASE).header("X-User-Id", user.getId()));
+        return mockMvc.perform(post(BASE).header("Authorization", bearer(user.getId())));
     }
 
     private ResultActions answer(User user, JsonNode s, List<Integer> selected) throws Exception {
@@ -305,7 +306,7 @@ class PersonalizedSessionApiTest {
     }
 
     private ResultActions answer(User user, long sessionId, long turnId, List<Integer> selected) throws Exception {
-        return mockMvc.perform(post(BASE + "/" + sessionId + "/answers").header("X-User-Id", user.getId())
+        return mockMvc.perform(post(BASE + "/" + sessionId + "/answers").header("Authorization", bearer(user.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("turnId", turnId, "selected", selected))));
     }

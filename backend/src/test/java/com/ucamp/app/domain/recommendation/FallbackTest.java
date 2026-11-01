@@ -59,7 +59,7 @@ class FallbackTest {
                 new SubmitSurveyRequest.Answer(Q_SMOKING, List.of(SMOKING_ONE_PACK), null, null),
                 new SubmitSurveyRequest.Answer(Q_SUN, List.of(SUN_LOW), null, null)))).responseId();
 
-        RecommendationResponse r = recommendationService.create(user.getId(), responseId);
+        RecommendationResponse r = recommendationService.create(user.getId(), responseId, null, null);
 
         assertThat(fake.requests()).hasSize(2); // 재시도 1회 포함
         assertThat(r.fallback()).isTrue();

@@ -93,6 +93,7 @@ CREATE TABLE `survey_responses` (
   `includes_sensitive` tinyint(1) NOT NULL DEFAULT '0',
   `status` varchar(15) NOT NULL DEFAULT 'IN_PROGRESS',
   `submitted_at` datetime DEFAULT NULL,
+  `guest_token_hash` char(64) DEFAULT NULL,
   PRIMARY KEY (`response_id`),
   KEY `FK_surveys_TO_survey_responses_1` (`survey_id`),
   KEY `FK_users_TO_survey_responses_1` (`user_id`),

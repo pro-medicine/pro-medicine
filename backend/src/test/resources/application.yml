@@ -1,8 +1,6 @@
 # 테스트 전용 설정. 메인 application.yml 대신 이 파일이 로드된다 (같은 이름이라 클래스패스에서 우선).
 # 실제 MySQL 없이 H2(MySQL 모드)로 테스트를 돌린다.
 spring:
-  profiles:
-    active: test
   application:
     name: pro-medicine-test
 

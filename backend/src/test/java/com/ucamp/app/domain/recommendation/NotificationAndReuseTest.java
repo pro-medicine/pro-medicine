@@ -96,7 +96,7 @@ class NotificationAndReuseTest {
         long responseId = surveySubmitService.submit(SURVEY_ID, user.getId(), new SubmitSurveyRequest(List.of(
                 new SubmitSurveyRequest.Answer(Q_GENDER, List.of(GENDER_M), null, null),
                 new SubmitSurveyRequest.Answer(Q_SMOKING, List.of(SMOKING_NONE), null, null)))).responseId();
-        recommendationService.create(user.getId(), responseId);
+        recommendationService.create(user.getId(), responseId, null, null);
 
         LatestRecommendationResponse reusable = reuseService.latest(user.getId());
         assertThat(reusable.reusable()).isTrue();
