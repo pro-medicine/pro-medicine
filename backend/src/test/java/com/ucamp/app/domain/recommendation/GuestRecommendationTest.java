@@ -7,12 +7,20 @@ import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.guard.FeatureBudgetCounter;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogRepository;
+import com.ucamp.app.support.InMemoryLlmRateLimiter;
 import com.ucamp.app.support.TestUsers;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.MethodOrderer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
@@ -35,19 +43,36 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 게스트(비회원) 추천 보안 통합 테스트.
  * Guest Token(32-byte random → SHA-256 hash) 소유권 검증, feature 태그 분리, IDOR 방지.
  */
-@SpringBootTest
+@SpringBootTest(properties = {
+        "app.llm-guard.feature-limits.guest.per-minute=5",
+        "app.llm-guard.feature-limits.guest.per-day=3"
+})
 @AutoConfigureMockMvc
+@Import(GuestRecommendationTest.RateLimitConfig.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class GuestRecommendationTest {
+
+    @TestConfiguration
+    static class RateLimitConfig {
+        @Bean
+        @Primary
+        InMemoryLlmRateLimiter inMemoryLlmRateLimiter() {
+            return new InMemoryLlmRateLimiter();
+        }
+    }
+
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository userRepository;
     @Autowired FakeLlmClient fake;
     @Autowired LlmCallLogRepository logRepository;
     @Autowired FeatureBudgetCounter budgetCounter;
+    @Autowired InMemoryLlmRateLimiter rateLimiter;
 
     @AfterEach
     void reset() {
         fake.reset();
+        rateLimiter.reset();
     }
 
     // ---------- 1. 정상 흐름 ----------
@@ -260,6 +285,83 @@ class GuestRecommendationTest {
 
         assertThat(budgetCounter.get("recommendation")).isGreaterThan(before);
         assertThat(budgetCounter.get(RecommendationService.FEATURE_GUEST)).isEqualTo(beforeGuest);
+    }
+
+    // ---------- 13. 같은 IP 비회원 4번째 추천 → 429 + Retry-After ----------
+
+    @Test
+    void 같은_IP_비회원_4번째_추천은_429() throws Exception {
+        // per-day=3이므로 4번째에서 429
+        for (int i = 0; i < 3; i++) {
+            String[] token = new String[1];
+            long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1990 + i)), token);
+            mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                            .header("X-Guest-Token", token[0])
+                            .header("X-Real-IP", "10.99.0.1")
+                            .content("{\"responseId\":" + responseId + "}"))
+                    .andExpect(status().isOk());
+        }
+        // 4번째
+        String[] token = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_M)), token);
+        mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", token[0])
+                        .header("X-Real-IP", "10.99.0.1")
+                        .content("{\"responseId\":" + responseId + "}"))
+                .andExpect(status().is(429))
+                .andExpect(jsonPath("$.code").value("LG001"))
+                .andExpect(result -> assertThat(result.getResponse().getHeader("Retry-After")).isNotNull());
+    }
+
+    // ---------- 14. X-Forwarded-For만 다르고 X-Real-IP 같으면 429 (XFF 무시) ----------
+
+    @Test
+    void XFF만_달라도_같은_Real_IP면_429() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            String[] token = new String[1];
+            long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1980 + i)), token);
+            mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                            .header("X-Guest-Token", token[0])
+                            .header("X-Real-IP", "10.99.0.2")
+                            .header("X-Forwarded-For", "192.168." + i + ".1")
+                            .content("{\"responseId\":" + responseId + "}"))
+                    .andExpect(status().isOk());
+        }
+        // 4번째: XFF만 다르게
+        String[] token = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_M)), token);
+        mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", token[0])
+                        .header("X-Real-IP", "10.99.0.2")
+                        .header("X-Forwarded-For", "172.16.0.99")
+                        .content("{\"responseId\":" + responseId + "}"))
+                .andExpect(status().is(429));
+    }
+
+    // ---------- 15. recommendation-guest 예산 초과 → 200 + RULE_ONLY, LLM 0회 ----------
+
+    @Test
+    @Order(Integer.MAX_VALUE)
+    void 게스트_예산_초과시_규칙_기반_폴백_LLM_호출_없음() throws Exception {
+        // recommendation-guest 예산(300)을 초과시킨다
+        for (int i = 0; i < 301; i++) {
+            budgetCounter.increment(RecommendationService.FEATURE_GUEST);
+        }
+
+        String[] token = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995),
+                choice(Q_SUN, SUN_LOW)), token);
+
+        int llmCallsBefore = fake.requests().size();
+        mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", token[0])
+                        .header("X-Real-IP", "10.99.0.3")
+                        .content("{\"responseId\":" + responseId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fallback").value(true));
+
+        // LLM 호출이 없어야 한다
+        assertThat(fake.requests().size()).isEqualTo(llmCallsBefore);
     }
 
     // ---------- helpers ----------
