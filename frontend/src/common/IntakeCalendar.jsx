@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
 import { useModalFocus } from "./useModalFocus";
 import "./calendar.css";
+import PrescriptionFields, {
+  makeEmptyPrescription,
+  validatePrescription,
+  toPrescriptionPayload,
+} from "../prescription/PrescriptionFields";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -13,8 +18,19 @@ const RING_C = 2 * Math.PI * RING_R;
 
 function DayRing({ ratio }) {
   return (
-    <svg className="calendar-ring" width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`} aria-hidden="true">
-      <circle cx={RING / 2} cy={RING / 2} r={RING_R} className="calendar-ring-track" />
+    <svg
+      className="calendar-ring"
+      width={RING}
+      height={RING}
+      viewBox={`0 0 ${RING} ${RING}`}
+      aria-hidden="true"
+    >
+      <circle
+        cx={RING / 2}
+        cy={RING / 2}
+        r={RING_R}
+        className="calendar-ring-track"
+      />
       {ratio > 0 && (
         <circle
           cx={RING / 2}
@@ -32,8 +48,7 @@ function DayRing({ ratio }) {
 
 const EVENT_TYPES = [
   { value: "INJECTION", label: "주사" },
-  { value: "MEDICATION", label: "처방약" },
-  { value: "ONE_TIME_INTAKE", label: "일회성 복용" },
+  { value: "MEDICATION", label: "약" },
   { value: "APPOINTMENT", label: "병원 방문" },
   { value: "OTHER", label: "기타" },
 ];
@@ -58,6 +73,7 @@ function DayModal({
   openerRef,
   onClose,
   onSave,
+  onSavePrescription,
   onDelete,
   onToggle,
 }) {
@@ -66,11 +82,13 @@ function DayModal({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [rx, setRx] = useState(() => makeEmptyPrescription(dateKey));
 
   const openNew = () => {
     setForm(EMPTY_FORM);
     setError("");
     setMode("new");
+    setRx(makeEmptyPrescription(dateKey));
   };
 
   const openEdit = (event) => {
@@ -84,8 +102,31 @@ function DayModal({
     setMode(event);
   };
 
+  const isRx =
+    mode === "new" &&
+    form.eventType === "MEDICATION" &&
+    Boolean(onSavePrescription);
+
   const submit = async (e) => {
     e.preventDefault();
+    if (isRx) {
+      const message = validatePrescription(rx);
+      if (message) {
+        setError(message);
+        return;
+      }
+      setSaving(true);
+      setError("");
+      try {
+        await onSavePrescription(toPrescriptionPayload(rx));
+        setMode(null);
+      } catch (err) {
+        setError(err.message || "약을 저장하지 못했어요.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (!form.title.trim()) {
       setError("일정 이름을 입력해 주세요.");
       return;
@@ -223,7 +264,9 @@ function DayModal({
                     <span className="day-copy">
                       <strong>{event.title}</strong>
                       <small>
-                        {event.scheduledAt?.slice(11, 16)}
+                        {event.prescriptionId
+                          ? "복용 기간"
+                          : event.scheduledAt?.slice(11, 16)}
                         {event.notes ? ` · ${event.notes}` : ""}
                       </small>
                     </span>
@@ -257,37 +300,45 @@ function DayModal({
                     ))}
                   </select>
                 </label>
-                <label>
-                  이름
-                  <input
-                    autoFocus
-                    maxLength={150}
-                    placeholder="예: 독감 예방접종"
-                    value={form.title}
-                    onChange={(e) =>
-                      setForm({ ...form, title: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  시각
-                  <input
-                    type="time"
-                    value={form.time}
-                    onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  />
-                </label>
-                <label>
-                  메모
-                  <textarea
-                    maxLength={1000}
-                    rows={2}
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm({ ...form, notes: e.target.value })
-                    }
-                  />
-                </label>
+                {isRx ? (
+                  <PrescriptionFields value={rx} onChange={setRx} />
+                ) : (
+                  <>
+                    <label>
+                      이름
+                      <input
+                        autoFocus
+                        maxLength={150}
+                        placeholder="예: 독감 예방접종"
+                        value={form.title}
+                        onChange={(e) =>
+                          setForm({ ...form, title: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      시각
+                      <input
+                        type="time"
+                        value={form.time}
+                        onChange={(e) =>
+                          setForm({ ...form, time: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      메모
+                      <textarea
+                        maxLength={1000}
+                        rows={2}
+                        value={form.notes}
+                        onChange={(e) =>
+                          setForm({ ...form, notes: e.target.value })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
                 <div className="event-form-actions">
                   <button
                     type="button"
@@ -322,6 +373,7 @@ export default function IntakeCalendar({
   updateEvent,
   updateEventStatus,
   deleteEvent,
+  createPrescription,
   title = "복용 달력",
 }) {
   const now = new Date();
@@ -359,7 +411,10 @@ export default function IntakeCalendar({
     let ignore = false;
     setError("");
     setDates([]);
-    (fetchProgress ?? fetchDates)(`${monthKey}-01`, `${monthKey}-${pad(daysInMonth)}`)
+    (fetchProgress ?? fetchDates)(
+      `${monthKey}-01`,
+      `${monthKey}-${pad(daysInMonth)}`,
+    )
       .then((res) => {
         if (!ignore) setDates(res ?? []);
       })
@@ -426,6 +481,11 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
+  const handleSavePrescription = async (payload) => {
+    await createPrescription(payload);
+    await reloadEvents();
+  };
+
   const handleDelete = async (eventId) => {
     await deleteEvent(eventId);
     await reloadEvents();
@@ -446,7 +506,9 @@ export default function IntakeCalendar({
     ),
   );
   const completed = new Set(
-    [...progress].filter(([, p]) => p.expected > 0 && p.taken >= p.expected).map(([date]) => date),
+    [...progress]
+      .filter(([, p]) => p.expected > 0 && p.taken >= p.expected)
+      .map(([date]) => date),
   );
   const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7; // 월요일 시작
   const cells = [
@@ -494,7 +556,8 @@ export default function IntakeCalendar({
           const p = progress.get(key);
           const ratio = p && p.expected > 0 ? p.taken / p.expected : 0;
           // 링: 진행도 모드면 먹을 일정이 있던 날만, 완료 날짜 모드(친구)면 지난 날 모두
-          const showRing = !isFuture && (fetchProgress ? p?.expected > 0 : true);
+          const showRing =
+            !isFuture && (fetchProgress ? p?.expected > 0 : true);
           const cls = [
             "calendar-day",
             completed.has(key) ? "done" : ratio > 0 ? "partial" : "",
@@ -578,6 +641,9 @@ export default function IntakeCalendar({
           openerRef={openerRef}
           onClose={() => setSelected(null)}
           onSave={handleSave}
+          onSavePrescription={
+            createPrescription ? handleSavePrescription : null
+          }
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
         />
