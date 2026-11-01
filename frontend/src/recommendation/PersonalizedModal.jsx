@@ -287,6 +287,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
             restartLabel="맞춤 질문 다시 하기"
             onRestart={start}
             onClose={onClose}
+            userId={userId}
           />
         )}
 

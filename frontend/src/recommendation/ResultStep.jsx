@@ -13,6 +13,7 @@ const EMPTY_TEXT =
  * - ingredients: 성분 코드 → { name, unit }
  * - onRestart: 다시 설문하기
  * - onClose: 닫기
+ * - userId: 로그인 사용자 id (없으면 비회원 — 제품 추천 비노출)
  * - basisText: 결과 기준 안내 문구 (V2 맞춤 질문은 다른 문구)
  * - restartLabel: 다시 하기 버튼 문구
  * - children: 버튼 위에 덧붙일 안내 (V1 회원 결과의 맞춤 질문 안내 등)
@@ -22,6 +23,7 @@ export default function ResultStep({
   ingredients,
   onRestart,
   onClose,
+  userId,
   basisText = "설문과 건강 프로필에 입력한 약을 기준으로 확인했어요.",
   restartLabel = "다시 설문하기",
   children,
@@ -33,11 +35,13 @@ export default function ResultStep({
   const excluded = result.excludedItems ?? [];
 
   // V3: 성분별 [제품 추천 보기] 버튼 노출 여부 (통과 제품이 1개 이상인 성분만). 실패하면 버튼을 숨긴다
+  // 비회원은 제품 추천을 제공하지 않으므로 availability를 호출하지 않는다
+  const isGuest = !userId;
   const recommendationId = result.recommendationId;
   const [availability, setAvailability] = useState({});
   const [openIngredient, setOpenIngredient] = useState(null);
   useEffect(() => {
-    if (!recommendationId || items.length === 0) return undefined;
+    if (isGuest || !recommendationId || items.length === 0) return undefined;
     let alive = true;
     getProductAvailability(recommendationId)
       .then((data) => alive && setAvailability(data ?? {}))
@@ -45,7 +49,7 @@ export default function ResultStep({
     return () => {
       alive = false;
     };
-  }, [recommendationId, items.length]);
+  }, [isGuest, recommendationId, items.length]);
 
   return (
     <div className="rec-result">
@@ -84,6 +88,12 @@ export default function ResultStep({
             </IngredientCard>
           ))}
         </ul>
+      )}
+
+      {isGuest && items.length > 0 && (
+        <p className="rec-login-guide">
+          로그인하면 약사가 추천한 제품을 볼 수 있어요
+        </p>
       )}
 
       {excluded.length > 0 && (

@@ -1,7 +1,10 @@
 import { api } from "./client";
+import { getAccessToken } from "../auth/authToken";
 
 // 비회원 토큰 헤더 (sessionStorage에 저장된 guestToken이 있으면 첨부)
+// 로그인 상태(access token 있음)면 guestToken을 보내지 않는다
 function guestTokenHeader() {
+  if (getAccessToken()) return {};
   const token = sessionStorage.getItem("guestToken");
   return token ? { "X-Guest-Token": token } : {};
 }
