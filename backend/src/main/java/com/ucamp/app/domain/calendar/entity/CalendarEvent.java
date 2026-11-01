@@ -23,6 +23,9 @@ public class CalendarEvent {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "prescription_id")
+    private Long prescriptionId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)
     private EventType eventType;
@@ -47,14 +50,15 @@ public class CalendarEvent {
     @Builder
     private CalendarEvent(
             Long userId,
+            Long prescriptionId,
             EventType eventType,
             String title,
             LocalDateTime scheduledAt,
-            LocalDateTime endAt,
             String notes,
             EventStatus status
     ) {
         this.userId = userId;
+        this.prescriptionId = prescriptionId;
         this.eventType = eventType;
         this.title = title;
         this.scheduledAt = scheduledAt;

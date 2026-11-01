@@ -19,6 +19,8 @@ public class UserConditionController {
 
     private final UserConditionService userConditionService;
 
+    // TODO: PathVariable 제거
+
     // 본인 질환정보 조회
     @GetMapping
     public ResponseEntity<ApiResponse<UserConditionsResponse>> getConditions(

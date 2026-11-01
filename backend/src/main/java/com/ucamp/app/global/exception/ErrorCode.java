@@ -92,7 +92,8 @@ public enum ErrorCode {
     LG_BLOCKED(HttpStatus.FORBIDDEN, "LG005", "AI 기능 사용이 차단되었습니다."),
 
     // CALENDAR
-    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다.");
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다."),
+    PRESCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "C002", "복약 일정을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
