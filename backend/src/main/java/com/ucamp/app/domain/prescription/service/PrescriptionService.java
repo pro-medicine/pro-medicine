@@ -39,8 +39,9 @@ public class PrescriptionService {
         if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         if (!userRepository.existsById(userId)) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         LocalDate start = request.startAt();
-        LocalDate end = request.endAt() != null ? request.endAt() : start.plusDays(2);
-        if (end.isBefore(start) || ChronoUnit.DAYS.between(start, end) + 1 > MAX_DAYS) throw new BusinessException(ErrorCode.INVALID_INPUT);
+        LocalDate end = request.endAt();
+        LocalDate scheduleEnd = end != null ? end : start.plusDays(2);
+        if (scheduleEnd.isBefore(start) || ChronoUnit.DAYS.between(start, scheduleEnd) + 1 > MAX_DAYS) throw new BusinessException(ErrorCode.INVALID_INPUT);
         Prescription prescription = prescriptionRepository.save(Prescription.builder()
                 .userId(userId)
                 .name(request.name())
