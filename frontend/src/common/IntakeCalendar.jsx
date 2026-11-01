@@ -419,7 +419,9 @@ export default function IntakeCalendar({
         `${monthKey}-${pad(daysInMonth)}`,
       );
       setEvents(list ?? []);
-    } catch {}
+    } catch (err) {
+      setError(err.message || "일정을 불러오지 못했어요.");
+    }
   };
 
   // 완료한 날
