@@ -34,8 +34,6 @@ public class UserConditionController {
         );
     }
 
-    @GetMapping("/")
-
     // 본인 질환정보 수정
     @PutMapping
     public ResponseEntity<ApiResponse<UserConditionsResponse>> replaceConditions(
