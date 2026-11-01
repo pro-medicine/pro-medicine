@@ -16,8 +16,9 @@ export default function FollowRequestModal({
   onClose,
   onAccepted,
   openerRef,
+  initialTab = "received", // "sent"로 열면 보낸 신청 탭부터 보여줌
 }) {
-  const [tab, setTab] = useState("received");
+  const [tab, setTab] = useState(initialTab);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -100,7 +101,7 @@ export default function FollowRequestModal({
       >
         <div className="modal-header">
           <div>
-            <span className="section-label">FRIEND REQUESTS</span>
+            <span className="section-label">친구 신청</span>
             <h2>친구 신청</h2>
           </div>
           <button type="button" aria-label="닫기" onClick={onClose}>

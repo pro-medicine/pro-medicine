@@ -1,7 +1,8 @@
 /* 흰색 둥근 카드 (.friend-list와 같은 규격) */
 .intake-calendar {
   background: white;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  box-shadow: var(--card-shadow);
   border-radius: 20px;
   padding: 22px 22px 20px;
   margin: 20px 0;
@@ -23,7 +24,7 @@
   align-items: center;
   color: var(--muted);
   display: flex;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   gap: 8px;
 }
@@ -55,79 +56,16 @@
 }
 
 .calendar-weekdays {
-  color: #a0a199;
-  font-size: 10px;
+  color: var(--faint);
+  font-size: 12px;
   margin-top: 18px;
 }
 
-.calendar-day {
-  align-items: center;
-  border-radius: 50%;
-  color: #4b4d45;
-  display: inline-flex;
-  font-size: 11px;
-  height: 32px;
-  justify-content: center;
-  width: 32px;
-}
-
-.calendar-day.future {
-  color: #c4c5be;
-}
-
-/* 오늘: 얇은 테두리 */
-.calendar-day.today {
-  box-shadow: inset 0 0 0 1.5px var(--yellow-deep);
-}
-
-/* 전체 복용 완료한 날: 노란 동그라미 */
-.calendar-day.done {
-  background: var(--yellow);
-  color: #68591c;
-  font-weight: 800;
-}
-
-.calendar-day.done.today {
-  box-shadow:
-    0 0 0 2px white,
-    0 0 0 3.5px var(--yellow-deep);
-}
-
-.calendar-summary {
-  color: var(--muted);
-  font-size: 10px;
-  margin: 16px 0 0;
-  text-align: center;
-}
-
-.calendar-summary b {
-  color: #8c7b36;
-}
-
 .calendar-error {
-  color: #d64545;
-  font-size: 11px;
+  color: var(--alert);
+  font-size: 12px;
   margin: 14px 0 0;
   text-align: center;
-}
-
-button.calendar-day {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-button.calendar-day:disabled {
-  cursor: default;
-}
-
-button.calendar-day.done {
-  background: var(--yellow);
-}
-
-.calendar-day.selected {
-  box-shadow: 0 0 0 2px var(--ink);
 }
 
 .calendar-day-detail {
@@ -137,7 +75,7 @@ button.calendar-day.done {
 }
 
 .calendar-day-detail h3 {
-  font-size: 12px;
+  font-size: 14px;
   margin: 0 0 10px;
 }
 
@@ -172,8 +110,8 @@ button.calendar-day.done {
 }
 
 li.taken .day-mark {
-  background: var(--yellow);
-  color: #68591c;
+  background: var(--primary-soft);
+  color: var(--primary);
   font-weight: 800;
 }
 
@@ -185,49 +123,203 @@ li.taken .day-mark {
 }
 
 .day-copy strong {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .day-copy small,
 .day-status {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
+/* ───────── 날짜 칸: 진행 링 (#67 마이페이지 시안 ③) ───────── */
+.calendar-day {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  height: 40px;
+  justify-content: center;
+  position: relative;
+  transition: background-color 0.15s ease;
+  width: 40px;
+}
+
+.calendar-day:disabled {
+  cursor: default;
+}
+
+.calendar-day:not(:disabled):hover {
+  background: var(--accent-soft);
+}
+
+.calendar-day.future {
+  color: var(--faint);
+}
+
+.calendar-day-num {
+  position: relative;
+}
+
+.calendar-ring {
+  left: 3px;
+  position: absolute;
+  top: 3px;
+}
+
+.calendar-ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.calendar-ring-track {
+  stroke: var(--line);
+}
+
+.calendar-ring-fill {
+  stroke: var(--primary);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* 모두 복용: 숫자도 초록 */
+.calendar-day.done {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* 오늘: 굵은 숫자 + 아래 작은 점 */
+.calendar-day.today {
+  font-weight: 800;
+}
+
+.calendar-day.today::after {
+  background: var(--accent);
+  border-radius: 50%;
+  bottom: -3px;
+  content: "";
+  height: 4px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 4px;
+}
+
+/* 선택한 날: 연한 회색 바탕 */
+.calendar-day.selected {
+  background: var(--accent-soft);
+}
+
+.calendar-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 아래: 범례 + 완료 요약 */
+.calendar-foot {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 16px;
+}
+
+.calendar-legend span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.calendar-legend i {
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  box-sizing: border-box;
+  height: 12px;
+  width: 12px;
+}
+
+.calendar-legend i.calendar-legend-part {
+  border-color: var(--line);
+  border-right-color: var(--primary);
+  border-top-color: var(--primary);
+}
+
+.calendar-summary {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.calendar-summary b {
+  color: var(--primary);
+}
+
+.calendar-day-detail .calendar-summary {
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-ring-fill {
+    transition: none;
+  }
+}
+
+/* ───────── 일정 (#84 은서) — #67 디자인 토큰으로 색만 맞춤 ───────── */
 button.calendar-day {
   position: relative;
 }
 
-/* 일정이 있는 날: 우측 상단 작은 점 */
+/* 일정이 있는 날: 우측 상단 작은 파란 점 (모두 완료한 일정이면 회색) */
 .calendar-event-dot {
-  background: var(--yellow-deep);
+  background: #2f5fd0;
+  border: 1.5px solid var(--white);
   border-radius: 50%;
-  height: 6px;
+  height: 8px;
   position: absolute;
-  right: 3px;
-  top: 3px;
-  width: 6px;
+  right: 2px;
+  top: 2px;
+  width: 8px;
 }
 
-.calendar-day.done .calendar-event-dot {
-  background: #68591c; /* 노란 동그라미 위에서도 보이게 */
+.calendar-event-dot.all-done {
+  background: #c4cbc7;
 }
 
-.calendar-day.done .calendar-event-dot.all-done {
-  background: #a0a199; /* 노란 배경 위에서도 보이는 회색 */
+.calendar-legend i.calendar-legend-event {
+  background: #2f5fd0;
+  border: 0;
+  height: 8px;
+  width: 8px;
 }
 
-/* 모달 */
+/* 날짜 모달 */
 .calendar-modal {
-  max-width: 420px;
+  max-width: 440px;
 }
 
 .calendar-modal-section {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .calendar-modal-section h3 {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 700;
   margin: 0 0 10px;
 }
 
@@ -241,11 +333,11 @@ button.calendar-day {
 
 .calendar-modal-section li {
   align-items: center;
-  background: var(--soft);
+  background: var(--surface);
   border-radius: 12px;
   display: flex;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .calendar-modal-row {
@@ -261,31 +353,33 @@ button.calendar-day {
 
 .event-add-button {
   align-items: center;
-  background: var(--yellow-soft);
-  border: 1px solid #efdfa0;
-  border-radius: 9px;
-  color: #776520;
+  background: var(--primary-soft);
+  border: 0;
+  border-radius: 999px;
+  color: var(--primary-hover);
   cursor: pointer;
   display: inline-flex;
-  font-size: 10px;
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 700;
   gap: 4px;
-  padding: 7px 10px;
+  height: 32px;
+  padding: 0 12px;
 }
 
 .event-type {
-  background: white;
-  border-radius: 8px;
-  color: #8c7b36;
+  background: #e6f0ff;
+  border-radius: 999px;
+  color: #2f5fd0;
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 7px;
+  padding: 3px 8px;
 }
 
 .event-actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .event-actions button {
@@ -293,30 +387,44 @@ button.calendar-day {
   border: 0;
   color: var(--muted);
   cursor: pointer;
-  font-size: 10px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.event-actions button:hover {
+  color: var(--ink);
 }
 
 .event-form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .event-form label {
   color: var(--muted);
   display: grid;
-  font-size: 10px;
-  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
 }
 
 .event-form input,
 .event-form select,
 .event-form textarea {
-  background: white;
+  background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
+  color: var(--ink);
   font-family: inherit;
-  font-size: 12px;
-  padding: 10px 12px;
+  font-size: 14px;
+  padding: 11px 12px;
+}
+
+.event-form input:focus,
+.event-form select:focus,
+.event-form textarea:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 
 .event-form-actions {
@@ -325,18 +433,21 @@ button.calendar-day {
 }
 
 .event-form-actions button {
-  background: var(--soft);
+  background: #f1f3f2;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
+  color: var(--ink);
   cursor: pointer;
   flex: 1;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 700;
-  padding: 11px 0;
+  height: 44px;
 }
 
 .event-form-actions .primary {
-  background: var(--yellow);
-  color: #68591c;
+  background: var(--accent);
+  color: var(--white);
 }
 
 .event-form-actions button:disabled {
@@ -346,30 +457,26 @@ button.calendar-day {
 
 .event-check {
   align-items: center;
-  background: white;
-  border: 1.5px solid #d8d9d2;
+  background: var(--white);
+  border: 1.5px solid #cdd4d0;
   border-radius: 50%;
-  color: #68591c;
+  color: var(--white);
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  height: 22px;
+  height: 24px;
   justify-content: center;
-  width: 22px;
+  width: 24px;
 }
 
 .event-item.completed .event-check {
-  background: var(--yellow);
-  border-color: var(--yellow);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .event-item.completed .day-copy strong {
-  color: #a0a199;
+  color: var(--faint);
   text-decoration: line-through;
-}
-
-.calendar-event-dot.all-done {
-  background: #cfd0c8;
 }

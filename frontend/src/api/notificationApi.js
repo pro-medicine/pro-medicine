@@ -138,8 +138,9 @@ export function subscribeNotifications(userId, onNotification) {
 
                     const eventType = eventLine?.slice(6).trim();
 
+                    // 진짜 새 알림 신호는 { type: "notification" }으로 전달 (재연결 때는 인자 없음 → 새 알림 팝업 생략)
                     if (eventType === "notification" && !stopped) {
-                        onNotification();
+                        onNotification({ type: "notification" });
                     }
                 }
             }
