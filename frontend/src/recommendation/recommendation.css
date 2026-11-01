@@ -177,6 +177,9 @@
 /* 진단이 아니라는 안내: 회색 상자 */
 .rec-footnote { margin-top: 16px; padding: 14px 18px; border-radius: 12px; background: var(--surface); font-size: 13px; line-height: 1.7; color: var(--muted); }
 
+/* 비회원 로그인 안내 */
+.rec-login-guide { margin-top: 16px; padding: 14px 18px; border-radius: 12px; background: var(--surface); font-size: 14px; line-height: 1.65; color: var(--muted); text-align: center; font-weight: 600; }
+
 /* ===== 맞춤 질문 (V2) ===== */
 .rec-pq .rec-question { margin-top: 12px !important; }
 .rec-option:disabled { opacity: 0.45; cursor: not-allowed; }

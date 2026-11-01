@@ -68,11 +68,12 @@ class ReviewProductApiTest {
     }
 
     @Test
-    void 비회원_마그네슘_B6_추천_결과에서_마그네슘_제품() throws Exception {
-        long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995)), "MAGNESIUM", "VITAMIN_B6");
+    void 회원_마그네슘_B6_추천_결과에서_마그네슘_제품() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+        long recId = recommend(user.getId(), List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, 1995)), "MAGNESIUM", "VITAMIN_B6");
 
         String body = mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MAGNESIUM")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.ingredient").value("MAGNESIUM"))
@@ -83,14 +84,14 @@ class ReviewProductApiTest {
                 .andExpect(jsonPath("$.data.products[2].catalogProductId").value(9306))
                 .andExpect(jsonPath("$.data.products[2].alsoContains[0]").value("VITAMIN_B6"))
                 .andExpect(jsonPath("$.data.excludedCount").value(1))
-                .andExpect(jsonPath("$.data.notice").value(ReviewProductResponse.notice(true)))
+                .andExpect(jsonPath("$.data.notice").value(ReviewProductResponse.MEMBER_NOTICE))
                 .andReturn().getResponse().getContentAsString();
 
         // 약사·채널·리뷰 원문은 내보내지 않는다
         assertThat(body).doesNotContain("TESTCH").doesNotContain("context").doesNotContain("evidence").doesNotContain("예시 인용");
 
         mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.MAGNESIUM").value(true))
                 .andExpect(jsonPath("$.data.VITAMIN_B6").value(true));
@@ -135,39 +136,52 @@ class ReviewProductApiTest {
 
     @Test
     void 추천_결과에_없는_성분은_빈_목록과_안내() throws Exception {
-        long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
+        User user = TestUsers.create(userRepository, true);
+        long recId = recommend(user.getId(), List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
 
         mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "ZINC")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.products.length()").value(0))
                 .andExpect(jsonPath("$.data.message").value(ReviewProductResponse.EMPTY_MESSAGE));
     }
 
     @Test
-    void 없는_추천은_404_잘못되거나_빠진_성분_코드는_400() throws Exception {
+    void 비회원은_제품_API에_401() throws Exception {
         mockMvc.perform(get("/api/v1/recommendations/999999/products").param("ingredient", "MAGNESIUM")
                         .header("X-Guest-Token", "nonexistent"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/recommendations/999999/products/availability")
                         .header("X-Guest-Token", "nonexistent"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 없는_추천은_404_잘못되거나_빠진_성분_코드는_400() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+        mockMvc.perform(get("/api/v1/recommendations/999999/products").param("ingredient", "MAGNESIUM")
+                        .header("Authorization", bearer(user.getId())))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/recommendations/999999/products/availability")
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isNotFound());
 
-        long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
+        long recId = recommend(user.getId(), List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM");
         mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products").param("ingredient", "MELATONIN")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void availability는_통과_제품이_없는_성분을_false로() throws Exception {
-        long recId = recommend(null, List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM", "ZINC");
+        User user = TestUsers.create(userRepository, true);
+        long recId = recommend(user.getId(), List.of(choice(Q_GENDER, GENDER_F)), "MAGNESIUM", "ZINC");
 
         mockMvc.perform(get("/api/v1/recommendations/" + recId + "/products/availability")
-                        .header("X-Guest-Token", lastGuestToken))
+                        .header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.MAGNESIUM").value(true))
                 .andExpect(jsonPath("$.data.ZINC").value(false));

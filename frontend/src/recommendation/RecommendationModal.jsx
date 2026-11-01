@@ -349,6 +349,7 @@ export default function RecommendationModal({ userId, missing, onClose, onPerson
             ingredients={ingredients}
             onRestart={() => loadSurvey()}
             onClose={onClose}
+            userId={userId}
           >
             {canPersonalize && (
               <div className="rec-pq-guide">
