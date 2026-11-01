@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { TopBar } from "../shared/ui";
 import {
   addMySupplement,
   searchCatalogProducts,
@@ -42,8 +41,8 @@ function initialSchedules(savedSchedules) {
   return result;
 }
 
-// 영양제 등록 모달 틀 (Esc 닫기, Tab 포커스 가두기, 닫으면 여는 버튼으로 포커스 복원)
-function AddModalFrame({ onClose, openerRef, children }) {
+// 영양제 등록·복용 일정 수정 모달 틀 (Esc 닫기, Tab 포커스 가두기, 닫으면 여는 버튼으로 포커스 복원)
+function SupplementModal({ title, onClose, openerRef, children }) {
   const panelRef = useModalFocus(onClose, openerRef);
 
   return (
@@ -57,8 +56,8 @@ function AddModalFrame({ onClose, openerRef, children }) {
         tabIndex={-1}
       >
         <div className="supplement-add-header">
-          <h2 id="supplement-add-title">영양제 등록</h2>
-          <button type="button" aria-label="영양제 등록 닫기" onClick={onClose}>
+          <h2 id="supplement-add-title">{title}</h2>
+          <button type="button" aria-label={`${title} 닫기`} onClick={onClose}>
             ✕
           </button>
         </div>
@@ -68,31 +67,15 @@ function AddModalFrame({ onClose, openerRef, children }) {
   );
 }
 
-// 복용 일정 수정 페이지 틀 (기존 페이지 모양 그대로)
-function EditPageFrame({ onClose, onNotifications, children }) {
-  return (
-    <div className="screen profile-screen">
-      <TopBar
-        back={onClose}
-        title="복용 일정 수정"
-        subtitle="내가 먹는 영양제"
-        onNotifications={onNotifications}
-      />
-      {children}
-    </div>
-  );
-}
-
 // 영양제 등록 모달 (마이페이지 "영양제 등록" 버튼)
 // 흐름: 제품 검색 → 제품 선택(또는 직접 입력) → 복용 일정 선택 → 등록 → 모달 닫힘
-// target(내 영양제 1개)을 받으면 수정 모드 페이지: 제품은 고정, 복용 일정만 바꿈 (카드의 시계 버튼)
+// target(내 영양제 1개)을 받으면 수정 모드: 제품은 고정, 복용 일정만 바꿈 (카드의 연필 버튼)
 export default function SupplementAddPage({
   userId,
   target,
-  openerRef, // 등록 모달을 연 버튼 (닫을 때 포커스 복원)
+  openerRef, // 모달을 연 버튼 (닫을 때 포커스 복원)
   onBack,
   onSaved,
-  onNotifications,
 }) {
   const isEdit = !!target;
   const [keyword, setKeyword] = useState("");
@@ -197,31 +180,18 @@ export default function SupplementAddPage({
     }
   };
 
-  // 등록 버튼 문구: 직접 입력한 이름이나 고른 제품 이름을 보여줌
-  let saveLabel = "등록";
-  if (saving) saveLabel = "저장 중...";
-  else if (isEdit) saveLabel = "복용 일정 저장";
-  else if (manualMode && manualName.trim())
-    saveLabel = `'${manualName.trim()}' 등록`;
-  else if (!manualMode && selected)
-    saveLabel = `'${selected.productName}' 등록`;
-
-  // 수정은 페이지, 등록은 모달로 감싼다 (안의 내용은 같음)
-  const Frame = isEdit ? EditPageFrame : AddModalFrame;
+  // 아래 버튼줄 왼쪽 요약: 등록할 제품 이름
+  let summary = "제품을 골라 주세요";
+  if (isEdit) summary = target.productName;
+  else if (manualMode)
+    summary = manualName.trim() || "영양제 이름을 입력해 주세요";
+  else if (selected) summary = selected.productName;
 
   return (
-    <div className="screen profile-screen">
-      <TopBar
-        back={onBack}
-        title={isEdit ? "복용 일정 수정" : "영양제 등록"}
-        description={isEdit ? "먹는 끼니와 알림 시각을 바꿀 수 있어요." : "검색해서 고르고, 먹는 시간을 정해 주세요."}
-        onNotifications={onNotifications}
-      />
-
-    <Frame
+    <SupplementModal
+      title={isEdit ? "복용 일정 수정" : "영양제 등록"}
       onClose={onBack}
       openerRef={openerRef}
-      onNotifications={onNotifications}
     >
       <div className="profile-edit">
         {isEdit && (
@@ -252,16 +222,17 @@ export default function SupplementAddPage({
                   }
                 }}
               />
-              <button type="button" className="btn btn-dark" onClick={search} disabled={searching}>
+              <button
+                type="button"
+                className="btn btn-dark"
+                onClick={search}
+                disabled={searching}
+              >
                 {searching ? "검색 중..." : "검색"}
               </button>
               <button
                 type="button"
-                className={
-                  manualMode
-                    ? "supplement-manual-button active"
-                    : "supplement-manual-button"
-                }
+                className="btn btn-outline"
                 aria-pressed={manualMode}
                 onClick={() => {
                   setManualMode((prev) => !prev);
@@ -328,15 +299,19 @@ export default function SupplementAddPage({
         )}
 
         <section className="profile-edit-card">
-          <h2>
-            {!isEdit && <span className="step-num">2</span>}복용 일정
-          </h2>
-          <p className="profile-edit-hint">먹는 끼니를 고르면 그 시간에 알림을 보내드려요.</p>
+          <h2>{!isEdit && <span className="step-num">2</span>}복용 일정</h2>
+          <p className="profile-edit-hint">
+            먹는 끼니를 고르면 그 시간에 알림을 보내드려요.
+          </p>
           {mealSlotOptions.map((option) => {
             const schedule = schedules[option.slot];
             return (
               <div
-                className={schedule.checked ? "supplement-schedule-row checked" : "supplement-schedule-row"}
+                className={
+                  schedule.checked
+                    ? "supplement-schedule-row checked"
+                    : "supplement-schedule-row"
+                }
                 key={option.slot}
               >
                 <label className="supplement-schedule-check">
@@ -367,8 +342,14 @@ export default function SupplementAddPage({
                           type="button"
                           role="radio"
                           aria-checked={schedule.relation === value}
-                          className={schedule.relation === value ? "choice active" : "choice"}
-                          onClick={() => changeSchedule(option.slot, "relation", value)}
+                          className={
+                            schedule.relation === value
+                              ? "choice active"
+                              : "choice"
+                          }
+                          onClick={() =>
+                            changeSchedule(option.slot, "relation", value)
+                          }
                         >
                           {text}
                         </button>
@@ -392,10 +373,12 @@ export default function SupplementAddPage({
         {message && <p className="profile-edit-message error">{message}</p>}
 
         <div className="profile-edit-footer">
-          <p className="supplement-summary">
-            {isEdit ? target.productName : selected ? selected.productName : "제품을 골라 주세요"}
-          </p>
-          <button type="button" className="btn btn-outline btn-lg" onClick={onBack}>
+          <p className="supplement-summary">{summary}</p>
+          <button
+            type="button"
+            className="btn btn-outline btn-lg"
+            onClick={onBack}
+          >
             취소
           </button>
           <button
@@ -407,15 +390,7 @@ export default function SupplementAddPage({
             {saving ? "저장 중..." : isEdit ? "저장" : "등록"}
           </button>
         </div>
-        <button
-          type="button"
-          className="profile-edit-save"
-          onClick={submit}
-          disabled={saving}
-        >
-          {saveLabel}
-        </button>
       </div>
-    </Frame>
+    </SupplementModal>
   );
 }
