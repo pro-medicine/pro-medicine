@@ -151,10 +151,16 @@ function DayModal({
     }
   };
 
-  const remove = async (event) => {
-    if (!window.confirm(`'${event.title}' 일정을 삭제할까요?`)) return;
+  const remove = async (event, scope = "one") => {
+    const message =
+      scope === "all"
+        ? `'${event.title}'의 모든 날짜 일정을 삭제할까요?`
+        : event.prescriptionId
+          ? `${Number(dateKey.slice(5, 7))}월 ${Number(dateKey.slice(8))}일의 '${event.title}' 일정만 삭제할까요?`
+          : `'${event.title}' 일정을 삭제할까요?`;
+    if (!window.confirm(message)) return;
     try {
-      await onDelete(event.eventId);
+      await onDelete(event, scope);
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
     }
@@ -263,20 +269,26 @@ function DayModal({
                     </span>
                     <span className="day-copy">
                       <strong>{event.title}</strong>
-                      <small>
-                        {event.prescriptionId
-                          ? "복용 기간"
-                          : event.scheduledAt?.slice(11, 16)}
-                        {event.notes ? ` · ${event.notes}` : ""}
-                      </small>
                     </span>
                     <span className="event-actions">
                       <button type="button" onClick={() => openEdit(event)}>
                         수정
                       </button>
-                      <button type="button" onClick={() => remove(event)}>
-                        삭제
+                      <button
+                        type="button"
+                        onClick={() => remove(event, "one")}
+                      >
+                        {event.prescriptionId ? "삭제" : "전체 삭제"}
                       </button>
+                      {event.prescriptionId && (
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => remove(event, "all")}
+                        >
+                          전체 삭제
+                        </button>
+                      )}
                     </span>
                   </li>
                 ))}
@@ -308,7 +320,7 @@ function DayModal({
                       이름
                       <input
                         autoFocus
-                        maxLength={150}
+                        maxLength={30}
                         placeholder="예: 독감 예방접종"
                         value={form.title}
                         onChange={(e) =>
@@ -373,6 +385,7 @@ export default function IntakeCalendar({
   updateEvent,
   updateEventStatus,
   deleteEvent,
+  deletePrescription,
   createPrescription,
   title = "복용 달력",
 }) {
@@ -486,8 +499,12 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
-  const handleDelete = async (eventId) => {
-    await deleteEvent(eventId);
+  const handleDelete = async (event, scope = "one") => {
+    if (scope === "all" && event.prescriptionId && deletePrescription) {
+      await deletePrescription(event.prescriptionId);
+    } else {
+      await deleteEvent(event.eventId);
+    }
     await reloadEvents();
   };
 
