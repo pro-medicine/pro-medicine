@@ -46,6 +46,7 @@ services:
       #radis
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_PROFILES_ACTIVE: local-llm
       APP_AUTH_ALLOWED_ORIGINS: http://localhost,http://3.34.112.40,http://localhost:5173,http://127.0.0.1:5173
     depends_on:
       mysql:
