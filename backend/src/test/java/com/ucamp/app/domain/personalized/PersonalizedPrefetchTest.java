@@ -26,6 +26,7 @@ import tools.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -164,7 +165,7 @@ class PersonalizedPrefetchTest {
         JsonNode s = data(start(user));
         long sessionId = s.get("sessionId").asLong();
         answer(user, s, List.of(2));
-        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/close").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk());
 
         // 4개(불편한 점 + 프로필 3) 중 2개 사용(불편한 점, 약 1단계) → 2개 낭비
@@ -201,11 +202,11 @@ class PersonalizedPrefetchTest {
     }
 
     private ResultActions start(User user) throws Exception {
-        return mockMvc.perform(post(BASE).header("X-User-Id", user.getId()));
+        return mockMvc.perform(post(BASE).header("Authorization", bearer(user.getId())));
     }
 
     private ResultActions answer(User user, JsonNode s, List<Integer> selected) throws Exception {
-        return mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/answers").header("X-User-Id", user.getId())
+        return mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/answers").header("Authorization", bearer(user.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("turnId", s.at("/question/turnId").asLong(),
                         "selected", selected))))

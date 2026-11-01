@@ -116,9 +116,6 @@ public final class ProductSafetyFilter {
             return Result.exclude(Reason.OTHER_INGREDIENT);
         }
         warnings.addAll(ingredientRuleWarnings(inProduct, user));
-        if (hasOther) {
-            warnings.add(UNVERIFIED_WARNING);
-        }
         return new Result(false, null, targetWarn, List.copyOf(warnings));
     }
 

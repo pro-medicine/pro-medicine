@@ -52,14 +52,20 @@ public class SurveyResponse {
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    /** 비회원 토큰의 SHA-256 해시 (회원이면 null) */
+    @lombok.Setter
+    @Column(name = "guest_token_hash", length = 64)
+    private String guestTokenHash;
+
     @Builder
     public SurveyResponse(Survey survey, User user, RespondentType respondentType, Boolean includesSensitive,
-                          ResponseStatus status, LocalDateTime submittedAt) {
+                          ResponseStatus status, LocalDateTime submittedAt, String guestTokenHash) {
         this.survey = survey;
         this.user = user;
         this.respondentType = respondentType;
         this.includesSensitive = includesSensitive != null ? includesSensitive : false;
         this.status = status != null ? status : ResponseStatus.IN_PROGRESS;
         this.submittedAt = submittedAt;
+        this.guestTokenHash = guestTokenHash;
     }
 }

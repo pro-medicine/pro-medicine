@@ -85,6 +85,12 @@ public enum ErrorCode {
     DISPOSAL_KAKAO_API_ERROR(HttpStatus.BAD_GATEWAY, "D002", "카카오 장소 검색 API 호출에 실패했습니다."),
     DISPOSAL_INVALID_LOCATION(HttpStatus.BAD_REQUEST, "D003", "올바른 위치 좌표와 검색 반경(500/1000/2000/3000m)을 입력해주세요."),
 
+    // LLM GUARD (V5 보안)
+    LG_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "LG001", "잠시 후 다시 시도해 주세요."),
+    LG_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "LG002", "AI 기능을 일시적으로 사용할 수 없습니다."),
+    LG_SUSPENDED(HttpStatus.TOO_MANY_REQUESTS, "LG004", "일시적으로 AI 기능이 정지되었습니다."),
+    LG_BLOCKED(HttpStatus.FORBIDDEN, "LG005", "AI 기능 사용이 차단되었습니다."),
+
     // CALENDAR
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다.");
 

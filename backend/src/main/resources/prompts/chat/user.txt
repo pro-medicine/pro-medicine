@@ -1,2 +1,2 @@
 사용자 입력
-{{text}}
+<user_text>{{text}}</user_text>

@@ -10,6 +10,7 @@ import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.domain.recommendation.service.RecommendationStore;
 import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -36,6 +37,7 @@ public class ChatFallbackRunner {
     private final RecommendationProperties recommendationProperties;
     private final ChatSessionStore sessionStore;
     private final ChatProperties chatProperties;
+    private final LlmGuard llmGuard;
     private final ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "chat-fallback");
         t.setDaemon(true);
@@ -44,12 +46,13 @@ public class ChatFallbackRunner {
 
     public ChatFallbackRunner(RecommendationService recommendationService, RecommendationStore recommendationStore,
                               RecommendationProperties recommendationProperties, ChatSessionStore sessionStore,
-                              ChatProperties chatProperties) {
+                              ChatProperties chatProperties, LlmGuard llmGuard) {
         this.recommendationService = recommendationService;
         this.recommendationStore = recommendationStore;
         this.recommendationProperties = recommendationProperties;
         this.sessionStore = sessionStore;
         this.chatProperties = chatProperties;
+        this.llmGuard = llmGuard;
     }
 
     /** input은 chatSessionId·personalizedAnswers가 채워진 트랙 2 입력 */
@@ -62,6 +65,11 @@ public class ChatFallbackRunner {
     }
 
     void run(Long chatSessionId, Long recommendationId, RecommendationInput input) {
+        // V5: recommendation 예산 이중 안전장치 (주 확인은 ChatRecommendationService에서 submit 전 동기)
+        if (llmGuard.isFeatureBudgetExceeded("recommendation")) {
+            fail(chatSessionId, recommendationId, "BUDGET_EXCEEDED");
+            return;
+        }
         String version = recommendationProperties.getPipelineVersion();
         try {
             RecommendationResult result = recommendationService.runInput(input, version);

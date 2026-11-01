@@ -25,6 +25,12 @@ public interface AiChatSessionRepository extends JpaRepository<AiChatSession, Lo
     // 서버 재시작 시 끝나지 않은 트랙 2 세션 정리용
     List<AiChatSession> findByStatusIn(Collection<String> statuses);
 
+    /** V5: 같은 사용자·24시간 내·DONE 상태·같은 situation_hash인 세션 (재사용 후보) */
+    @Query("select s from AiChatSession s where s.user.id = :userId and s.status = 'DONE' "
+            + "and s.situationHash = :hash and s.completedAt >= :since order by s.completedAt desc")
+    List<AiChatSession> findReusable(@Param("userId") Long userId, @Param("hash") String hash,
+                                     @Param("since") LocalDateTime since);
+
     // 90일 지난 대화 삭제. turns·results는 DB CASCADE, ai_recommendations.chat_session_id는 DB SET NULL
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from AiChatSession s where s.startedAt < :cutoff")

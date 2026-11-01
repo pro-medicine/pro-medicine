@@ -40,6 +40,9 @@ api.interceptors.response.use(
             }
         }
         const message = error.response?.data?.message || error.message || "요청 처리 중 오류가 발생했습니다.";
-        return Promise.reject(new Error(message));
+        const err = new Error(message);
+        err.status = error.response?.status;
+        err.code = error.response?.data?.code;
+        return Promise.reject(err);
     },
 );

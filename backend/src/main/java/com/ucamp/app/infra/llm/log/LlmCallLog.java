@@ -21,7 +21,10 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "llm_call_logs", indexes = @Index(name = "idx_llm_call_logs_eval_run_id", columnList = "eval_run_id"))
+@Table(name = "llm_call_logs", indexes = {
+        @Index(name = "idx_llm_call_logs_eval_run_id", columnList = "eval_run_id"),
+        @Index(name = "idx_llm_logs_user_day", columnList = "user_id, created_at")
+})
 @EntityListeners(AuditingEntityListener.class)
 public class LlmCallLog {
 
@@ -86,6 +89,12 @@ public class LlmCallLog {
     @Column(name = "http_status")
     private Integer httpStatus;
 
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Column(name = "feature", length = 30)
+    private String feature;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -94,7 +103,7 @@ public class LlmCallLog {
     public LlmCallLog(Long responseId, String evalRunId, Long sessionId, String pipelineVersion, String callTag, String model,
                       String promptVersion, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
                       Integer cacheCreationTokens, Integer latencyMs, Integer attemptNo, String outcome,
-                      Integer httpStatus) {
+                      Integer httpStatus, Long userId, String feature) {
         this.responseId = responseId;
         this.evalRunId = evalRunId;
         this.sessionId = sessionId;
@@ -110,6 +119,8 @@ public class LlmCallLog {
         this.attemptNo = attemptNo != null ? attemptNo : 1;
         this.outcome = outcome;
         this.httpStatus = httpStatus;
+        this.userId = userId;
+        this.feature = feature;
     }
 
     // 파이프라인이 파싱·검증 실패를 확인한 뒤 SUCCESS를 PARSE_FAIL / VALIDATION_FAIL로 바꾼다

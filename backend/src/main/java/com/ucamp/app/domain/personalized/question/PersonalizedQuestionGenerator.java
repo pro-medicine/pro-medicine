@@ -13,6 +13,7 @@ import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmUnavailableException;
+import com.ucamp.app.infra.llm.guard.LlmGuardProperties;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -42,7 +43,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class PersonalizedQuestionGenerator {
     public static final String PIPELINE_VERSION = "PQ";
-    public static final String PROMPT_VERSION = "pq1.1";
+    public static final String PROMPT_VERSION = "pq1.2";
     public static final String REASONING_EFFORT = "low";
     public static final int MAX_TOKENS = 500;
     public static final String MULTI_SUFFIX = "(최대 2개)";
@@ -50,6 +51,7 @@ public class PersonalizedQuestionGenerator {
     private final LlmClient llmClient;
     private final LlmCallLogService llmCallLogService;
     private final LlmProperties llmProperties;
+    private final LlmGuardProperties guardProperties;
     private final PromptTemplates promptTemplates;
     private final InputFormatter inputFormatter;
     private final PersonalizedQuestionValidator validator;
@@ -118,13 +120,15 @@ public class PersonalizedQuestionGenerator {
                 .model(llmProperties.getModel())
                 .system(system)
                 .messages(List.of(LlmMessage.user(user)))
-                .maxTokens(MAX_TOKENS)
+                .maxTokens(guardProperties.getMaxTokensFor("personalized"))
                 .reasoningEffort(REASONING_EFFORT)
                 .outputSchema(PersonalizedQuestionSchema.schema())
                 .callTag(tag)
                 .pipelineVersion(PIPELINE_VERSION)
                 .promptVersion(PROMPT_VERSION)
                 .sessionId(ctx.sessionId())
+                .userId(ctx.known().userId())
+                .feature("personalized")
                 .build();
         try {
             return hedgeValid == null ? llmClient.call(request) : hedge.call(request, hedgeValid);

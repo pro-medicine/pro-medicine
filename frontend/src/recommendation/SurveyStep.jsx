@@ -59,6 +59,10 @@ export default function SurveyStep({
       : "";
 
   const goNext = () => {
+    // TEXT 문항(약·영양제)에서 목록이 비어 있으면 "없음"(빈 목록)을 답으로 설정한다
+    if (question.answerType === "TEXT" && !answer) {
+      onChange(question.questionId, { list: [] });
+    }
     if (isLast) onSubmit();
     else setIndex((i) => i + 1);
   };

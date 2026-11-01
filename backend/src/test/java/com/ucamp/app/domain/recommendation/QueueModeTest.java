@@ -4,11 +4,16 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmCallException;
+import com.ucamp.app.support.InMemoryLlmRateLimiter;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,13 +38,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"recommendation.api-mode=queue", "recommendation.worker.concurrency=2",
         "recommendation.worker.poll-timeout=100ms", "recommendation.pipeline-version=V4"})
 @AutoConfigureMockMvc
+@Import(QueueModeTest.RateLimitConfig.class)
 class QueueModeTest {
+
+    @TestConfiguration
+    static class RateLimitConfig {
+        @Bean
+        @org.springframework.context.annotation.Primary
+        InMemoryLlmRateLimiter inMemoryLlmRateLimiter() {
+            return new InMemoryLlmRateLimiter();
+        }
+    }
+
     @Autowired
     MockMvc mockMvc;
     @Autowired
     ObjectMapper om;
     @Autowired
     FakeLlmClient fake;
+    @Autowired
+    InMemoryLlmRateLimiter rateLimiter;
+
+    @BeforeEach
+    void resetRateLimiter() {
+        rateLimiter.reset();
+    }
 
     @AfterEach
     void reset() {
@@ -64,9 +87,23 @@ class QueueModeTest {
         ExecutorService pool = Executors.newFixedThreadPool(8);
         List<Future<Long>> futures = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
-            Callable<Long> call = () -> body(mockMvc.perform(post("/api/v1/recommendations")
-                    .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}"))
-                    .andReturn().getResponse().getContentAsString()).get("recommendationId").asLong();
+            Callable<Long> call = () -> {
+                // 게스트 inflight 잠금으로 동시 요청이 429를 받을 수 있으므로 재시도한다
+                for (int attempt = 0; attempt < 20; attempt++) {
+                    var req = post("/api/v1/recommendations")
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}");
+                    if (lastGuestToken != null) {
+                        req.header("X-Guest-Token", lastGuestToken);
+                    }
+                    var result = mockMvc.perform(req).andReturn();
+                    if (result.getResponse().getStatus() == 429) {
+                        Thread.sleep(50);
+                        continue;
+                    }
+                    return body(result.getResponse().getContentAsString()).get("recommendationId").asLong();
+                }
+                throw new AssertionError("8번 재시도해도 429");
+            };
             futures.add(pool.submit(call));
         }
         Set<Long> ids = new HashSet<>();
@@ -95,24 +132,38 @@ class QueueModeTest {
         assertThat(done.get("errorCode").asString()).isEqualTo("R003");
     }
 
+    private String lastGuestToken;
+
     private long submitSurvey() throws Exception {
         String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(Map.of("answers", List.of(choice(Q_GENDER, GENDER_M),
                                 choice(Q_SUN, SUN_LOW))))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return body(body).get("responseId").asLong();
+        JsonNode data = body(body);
+        if (data.has("guestToken")) {
+            lastGuestToken = data.get("guestToken").asString();
+        }
+        return data.get("responseId").asLong();
     }
 
     private JsonNode create(long responseId, int expectedStatus) throws Exception {
-        return body(mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"responseId\":" + responseId + "}"))
+        var req = post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"responseId\":" + responseId + "}");
+        if (lastGuestToken != null) {
+            req.header("X-Guest-Token", lastGuestToken);
+        }
+        return body(mockMvc.perform(req)
                 .andExpect(status().is(expectedStatus)).andReturn().getResponse().getContentAsString());
     }
 
     private JsonNode waitUntilFinished(long recommendationId) throws Exception {
         for (int i = 0; i < 100; i++) {
-            JsonNode data = body(mockMvc.perform(get("/api/v1/recommendations/" + recommendationId))
+            var req = get("/api/v1/recommendations/" + recommendationId);
+            if (lastGuestToken != null) {
+                req.header("X-Guest-Token", lastGuestToken);
+            }
+            JsonNode data = body(mockMvc.perform(req)
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
             String s = data.get("status").asString();
             if ("DONE".equals(s) || "FAILED".equals(s)) {

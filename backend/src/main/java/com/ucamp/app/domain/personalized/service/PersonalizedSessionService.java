@@ -22,6 +22,8 @@ import com.ucamp.app.domain.recommendation.service.RecommendationInputAssembler;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import com.ucamp.app.infra.llm.LlmRequest;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
+import com.ucamp.app.infra.llm.guard.LlmGuardException;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,11 +53,25 @@ public class PersonalizedSessionService {
     private final PersonalizedQuestionGenerator generator;
     private final QuestionPrefetcher prefetcher;
     private final PersonalizedProperties properties;
+    private final LlmGuard llmGuard;
     private final MeterRegistry meterRegistry;
     private final TopicPlanner planner = new TopicPlanner();
 
     /** 회차 시작. 진행 중인 회차는 ABANDONED. 19~50세 여성이면 임신 고정 질문, 아니면 첫 LLM 질문(불편한 점) */
     public PersonalizedSessionResponse start(Long userId) {
+        String lockValue = llmGuard.checkAndLock(userId, "personalized");
+        try {
+            return doStart(userId);
+        } finally {
+            llmGuard.releaseInflight(userId, lockValue);
+        }
+    }
+
+    private PersonalizedSessionResponse doStart(Long userId) {
+        // V5: personalized 예산 초과 → 503
+        if (llmGuard.isFeatureBudgetExceeded("personalized")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
+        }
         RecommendationModeResponse mode = modeService.mode(userId);
         if (!mode.isV2()) {
             throw new ProfileIncompleteException(mode.missing());
@@ -77,6 +93,19 @@ public class PersonalizedSessionService {
     public PersonalizedSessionResponse answer(Long userId, Long sessionId, Long turnId, List<Integer> selected) {
         if (turnId == null) {
             throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_ANSWER);
+        }
+        String lockValue = llmGuard.checkAndLock(userId, "personalized");
+        try {
+            return doAnswer(userId, sessionId, turnId, selected);
+        } finally {
+            llmGuard.releaseInflight(userId, lockValue);
+        }
+    }
+
+    private PersonalizedSessionResponse doAnswer(Long userId, Long sessionId, Long turnId, List<Integer> selected) {
+        // V5: personalized 예산 초과 → 503
+        if (llmGuard.isFeatureBudgetExceeded("personalized")) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
         }
         SessionState state = store.answer(userId, sessionId, turnId, selected);
         SessionState.TurnState answered = state.turns().stream().filter(t -> t.turnId().equals(turnId))

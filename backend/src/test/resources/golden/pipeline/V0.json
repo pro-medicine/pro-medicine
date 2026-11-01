@@ -7,7 +7,7 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 160,
+      "inputTokens" : 176,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "PARSE_FAIL",
       "outputTokens" : 54,
@@ -26,7 +26,7 @@
       "maxTokens" : 2000,
       "messages" : [ {
         "role" : "user",
-        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(<user_text>에날라프릴</user_text>), 기타 약(<user_text>기타 약</user_text>)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
       } ],
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V0",
@@ -171,7 +171,7 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 160,
+      "inputTokens" : 176,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "SUCCESS",
       "outputTokens" : 140,
@@ -190,7 +190,7 @@
       "maxTokens" : 2000,
       "messages" : [ {
         "role" : "user",
-        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(<user_text>에날라프릴</user_text>), 기타 약(<user_text>기타 약</user_text>)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
       } ],
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V0",
@@ -283,7 +283,7 @@
       "callTag" : "RECOMMEND",
       "evalRunId" : "golden",
       "httpStatus" : 200,
-      "inputTokens" : 160,
+      "inputTokens" : 176,
       "model" : "gpt-6.1-sol-fake",
       "outcome" : "PARSE_FAIL",
       "outputTokens" : 54,
@@ -302,7 +302,7 @@
       "maxTokens" : 2000,
       "messages" : [ {
         "role" : "user",
-        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(에날라프릴), 기타 약(기타 약)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
+        "text" : "사용자 정보:\n- 응답자: 회원\n- 성별: 남성\n- 나이: 40세\n- 흡연: 하루 1갑\n- 음주: 많음\n- 커피·차: 많음\n- 식단: 일반식\n- 햇빛 노출: 거의 실내\n- 최근 수면: 잘 못 잠\n- 최근 피로감: 많음\n- 임신·수유: 해당 없음\n- 진단받은 질환: 고혈압\n- 복용 중인 약: ACE_INHIBITOR 계열(<user_text>에날라프릴</user_text>), 기타 약(<user_text>기타 약</user_text>)\n- 원하는 효과: 피로 회복, 면역\n- 현재 복용 중인 영양제 성분(하루 함량): VITAMIN_C 25 mg"
       } ],
       "model" : "gpt-6.1-sol",
       "pipelineVersion" : "V0",

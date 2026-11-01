@@ -56,7 +56,8 @@ public class RecommendationInputAssembler {
                 .fatigue(code(detail, SurveyCodes.FATIGUE, null, null))
                 .goals(codes(detail, SurveyCodes.GOAL))
                 .currentIntake(intake(detail))
-                .responseId(responseId);
+                .responseId(responseId)
+                .userId(detail.userId());
 
         if (member) {
             b.pregnancy(code(detail, SurveyCodes.PREGNANCY, null, null))
@@ -91,6 +92,7 @@ public class RecommendationInputAssembler {
                 .medications(profileMedications(profile))
                 .goals(List.of())
                 .currentIntake(List.of())
+                .userId(userId)
                 .build();
     }
 
