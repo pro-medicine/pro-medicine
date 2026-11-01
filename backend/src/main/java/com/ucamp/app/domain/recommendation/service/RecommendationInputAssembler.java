@@ -34,6 +34,7 @@ public class RecommendationInputAssembler {
     private final SurveyAnswerParser surveyAnswerParser;
     private final HealthProfileService healthProfileService;
     private final DrugService drugService;
+    private final MemberDemographicsFallback demographicsFallback;
 
     public RecommendationInput assemble(Long responseId) {
         SurveyResponseDetail detail = surveyQueryService.getResponseDetail(responseId);
@@ -41,10 +42,17 @@ public class RecommendationInputAssembler {
         HealthProfileSnapshot profile = member ? healthProfileService.getSnapshot(detail.userId())
                 : HealthProfileSnapshot.empty();
 
+        String gender = code(detail, SurveyCodes.GENDER, profile, HealthProfile.KEY_GENDER);
+        Integer bYear = birthYear(detail, profile);
+        if (member) {
+            if (gender == null) gender = demographicsFallback.resolveGenderCode(detail.userId());
+            if (bYear == null) bYear = demographicsFallback.resolveBirthYear(detail.userId());
+        }
+
         RecommendationInput.RecommendationInputBuilder b = RecommendationInput.builder()
                 .respondentType(member ? RecommendationInput.MEMBER : RecommendationInput.GUEST)
-                .gender(code(detail, SurveyCodes.GENDER, profile, HealthProfile.KEY_GENDER))
-                .birthYear(birthYear(detail, profile))
+                .gender(gender)
+                .birthYear(bYear)
                 .smoking(code(detail, SurveyCodes.SMOKING, profile, HealthProfile.KEY_SMOKING))
                 .drinking(code(detail, SurveyCodes.DRINKING, profile, HealthProfile.KEY_DRINKING))
                 .caffeine(code(detail, SurveyCodes.CAFFEINE, profile, HealthProfile.KEY_CAFFEINE))
@@ -75,11 +83,15 @@ public class RecommendationInputAssembler {
      */
     public RecommendationInput assembleForMember(Long userId, String pregnancy) {
         HealthProfileSnapshot profile = healthProfileService.getSnapshot(userId);
+        String gender = profileCode(profile, HealthProfile.KEY_GENDER);
+        if (gender == null) gender = demographicsFallback.resolveGenderCode(userId);
+        Integer bYear = profile.value(HealthProfile.KEY_BIRTH_YEAR) == null ? null
+                : ((BigDecimal) profile.value(HealthProfile.KEY_BIRTH_YEAR)).intValue();
+        if (bYear == null) bYear = demographicsFallback.resolveBirthYear(userId);
         return RecommendationInput.builder()
                 .respondentType(RecommendationInput.MEMBER)
-                .gender(profileCode(profile, HealthProfile.KEY_GENDER))
-                .birthYear(profile.value(HealthProfile.KEY_BIRTH_YEAR) == null ? null
-                        : ((BigDecimal) profile.value(HealthProfile.KEY_BIRTH_YEAR)).intValue())
+                .gender(gender)
+                .birthYear(bYear)
                 .smoking(profileCode(profile, HealthProfile.KEY_SMOKING))
                 .drinking(profileCode(profile, HealthProfile.KEY_DRINKING))
                 .caffeine(profileCode(profile, HealthProfile.KEY_CAFFEINE))
