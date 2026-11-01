@@ -4,11 +4,16 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmCallException;
+import com.ucamp.app.support.InMemoryLlmRateLimiter;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,13 +38,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"recommendation.api-mode=queue", "recommendation.worker.concurrency=2",
         "recommendation.worker.poll-timeout=100ms", "recommendation.pipeline-version=V4"})
 @AutoConfigureMockMvc
+@Import(QueueModeTest.RateLimitConfig.class)
 class QueueModeTest {
+
+    @TestConfiguration
+    static class RateLimitConfig {
+        @Bean
+        @org.springframework.context.annotation.Primary
+        InMemoryLlmRateLimiter inMemoryLlmRateLimiter() {
+            return new InMemoryLlmRateLimiter();
+        }
+    }
+
     @Autowired
     MockMvc mockMvc;
     @Autowired
     ObjectMapper om;
     @Autowired
     FakeLlmClient fake;
+    @Autowired
+    InMemoryLlmRateLimiter rateLimiter;
+
+    @BeforeEach
+    void resetRateLimiter() {
+        rateLimiter.reset();
+    }
 
     @AfterEach
     void reset() {
@@ -65,13 +88,21 @@ class QueueModeTest {
         List<Future<Long>> futures = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
             Callable<Long> call = () -> {
-                var req = post("/api/v1/recommendations")
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}");
-                if (lastGuestToken != null) {
-                    req.header("X-Guest-Token", lastGuestToken);
+                // 게스트 inflight 잠금으로 동시 요청이 429를 받을 수 있으므로 재시도한다
+                for (int attempt = 0; attempt < 20; attempt++) {
+                    var req = post("/api/v1/recommendations")
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}");
+                    if (lastGuestToken != null) {
+                        req.header("X-Guest-Token", lastGuestToken);
+                    }
+                    var result = mockMvc.perform(req).andReturn();
+                    if (result.getResponse().getStatus() == 429) {
+                        Thread.sleep(50);
+                        continue;
+                    }
+                    return body(result.getResponse().getContentAsString()).get("recommendationId").asLong();
                 }
-                return body(mockMvc.perform(req)
-                        .andReturn().getResponse().getContentAsString()).get("recommendationId").asLong();
+                throw new AssertionError("8번 재시도해도 429");
             };
             futures.add(pool.submit(call));
         }

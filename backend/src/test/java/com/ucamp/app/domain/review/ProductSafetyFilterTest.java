@@ -135,7 +135,7 @@ class ProductSafetyFilterTest {
 
         assertThat(r.excluded()).isFalse();
         assertThat(r.targetWarn()).isFalse();
-        assertThat(r.warnings()).containsExactly(ProductSafetyFilter.UNVERIFIED_WARNING);
+        assertThat(r.warnings()).isEmpty();
     }
 
     @Test

@@ -56,7 +56,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     const sessionId = openSessionRef.current;
     openSessionRef.current = null;
     if (sessionId) {
-      closePersonalizedSession(userId, sessionId).catch(() => {});
+      closePersonalizedSession(sessionId).catch(() => {});
     }
     onClose();
   }, [userId, onClose]);
@@ -105,7 +105,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
       setStep("loading");
       setLoadingText(AI_LOADING_TEXT);
       try {
-        const data = await createPersonalizedRecommendation(userId, sessionId);
+        const data = await createPersonalizedRecommendation(sessionId);
         if (!aliveRef.current) return;
         openSessionRef.current = null;
         setResult(data);
@@ -141,12 +141,12 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     setResult(null);
     setError(null);
     try {
-      applySession(await startPersonalizedSession(userId));
+      applySession(await startPersonalizedSession());
     } catch (e) {
       try {
-        const mode = await getRecommendationMode(userId);
+        const mode = await getRecommendationMode();
         if (mode.mode !== "V2") {
-          onFallbackToV1();
+          onFallbackToV1(mode.missing);
           return;
         }
       } catch {
@@ -165,11 +165,11 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
         }
       })
       .catch(() => {});
-    getRecommendationMode(userId)
+    getRecommendationMode()
       .then((mode) => {
         if (!aliveRef.current) return;
         if (mode.mode === "V2") start();
-        else onFallbackToV1();
+        else onFallbackToV1(mode.missing);
       })
       .catch((e) => fail(e.message, null));
   }, [userId, start, onFallbackToV1, fail]);
@@ -182,7 +182,6 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     try {
       applySession(
         await answerPersonalizedQuestion(
-          userId,
           session.sessionId,
           session.question.turnId,
           selected,
@@ -200,7 +199,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     if (sending || !session?.canStop) return;
     setSending(true);
     try {
-      applySession(await stopPersonalizedSession(userId, session.sessionId));
+      applySession(await stopPersonalizedSession(session.sessionId));
     } catch (e) {
       fail(e.message, null);
     } finally {

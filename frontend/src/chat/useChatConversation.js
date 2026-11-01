@@ -157,7 +157,7 @@ export function useChatConversation(userId) {
         timerRef.current = setTimeout(async () => {
           let rec;
           try {
-            rec = await getRecommendation(userId, recommendationId);
+            rec = await getRecommendation(recommendationId);
           } catch {
             rec = null;
           }
@@ -239,7 +239,7 @@ export function useChatConversation(userId) {
       try {
         let { sessionId: sid, turns } = stateRef.current;
         if (!sid) {
-          const started = await startChatSession(userId);
+          const started = await startChatSession();
           if (!aliveRef.current) return;
           sid = started.chatSessionId;
           turns = 0;
@@ -257,7 +257,7 @@ export function useChatConversation(userId) {
           update(() => ({ sessionId: sid, turns: 0 }));
         }
         const pregnancy = answeredPregnancy ?? stateRef.current.pregnancy;
-        const res = await sendChatMessage(userId, sid, text, turns === 0 ? pregnancy : null);
+        const res = await sendChatMessage(sid, text, turns === 0 ? pregnancy : null);
         if (!aliveRef.current) return;
         update((s) => ({ turns: turns + 1, queued: null, messages: withoutError(s.messages) }));
         handle(res);
