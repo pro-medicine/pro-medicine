@@ -49,8 +49,8 @@ public class RecommendationAccess {
             }
             return;
         }
-        // 회원이 게스트 토큰을 보냈거나, 회원 rec가 아닌 경우
-        if (guestToken != null || response.getUser() == null || !userId.equals(response.getUser().getId())) {
+        // 회원은 JWT로 인증되므로 stale guestToken은 무시. 회원 rec가 아닌 경우만 거부
+        if (response.getUser() == null || !userId.equals(response.getUser().getId())) {
             throw new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND);
         }
     }
@@ -62,10 +62,7 @@ public class RecommendationAccess {
             return response != null && response.getUser() == null
                     && verifyGuestToken(guestToken, response.getGuestTokenHash());
         }
-        // 회원이 게스트 토큰을 보냈으면 거부
-        if (guestToken != null) {
-            return false;
-        }
+        // 회원은 JWT로 인증되므로 stale guestToken이 있어도 무시하고 소유권만 확인
         // V1: 설문 응답 → 사용자
         SurveyResponse response = rec.getResponse();
         if (response != null) {
