@@ -9,7 +9,8 @@ import java.util.UUID;
 
 /**
  * LLM 가드 총괄 (V5 보안). 요청 진입 시점에서 호출한다.
- * 순서: 차단 목록 → inflight 잠금 → 분/일 제한 → 기능 예산/킬스위치.
+ * 회원 순서: 킬스위치(기능 ON/OFF + isKilled) → 차단 목록(DB) → inflight 잠금 → 분/일 제한.
+ * 게스트 순서: null IP → 킬스위치 → inflight 잠금 → 분/일 제한.
  * Redis 장애 시 fail-open (분/일 제한만 건너뜀, 차단 목록은 DB 조회).
  * 경고 누적: INJECTION/OUTPUT_INVALID → 24시간 내 3회=30분 정지, 6회=24시간 정지, 이후=영구 차단.
  */
@@ -36,14 +37,17 @@ public class LlmGuard {
     /**
      * 회원 요청 진입 가드. 통과하면 inflight 잠금 값(UUID)을 반환한다.
      * 호출 측은 finally에서 {@link #releaseInflight}를 호출해야 한다.
-     * 순서: blocklist → 공통(killswitch → inflight → rate).
+     * 순서: userId null → 킬스위치 → 차단 목록 → inflight → 분/일 제한.
      */
     public String checkAndLock(Long userId, String feature) {
         if (userId == null) {
             return UUID.randomUUID().toString();
         }
 
-        // 차단 목록 (DB 조회 — Redis 장애와 무관, 회원만)
+        // 1) 기능 ON/OFF + 킬스위치
+        checkKillswitch(feature);
+
+        // 2) 차단 목록 (DB 조회 — Redis 장애와 무관, 회원만)
         Optional<LlmBlocklist> block = blocklistRepository.findActiveBlock(userId);
         if (block.isPresent()) {
             LlmBlocklist b = block.get();
@@ -53,58 +57,27 @@ public class LlmGuard {
             throw new LlmGuardException(ErrorCode.LG_SUSPENDED, b.remainingSeconds());
         }
 
-        return doCheckAndLock(false, userId, null, feature);
-    }
-
-    /**
-     * 게스트 요청 진입 가드. IP 기반 inflight 잠금 + 분/일 제한.
-     * strike/blocklist는 게스트에 적용하지 않는다 (IP 변경이 쉬우므로).
-     * 순서: null IP 검사 → 공통(killswitch → inflight → rate).
-     */
-    public String checkAndLockGuest(String clientIp, String feature) {
-        if (clientIp == null || clientIp.isBlank()) {
-            throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
-        }
-        return doCheckAndLock(true, null, clientIp, feature);
-    }
-
-    /**
-     * 회원/게스트 공통 가드. 확인 순서: killswitch → inflight 잠금 → 분/일 제한.
-     * isGuest에 따라 키(userId vs clientIp)와 한도(feature vs "guest") 설정이 달라진다.
-     */
-    private String doCheckAndLock(boolean isGuest, Long userId, String clientIp, String feature) {
-        // 1) 기능 ON/OFF + 킬스위치
-        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
-            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
-        }
-
-        // 2) inflight 잠금
+        // 3) inflight 잠금
         String lockValue = UUID.randomUUID().toString();
         if (rateLimiter != null) {
-            Optional<String> locked = isGuest
-                    ? rateLimiter.tryInflightGuest(clientIp, lockValue, properties.getInflightTtlSeconds())
-                    : rateLimiter.tryInflight(userId, lockValue, properties.getInflightTtlSeconds());
+            Optional<String> locked = rateLimiter.tryInflight(userId, lockValue, properties.getInflightTtlSeconds());
             if (locked.isEmpty()) {
                 throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 5);
             }
         }
 
-        // 3) 분/일 제한 (Redis, fail-open)
+        // 4) 분/일 제한 (Redis, fail-open, 기능별)
         if (rateLimiter != null) {
-            LlmGuardProperties.Limits limits = properties.getLimitsFor(isGuest ? "guest" : feature);
+            LlmGuardProperties.Limits featureLimits = properties.getLimitsFor(feature);
             try {
-                Optional<Long> minuteCount = isGuest
-                        ? rateLimiter.incrementMinuteGuest(clientIp, feature)
-                        : rateLimiter.incrementMinute(userId, feature);
-                if (minuteCount.isPresent() && minuteCount.get() > limits.getPerMinute()) {
-                    doRelease(isGuest, userId, clientIp, lockValue);
+                Optional<Long> minuteCount = rateLimiter.incrementMinute(userId, feature);
+                if (minuteCount.isPresent() && minuteCount.get() > featureLimits.getPerMinute()) {
+                    releaseInflight(userId, lockValue);
                     throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
                 }
-                Optional<Long> dayCount = isGuest
-                        ? rateLimiter.incrementDayGuest(clientIp, feature)
-                        : rateLimiter.incrementDay(userId, feature);
-                if (dayCount.isPresent() && dayCount.get() > limits.getPerDay()) {
-                    doRelease(isGuest, userId, clientIp, lockValue);
+                Optional<Long> dayCount = rateLimiter.incrementDay(userId, feature);
+                if (dayCount.isPresent() && dayCount.get() > featureLimits.getPerDay()) {
+                    releaseInflight(userId, lockValue);
                     throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 3600);
                 }
             } catch (LlmGuardException e) {
@@ -117,11 +90,52 @@ public class LlmGuard {
         return lockValue;
     }
 
-    private void doRelease(boolean isGuest, Long userId, String clientIp, String lockValue) {
-        if (isGuest) {
-            releaseGuestInflight(clientIp, lockValue);
-        } else {
-            releaseInflight(userId, lockValue);
+    /**
+     * 게스트 요청 진입 가드. IP 기반 inflight 잠금 + 분/일 제한.
+     * strike/blocklist는 게스트에 적용하지 않는다 (IP 변경이 쉬우므로).
+     * 순서: null IP → 킬스위치 → inflight → 분/일 제한.
+     */
+    public String checkAndLockGuest(String clientIp, String feature) {
+        if (clientIp == null || clientIp.isBlank()) {
+            throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
+        }
+
+        // 킬스위치
+        checkKillswitch(feature);
+
+        String lockValue = UUID.randomUUID().toString();
+        if (rateLimiter != null) {
+            // inflight 잠금
+            Optional<String> locked = rateLimiter.tryInflightGuest(clientIp, lockValue, properties.getInflightTtlSeconds());
+            if (locked.isEmpty()) {
+                throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 5);
+            }
+
+            // 분/일 제한 (게스트 전용 설정)
+            LlmGuardProperties.Limits guestLimits = properties.getLimitsFor("guest");
+            try {
+                Optional<Long> minuteCount = rateLimiter.incrementMinuteGuest(clientIp, feature);
+                if (minuteCount.isPresent() && minuteCount.get() > guestLimits.getPerMinute()) {
+                    releaseGuestInflight(clientIp, lockValue);
+                    throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 60);
+                }
+                Optional<Long> dayCount = rateLimiter.incrementDayGuest(clientIp, feature);
+                if (dayCount.isPresent() && dayCount.get() > guestLimits.getPerDay()) {
+                    releaseGuestInflight(clientIp, lockValue);
+                    throw new LlmGuardException(ErrorCode.LG_RATE_LIMITED, 3600);
+                }
+            } catch (LlmGuardException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Guest rate limit check failed, fail-open: {}", e.getMessage());
+            }
+        }
+        return lockValue;
+    }
+
+    private void checkKillswitch(String feature) {
+        if (!properties.isFeatureEnabled(feature) || (rateLimiter != null && rateLimiter.isKilled(feature))) {
+            throw new LlmGuardException(ErrorCode.LG_UNAVAILABLE);
         }
     }
 
