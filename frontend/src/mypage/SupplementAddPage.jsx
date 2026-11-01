@@ -5,6 +5,7 @@ import {
   searchCatalogProducts,
   updateSupplementSchedules,
 } from "../api/mypageApi";
+import { useModalFocus } from "../common/useModalFocus";
 
 // 끼니별 기본 알림 시각
 const mealSlotOptions = [
@@ -41,12 +42,54 @@ function initialSchedules(savedSchedules) {
   return result;
 }
 
-// 영양제 등록 페이지 (마이페이지 "영양제 등록" 버튼)
-// 흐름: 제품 검색 → 제품 선택 → 복용 일정 선택 → 등록 → 마이페이지로 돌아감
-// target(내 영양제 1개)을 받으면 수정 모드: 제품은 고정, 복용 일정만 바꿈 (카드의 시계 버튼)
+// 영양제 등록 모달 틀 (Esc 닫기, Tab 포커스 가두기, 닫으면 여는 버튼으로 포커스 복원)
+function AddModalFrame({ onClose, openerRef, children }) {
+  const panelRef = useModalFocus(onClose, openerRef);
+
+  return (
+    <div className="supplement-add-overlay">
+      <section
+        ref={panelRef}
+        className="supplement-add-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="supplement-add-title"
+        tabIndex={-1}
+      >
+        <div className="supplement-add-header">
+          <h2 id="supplement-add-title">영양제 등록</h2>
+          <button type="button" aria-label="영양제 등록 닫기" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        {children}
+      </section>
+    </div>
+  );
+}
+
+// 복용 일정 수정 페이지 틀 (기존 페이지 모양 그대로)
+function EditPageFrame({ onClose, onNotifications, children }) {
+  return (
+    <div className="screen profile-screen">
+      <TopBar
+        back={onClose}
+        title="복용 일정 수정"
+        subtitle="내가 먹는 영양제"
+        onNotifications={onNotifications}
+      />
+      {children}
+    </div>
+  );
+}
+
+// 영양제 등록 모달 (마이페이지 "영양제 등록" 버튼)
+// 흐름: 제품 검색 → 제품 선택(또는 직접 입력) → 복용 일정 선택 → 등록 → 모달 닫힘
+// target(내 영양제 1개)을 받으면 수정 모드 페이지: 제품은 고정, 복용 일정만 바꿈 (카드의 시계 버튼)
 export default function SupplementAddPage({
   userId,
   target,
+  openerRef, // 등록 모달을 연 버튼 (닫을 때 포커스 복원)
   onBack,
   onSaved,
   onNotifications,
@@ -57,6 +100,9 @@ export default function SupplementAddPage({
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState(null);
+  // 직접 입력: 검색해도 안 나오는 제품을 이름으로 등록
+  const [manualMode, setManualMode] = useState(false);
+  const [manualName, setManualName] = useState("");
   // 끼니별 { checked, relation, time }
   const [schedules, setSchedules] = useState(() =>
     initialSchedules(target?.schedules),
@@ -100,8 +146,13 @@ export default function SupplementAddPage({
       return;
     }
 
-    // 기존 제품 선택 검사 유지
-    if (!isEdit && !selected) {
+    // 직접 입력이면 이름, 아니면 검색에서 고른 제품이 있어야 함
+    const trimmedName = manualName.trim();
+    if (!isEdit && manualMode && trimmedName === "") {
+      setMessage("영양제 이름을 입력해 주세요.");
+      return;
+    }
+    if (!isEdit && !manualMode && !selected) {
       setMessage("등록할 제품을 골라 주세요.");
       return;
     }
@@ -126,16 +177,17 @@ export default function SupplementAddPage({
     setMessage(null);
     try {
       if (isEdit) {
-        await updateSupplementSchedules(
-          userId,
-          target.userProductId,
-          picked,
-        );
+        await updateSupplementSchedules(userId, target.userProductId, picked);
       } else {
-        await addMySupplement(userId, {
-          catalogProductId: selected.catalogProductId,
-          schedules: picked,
-        });
+        await addMySupplement(
+          userId,
+          manualMode
+            ? { manualProductName: trimmedName, schedules: picked }
+            : {
+                catalogProductId: selected.catalogProductId,
+                schedules: picked,
+              },
+        );
       }
       onSaved(); // 성공하면 마이페이지로 돌아가므로 saving 은 되돌리지 않음
     } catch (e) {
@@ -145,15 +197,24 @@ export default function SupplementAddPage({
     }
   };
 
-  return (
-    <div className="screen profile-screen">
-      <TopBar
-        back={onBack}
-        title={isEdit ? "복용 일정 수정" : "영양제 등록"}
-        subtitle="내가 먹는 영양제"
-        onNotifications={onNotifications}
-      />
+  // 등록 버튼 문구: 직접 입력한 이름이나 고른 제품 이름을 보여줌
+  let saveLabel = "등록";
+  if (saving) saveLabel = "저장 중...";
+  else if (isEdit) saveLabel = "복용 일정 저장";
+  else if (manualMode && manualName.trim())
+    saveLabel = `'${manualName.trim()}' 등록`;
+  else if (!manualMode && selected)
+    saveLabel = `'${selected.productName}' 등록`;
 
+  // 수정은 페이지, 등록은 모달로 감싼다 (안의 내용은 같음)
+  const Frame = isEdit ? EditPageFrame : AddModalFrame;
+
+  return (
+    <Frame
+      onClose={onBack}
+      openerRef={openerRef}
+      onNotifications={onNotifications}
+    >
       <div className="profile-edit">
         {isEdit && (
           <section className="profile-edit-card">
@@ -184,6 +245,22 @@ export default function SupplementAddPage({
               <button type="button" onClick={search} disabled={searching}>
                 {searching ? "검색 중..." : "검색"}
               </button>
+              <button
+                type="button"
+                className={
+                  manualMode
+                    ? "supplement-manual-button active"
+                    : "supplement-manual-button"
+                }
+                aria-pressed={manualMode}
+                onClick={() => {
+                  setManualMode((prev) => !prev);
+                  setSelected(null); // 직접 입력과 검색 선택은 둘 중 하나만
+                  setMessage(null);
+                }}
+              >
+                직접 입력
+              </button>
             </div>
 
             {results && results.length === 0 && (
@@ -202,6 +279,7 @@ export default function SupplementAddPage({
                       }
                       onClick={() => {
                         setSelected(product);
+                        setManualMode(false); // 검색 결과를 고르면 직접 입력은 끔
                         setMessage(null);
                       }}
                     >
@@ -215,6 +293,27 @@ export default function SupplementAddPage({
                 ))}
               </ul>
             )}
+          </section>
+        )}
+
+        {!isEdit && manualMode && (
+          <section className="profile-edit-card">
+            <h2>직접 입력</h2>
+            <input
+              className="supplement-manual-input"
+              value={manualName}
+              maxLength={100}
+              placeholder="영양제 이름을 입력해 주세요"
+              aria-label="영양제 이름"
+              autoFocus
+              onChange={(event) => {
+                setManualName(event.target.value);
+                setMessage(null);
+              }}
+            />
+            <p className="profile-edit-hint">
+              직접 입력한 영양제는 함량 정보가 없어 영양 관리 계산에서 빠져요.
+            </p>
           </section>
         )}
 
@@ -274,15 +373,9 @@ export default function SupplementAddPage({
           onClick={submit}
           disabled={saving}
         >
-          {saving
-            ? "저장 중..."
-            : isEdit
-              ? "복용 일정 저장"
-              : selected
-                ? `'${selected.productName}' 등록`
-                : "등록"}
+          {saveLabel}
         </button>
       </div>
-    </div>
+    </Frame>
   );
 }
