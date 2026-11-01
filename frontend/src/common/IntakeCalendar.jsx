@@ -269,6 +269,9 @@ function DayModal({
                     </span>
                     <span className="day-copy">
                       <strong>{event.title}</strong>
+                      {event.scheduledAt && (
+                        <small>{event.scheduledAt.slice(11, 16)}</small>
+                      )}
                     </span>
                     <span className="event-actions">
                       <button type="button" onClick={() => openEdit(event)}>

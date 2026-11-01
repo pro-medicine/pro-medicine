@@ -39,7 +39,7 @@ export default function PrescriptionFields({ value, onChange }) {
         약 이름
         <input
           autoFocus
-          maxLength={150}
+          maxLength={30}
           placeholder="예: 타이레놀, 아목시실린"
           value={value.name}
           onChange={(e) => set({ name: e.target.value })}
