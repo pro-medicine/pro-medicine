@@ -21,10 +21,8 @@ public final class RecommendationQualityCheck {
     public static final int SUMMARY_MAX_SENTENCES = 2;
     /** 요약을 쓸 수 없을 때 대신 쓰는 문구 */
     public static final String FALLBACK_SUMMARY = "입력하신 정보를 바탕으로 고른 성분이에요.";
-    /** 요약에 쓸 수 없는 금지어 (PersonalizedQuestionValidator의 금지어 + 진료·처방·검사 지시) */
-    static final List<String> BANNED_WORDS = List.of(
-            "중단", "끊으세요", "진단", "처방", "복용을 멈추",
-            "진료", "의료진", "검사 결과");
+    /** 요약에 쓸 수 없는 금지어 (BannedWords.BASE + 진료·처방·검사 지시) */
+    static final List<String> BANNED_WORDS = BannedWords.QUALITY_CHECK;
     private static final Pattern SENTENCE_END = Pattern.compile("[.!?。](?=\\s|$)");
 
     private RecommendationQualityCheck() {
