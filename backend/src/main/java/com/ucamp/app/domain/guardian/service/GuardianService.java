@@ -86,4 +86,9 @@ public class GuardianService {
         return guardianSettingRepository.findById(id)
                 .orElseThrow(()->new BusinessException(ErrorCode.SETTING_NOT_FOUND));
     }
+
+    public boolean existsBetween(Long a, Long b) {
+        return guardianSettingRepository.existsByUserIdAndGuardianUserId(a, b)
+                || guardianSettingRepository.existsByUserIdAndGuardianUserId(b, a);
+    }
 }

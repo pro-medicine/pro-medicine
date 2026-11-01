@@ -4,6 +4,7 @@ import com.ucamp.app.domain.friend.dto.FollowResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.guardian.service.GuardianService;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
@@ -30,6 +31,7 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final GuardianService guardianService;
 
     @Transactional
     public FollowResponse request(Long followerId, String nickname) {
@@ -95,6 +97,9 @@ public class FollowService {
                 || follow.getFollowingId().equals(userId);
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (guardianService.existsBetween(follow.getFollowerId(), follow.getFollowingId())) {
+            throw new BusinessException(ErrorCode.GUARDIAN_EXISTS);
         }
         followRepository.delete(follow);
     }

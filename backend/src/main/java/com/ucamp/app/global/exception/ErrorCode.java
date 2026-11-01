@@ -79,6 +79,7 @@ public enum ErrorCode {
     ALREADY_GUARDIAN(HttpStatus.CONFLICT, "F008", "이미 등록된 지킴이입니다."),
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F009", "지킴이 설정을 찾을 수 없습니다."),
     INTAKE_NOT_SHARED(HttpStatus.FORBIDDEN, "F010", "정보가 비공개 상태입니다."),
+    GUARDIAN_EXISTS(HttpStatus.CONFLICT, "F011", "안부지킴이로 연결된 친구는 삭제할 수 없습니다."),
 
     // DISPOSAL
     DISPOSAL_INVALID_QUERY(HttpStatus.BAD_REQUEST, "D001", "검색어는 1~100자로 입력해주세요."),

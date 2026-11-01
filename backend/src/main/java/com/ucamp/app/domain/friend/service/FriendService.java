@@ -5,6 +5,7 @@ import com.ucamp.app.domain.friend.dto.FriendResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.guardian.service.GuardianService;
 import com.ucamp.app.domain.intake.dto.IntakeStatsResponse;
 import com.ucamp.app.domain.intake.dto.TodayIntakeResponse;
 import com.ucamp.app.domain.intake.service.IntakeService;
@@ -34,6 +35,7 @@ public class FriendService {
     private final UserRepository userRepository;
     private final IntakeService intakeService;
     private final MySupplementService mySupplementService;
+    private final GuardianService guardianService;
 
 
     public List<FriendResponse> getFriends(Long userId) {
@@ -87,6 +89,9 @@ public class FriendService {
     @Transactional
     public void deleteFriend(Long userId, Long friendId) {
         Follow follow = getAcceptedFollow(userId, friendId);
+        if (guardianService.existsBetween(userId, friendId)) {
+            throw new BusinessException(ErrorCode.GUARDIAN_EXISTS);
+        }
         followRepository.delete(follow);
     }
 
