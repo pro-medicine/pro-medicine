@@ -1,6 +1,6 @@
-package com.ucamp.app.domain.calendar.dto;
+package com.ucamp.app.domain.prescription.dto;
 
-import com.ucamp.app.domain.calendar.entity.UserPrescription;
+import com.ucamp.app.domain.prescription.entity.Prescription;
 
 import java.time.LocalDate;
 
@@ -9,17 +9,15 @@ public record PrescriptionResponse(
         String name,
         LocalDate startAt,
         LocalDate endAt,
-        boolean isActive,
-        boolean isShown
+        int createdEventCount
 ) {
-    public static PrescriptionResponse from(UserPrescription prescription) {
+    public static PrescriptionResponse of(Prescription prescription, int createdEventCount) {
         return new PrescriptionResponse(
                 prescription.getPrescriptionId(),
                 prescription.getName(),
                 prescription.getStartAt(),
                 prescription.getEndAt(),
-                prescription.isActive(),
-                prescription.isShown()
+                createdEventCount
         );
     }
 }
