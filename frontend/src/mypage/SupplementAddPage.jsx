@@ -180,13 +180,6 @@ export default function SupplementAddPage({
     }
   };
 
-  // 아래 버튼줄 왼쪽 요약: 등록할 제품 이름
-  let summary = "제품을 골라 주세요";
-  if (isEdit) summary = target.productName;
-  else if (manualMode)
-    summary = manualName.trim() || "영양제 이름을 입력해 주세요";
-  else if (selected) summary = selected.productName;
-
   return (
     <SupplementModal
       title={isEdit ? "복용 일정 수정" : "영양제 등록"}
@@ -373,7 +366,6 @@ export default function SupplementAddPage({
         {message && <p className="profile-edit-message error">{message}</p>}
 
         <div className="profile-edit-footer">
-          <p className="supplement-summary">{summary}</p>
           <button
             type="button"
             className="btn btn-outline btn-lg"

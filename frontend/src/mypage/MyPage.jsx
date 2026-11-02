@@ -11,10 +11,12 @@ import {
 import {
   getCalendarEvents,
   createCalendarEvent,
+  createPrescription,
   updateCalendarEvent,
   deleteCalendarEvent,
   updateCalendarEventStatus,
 } from "../api/calendarEventApi";
+import { deletePrescription } from "../api/prescriptionApi";
 import { useModalFocus } from "../common/useModalFocus";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
@@ -391,6 +393,8 @@ export default function ProfileScreen({
             fetchDay={getMyDayIntakes}
             fetchEvents={getCalendarEvents}
             createEvent={createCalendarEvent}
+            createPrescription={createPrescription}
+            deletePrescription={deletePrescription}
             updateEvent={updateCalendarEvent}
             updateEventStatus={updateCalendarEventStatus}
             deleteEvent={deleteCalendarEvent}
