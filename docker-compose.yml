@@ -24,7 +24,7 @@ services:
     image: redis:7.2
     container_name: oneonone-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     restart: always
     volumes:
       - redis_data:/data
@@ -47,7 +47,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_PROFILES_ACTIVE: local-llm
-      APP_AUTH_ALLOWED_ORIGINS: http://localhost,http://3.34.112.40,http://localhost:5173,http://127.0.0.1:5173
+      APP_AUTH_ALLOWED_ORIGINS: http://localhost,http://3.34.112.40,http://localhost:5173,http://127.0.0.1:5173,http://nice-yakssok.o-r.kr,https://nice-yakssok.o-r.kr
     depends_on:
       mysql:
         condition: service_healthy
@@ -56,7 +56,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "127.0.0.1:3000:80"
     volumes:
       # 빌드된 화면 파일을 이미지에 넣지 않고 연결만 해서, 배포 때 nginx를 재시작하지 않아도 됨
       - ./frontend/dist:/usr/share/nginx/html:ro
