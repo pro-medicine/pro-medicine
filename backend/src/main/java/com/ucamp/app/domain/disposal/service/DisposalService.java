@@ -1,3 +1,4 @@
+
 package com.ucamp.app.domain.disposal.service;
 
 import com.ucamp.app.global.exception.BusinessException;
@@ -69,41 +70,18 @@ public class DisposalService {
 
             // 주소로 검색 가능한 동/도로명 주소
             JsonNode addresses = kakaoRestClient.get()
-                    .uri(builder -> builder
-                            .path("/v2/local/search/address.json")
-                            .queryParam("query", locationQuery)
-                            .queryParam("size", 10)
-                            .build())
+                    .uri("/v2/local/search/address.json?query={query}&size=10", locationQuery)
                     .retrieve()
                     .body(JsonNode.class);
             appendUniqueDocuments(candidates, seen, addresses);
 
-            // 역/주민센터/동네 장소명 검색
+            // 역/동네 장소명 검색
             JsonNode places = kakaoRestClient.get()
-                    .uri(builder -> builder
-                            .path("/v2/local/search/keyword.json")
-                            .queryParam("query", locationQuery)
-                            .queryParam("size", KAKAO_PAGE_SIZE)
-                            .build())
+                    .uri("/v2/local/search/keyword.json?query={query}&size={size}",
+                            locationQuery, KAKAO_PAGE_SIZE)
                     .retrieve()
                     .body(JsonNode.class);
             appendUniqueDocuments(candidates, seen, places);
-
-            // 예: '발산' -> '발산1동 주민센터'도 함께 후보로 노출 시도.
-            // 특정 지역명을 하드코딩하지 않고, 단순한 동네 이름에만 추가 조회한다.
-            if (locationQuery.matches("[가-힣]{2,5}")
-                    && !locationQuery.endsWith("역")
-                    && !locationQuery.endsWith("동")) {
-                JsonNode dongCandidates = kakaoRestClient.get()
-                        .uri(builder -> builder
-                                .path("/v2/local/search/keyword.json")
-                                .queryParam("query", locationQuery + "1동 주민센터")
-                                .queryParam("size", 5)
-                                .build())
-                        .retrieve()
-                        .body(JsonNode.class);
-                appendUniqueDocuments(candidates, seen, dongCandidates);
-            }
 
             ObjectNode response = JsonNodeFactory.instance.objectNode();
             response.set("documents", candidates);
