@@ -71,4 +71,7 @@ INSERT INTO review_mentions (video_id, mention_no, channel_id, published_at, cat
     ('TESTVID0003', 2, 'TESTCH03', '2026-07-01', NULL, 'PENDING_REVIEW', '예시 국내 유산균', NULL, '["PROBIOTICS"]', 'RECOMMEND', TRUE, NULL, NULL, NULL, NULL, NULL, NULL, 'review-extract-v3');
 
 -- 참고 가격 (수동 등록 값, 응답 price 확인용). 다른 제품은 가격 없음(NULL)
-UPDATE catalog_products SET price = 15900 WHERE catalog_product_id = 9306;
+UPDATE catalog_products SET price = 15900, price_package = '60캡슐', price_source = '아이허브',
+    price_url = 'https://kr.iherb.com/pr/example/1', price_checked_at = '2026-11-02' WHERE catalog_product_id = 9306;
+-- http(s)가 아닌 출처 주소는 응답에서 빠져야 한다
+UPDATE catalog_products SET price = 9900, price_url = 'javascript:alert(1)' WHERE catalog_product_id = 9305;

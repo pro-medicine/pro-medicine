@@ -3,7 +3,7 @@
 // 채운 CSV + 이미지 폴더를 읽어서
 //   1) 빠진 이미지·잘못된 가격을 알려주고
 //   2) S3에 올릴 폴더(out/upload)를 "<catalog_product_id>.<확장자>" 이름으로 준비하고
-//   3) DB에 넣을 UPDATE SQL(out/product-images.sql)을 만든다.
+//   3) DB에 넣을 UPDATE SQL(out/product-images.sql)을 만든다. (사진, 참고 가격 + 용량·출처·확인 날짜)
 //   4) --copy-to 를 주면 사진을 그 폴더(예: frontend/public/static/products)에 바로 복사한다.
 // 외부 라이브러리 없이 Node 기본 기능만 사용한다.
 // 기본 방식: 사진을 프론트 public 폴더에 넣어 배포와 함께 올린다 (--base-url /static --copy-to frontend/public/static/products)
@@ -86,6 +86,27 @@ export function parsePrice(value) {
   if (!value) return null;
   const digits = value.replace(/[,\s원₩]/g, "");
   return /^\d+$/.test(digits) ? Number(digits) : Number.NaN;
+}
+
+// 가격의 용량·출처·확인 날짜 (STEP10 컬럼). 빈칸이면 NULL로 지운다 (예전 값이 남지 않게)
+// price_url은 화면에서 링크가 되므로 https 주소만 받는다
+export function priceInfo(row) {
+  const pkg = (row.price_package ?? "").trim();
+  const source = (row.price_source ?? "").trim();
+  const url = (row.price_url ?? "").trim();
+  const date = (row.price_checked_at ?? "").trim();
+  if (pkg.length > 100) return { problem: `price_package는 100자 이하로 적어 주세요` };
+  if (source.length > 50) return { problem: `price_source는 50자 이하로 적어 주세요` };
+  if (url && !/^https:\/\/[^\s"'<>]+$/.test(url)) return { problem: `price_url "${url}"은 https:// 로 시작하는 주소여야 해요` };
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { problem: `price_checked_at "${date}"은 2026-11-02 형식이어야 해요` };
+  return {
+    sets: [
+      `price_package = ${sqlText(pkg || null)}`,
+      `price_source = ${sqlText(source || null)}`,
+      `price_url = ${sqlText(url || null)}`,
+      `price_checked_at = ${sqlText(date || null)}`,
+    ],
+  };
 }
 
 // SQL 문자열 안전하게 (작은따옴표·역슬래시)
@@ -171,8 +192,13 @@ function main() {
     if (Number.isNaN(price)) {
       problems.push(`${label}: 가격 "${row.price}"을 숫자로 읽을 수 없어요 (예: 12900)`);
     } else if (price != null) {
-      sets.push(`price = ${price}`);
-      priceCount++;
+      const info = priceInfo(row);
+      if (info.problem) {
+        problems.push(`${label}: ${info.problem}`);
+      } else {
+        sets.push(`price = ${price}`, ...info.sets);
+        priceCount++;
+      }
     }
 
     if (sets.length > 0) {
@@ -187,6 +213,7 @@ function main() {
     `-- 생성일: ${today} / 이미지 ${imageCount}개, 가격 ${priceCount}개`,
     "-- 실행: 로컬 MySQL과 서버 MySQL에 각각 한 번씩. 다시 실행해도 같은 값으로 덮어써서 안전하다.",
     "-- 제품은 출처 + 외부 번호로 찾으므로 DB마다 catalog_product_id가 달라도 같은 제품에 들어간다.",
+    "-- 가격의 용량·출처 컬럼(price_package 등)이 없다는 오류가 나면 backend/docs/sql/STEP10_product_price_info.sql을 먼저 실행한다.",
     "USE yakssok;",
     "",
     ...updates,

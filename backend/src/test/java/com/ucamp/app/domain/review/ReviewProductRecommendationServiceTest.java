@@ -71,6 +71,8 @@ class ReviewProductRecommendationServiceTest {
 
         // 9303(NOW 세 번째)은 브랜드 제한, 9305·9304 동점(2.0, 약사 2명) → 마지막 추천일 9/15인 9305
         assertThat(ids(r)).containsExactly(9301L, 9302L, 9305L);
+        // 출처 주소가 https가 아니면 링크로 쓰지 않도록 빼고, 용량·출처가 없어도 가격은 보여준다
+        assertThat(r.products().get(2).price()).isEqualTo(new ReviewProductResponse.Price(9900, null, null, null, null));
         assertThat(r.excludedCount()).isEqualTo(1); // 9310 라벨 성분 없음
         assertThat(r.message()).isNull();
         assertThat(r.notice()).isEqualTo(ReviewProductResponse.MEMBER_NOTICE);
@@ -107,7 +109,9 @@ class ReviewProductRecommendationServiceTest {
         assertThat(ids(r)).containsExactly(9301L, 9302L, 9306L);
         assertThat(r.products().get(2).alsoContains()).containsExactly("VITAMIN_B6");
         assertThat(r.products().get(2).imageUrl()).isEqualTo("https://example.com/9306.png");
-        assertThat(r.products().get(2).price()).isEqualTo(15900);   // 수동 등록한 참고 가격
+        // 수동 등록한 참고 가격 + 용량 + 출처
+        assertThat(r.products().get(2).price()).isEqualTo(new ReviewProductResponse.Price(15900, "60캡슐", "아이허브",
+                "https://kr.iherb.com/pr/example/1", java.time.LocalDate.of(2026, 11, 2)));
         assertThat(r.products().get(0).price()).isNull();           // 가격을 안 넣은 제품
     }
 

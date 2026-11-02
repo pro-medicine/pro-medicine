@@ -6,8 +6,9 @@
 - 추천에 나올 수 있는 제품 = `review_product_scores`에 있는 활성·국내 반입 가능 제품 (2026-11 기준 54개: DSLD 47, 식약처 7)
 - 사진은 **프론트 `frontend/public/static/products/`** 에 넣어 배포와 함께 올린다 (S3·AWS 계정 필요 없음)
 - DB `catalog_products.image_url`에 `/static/products/DSLD-284189.jpg` 같은 사이트 안 주소를 저장한다
-- 화면: 사진이 있으면 사진, 없으면 브랜드 첫 글자 / 가격이 있으면 "참고 가격 12,900원"
-- 백엔드 응답 `ReviewProductResponse.Product.imageUrl`, `price`
+- 화면: 사진이 있으면 사진, 없으면 브랜드 첫 글자 / 가격이 있으면 "참고 가격 12,900원 (60캡슐 기준)" + "출처 아이허브 · 2026.11.02 기준"(출처는 링크)
+- 백엔드 응답 `ReviewProductResponse.Product.imageUrl`, `price { amount, packageSize, source, sourceUrl, checkedAt }`
+- 가격의 용량·출처는 `catalog_products.price_package / price_source / price_url / price_checked_at` 컬럼 (`backend/docs/sql/STEP10_product_price_info.sql`로 추가)
 
 작업 파일(CSV, 받은 사진, out 폴더)은 **프로젝트 폴더 밖** (예: `C:\work\product-images\`)에 둔다.
 
@@ -46,6 +47,12 @@ node --use-system-ca scripts/product-images/fetch-dsld-images.mjs C:\work\produc
 | `image_file` | 사진 파일 이름 (비워 두면 `<catalog_product_id>.jpg/.png/.webp`를 찾음) | `cgn-d3k2.jpg` |
 | `price` | 참고 가격 (원, 쉼표·"원" 있어도 됨, 비워도 됨) | `12900` |
 | `image_source` | 사진 출처 (SQL 주석으로 남음) | `고려은단 공식몰` |
+| `price_package` | 그 가격의 용량 (100자 이하) | `60캡슐` |
+| `price_source` | 가격 출처 이름 (50자 이하, 화면에 보임) | `아이허브` |
+| `price_url` | 가격 출처 주소 (**https://** 만, 화면에서 링크) | `https://kr.iherb.com/pr/...` |
+| `price_checked_at` | 가격 확인 날짜 | `2026-11-02` |
+
+`price`가 비어 있으면 용량·출처 칸은 쓰지 않는다. 표에 없는 칸(`price_memo` 같은 메모)은 무시된다.
 
 ## 4. 프론트에 사진 넣기 + SQL 만들기
 
@@ -62,10 +69,11 @@ node scripts/product-images/build-product-images.mjs C:\work\product-images\prod
 
 ## 5. DB 반영 + 확인
 
+0. (처음 한 번) `backend/docs/sql/STEP10_product_price_info.sql`을 실행해 가격 용량·출처 컬럼을 만든다
 1. `out\product-images.sql`을 **로컬 MySQL**(Workbench)에서 실행
 2. `pnpm dev` → 맞춤 추천 → 제품 추천 보기에서 사진 확인
 3. SQL을 저장소에 공유: `backend/docs/sql/product-images.sql` 로 복사해 커밋
-4. 머지·배포 후 **서버 MySQL에서도 한 번 실행** (docker-compose 초기화 SQL은 DB를 처음 만들 때만 실행됨)
+4. 머지·배포 후 **서버 MySQL에서도 STEP10 → product-images.sql 순서로 한 번씩 실행** (docker-compose 초기화 SQL은 DB를 처음 만들 때만 실행됨)
    ```bash
    docker compose exec -T mysql mysql -u root -p yakssok < backend/docs/sql/product-images.sql
    ```

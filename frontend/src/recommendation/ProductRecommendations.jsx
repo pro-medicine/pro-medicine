@@ -3,7 +3,38 @@
 import { useEffect, useState } from "react";
 
 // 참고 가격: 12900 → "12,900원"
-const won = (price) => `${price.toLocaleString("ko-KR")}원`;
+const won = (amount) => `${amount.toLocaleString("ko-KR")}원`;
+// 확인 날짜: "2026-11-02" → "2026.11.02" (형식이 다르면 표시하지 않음)
+const dotDate = (date) => (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date.replaceAll("-", ".") : null);
+
+// 참고 가격 + 용량, 그 아래 출처·확인 날짜 (출처 주소는 백엔드에서 https만 내려온다)
+function ProductPrice({ price }) {
+  const sourceName = price.source ?? (price.sourceUrl ? "판매처" : null);
+  const checked = dotDate(price.checkedAt);
+  return (
+    <div className="rec-prod-price-box">
+      <span className="rec-prod-price">
+        <small>참고 가격</small> {won(price.amount)}
+        {price.packageSize && <span className="rec-prod-pack"> ({price.packageSize} 기준)</span>}
+      </span>
+      {(sourceName || checked) && (
+        <small className="rec-prod-source">
+          {sourceName && "출처 "}
+          {sourceName &&
+            (price.sourceUrl?.startsWith("https://") ? (
+              <a href={price.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
+                {sourceName}
+              </a>
+            ) : (
+              sourceName
+            ))}
+          {sourceName && checked && " · "}
+          {checked && `${checked} 기준`}
+        </small>
+      )}
+    </div>
+  );
+}
 
 // 제품 사진 (없거나 못 불러오면 브랜드 첫 글자)
 function ProductThumb({ product }) {
@@ -86,11 +117,7 @@ function ProductList({ products, notice, message, ingredient, nameOf }) {
             <div className="rec-prod-body">
               {p.brand && <span className="rec-prod-brand">{p.brand}</span>}
               <strong className="rec-prod-name">{p.productName}</strong>
-              {p.price != null && (
-                <span className="rec-prod-price">
-                  <small>참고 가격</small> {won(p.price)}
-                </span>
-              )}
+              {p.price?.amount != null && <ProductPrice price={p.price} />}
               {p.alsoContains?.length > 0 && (
                 <small className="rec-prod-also">
                   추천 성분 중 {p.alsoContains.map(nameOf).join(", ")}도 함께 들어 있어요
@@ -114,7 +141,7 @@ function ProductList({ products, notice, message, ingredient, nameOf }) {
           </li>
         ))}
       </ol>
-      {products.some((p) => p.price != null) && (
+      {products.some((p) => p.price?.amount != null) && (
         <small className="rec-prod-notice">가격은 참고용이에요. 판매처와 시기에 따라 달라요.</small>
       )}
       {notice && <small className="rec-prod-notice">{notice}</small>}

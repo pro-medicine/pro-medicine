@@ -208,12 +208,18 @@
   .rec-nav .rec-button.primary { flex: 1 0 100%; order: 1; }
 }
 
-/* 추천 제품: 추천순 번호 · 참고 가격 (S3에 수동 등록한 이미지·가격) */
+/* 추천 제품: 추천순 번호 · 참고 가격(용량·출처) (수동 등록한 이미지·가격) */
 .rec-prod-rank { flex: 0 0 22px; width: 22px; height: 22px; margin-top: 21px; border-radius: 50%; background: var(--accent-soft); color: var(--muted); font-size: 12px; font-weight: 800; line-height: 22px; text-align: center; }
 .rec-prod-item.is-first { border-color: var(--r-yellow-line); background: var(--primary-soft); }
 .rec-prod-item.is-first .rec-prod-rank { background: var(--primary); color: var(--white); }
 .rec-prod-price { display: block; margin-top: 4px; font-size: 14px; font-weight: 800; color: var(--r-text); }
 .rec-prod-price small { margin-right: 2px; font-size: 11px; font-weight: 600; color: var(--r-sub); }
+.rec-prod-price-box { margin-top: 4px; }
+.rec-prod-price-box .rec-prod-price { margin-top: 0; }
+.rec-prod-pack { font-size: 12px; font-weight: 500; color: var(--r-sub); }
+.rec-prod-source { display: block; margin-top: 2px; font-size: 11px; line-height: 1.4; color: var(--r-sub); }
+.rec-prod-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.rec-prod-source a:hover { color: var(--r-text); }
 @media (max-width: 400px) {
   .rec-prod-thumb { flex-basis: 52px; width: 52px; height: 52px; }
   .rec-prod-rank { margin-top: 15px; }
