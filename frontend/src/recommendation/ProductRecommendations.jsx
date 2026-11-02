@@ -37,6 +37,37 @@ function ProductPrice({ price }) {
 }
 
 // 제품 사진 (없거나 못 불러오면 브랜드 첫 글자)
+// 추천 1~3위는 금·은·동 메달, 그 뒤는 숫자만 (대화형 추천에서 3개보다 많이 올 때 대비)
+const MEDALS = [
+  { key: "gold", label: "금메달" },
+  { key: "silver", label: "은메달" },
+  { key: "bronze", label: "동메달" },
+];
+
+function RankMedal({ rank }) {
+  const medal = MEDALS[rank - 1];
+  if (!medal) {
+    return (
+      <span className="rec-prod-rank" aria-label={`추천 ${rank}위`}>
+        {rank}
+      </span>
+    );
+  }
+  return (
+    <span className={`rec-prod-medal is-${medal.key}`} role="img" aria-label={`추천 ${rank}위 ${medal.label}`}>
+      <svg viewBox="0 0 28 36" aria-hidden="true">
+        <path className="ribbon-l" d="M6 0h7l3 13h-7z" />
+        <path className="ribbon-r" d="M15 0h7l-3 13h-7z" />
+        <circle className="disc" cx="14" cy="22.5" r="11" />
+        <circle className="ring" cx="14" cy="22.5" r="8.2" />
+        <text x="14" y="26.8" textAnchor="middle">
+          {rank}
+        </text>
+      </svg>
+    </span>
+  );
+}
+
 function ProductThumb({ product }) {
   const [broken, setBroken] = useState(false);
   if (product.imageUrl && !broken) {
@@ -106,13 +137,11 @@ function ProductList({ products, notice, message, ingredient, nameOf }) {
 
   return (
     <div className="rec-prod">
-      <small className="rec-prod-caption">약사 리뷰에서 많이 추천된 {nameOf(ingredient)} 제품이에요 · 추천순</small>
+      <small className="rec-prod-caption">약사 리뷰에서 많이 추천된 {nameOf(ingredient)} 제품이에요 · 추천 순위</small>
       <ol className="rec-prod-list">
         {products.map((p, index) => (
           <li className={`rec-prod-item${index === 0 ? " is-first" : ""}`} key={p.catalogProductId}>
-            <span className="rec-prod-rank" aria-label={`추천순 ${index + 1}위`}>
-              {index + 1}
-            </span>
+            <RankMedal rank={index + 1} />
             <ProductThumb product={p} />
             <div className="rec-prod-body">
               {p.brand && <span className="rec-prod-brand">{p.brand}</span>}
