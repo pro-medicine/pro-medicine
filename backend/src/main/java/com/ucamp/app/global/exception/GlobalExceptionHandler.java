@@ -12,6 +12,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    @ExceptionHandler(com.ucamp.app.infra.llm.guard.LlmGuardException.class)
+    public ResponseEntity<ApiResponse<?>> handleLlmGuardException(com.ucamp.app.infra.llm.guard.LlmGuardException ex) {
+        ErrorCode errorCode = ex.getErrorCode();
+        var builder = ResponseEntity.status(errorCode.getStatus());
+        if (ex.getRetryAfterSeconds() > 0) {
+            builder.header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        }
+        return builder.body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
         ErrorCode errorCode = ex.getErrorCode();

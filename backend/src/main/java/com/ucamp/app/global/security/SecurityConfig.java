@@ -52,8 +52,13 @@ public class SecurityConfig {
                             HttpMethod.POST,
                             "/api/v1/surveys/*/responses"
                     ).permitAll()
+                // 비회원도 설문 → 추천 흐름을 사용한다 (컨트롤러에서 userId=null 허용)
+                .requestMatchers(HttpMethod.POST, "/api/v1/recommendations").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/*/products", "/api/v1/recommendations/*/products/availability").permitAll()
                 .anyRequest().authenticated())
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(Customizer.withDefaults()));
         return http.build();
     }
 
@@ -86,7 +91,7 @@ public class SecurityConfig {
                 .map(String::trim).filter(s -> !s.isEmpty()).toList();
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Guest-Token"));
         // Credentialed cross-origin /auth/refresh and /auth/logout; origins are explicitly enumerated.
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

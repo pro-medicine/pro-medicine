@@ -27,6 +27,7 @@ import java.time.Year;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -169,7 +170,7 @@ class PersonalizedRecommendationApiTest {
         stop(user, sessionId);
         recommend(user, sessionId).andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/v1/users/me/recommendations/latest").header("X-User-Id", user.getId()))
+        mockMvc.perform(get("/api/v1/users/me/recommendations/latest").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reusable").value(false))
                 .andExpect(jsonPath("$.data.reason").value("NO_RECOMMENDATION"));
@@ -179,12 +180,13 @@ class PersonalizedRecommendationApiTest {
     void 최근_V1_추천이_있으면_변화를_diff_json에_남긴다_없으면_비교하지_않는다() throws Exception {
         User user = members.fullMale(1980);
         // V1 회원 설문 → 추천 (Fake 기본: 비타민 D 하나)
-        String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses").header("X-User-Id", user.getId())
+        String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses").header("Authorization", bearer(user.getId()))
                         .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(
                                 Map.of("answers", List.of(choice(Q_GENDER, GENDER_M))))))
                 .andReturn().getResponse().getContentAsString();
         long responseId = objectMapper.readTree(body).at("/data/responseId").asLong();
         long v1 = data(mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(user.getId()))
                 .content("{\"responseId\":" + responseId + "}"))).get("recommendationId").asLong();
 
         fake.answerWith(new FakeAnswer(List.of(
@@ -214,11 +216,11 @@ class PersonalizedRecommendationApiTest {
     // ---------- helpers ----------
 
     private ResultActions start(User user) throws Exception {
-        return mockMvc.perform(post(BASE).header("X-User-Id", user.getId()));
+        return mockMvc.perform(post(BASE).header("Authorization", bearer(user.getId())));
     }
 
     private ResultActions answer(User user, JsonNode s, List<Integer> selected) throws Exception {
-        return mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/answers").header("X-User-Id", user.getId())
+        return mockMvc.perform(post(BASE + "/" + s.get("sessionId").asLong() + "/answers").header("Authorization", bearer(user.getId()))
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(
                         Map.of("turnId", s.at("/question/turnId").asLong(), "selected", selected))));
     }
@@ -229,17 +231,17 @@ class PersonalizedRecommendationApiTest {
                 + " and fixed = false and selected_json is not null", Integer.class, sessionId) == 0) {
             long turnId = jdbcTemplate.queryForObject("select turn_id from ai_question_turns where session_id = ?"
                     + " and selected_json is null", Long.class, sessionId);
-            mockMvc.perform(post(BASE + "/" + sessionId + "/answers").header("X-User-Id", user.getId())
+            mockMvc.perform(post(BASE + "/" + sessionId + "/answers").header("Authorization", bearer(user.getId()))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(Map.of("turnId", turnId, "selected", List.of(0)))))
                     .andExpect(status().isOk());
         }
-        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("X-User-Id", user.getId()))
+        mockMvc.perform(post(BASE + "/" + sessionId + "/stop").header("Authorization", bearer(user.getId())))
                 .andExpect(status().isOk());
     }
 
     private ResultActions recommend(User user, long sessionId) throws Exception {
-        return mockMvc.perform(post(BASE + "/" + sessionId + "/recommendation").header("X-User-Id", user.getId()));
+        return mockMvc.perform(post(BASE + "/" + sessionId + "/recommendation").header("Authorization", bearer(user.getId())));
     }
 
     private JsonNode data(ResultActions result) throws Exception {

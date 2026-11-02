@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 public record CalendarEventResponse(
         Long eventId,
+        Long prescriptionId,
         EventType eventType,
         String title,
         LocalDateTime scheduledAt,
@@ -17,6 +18,7 @@ public record CalendarEventResponse(
     public static CalendarEventResponse from(CalendarEvent event) {
         return new CalendarEventResponse(
                 event.getEventId(),
+                event.getPrescriptionId(),
                 event.getEventType(),
                 event.getTitle(),
                 event.getScheduledAt(),

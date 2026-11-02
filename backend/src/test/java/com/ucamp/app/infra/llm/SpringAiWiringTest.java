@@ -105,6 +105,7 @@ class SpringAiWiringTest {
                 choice(Q_SMOKING, SMOKING_ONE_PACK), choice(Q_SUN, SUN_LOW)));
         String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", lastGuestToken)
                         .content("{\"responseId\":" + responseId + "}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode data = objectMapper.readTree(body).get("data");
@@ -147,7 +148,8 @@ class SpringAiWiringTest {
         assertThat(log.getModel()).isEqualTo("gpt-6.1-sol");
 
         // DB에서 다시 조회해도 같은 형식
-        mockMvc.perform(get("/api/v1/recommendations/" + data.path("recommendationId").asLong()))
+        mockMvc.perform(get("/api/v1/recommendations/" + data.path("recommendationId").asLong())
+                        .header("X-Guest-Token", lastGuestToken))
                 .andExpect(status().isOk());
 
         writeReport("normal", reqBody, body);
@@ -167,6 +169,7 @@ class SpringAiWiringTest {
         long responseId = submit(List.of(choice(Q_GENDER, GENDER_M), number(Q_BIRTH, 1990)));
         String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", lastGuestToken)
                         .content("{\"responseId\":" + responseId + "}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
@@ -187,6 +190,7 @@ class SpringAiWiringTest {
         long responseId = submit(List.of(choice(Q_GENDER, GENDER_M)));
         String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Guest-Token", lastGuestToken)
                         .content("{\"responseId\":" + responseId + "}"))
                 .andReturn().getResponse().getContentAsString();
 
@@ -214,12 +218,18 @@ class SpringAiWiringTest {
         assertThat(elapsedMs).isBetween(1400L, 4000L);
     }
 
+    private String lastGuestToken;
+
     private long submit(List<Map<String, Object>> answers) throws Exception {
         String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("answers", answers))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(body).get("data").get("responseId").asLong();
+        JsonNode data = objectMapper.readTree(body).get("data");
+        if (data.has("guestToken")) {
+            lastGuestToken = data.get("guestToken").asString();
+        }
+        return data.get("responseId").asLong();
     }
 
     private void writeReport(String name, JsonNode llmRequest, String apiResponse) throws Exception {

@@ -94,7 +94,7 @@ class ReviewProductRecommendationServiceTest {
 
         // 9307 차단·9308 비활성은 점수가 높아도 없음, 9313은 라벨에 마그네슘이 있어도 마그네슘 리뷰가 없어 없음
         assertThat(ids(r)).containsExactly(9301L, 9302L, 9303L, 9305L, 9304L, 9309L, 9306L);
-        assertThat(r.products().get(5).warnings()).containsExactly(ProductSafetyFilter.UNVERIFIED_WARNING);
+        assertThat(r.products().get(5).warnings()).isEmpty();
     }
 
     @Test

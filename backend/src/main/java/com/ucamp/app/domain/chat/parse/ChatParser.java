@@ -10,6 +10,7 @@ import com.ucamp.app.infra.llm.LlmProperties;
 import com.ucamp.app.infra.llm.LlmRequest;
 import com.ucamp.app.infra.llm.LlmResponse;
 import com.ucamp.app.infra.llm.LlmUnavailableException;
+import com.ucamp.app.infra.llm.guard.LlmGuardProperties;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,8 @@ import java.util.stream.Collectors;
 public class ChatParser {
     public static final String PIPELINE_VERSION = "chat-v1";
     // chat-v2 (2026-10-29): search_query에 약·약 계열·질환 이름을 넣지 않는다 (서버도 약 이름을 검사해 1회 재요청)
-    public static final String PROMPT_VERSION = "chat-v2";
+    // chat-v3 (V5 보안): <user_text> 구분자, 시스템 프롬프트 강화
+    public static final String PROMPT_VERSION = "chat-v3";
     public static final String TAG_CHAT_PARSE = "CHAT_PARSE";
     public static final String TAG_CHAT_PARSE_REPAIR = "CHAT_PARSE_REPAIR";
     static final int MAX_TOKENS = 800;
@@ -45,6 +47,7 @@ public class ChatParser {
 
     private final LlmClient llmClient;
     private final LlmProperties llmProperties;
+    private final LlmGuardProperties guardProperties;
     private final PromptTemplates promptTemplates;
     private final LlmCallLogService llmCallLogService;
     private final DrugCatalog drugCatalog;
@@ -59,8 +62,14 @@ public class ChatParser {
     /**
      * @param clarifiedQuestion 되묻기 답일 때 앞서 보여준 질문 (첫 입력이면 null)
      * @param answer            되묻기 답 (첫 입력이면 null)
+     * @param userId            호출한 사용자 ID (llm_call_logs 기록용)
      */
-    public Parsed parse(String text, String clarifiedQuestion, String answer) {
+    public Parsed parse(String text, String clarifiedQuestion, String answer, Long userId) {
+        // 사용자 입력에서 구분자 리터럴 제거 (인젝션으로 구분자를 닫으려는 시도 차단)
+        text = stripDelimiters(text);
+        if (answer != null) {
+            answer = stripDelimiters(answer);
+        }
         List<DrugCatalog.Entry> drugs = drugCatalog.all();
         Map<String, List<String>> classes = drugCatalog.classes(drugs);
         List<String> conditionCodes = ConditionCodeResolver.DISEASES.stream().sorted().toList();
@@ -75,7 +84,7 @@ public class ChatParser {
         List<String> banned = drugCatalog.searchQueryBannedTerms(drugs);
 
         List<Long> logIds = new ArrayList<>();
-        LlmResponse first = call(system, user, schema, TAG_CHAT_PARSE);
+        LlmResponse first = call(system, user, schema, TAG_CHAT_PARSE, userId);
         addLogId(logIds, first.callLogId());
         ChatParseValidator.Result result = ChatParseValidator.validate(first.output(), classes.keySet(), conditionCodes,
                 banned);
@@ -85,7 +94,7 @@ public class ChatParser {
             llmCallLogService.markOutcome(first.callLogId(), LlmCallLog.VALIDATION_FAIL);
             String repairUser = user + "\n\n" + promptTemplates.render("chat/repair.txt",
                     Map.of("errors", PromptTemplates.bulletList(result.errors())));
-            LlmResponse repair = call(system, repairUser, schema, TAG_CHAT_PARSE_REPAIR);
+            LlmResponse repair = call(system, repairUser, schema, TAG_CHAT_PARSE_REPAIR, userId);
             addLogId(logIds, repair.callLogId());
             result = ChatParseValidator.validate(repair.output(), classes.keySet(), conditionCodes, banned);
             raw = repair.output();
@@ -129,17 +138,19 @@ public class ChatParser {
         return out;
     }
 
-    private LlmResponse call(String system, String user, LlmOutputSchema schema, String tag) {
+    private LlmResponse call(String system, String user, LlmOutputSchema schema, String tag, Long userId) {
         LlmRequest request = LlmRequest.builder()
                 .model(llmProperties.getModel())
                 .system(system)
                 .messages(List.of(LlmMessage.user(user)))
-                .maxTokens(MAX_TOKENS)
+                .maxTokens(guardProperties.getMaxTokensFor("chat"))
                 .reasoningEffort(REASONING_EFFORT)
                 .outputSchema(schema)
                 .callTag(tag)
                 .pipelineVersion(PIPELINE_VERSION)
                 .promptVersion(PROMPT_VERSION)
+                .userId(userId)
+                .feature("chat")
                 .build();
         try {
             return llmClient.call(request);
@@ -168,5 +179,11 @@ public class ChatParser {
     static String conditionList(List<String> codes) {
         return codes.stream().map(c -> "- " + c + ": " + CONDITION_LABELS.getOrDefault(c, c))
                 .collect(Collectors.joining("\n"));
+    }
+
+    /** 사용자 입력에서 <user_text>, </user_text> 리터럴 제거 */
+    static String stripDelimiters(String s) {
+        if (s == null) return null;
+        return s.replace("<user_text>", "").replace("</user_text>", "");
     }
 }

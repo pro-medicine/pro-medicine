@@ -480,3 +480,48 @@ button.calendar-day {
   color: var(--faint);
   text-decoration: line-through;
 }
+
+.event-form .rx-period {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.event-form .rx-check {
+  align-items: center;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.event-form .rx-check input[type="checkbox"] {
+  accent-color: var(--primary);
+  border-radius: 4px;
+  flex: 0 0 auto;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  width: 16px;
+}
+
+.event-form .rx-check:has(input:disabled) {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.event-actions {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.event-actions button.danger {
+  color: var(--alert);
+}
+
+.event-actions button.danger:hover {
+  color: var(--alert);
+  opacity: 0.75;
+}

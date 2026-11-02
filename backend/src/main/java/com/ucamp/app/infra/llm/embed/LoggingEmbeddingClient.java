@@ -1,6 +1,7 @@
 package com.ucamp.app.infra.llm.embed;
 
 import com.ucamp.app.infra.llm.LlmCallException;
+import com.ucamp.app.infra.llm.guard.FeatureBudgetCounter;
 import com.ucamp.app.infra.llm.log.LlmCallLog;
 import com.ucamp.app.infra.llm.log.LlmCallLogService;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +16,14 @@ public class LoggingEmbeddingClient implements EmbeddingClient {
 
     private final EmbeddingClient delegate;
     private final LlmCallLogService logService;
+    /** 메모리 예산 카운터 — 임베딩도 chat 예산에 포함 */
+    private final FeatureBudgetCounter featureBudgetCounter;
 
     @Override
     public Embedding embed(String text) {
+        if (featureBudgetCounter != null) {
+            featureBudgetCounter.increment("chat");
+        }
         long start = System.nanoTime();
         try {
             Embedding e = delegate.embed(text);

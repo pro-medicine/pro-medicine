@@ -4,6 +4,7 @@ import com.ucamp.app.domain.health.dto.HealthProfileSnapshot;
 import com.ucamp.app.domain.health.entity.HealthProfile;
 import com.ucamp.app.domain.health.service.HealthProfileService;
 import com.ucamp.app.domain.personalized.dto.RecommendationModeResponse;
+import com.ucamp.app.domain.recommendation.service.MemberDemographicsFallback;
 import com.ucamp.app.domain.survey.repository.SurveyAnswerRepository;
 import com.ucamp.app.domain.survey.service.SurveyCodes;
 import com.ucamp.app.domain.user.entity.User;
@@ -32,15 +33,18 @@ public class RecommendationModeService {
     private final UserConsentService userConsentService;
     private final HealthProfileService healthProfileService;
     private final SurveyAnswerRepository surveyAnswerRepository;
+    private final MemberDemographicsFallback demographicsFallback;
 
     public RecommendationModeResponse mode(Long userId) {
         User user = userConsentService.getUser(userId);
         HealthProfileSnapshot profile = healthProfileService.getSnapshot(userId);
         List<String> missing = new ArrayList<>();
-        if (profile.value(HealthProfile.KEY_GENDER) == null) {
+        if (profile.value(HealthProfile.KEY_GENDER) == null
+                && demographicsFallback.resolveGenderCode(userId) == null) {
             missing.add(GENDER);
         }
-        if (profile.value(HealthProfile.KEY_BIRTH_YEAR) == null) {
+        if (profile.value(HealthProfile.KEY_BIRTH_YEAR) == null
+                && demographicsFallback.resolveBirthYear(userId) == null) {
             missing.add(BIRTH_YEAR);
         }
         if (!user.isSensitiveConsent()) {

@@ -50,13 +50,14 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
   const [sending, setSending] = useState(false); // 요청 중 여부 (중복 클릭 방지)
   const aliveRef = useRef(true); // 닫힌 뒤에는 화면을 바꾸지 않기 위한 표시
   const openSessionRef = useRef(null); // 아직 결과가 나오지 않은 회차 id (닫을 때 서버에 알림)
+  const startedRef = useRef(false); // StrictMode 이중 실행 방지
 
   // ✕·ESC·바깥 클릭: 결과 전이면 회차를 닫고(추천 없음) 모달을 닫는다. 서버 응답은 기다리지 않는다
   const handleClose = useCallback(() => {
     const sessionId = openSessionRef.current;
     openSessionRef.current = null;
     if (sessionId) {
-      closePersonalizedSession(userId, sessionId).catch(() => {});
+      closePersonalizedSession(sessionId).catch(() => {});
     }
     onClose();
   }, [userId, onClose]);
@@ -92,6 +93,10 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     setStep("waiting");
   };
 
+  // 429 판별: inflight 잠금(LG001)이면 무시, 진짜 rate limit이면 안내 문구
+  const is429 = (e) => e.status === 429;
+  const RATE_LIMIT_MSG = "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.";
+
   // retrySessionId: 정밀 추천만 실패했으면 그 회차로 "다시 시도"
   const fail = useCallback((message, retrySessionId) => {
     if (!aliveRef.current) return;
@@ -105,7 +110,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
       setStep("loading");
       setLoadingText(AI_LOADING_TEXT);
       try {
-        const data = await createPersonalizedRecommendation(userId, sessionId);
+        const data = await createPersonalizedRecommendation(sessionId);
         if (!aliveRef.current) return;
         openSessionRef.current = null;
         setResult(data);
@@ -141,12 +146,13 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     setResult(null);
     setError(null);
     try {
-      applySession(await startPersonalizedSession(userId));
+      applySession(await startPersonalizedSession());
     } catch (e) {
+      if (is429(e)) return; // StrictMode 이중 실행 또는 inflight 잠금 → 대기 화면 유지
       try {
-        const mode = await getRecommendationMode(userId);
+        const mode = await getRecommendationMode();
         if (mode.mode !== "V2") {
-          onFallbackToV1();
+          onFallbackToV1(mode.missing);
           return;
         }
       } catch {
@@ -165,11 +171,16 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
         }
       })
       .catch(() => {});
-    getRecommendationMode(userId)
+    getRecommendationMode()
       .then((mode) => {
         if (!aliveRef.current) return;
-        if (mode.mode === "V2") start();
-        else onFallbackToV1();
+        if (mode.mode === "V2") {
+          if (startedRef.current) return; // StrictMode 이중 실행 방지
+          startedRef.current = true;
+          start();
+        } else {
+          onFallbackToV1(mode.missing);
+        }
       })
       .catch((e) => fail(e.message, null));
   }, [userId, start, onFallbackToV1, fail]);
@@ -182,14 +193,13 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     try {
       applySession(
         await answerPersonalizedQuestion(
-          userId,
           session.sessionId,
           session.question.turnId,
           selected,
         ),
       );
     } catch (e) {
-      fail(e.message, null);
+      if (is429(e)) { fail(RATE_LIMIT_MSG, null); } else { fail(e.message, null); }
     } finally {
       setSending(false);
     }
@@ -200,9 +210,9 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
     if (sending || !session?.canStop) return;
     setSending(true);
     try {
-      applySession(await stopPersonalizedSession(userId, session.sessionId));
+      applySession(await stopPersonalizedSession(session.sessionId));
     } catch (e) {
-      fail(e.message, null);
+      if (is429(e)) { fail(RATE_LIMIT_MSG, null); } else { fail(e.message, null); }
     } finally {
       setSending(false);
     }
@@ -277,6 +287,7 @@ export default function PersonalizedModal({ userId, onFallbackToV1, onClose }) {
             restartLabel="맞춤 질문 다시 하기"
             onRestart={start}
             onClose={onClose}
+            userId={userId}
           />
         )}
 

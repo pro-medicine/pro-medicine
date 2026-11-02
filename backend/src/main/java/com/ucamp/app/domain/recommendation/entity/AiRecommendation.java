@@ -106,11 +106,6 @@ public class AiRecommendation {
         return response == null ? null : response.getResponseId();
     }
 
-    public void markProcessing() {
-        this.status = PROCESSING;
-        this.startedAt = LocalDateTime.now();
-    }
-
     public void markDone(String summary, String modelName) {
         this.status = DONE;
         this.summary = summary;

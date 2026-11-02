@@ -10,6 +10,7 @@ import com.ucamp.app.domain.recommendation.pipeline.RecommendationResult;
 import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.domain.recommendation.service.RecommendationStore;
 import com.ucamp.app.global.exception.BusinessException;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -20,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * 트랙 2(기존 성분 추천으로 폴백) 비동기 실행. V1 큐 워커는 설문 응답이 있는 행만 처리하므로(RecommendationStore.markProcessing)
+ * 트랙 2(기존 성분 추천으로 폴백) 비동기 실행.
  * 대화창은 이 실행기로 기존 파이프라인(RecommendationService.runInput)을 돌리고 store.complete·fail로 끝낸다.
  * 화면은 기존 GET /api/v1/recommendations/{id}를 폴링한다.
  * 서버가 다시 뜨면 끝나지 못한 대화 추천은 FAILED로 정리한다 (재실행하지 않음: 사용자가 새 대화로 다시 시작)
@@ -36,6 +37,7 @@ public class ChatFallbackRunner {
     private final RecommendationProperties recommendationProperties;
     private final ChatSessionStore sessionStore;
     private final ChatProperties chatProperties;
+    private final LlmGuard llmGuard;
     private final ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "chat-fallback");
         t.setDaemon(true);
@@ -44,12 +46,13 @@ public class ChatFallbackRunner {
 
     public ChatFallbackRunner(RecommendationService recommendationService, RecommendationStore recommendationStore,
                               RecommendationProperties recommendationProperties, ChatSessionStore sessionStore,
-                              ChatProperties chatProperties) {
+                              ChatProperties chatProperties, LlmGuard llmGuard) {
         this.recommendationService = recommendationService;
         this.recommendationStore = recommendationStore;
         this.recommendationProperties = recommendationProperties;
         this.sessionStore = sessionStore;
         this.chatProperties = chatProperties;
+        this.llmGuard = llmGuard;
     }
 
     /** input은 chatSessionId·personalizedAnswers가 채워진 트랙 2 입력 */
@@ -62,6 +65,11 @@ public class ChatFallbackRunner {
     }
 
     void run(Long chatSessionId, Long recommendationId, RecommendationInput input) {
+        // V5: recommendation 예산 이중 안전장치 (주 확인은 ChatRecommendationService에서 submit 전 동기)
+        if (llmGuard.isFeatureBudgetExceeded(RecommendationService.FEATURE)) {
+            fail(chatSessionId, recommendationId, "BUDGET_EXCEEDED");
+            return;
+        }
         String version = recommendationProperties.getPipelineVersion();
         try {
             RecommendationResult result = recommendationService.runInput(input, version);

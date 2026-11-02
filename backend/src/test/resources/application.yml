@@ -30,3 +30,26 @@ spring:
         - classpath:sql/seed-drugs.sql
         - classpath:sql/seed-ingredient-standards.sql
         - classpath:sql/seed-recommendation-rules.sql
+
+# 테스트에서는 rate limit을 넉넉하게 잡아 같은 날 여러 번 돌려도 429가 나지 않도록 한다.
+app:
+  llm-guard:
+    limits:
+      per-minute: 9999
+      per-day: 9999
+    feature-limits:
+      recommendation:
+        per-minute: 9999
+        per-day: 9999
+      personalized:
+        per-minute: 9999
+        per-day: 9999
+      chat:
+        per-minute: 9999
+        per-day: 9999
+      guest:
+        per-minute: 9999
+        per-day: 9999
+
+# 테스트용 JWT 비밀키 (32바이트 Base64). 운영 환경과 다른 값이어야 한다.
+JWT_SECRET_BASE64: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cw==

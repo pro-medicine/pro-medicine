@@ -26,7 +26,9 @@ public record LlmRequest(
         Long responseId,
         String evalRunId,
         Long sessionId,
-        int attemptNo
+        int attemptNo,
+        Long userId,
+        String feature
 ) {
     public static final String TAG_RECOMMEND = "RECOMMEND";
     public static final String TAG_RECOMMEND_REPAIR = "RECOMMEND_REPAIR";
