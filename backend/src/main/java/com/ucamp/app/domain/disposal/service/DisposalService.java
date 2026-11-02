@@ -96,6 +96,26 @@ public class DisposalService {
         }
     }
 
+    public JsonNode searchWalkingRoute(
+            double startLatitude, double startLongitude,
+            double endLatitude, double endLongitude) {
+        try {
+            JsonNode response = kakaoRestClient.get()
+                    .uri("/v2/routing/walk?start_x={startX}&start_y={startY}&end_x={endX}&end_y={endY}&route_mode=SHORTEST",
+                            startLongitude, startLatitude, endLongitude, endLatitude)
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            if (response == null || response.path("status").asText("").isBlank()) {
+                throw new BusinessException(ErrorCode.DISPOSAL_KAKAO_API_ERROR);
+            }
+            return response;
+        } catch (RestClientException ex) {
+            log.error("카카오 도보 경로 조회 실패", ex);
+            throw new BusinessException(ErrorCode.DISPOSAL_KAKAO_API_ERROR);
+        }
+    }
+
     private void appendUniqueDocuments(ArrayNode target, Set<String> seen, JsonNode response) {
         if (response == null || !response.path("documents").isArray()) return;
         for (JsonNode place : response.path("documents")) {
