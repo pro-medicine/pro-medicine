@@ -26,6 +26,7 @@ public class GuardianService {
 
     @Transactional
     public GuardianResponse request(Long guardianUserId, Long targetId, int inactivityDays) {
+        followRepository.findAllBetweenUsersForUpdate(guardianUserId, targetId);
         User guardian = userRepository.findById(guardianUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         User target = userRepository.findById(targetId)
@@ -59,7 +60,6 @@ public class GuardianService {
         boolean isParty = setting.getUser().getId().equals(userId)
                 || setting.getGuardianUser().getId().equals(userId);
         if (!isParty) throw new BusinessException(ErrorCode.FORBIDDEN);
-        // TODO: soft delete?
         guardianSettingRepository.delete(setting);
     }
 
@@ -84,7 +84,12 @@ public class GuardianService {
     }
 
     private GuardianSetting get(Long id) {
-        return guardianSettingRepository.findByGuardianSettingId(id)
+        return guardianSettingRepository.findById(id)
                 .orElseThrow(()->new BusinessException(ErrorCode.SETTING_NOT_FOUND));
+    }
+
+    public boolean existsBetween(Long a, Long b) {
+        return guardianSettingRepository.existsByUserIdAndGuardianUserId(a, b)
+                || guardianSettingRepository.existsByUserIdAndGuardianUserId(b, a);
     }
 }

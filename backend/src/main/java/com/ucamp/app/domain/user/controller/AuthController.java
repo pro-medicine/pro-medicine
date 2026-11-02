@@ -69,7 +69,7 @@ public class AuthController {
         originGuard.requireTrustedOrigin(request);
         try {
             RefreshTokenService.Rotated rotated = refreshTokens.rotate(refreshCookie);
-            UserResponse user = authService.me(rotated.userId());
+            UserResponse user = authService.refresh(rotated.userId());
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, refreshCookies.issue(rotated.token()))
                     .header(HttpHeaders.CACHE_CONTROL, "no-store")

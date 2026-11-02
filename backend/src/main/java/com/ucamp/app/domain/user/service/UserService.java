@@ -50,13 +50,6 @@ public class UserService {
     }
 
     @Transactional
-    public void markActive(Long userId) {
-        // 안부지킴이 알림용
-        LocalDateTime now = LocalDateTime.now();
-        userRepository.touchActive(userId, now, now.minusMinutes(10));
-    }
-
-    @Transactional
     public UserResponse changeShareIntakeStatus(Long userId, boolean shared) {
         User user = findUser(userId);
         user.changeShareIntakeStatus(shared);

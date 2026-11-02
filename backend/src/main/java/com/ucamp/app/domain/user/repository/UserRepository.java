@@ -5,11 +5,7 @@ import com.ucamp.app.domain.user.entity.User;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -29,11 +25,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 기존 사용자 잠금 조회
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findWithLockById(Long id);
-
-    @Modifying
-    @Query("update User u set u.lastActiveAt = :now " +
-            "where u.id = :userId and u.lastActiveAt < :threshold")
-    int touchActive(@Param("userId") Long userId,
-                    @Param("now")LocalDateTime now,
-                    @Param("threshold") LocalDateTime threshold);
 }

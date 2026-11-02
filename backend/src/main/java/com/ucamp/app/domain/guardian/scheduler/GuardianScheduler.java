@@ -33,7 +33,7 @@ public class GuardianScheduler {
             if (g.getLastNotifiedAt() != null && g.getLastNotifiedAt().isAfter(lastActive)) continue;
             long days = ChronoUnit.DAYS.between(lastActive.toLocalDate(), now.toLocalDate());
             String title = g.getUser().getNickname() + "님이 " + days + "일째 접속하지 않았어요. 안부를 확인해보세요";
-            String dedupKey = "GUARDIAN: " + g.getUser().getId() + ":" + g.getGuardianSettingId() + ":" + now.toLocalDate().format(DateTimeFormatter.ISO_DATE);
+            String dedupKey = "GUARDIAN:" + g.getUser().getId() + ":" + g.getGuardianSettingId() + ":" + now.toLocalDate().format(DateTimeFormatter.ISO_DATE);
             notificationService.create(
                     g.getGuardianUser().getId(),
                     NotificationType.GUARDIAN,

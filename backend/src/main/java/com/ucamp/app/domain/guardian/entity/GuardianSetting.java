@@ -1,7 +1,6 @@
 package com.ucamp.app.domain.guardian.entity;
 
 import com.ucamp.app.domain.user.entity.User;
-import com.ucamp.app.global.common.Timestamped;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import jakarta.persistence.*;
@@ -71,12 +70,9 @@ public class GuardianSetting {
     }
 
     public void accept() {
+        if (Boolean.TRUE.equals(this.isActive)) return;
         this.consentedAt = LocalDateTime.now();
         this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
     }
 
     public void markNotified() {

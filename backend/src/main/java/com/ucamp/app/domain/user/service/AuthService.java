@@ -66,12 +66,22 @@ public class AuthService {
         return UserResponse.from(user);
     }
 
+    @Transactional
     public UserResponse login(LoginRequest request) {
         User user = users.findByEmailIgnoreCase(normalizeEmail(request.email()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
         if (!passwordHasher.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+        user.touchActive();
+        return UserResponse.from(user);
+    }
+
+    @Transactional
+    public UserResponse refresh(Long userId) {
+        User user = users.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        user.touchActive();
         return UserResponse.from(user);
     }
 

@@ -4,6 +4,7 @@ import com.ucamp.app.domain.friend.dto.FollowResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
+import com.ucamp.app.domain.guardian.service.GuardianService;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
@@ -30,6 +31,7 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final GuardianService guardianService;
 
     @Transactional
     public FollowResponse request(Long followerId, String nickname) {
@@ -40,10 +42,17 @@ public class FollowService {
         if (followerId.equals(followingId)) {
             throw new BusinessException(ErrorCode.INVALID_FOLLOW);
         }
-        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
+
+        // 기존 신청 확인
+        Follow existing = followRepository
+                .findByFollowerIdAndFollowingId(followerId, followingId)
+                .orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() == FollowStatus.REJECTED) {
+                throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
+            }
             throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
         }
-
         try {
             Follow saved = followRepository.saveAndFlush(Follow.request(followerId, followingId));
             eventPublisher.publishEvent(new FollowRequestedEvent(followerId, followingId));
@@ -53,10 +62,14 @@ public class FollowService {
         }
     }
 
-    public List<FollowResponse> getRequests(Long userId, String direction, FollowStatus status) {
+    public List<FollowResponse> getRequests(
+            Long userId,
+            String direction,
+            FollowStatus status
+    ) {
         List<Follow> follows = switch (direction) {
-            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, status);
-            case "sent" -> followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, status);
+            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.PENDING);
+            case "sent" -> followRepository.findByFollowerIdAndStatusInOrderByFollowIdDesc(userId, List.of(FollowStatus.PENDING, FollowStatus.REJECTED));
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
         return toResponses(follows);
@@ -89,12 +102,17 @@ public class FollowService {
 
     @Transactional
     public void cancel(Long userId, Long followId) {
-        Follow follow = getFollow(followId);
-
+        Follow follow = followRepository.findByFollowIdForUpdate(followId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
         boolean isParty = follow.getFollowerId().equals(userId)
                 || follow.getFollowingId().equals(userId);
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (guardianService.existsBetween(
+                follow.getFollowerId(),
+                follow.getFollowingId())) {
+            throw new BusinessException(ErrorCode.GUARDIAN_EXISTS);
         }
         followRepository.delete(follow);
     }
