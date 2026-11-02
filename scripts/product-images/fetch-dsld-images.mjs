@@ -36,7 +36,10 @@ async function download(url) {
     if (bytes.length < 1024) return { missing: true }; // 1KB 미만은 빈 이미지로 봄
     return { bytes };
   } catch (e) {
-    return { error: e.name === "AbortError" ? "시간 초과" : e.message };
+    if (e.name === "AbortError") return { error: "시간 초과" };
+    // "fetch failed"만으로는 원인을 알 수 없어서 실제 원인 코드도 같이 보여준다 (인증서, DNS, 연결 거부 등)
+    const cause = e.cause?.code ?? e.cause?.message;
+    return { error: cause ? `${e.message} (${cause})` : e.message };
   } finally {
     clearTimeout(timer);
   }

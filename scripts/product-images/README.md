@@ -48,6 +48,9 @@ node scripts/product-images/fetch-dsld-images.mjs products.csv images
 - 썸네일이 없는 라벨, 식약처(MFDS) 제품은 `manual-images.txt`에 목록으로 남긴다 → 그 제품만 직접 찾는다
 - 네트워크 오류로 못 받은 사진은 다시 실행하면 이어서 받는다
 - DSLD 사진은 라벨(포장지) 촬영본이다
+- `fetch failed (SELF_SIGNED_CERT_IN_CHAIN)` 이 나오면 네트워크 보안 장비 인증서를 Node가 모르는 것이다.
+  `node --use-system-ca scripts/...` 처럼 옵션을 붙여 Windows 인증서를 쓰게 한다 (Node 22.15 이상).
+  인증서 검사를 끄는 `NODE_TLS_REJECT_UNAUTHORIZED=0`은 쓰지 않는다
 
 ## 2-1. 남은 사진 직접 넣기 + CSV 채우기
 
