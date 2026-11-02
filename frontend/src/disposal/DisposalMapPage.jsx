@@ -79,26 +79,93 @@ function getLocationErrorMessage(error) {
 }
 
 export default function DisposalMapScreen({ onNotifications }) {
-  const [searchInput, setSearchInput] = useState("강남역 약국");
-  const [query, setQuery] = useState("강남역 약국");
+  const [searchInput, setSearchInput] = useState("");
+  const [query, setQuery] = useState("");
   const [searchCount, setSearchCount] = useState(0);
   // keyword: 검색어로 장소 찾기 → area: 대표 장소 주변 약국 표시 → nearby: GPS 검색
-  const [mode, setMode] = useState("keyword");
+  const [mode, setMode] = useState("nearby");
   const [radius, setRadius] = useState(1000);
   const [locationCandidates, setLocationCandidates] = useState([]);
   const [searchCenter, setSearchCenter] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [lastValidMap, setLastValidMap] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [pharmacies, setPharmacies] = useState([]);
   const [selected, setSelected] = useState(null);
   const [focusPharmacy, setFocusPharmacy] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
   const locationRequestId = useRef(0);
+  const walkingRouteRequestRef = useRef(null);
+  const walkingRouteRequestId = useRef(0);
+  const [walkingRouteOrigin, setWalkingRouteOrigin] = useState(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [liveLocation, setLiveLocation] = useState(null);
+  const [trackingError, setTrackingError] = useState("");
+  const [walkingRoute, setWalkingRoute] = useState(null);
+  const [walkingRouteLoading, setWalkingRouteLoading] = useState(false);
+  const [walkingRouteError, setWalkingRouteError] = useState("");
 
-  useEffect(() => () => { locationRequestId.current += 1; }, []);
+  const cancelWalkingRoute = useCallback(() => {
+    walkingRouteRequestId.current += 1;
+    walkingRouteRequestRef.current?.abort();
+    walkingRouteRequestRef.current = null;
+    setWalkingRoute(null);
+    setWalkingRouteOrigin(null);
+    setWalkingRouteLoading(false);
+    setWalkingRouteError("");
+    setIsNavigating(false);
+    setLiveLocation(null);
+    setTrackingError("");
+  }, []);
+
+  useEffect(() => () => {
+    locationRequestId.current += 1;
+    walkingRouteRequestId.current += 1;
+    walkingRouteRequestRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation || !window.isSecureContext) {
+      setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행하거나 지역명으로 검색해주세요.");
+      return;
+    }
+
+    const requestId = ++locationRequestId.current;
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (requestId !== locationRequestId.current) return;
+          setLocating(false);
+          const { latitude, longitude } = position.coords;
+          if (!isValidCoordinate(latitude, longitude)) {
+            setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
+            return;
+          }
+          const nextLocation = { latitude, longitude };
+          setUserLocation(nextLocation);
+          setLastValidMap({ mode: "nearby", center: nextLocation });
+          setSearchCenter(null);
+          setLocationCandidates([]);
+          setMode("nearby");
+        },
+        (positionError) => {
+          if (requestId !== locationRequestId.current) return;
+          setLocating(false);
+          setLocationError(getLocationErrorMessage(positionError));
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+
+    return () => {
+      if (requestId === locationRequestId.current) locationRequestId.current += 1;
+    };
+  }, []);
+
+  const lookupRadius = mode === "keyword" ? null : radius;
 
   useEffect(() => {
     if (mode === "nearby" && !userLocation) return;
@@ -108,6 +175,7 @@ export default function DisposalMapScreen({ onNotifications }) {
     let active = true;
 
     async function loadPlaces() {
+      cancelWalkingRoute();
       setLoading(true);
       setError("");
       setTruncated(false);
@@ -129,7 +197,7 @@ export default function DisposalMapScreen({ onNotifications }) {
           const center = mode === "area" ? searchCenter : userLocation;
           url.searchParams.set("latitude", String(center.latitude));
           url.searchParams.set("longitude", String(center.longitude));
-          url.searchParams.set("radius", String(radius));
+          url.searchParams.set("radius", String(lookupRadius));
         }
 
         const response = await fetch(url.toString(), { signal: controller.signal });
@@ -159,7 +227,9 @@ export default function DisposalMapScreen({ onNotifications }) {
           setLocationCandidates(candidates);
           if (candidates.length) {
             // 지역 선택을 강요하지 않고 대표 지역으로 즉시 약국을 조회한다.
-            setSearchCenter(choosePreferredLocation(candidates, query));
+            const nextCenter = choosePreferredLocation(candidates, query);
+            setSearchCenter(nextCenter);
+            setLastValidMap({ mode: "area", center: nextCenter });
             setMode("area");
           } else {
             setSearchCenter(null);
@@ -185,12 +255,13 @@ export default function DisposalMapScreen({ onNotifications }) {
       active = false;
       controller.abort();
     };
-  }, [mode, query, searchCount, radius, userLocation, searchCenter]);
+  }, [mode, query, searchCount, lookupRadius, userLocation, searchCenter, cancelWalkingRoute]);
 
   function handleSearch(event) {
     event.preventDefault();
     const value = searchInput.trim();
     if (!value) return;
+    cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
     setLocationError("");
@@ -202,23 +273,45 @@ export default function DisposalMapScreen({ onNotifications }) {
   }
 
   function handleCandidateSelect(place) {
+    cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
 
     if (mode !== "area" || searchCenter?.id !== place.id) {
       setSearchCenter(place);
+      setLastValidMap({ mode: "area", center: place });
       setMode("area");
     }
     setLocationError("");
   }
 
-  function handleNearbySearch() {
+  const handleSearchThisArea = useCallback((center) => {
+    if (!isValidCoordinate(center.latitude, center.longitude)) return;
+    cancelWalkingRoute();
+    locationRequestId.current += 1;
+    setLocating(false);
+    setLocationError("");
+    setLocationCandidates([]);
+    setFocusPharmacy(null);
+    const nextCenter = {
+      id: "map-center",
+      name: "지도 중심",
+      latitude: center.latitude,
+      longitude: center.longitude,
+    };
+    setSearchCenter(nextCenter);
+    setLastValidMap({ mode: "area", center: nextCenter });
+    setMode("area");
+  }, [cancelWalkingRoute]);
+
+   function handleNearbySearch() {
     if (locating) return;
     if (!navigator.geolocation || !window.isSecureContext) {
       setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행해주세요.");
       return;
     }
 
+    cancelWalkingRoute();
     const requestId = ++locationRequestId.current;
     setLocating(true);
     setLocationError("");
@@ -232,7 +325,9 @@ export default function DisposalMapScreen({ onNotifications }) {
             setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
             return;
           }
-          setUserLocation({ latitude, longitude });
+          const nextLocation = { latitude, longitude };
+          setUserLocation(nextLocation);
+          setLastValidMap({ mode: "nearby", center: nextLocation });
           setSearchCenter(null);
           setLocationCandidates([]);
           setMode("nearby");
@@ -246,13 +341,199 @@ export default function DisposalMapScreen({ onNotifications }) {
     );
   }
 
+  function startWalkingNavigation() {
+    if (walkingRoute?.status !== "OK") return;
+    if (!navigator.geolocation || !window.isSecureContext) {
+      setTrackingError("실시간 보행 안내는 HTTPS 또는 localhost에서 위치 권한이 필요합니다.");
+      return;
+    }
+    setLiveLocation(null);
+    setTrackingError("");
+    setIsNavigating(true);
+  }
+
+  function stopWalkingNavigation() {
+    setIsNavigating(false);
+    setLiveLocation(null);
+    setTrackingError("");
+  }
+
+  useEffect(() => {
+    if (!isNavigating || walkingRoute?.status !== "OK") return;
+
+    let active = true;
+    let directionAnchor = null;
+    let lastHeading = null;
+    const toRadians = (value) => value * Math.PI / 180;
+    const distanceMeters = (from, to) => {
+      const latDelta = toRadians(to.latitude - from.latitude);
+      const lngDelta = toRadians(to.longitude - from.longitude);
+      const a = Math.sin(latDelta / 2) ** 2 +
+          Math.cos(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) *
+          Math.sin(lngDelta / 2) ** 2;
+      return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+    };
+    const bearingDegrees = (from, to) => {
+      const y = Math.sin(toRadians(to.longitude - from.longitude)) *
+          Math.cos(toRadians(to.latitude));
+      const x = Math.cos(toRadians(from.latitude)) * Math.sin(toRadians(to.latitude)) -
+          Math.sin(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) *
+          Math.cos(toRadians(to.longitude - from.longitude));
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    };
+
+    const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          if (!active) return;
+          const { latitude, longitude, accuracy, speed } = position.coords;
+          if (!isValidCoordinate(latitude, longitude)) {
+            setTrackingError("유효한 GPS 좌표를 확인하지 못했습니다.");
+            return;
+          }
+          if (Number.isFinite(accuracy) && accuracy > 150) {
+            setTrackingError("GPS 오차가 큽니다. 위치 신호가 좋아질 때까지 확인 중입니다.");
+            return;
+          }
+
+          const next = { latitude, longitude };
+          let heading = Number.isFinite(position.coords.heading) &&
+              (speed == null || speed >= 0.35) ? position.coords.heading : null;
+          if (!directionAnchor) directionAnchor = next;
+          if (heading == null) {
+            const travelled = distanceMeters(directionAnchor, next);
+            if (travelled >= Math.max(6, Math.min(12, accuracy || 8))) {
+              heading = bearingDegrees(directionAnchor, next);
+              directionAnchor = next;
+            } else {
+              heading = lastHeading;
+            }
+          } else {
+            directionAnchor = next;
+          }
+          if (heading != null) lastHeading = heading;
+
+          setLiveLocation({
+            latitude,
+            longitude,
+            heading,
+            accuracy: Number.isFinite(accuracy) ? accuracy : null,
+          });
+          setTrackingError("");
+        },
+        (locationError) => {
+          if (!active) return;
+          setTrackingError(getLocationErrorMessage(locationError));
+          if (locationError?.code === 1) setIsNavigating(false);
+        },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+    );
+
+    return () => {
+      active = false;
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isNavigating, walkingRoute?.status]);
+
+  async function handleWalkingRoute() {
+    if (!selected || walkingRouteLoading) return;
+
+    cancelWalkingRoute();
+    const requestId = walkingRouteRequestId.current;
+    setWalkingRouteLoading(true);
+    let controller = null;
+
+    try {
+      if (!navigator.geolocation || !window.isSecureContext) {
+        throw new Error("도보 길찾기는 HTTPS 또는 localhost에서 현재 위치 권한이 필요합니다.");
+      }
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 0,
+        });
+      });
+
+      if (requestId !== walkingRouteRequestId.current) return;
+
+      const origin = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      if (!isValidCoordinate(origin.latitude, origin.longitude)) {
+        throw new Error("현재 위치의 좌표가 올바르지 않아 도보 경로를 계산할 수 없습니다.");
+      }
+
+      controller = new AbortController();
+      walkingRouteRequestRef.current = controller;
+      const url = new URL("/api/v1/disposal/walking-route", API_BASE_URL);
+      url.searchParams.set("startLatitude", String(origin.latitude));
+      url.searchParams.set("startLongitude", String(origin.longitude));
+      url.searchParams.set("endLatitude", String(selected.latitude));
+      url.searchParams.set("endLongitude", String(selected.longitude));
+
+      const response = await fetch(url.toString(), { signal: controller.signal });
+      if (requestId !== walkingRouteRequestId.current || controller.signal.aborted) return;
+      if (!response.ok) throw new Error(`도보 경로 조회에 실패했습니다. (HTTP ${response.status})`);
+      const result = await response.json();
+      if (requestId !== walkingRouteRequestId.current || controller.signal.aborted) return;
+      if (!result?.success) throw new Error(result?.message || "도보 경로를 가져오지 못했습니다.");
+
+      const data = result.data;
+      if (data?.status !== "OK") {
+        const reasons = {
+          SAME_POINT: "현재 위치와 약국이 동일한 위치입니다.",
+          START_LINK_NOT_FOUND: "현재 위치 주변의 보행로를 찾지 못했습니다.",
+          END_LINK_NOT_FOUND: "약국 주변의 보행로를 찾지 못했습니다.",
+          TOO_FAR_AWAY: "현재 위치에서 약국까지 거리가 너무 멉니다.",
+          ROUTE_RESULT_NOT_FOUND: "이 구간에서 도보 경로를 찾지 못했습니다.",
+        };
+        throw new Error(reasons[data?.status] || "도보 경로를 찾을 수 없습니다.");
+      }
+
+      const hasPath = data.route?.legs?.some((leg) =>
+          leg.steps?.some((step) => Array.isArray(step.path?.points) && step.path.points.length >= 2)
+      );
+      if (!hasPath) throw new Error("표시할 도보 경로 좌표가 없습니다.");
+
+      setWalkingRouteOrigin(origin);
+      setWalkingRoute(data);
+    } catch (err) {
+      if (requestId !== walkingRouteRequestId.current || controller?.signal.aborted) return;
+      if (err?.code === 1) {
+        setWalkingRouteError("현재 위치 권한이 거부되었습니다. 브라우저 위치 권한을 허용해주세요.");
+      } else if (err?.code === 2) {
+        setWalkingRouteError("현재 위치를 확인할 수 없습니다. GPS 또는 네트워크를 확인해주세요.");
+      } else if (err?.code === 3) {
+        setWalkingRouteError("현재 위치 조회 시간이 초과되었습니다. 다시 시도해주세요.");
+      } else {
+        setWalkingRouteError(err?.message || "현재 위치 기반 도보 경로를 가져오지 못했습니다.");
+      }
+    } finally {
+      if (requestId === walkingRouteRequestId.current) {
+        if (walkingRouteRequestRef.current === controller) {
+          walkingRouteRequestRef.current = null;
+        }
+        setWalkingRouteLoading(false);
+      }
+    }
+  }
+
   const handlePharmacySelect = useCallback((pharmacy) => {
+    cancelWalkingRoute();
     setSelected(pharmacy);
     setFocusPharmacy({ latitude: pharmacy.latitude, longitude: pharmacy.longitude });
-  }, []);
+  }, [cancelWalkingRoute]);
 
   const nearby = mode === "nearby";
   const area = mode === "area";
+  const mapMode = mode === "keyword" ? lastValidMap?.mode : mode;
+  const mapUserLocation = mapMode === "nearby"
+      ? (mode === "keyword" ? lastValidMap?.center : userLocation) : null;
+  const mapSearchCenter = mapMode === "area"
+      ? (mode === "keyword" ? lastValidMap?.center : searchCenter) : null;
+  const mapCenterAvailable = Boolean(mapUserLocation || mapSearchCenter);
 
   return (
       <div className="screen map-screen">
@@ -297,7 +578,16 @@ export default function DisposalMapScreen({ onNotifications }) {
                 value={radius}
                 onChange={(event) => {
                   const nextRadius = Number(event.target.value);
-                  if (RADII.includes(nextRadius)) setRadius(nextRadius);
+                  if (!RADII.includes(nextRadius)) return;
+                  if (mode === "keyword" && lastValidMap && !loading) {
+                    if (lastValidMap.mode === "area") {
+                      setSearchCenter(lastValidMap.center);
+                    } else if (lastValidMap.mode === "nearby") {
+                      setUserLocation(lastValidMap.center);
+                    }
+                    setMode(lastValidMap.mode);
+                  }
+                  setRadius(nextRadius);
                 }}
             >
               <option value={500}>500m</option>
@@ -319,16 +609,40 @@ export default function DisposalMapScreen({ onNotifications }) {
         {/* 지도(왼쪽) + 약국 목록(오른쪽) */}
         <section className="map-layout">
           <div className="map-column">
-            <KakaoMap
+            {mapCenterAvailable ? (
+              <KakaoMap
                 pharmacies={pharmacies}
                 selected={selected}
                 onSelect={handlePharmacySelect}
-                mode={mode}
-                userLocation={nearby ? userLocation : null}
-                searchCenter={area ? searchCenter : null}
+                onSearchThisArea={handleSearchThisArea}
+                mode={mapMode}
+                userLocation={mapUserLocation}
+                searchCenter={mapSearchCenter}
                 radius={radius}
                 focusPharmacy={focusPharmacy}
-            />
+                walkingRoute={walkingRoute}
+                walkingRouteOrigin={walkingRouteOrigin}
+                isNavigating={isNavigating}
+                liveLocation={liveLocation}
+                trackingError={trackingError}
+                onNavigationStart={startWalkingNavigation}
+                onNavigationStop={stopWalkingNavigation}
+                walkingRouteLoading={walkingRouteLoading}
+                walkingRouteError={walkingRouteError}
+                onWalkingRoute={handleWalkingRoute}
+                onClearWalkingRoute={cancelWalkingRoute}
+              />
+            ) : (
+              <div className="kakao-map-frame">
+                <div className="map-overlay-state" role="status">
+                  {locating
+                      ? "현재 위치를 확인하는 중입니다..."
+                      : mode === "keyword" && loading
+                          ? "검색 지역을 확인하는 중입니다..."
+                          : "위치 권한을 허용하거나 지역명을 검색해주세요."}
+                </div>
+              </div>
+            )}
             <p className="disposal-note">ⓘ 폐의약품 수거 여부는 방문 전 약국에 확인해 주세요.</p>
           </div>
 
@@ -371,7 +685,7 @@ export default function DisposalMapScreen({ onNotifications }) {
             {!loading && !error && mode === "keyword" && locationCandidates.length === 0 && (
                 <p className="disposal-state">검색된 지역이 없습니다. 역 이름이나 구체적인 주소를 입력해주세요.</p>
             )}
-            {!loading && !error && mode !== "keyword" && pharmacies.length === 0 && (
+            {!loading && !error && mode !== "keyword" && mapCenterAvailable && pharmacies.length === 0 && (
                 <p className="disposal-state">반경 {radius.toLocaleString()}m 안에 검색된 약국이 없습니다. 반경을 넓혀보세요.</p>
             )}
             {truncated && (

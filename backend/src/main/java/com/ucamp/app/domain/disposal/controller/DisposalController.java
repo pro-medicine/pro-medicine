@@ -99,6 +99,42 @@ public class DisposalController {
     }
 
 
+    @GetMapping("/walking-route")
+    public ResponseEntity<ApiResponse<JsonNode>> searchWalkingRoute(
+            @RequestParam(required = false) String startLatitude,
+            @RequestParam(required = false) String startLongitude,
+            @RequestParam(required = false) String endLatitude,
+            @RequestParam(required = false) String endLongitude) {
+
+        if (startLatitude == null || startLongitude == null ||
+                endLatitude == null || endLongitude == null) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
+        }
+
+        double startLat;
+        double startLon;
+        double endLat;
+        double endLon;
+        try {
+            startLat = Double.parseDouble(startLatitude);
+            startLon = Double.parseDouble(startLongitude);
+            endLat = Double.parseDouble(endLatitude);
+            endLon = Double.parseDouble(endLongitude);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
+        }
+
+        if (!Double.isFinite(startLat) || !Double.isFinite(startLon) ||
+                !Double.isFinite(endLat) || !Double.isFinite(endLon) ||
+                startLat < -90 || startLat > 90 || endLat < -90 || endLat > 90 ||
+                startLon < -180 || startLon > 180 || endLon < -180 || endLon > 180) {
+            throw new BusinessException(ErrorCode.DISPOSAL_INVALID_LOCATION);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(
+                disposalService.searchWalkingRoute(startLat, startLon, endLat, endLon)));
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidParameter(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.badRequest()
