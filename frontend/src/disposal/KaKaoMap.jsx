@@ -90,7 +90,7 @@ export default function KakaoMap({
                 if (cancelled || !containerRef.current) return;
 
                 mapRef.current = new maps.Map(containerRef.current, {
-                    center: new maps.LatLng(37.4979, 127.0276),
+                    center: new maps.LatLng(centerLocation.latitude, centerLocation.longitude),
                     level: 4,
                 });
                 setReady(true);

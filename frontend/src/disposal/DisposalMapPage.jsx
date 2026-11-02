@@ -79,11 +79,11 @@ function getLocationErrorMessage(error) {
 }
 
 export default function DisposalMapScreen({ onNotifications }) {
-  const [searchInput, setSearchInput] = useState("강남역 약국");
-  const [query, setQuery] = useState("강남역 약국");
+  const [searchInput, setSearchInput] = useState("");
+  const [query, setQuery] = useState("");
   const [searchCount, setSearchCount] = useState(0);
   // keyword: 검색어로 장소 찾기 → area: 대표 장소 주변 약국 표시 → nearby: GPS 검색
-  const [mode, setMode] = useState("keyword");
+  const [mode, setMode] = useState("nearby");
   const [radius, setRadius] = useState(1000);
   const [locationCandidates, setLocationCandidates] = useState([]);
   const [searchCenter, setSearchCenter] = useState(null);
@@ -93,7 +93,7 @@ export default function DisposalMapScreen({ onNotifications }) {
   const [pharmacies, setPharmacies] = useState([]);
   const [selected, setSelected] = useState(null);
   const [focusPharmacy, setFocusPharmacy] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
   const locationRequestId = useRef(0);
@@ -124,6 +124,42 @@ export default function DisposalMapScreen({ onNotifications }) {
     locationRequestId.current += 1;
     walkingRouteRequestId.current += 1;
     walkingRouteRequestRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation || !window.isSecureContext) {
+      setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행하거나 지역명으로 검색해주세요.");
+      return;
+    }
+
+    const requestId = ++locationRequestId.current;
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (requestId !== locationRequestId.current) return;
+          setLocating(false);
+          const { latitude, longitude } = position.coords;
+          if (!isValidCoordinate(latitude, longitude)) {
+            setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
+            return;
+          }
+          setUserLocation({ latitude, longitude });
+          setSearchCenter(null);
+          setLocationCandidates([]);
+          setMode("nearby");
+        },
+        (positionError) => {
+          if (requestId !== locationRequestId.current) return;
+          setLocating(false);
+          setLocationError(getLocationErrorMessage(positionError));
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+
+    return () => {
+      if (requestId === locationRequestId.current) locationRequestId.current += 1;
+    };
   }, []);
 
   useEffect(() => {
@@ -480,6 +516,7 @@ export default function DisposalMapScreen({ onNotifications }) {
 
   const nearby = mode === "nearby";
   const area = mode === "area";
+  const mapCenterAvailable = nearby ? Boolean(userLocation) : area && Boolean(searchCenter);
 
   return (
       <div className="screen map-screen">
@@ -546,7 +583,8 @@ export default function DisposalMapScreen({ onNotifications }) {
         {/* 지도(왼쪽) + 약국 목록(오른쪽) */}
         <section className="map-layout">
           <div className="map-column">
-            <KakaoMap
+            {mapCenterAvailable ? (
+              <KakaoMap
                 pharmacies={pharmacies}
                 selected={selected}
                 onSelect={handlePharmacySelect}
@@ -567,7 +605,18 @@ export default function DisposalMapScreen({ onNotifications }) {
                 walkingRouteError={walkingRouteError}
                 onWalkingRoute={handleWalkingRoute}
                 onClearWalkingRoute={cancelWalkingRoute}
-            />
+              />
+            ) : (
+              <div className="kakao-map-frame">
+                <div className="map-overlay-state" role="status">
+                  {locating
+                      ? "현재 위치를 확인하는 중입니다..."
+                      : mode === "keyword" && loading
+                          ? "검색 지역을 확인하는 중입니다..."
+                          : "위치 권한을 허용하거나 지역명을 검색해주세요."}
+                </div>
+              </div>
+            )}
             <p className="disposal-note">ⓘ 폐의약품 수거 여부는 방문 전 약국에 확인해 주세요.</p>
           </div>
 
@@ -610,7 +659,7 @@ export default function DisposalMapScreen({ onNotifications }) {
             {!loading && !error && mode === "keyword" && locationCandidates.length === 0 && (
                 <p className="disposal-state">검색된 지역이 없습니다. 역 이름이나 구체적인 주소를 입력해주세요.</p>
             )}
-            {!loading && !error && mode !== "keyword" && pharmacies.length === 0 && (
+            {!loading && !error && mode !== "keyword" && mapCenterAvailable && pharmacies.length === 0 && (
                 <p className="disposal-state">반경 {radius.toLocaleString()}m 안에 검색된 약국이 없습니다. 반경을 넓혀보세요.</p>
             )}
             {truncated && (
