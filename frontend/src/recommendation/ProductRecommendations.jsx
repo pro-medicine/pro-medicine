@@ -1,6 +1,30 @@
 // 성분 카드의 [제품 추천 보기] 펼침 영역 (담당: 영준, V3)
 // 약사 유튜브 리뷰에서 그 성분 제품으로 많이 추천된 제품 중 안전 필터를 통과한 것 (최대 3개)
 import { useEffect, useState } from "react";
+
+// 참고 가격: 12900 → "12,900원"
+const won = (price) => `${price.toLocaleString("ko-KR")}원`;
+
+// 제품 사진 (없거나 못 불러오면 브랜드 첫 글자)
+function ProductThumb({ product }) {
+  const [broken, setBroken] = useState(false);
+  if (product.imageUrl && !broken) {
+    return (
+      <img
+        className="rec-prod-thumb"
+        src={product.imageUrl}
+        alt=""
+        loading="lazy"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <span className="rec-prod-thumb placeholder" aria-hidden="true">
+      {(product.brand || product.productName || "?").slice(0, 1)}
+    </span>
+  );
+}
 import { getRecommendedProducts } from "../api/recommendationApi";
 
 /**
@@ -51,20 +75,22 @@ function ProductList({ products, notice, message, ingredient, nameOf }) {
 
   return (
     <div className="rec-prod">
-      <small className="rec-prod-caption">약사 리뷰에서 많이 추천된 {nameOf(ingredient)} 제품이에요</small>
-      <ul className="rec-prod-list">
-        {products.map((p) => (
-          <li className="rec-prod-item" key={p.catalogProductId}>
-            {p.imageUrl ? (
-              <img className="rec-prod-thumb" src={p.imageUrl} alt="" />
-            ) : (
-              <span className="rec-prod-thumb placeholder" aria-hidden="true">
-                {(p.brand || p.productName || "?").slice(0, 1)}
-              </span>
-            )}
+      <small className="rec-prod-caption">약사 리뷰에서 많이 추천된 {nameOf(ingredient)} 제품이에요 · 추천순</small>
+      <ol className="rec-prod-list">
+        {products.map((p, index) => (
+          <li className={`rec-prod-item${index === 0 ? " is-first" : ""}`} key={p.catalogProductId}>
+            <span className="rec-prod-rank" aria-label={`추천순 ${index + 1}위`}>
+              {index + 1}
+            </span>
+            <ProductThumb product={p} />
             <div className="rec-prod-body">
               {p.brand && <span className="rec-prod-brand">{p.brand}</span>}
               <strong className="rec-prod-name">{p.productName}</strong>
+              {p.price != null && (
+                <span className="rec-prod-price">
+                  <small>참고 가격</small> {won(p.price)}
+                </span>
+              )}
               {p.alsoContains?.length > 0 && (
                 <small className="rec-prod-also">
                   추천 성분 중 {p.alsoContains.map(nameOf).join(", ")}도 함께 들어 있어요
@@ -87,7 +113,10 @@ function ProductList({ products, notice, message, ingredient, nameOf }) {
             </div>
           </li>
         ))}
-      </ul>
+      </ol>
+      {products.some((p) => p.price != null) && (
+        <small className="rec-prod-notice">가격은 참고용이에요. 판매처와 시기에 따라 달라요.</small>
+      )}
       {notice && <small className="rec-prod-notice">{notice}</small>}
     </div>
   );

@@ -24,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatCandidateRepository {
     private static final String PRODUCTS_SQL = """
-            SELECT catalog_product_id, COALESCE(name_ko, product_name) AS display_name, brand, image_url
+            SELECT catalog_product_id, COALESCE(name_ko, product_name) AS display_name, brand, image_url, price
             FROM catalog_products
             WHERE catalog_product_id IN (:ids) AND is_active = TRUE AND blocked_kr = FALSE
             """;
@@ -37,7 +37,7 @@ public class ChatCandidateRepository {
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final ObjectMapper objectMapper;
 
-    public record Product(long catalogProductId, String productName, String brand, String imageUrl) {
+    public record Product(long catalogProductId, String productName, String brand, String imageUrl, Integer price) {
     }
 
     /** V3 성분 x 제품 인기 점수 (상황 무관). 행이 없으면 맵에 없다 → 0으로 본다 */
@@ -52,7 +52,8 @@ public class ChatCandidateRepository {
         }
         namedJdbcTemplate.query(PRODUCTS_SQL, new MapSqlParameterSource("ids", ids), rs -> {
             long id = rs.getLong("catalog_product_id");
-            out.put(id, new Product(id, rs.getString("display_name"), rs.getString("brand"), rs.getString("image_url")));
+            out.put(id, new Product(id, rs.getString("display_name"), rs.getString("brand"), rs.getString("image_url"),
+                    rs.getObject("price", Integer.class)));
         });
         return out;
     }

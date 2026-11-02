@@ -107,6 +107,8 @@ class ReviewProductRecommendationServiceTest {
         assertThat(ids(r)).containsExactly(9301L, 9302L, 9306L);
         assertThat(r.products().get(2).alsoContains()).containsExactly("VITAMIN_B6");
         assertThat(r.products().get(2).imageUrl()).isEqualTo("https://example.com/9306.png");
+        assertThat(r.products().get(2).price()).isEqualTo(15900);   // 수동 등록한 참고 가격
+        assertThat(r.products().get(0).price()).isNull();           // 가격을 안 넣은 제품
     }
 
     @Test

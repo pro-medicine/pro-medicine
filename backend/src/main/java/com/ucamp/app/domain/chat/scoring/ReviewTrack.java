@@ -204,7 +204,7 @@ public class ReviewTrack {
                 BigDecimal finalScore = BigDecimal.valueOf(score).setScale(3, RoundingMode.HALF_UP);
                 ChatCandidateRepository.Product p = products.get(pid);
                 // ORDER 동점 처리용 값은 이 상황 기준 (추천 약사 수·최근 추천일·비추천 수)
-                Candidate c = new Candidate(pid, p.productName(), p.brand(), p.imageUrl(), finalScore,
+                Candidate c = new Candidate(pid, p.productName(), p.brand(), p.imageUrl(), p.price(), finalScore,
                         s.recommendChannels(), s.notRecommendChannels(), s.lastPublishedAt(),
                         base == null ? List.of() : base.commonCautions());
                 passed.add(new Scored(c, finalScore, alsoContains, safety));
@@ -225,7 +225,7 @@ public class ReviewTrack {
 
     private static ReviewProductResponse.Product toProduct(Scored s) {
         Candidate c = s.candidate();
-        return new ReviewProductResponse.Product(c.catalogProductId(), c.productName(), c.brand(), c.imageUrl(),
+        return new ReviewProductResponse.Product(c.catalogProductId(), c.productName(), c.brand(), c.imageUrl(), c.price(),
                 s.alsoContains(), c.commonCautions(), s.safety().warnings());
     }
 

@@ -157,9 +157,9 @@
 .rec-prod { margin-top: 10px; }
 .rec-prod-caption { display: block; margin-bottom: 8px; font-size: 12px; color: var(--r-sub); }
 .rec-prod-status { margin-top: 10px; font-size: 13px; color: var(--r-sub); }
-.rec-prod-list { display: flex; flex-direction: column; gap: 8px; }
-.rec-prod-item { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--r-line); border-radius: 14px; background: var(--r-bg); }
-.rec-prod-thumb { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: var(--r-card); }
+.rec-prod-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rec-prod-item { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--r-line); border-radius: 14px; background: var(--r-bg); }
+.rec-prod-thumb { flex: 0 0 64px; width: 64px; height: 64px; border: 1px solid var(--r-line); border-radius: 12px; object-fit: contain; background: var(--white); }
 .rec-prod-thumb.placeholder { display: flex; align-items: center; justify-content: center; border: 1px solid var(--r-line); font-weight: 700; color: var(--r-gold); }
 .rec-prod-body { flex: 1; min-width: 0; }
 .rec-prod-brand { display: block; font-size: 11px; font-weight: 700; color: var(--r-gold); }
@@ -206,4 +206,15 @@
 @media (max-width: 400px) {
   .rec-nav { flex-wrap: wrap; row-gap: 12px; }
   .rec-nav .rec-button.primary { flex: 1 0 100%; order: 1; }
+}
+
+/* 추천 제품: 추천순 번호 · 참고 가격 (S3에 수동 등록한 이미지·가격) */
+.rec-prod-rank { flex: 0 0 22px; width: 22px; height: 22px; margin-top: 21px; border-radius: 50%; background: var(--accent-soft); color: var(--muted); font-size: 12px; font-weight: 800; line-height: 22px; text-align: center; }
+.rec-prod-item.is-first { border-color: var(--r-yellow-line); background: var(--primary-soft); }
+.rec-prod-item.is-first .rec-prod-rank { background: var(--primary); color: var(--white); }
+.rec-prod-price { display: block; margin-top: 4px; font-size: 14px; font-weight: 800; color: var(--r-text); }
+.rec-prod-price small { margin-right: 2px; font-size: 11px; font-weight: 600; color: var(--r-sub); }
+@media (max-width: 400px) {
+  .rec-prod-thumb { flex-basis: 52px; width: 52px; height: 52px; }
+  .rec-prod-rank { margin-top: 15px; }
 }
