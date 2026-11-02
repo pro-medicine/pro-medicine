@@ -579,7 +579,7 @@ export default function DisposalMapScreen({ onNotifications }) {
                 onChange={(event) => {
                   const nextRadius = Number(event.target.value);
                   if (!RADII.includes(nextRadius)) return;
-                  if (mode === "keyword" && lastValidMap) {
+                  if (mode === "keyword" && lastValidMap && !loading) {
                     if (lastValidMap.mode === "area") {
                       setSearchCenter(lastValidMap.center);
                     } else if (lastValidMap.mode === "nearby") {
