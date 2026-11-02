@@ -36,7 +36,20 @@ MySQL Workbench에서 `scripts/product-images/export-products.sql` 실행
 - `best_rank`가 1~3인 제품이 화면에 자주 나온다 → 먼저 채운다
 - 추천 데이터가 새로 들어오면 `SET @only_missing = 1;`로 바꿔서 이미지가 없는 제품만 뽑는다
 
-## 2. CSV 채우기 + 사진 모으기
+## 2. 사진 자동 받기 (DSLD 제품)
+
+추천 제품 대부분은 미국 NIH 라벨 DB(DSLD) 제품이다. 라벨 썸네일을 자동으로 받는다 (DSLD 데이터는 CC0).
+
+```powershell
+node scripts/product-images/fetch-dsld-images.mjs products.csv images
+```
+
+- `images/<catalog_product_id>.jpg` 로 저장된다. 이미 있는 사진은 건너뛴다 (`--force`로 다시 받기)
+- 썸네일이 없는 라벨, 식약처(MFDS) 제품은 `manual-images.txt`에 목록으로 남긴다 → 그 제품만 직접 찾는다
+- 네트워크 오류로 못 받은 사진은 다시 실행하면 이어서 받는다
+- DSLD 사진은 라벨(포장지) 촬영본이다
+
+## 2-1. 남은 사진 직접 넣기 + CSV 채우기
 
 엑셀로 `products.csv`를 열고 아래 칸만 채운다. 저장할 때 **"CSV UTF-8(쉼표로 분리)"**.
 
@@ -46,7 +59,7 @@ MySQL Workbench에서 `scripts/product-images/export-products.sql` 실행
 | `price` | 참고 가격 (원, 쉼표·"원" 있어도 됨) | `12900` |
 | `image_source` | 사진 출처 (SQL 주석으로 남음) | `제조사 공식 사이트` |
 
-사진은 한 폴더(예: `images/`)에 모은다. jpg·png·webp, 2MB 이하.
+`manual-images.txt`에 나온 제품 사진은 `images/<catalog_product_id>.jpg` 이름으로 저장한다. jpg·png·webp, 2MB 이하.
 쇼핑몰 사진을 그대로 가져오지 말고, 제조사 공식 이미지(출처 기록)나 직접 찍은 사진을 쓴다.
 
 ## 3. 스크립트 실행
