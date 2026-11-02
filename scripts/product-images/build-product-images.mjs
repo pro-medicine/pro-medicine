@@ -4,11 +4,16 @@
 //   1) 빠진 이미지·잘못된 가격을 알려주고
 //   2) S3에 올릴 폴더(out/upload)를 "<catalog_product_id>.<확장자>" 이름으로 준비하고
 //   3) DB에 넣을 UPDATE SQL(out/product-images.sql)을 만든다.
-// 외부 라이브러리 없이 Node 기본 기능만 사용한다. S3 업로드는 출력되는 AWS CLI 명령으로 한다.
+//   4) --copy-to 를 주면 사진을 그 폴더(예: frontend/public/static/products)에 바로 복사한다.
+// 외부 라이브러리 없이 Node 기본 기능만 사용한다.
+// 기본 방식: 사진을 프론트 public 폴더에 넣어 배포와 함께 올린다 (--base-url /static --copy-to frontend/public/static/products)
+// S3를 쓸 때: --base-url <S3 주소> 로 실행하고 출력되는 AWS CLI 명령으로 업로드한다.
 //
 // 사용법:
-//   node scripts/product-images/build-product-images.mjs <채운 CSV> <이미지 폴더> --base-url <S3 또는 CloudFront 주소> [--prefix products/]
-// 예:
+//   node scripts/product-images/build-product-images.mjs <CSV> <이미지 폴더> --base-url <주소> [--prefix products/] [--copy-to <폴더>]
+// 예 (프론트에 포함, 기본):
+//   node scripts/product-images/build-product-images.mjs products.csv images --base-url /static --copy-to frontend/public/static/products
+// 예 (S3):
 //   node scripts/product-images/build-product-images.mjs products.csv images --base-url https://yakssok-images.s3.ap-northeast-2.amazonaws.com
 
 import fs from "node:fs";
@@ -25,6 +30,7 @@ function parseArgs(argv) {
     if (argv[i] === "--base-url") options.baseUrl = argv[++i];
     else if (argv[i] === "--prefix") options.prefix = argv[++i];
     else if (argv[i] === "--out") options.out = argv[++i];
+    else if (argv[i] === "--copy-to") options.copyTo = argv[++i];
     else positional.push(argv[i]);
   }
   options.csv = positional[0];
@@ -85,6 +91,16 @@ export function parsePrice(value) {
 // SQL 문자열 안전하게 (작은따옴표·역슬래시)
 const sqlText = (v) => (v == null ? "NULL" : `'${String(v).replace(/\\/g, "\\\\").replace(/'/g, "''")}'`);
 
+// 같은 제품을 가리키는 조건. catalog_product_id는 로컬 DB와 서버 DB에서 다를 수 있으므로
+// (AUTO_INCREMENT) 출처 + 외부 번호(DSLD 라벨 번호, 식약처 신고번호)가 있으면 그걸로 찾는다
+const hasExternal = (row) => !!row.data_source && !!row.external_id;
+const fileStem = (row) =>
+  hasExternal(row) ? `${row.data_source}-${row.external_id}`.replace(/[^A-Za-z0-9_-]/g, "_") : row.catalog_product_id;
+const whereOf = (row) =>
+  hasExternal(row)
+    ? `data_source = ${sqlText(row.data_source)} AND external_id = ${sqlText(row.external_id)}`
+    : `catalog_product_id = ${row.catalog_product_id}`;
+
 // 이미지 파일 찾기: CSV의 image_file이 있으면 그 파일, 없으면 "<id>.jpg|png|webp"
 function findImage(imageDir, row) {
   const candidates = row.image_file
@@ -101,7 +117,7 @@ function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.csv || !options.imageDir || !options.baseUrl) {
     console.error(
-      "사용법: node scripts/product-images/build-product-images.mjs <채운 CSV> <이미지 폴더> --base-url <S3 주소> [--prefix products/]",
+      "사용법: node scripts/product-images/build-product-images.mjs <CSV> <이미지 폴더> --base-url /static --copy-to frontend/public/static/products",
     );
     process.exit(1);
   }
@@ -141,7 +157,8 @@ function main() {
       } else if (size > MAX_IMAGE_BYTES) {
         problems.push(`${label}: ${path.basename(image)} 크기가 ${(size / 1024 / 1024).toFixed(1)}MB예요 (2MB 이하로 줄여 주세요)`);
       } else {
-        const key = `${prefix}${id}${ext === ".jpeg" ? ".jpg" : ext}`;
+        // S3 파일 이름: DB마다 catalog_product_id가 다를 수 있어서, 있으면 출처+외부 번호로 (예: DSLD-315732.jpg)
+        const key = `${prefix}${fileStem(row)}${ext === ".jpeg" ? ".jpg" : ext}`;
         fs.copyFileSync(image, path.join(uploadDir, path.basename(key)));
         sets.push(`image_key = ${sqlText(key)}`, `image_url = ${sqlText(`${baseUrl}/${key}`)}`);
         imageCount++;
@@ -160,7 +177,7 @@ function main() {
 
     if (sets.length > 0) {
       const source = row.image_source ? ` -- 이미지 출처: ${row.image_source.replace(/[\r\n]/g, " ")}` : "";
-      updates.push(`UPDATE catalog_products SET ${sets.join(", ")} WHERE catalog_product_id = ${id};${source}`);
+      updates.push(`UPDATE catalog_products SET ${sets.join(", ")} WHERE ${whereOf(row)};${source}`);
     }
   }
 
@@ -169,6 +186,8 @@ function main() {
     "-- 추천 제품 이미지·참고 가격 (scripts/product-images로 생성, 예시가 아닌 수동 등록 데이터)",
     `-- 생성일: ${today} / 이미지 ${imageCount}개, 가격 ${priceCount}개`,
     "-- 실행: 로컬 MySQL과 서버 MySQL에 각각 한 번씩. 다시 실행해도 같은 값으로 덮어써서 안전하다.",
+    "-- 제품은 출처 + 외부 번호로 찾으므로 DB마다 catalog_product_id가 달라도 같은 제품에 들어간다.",
+    "USE yakssok;",
     "",
     ...updates,
     "",
@@ -185,6 +204,15 @@ function main() {
   const missing = rows.filter((r) => /^\d+$/.test(r.catalog_product_id) && !findImage(options.imageDir, r)).length;
   if (missing > 0) console.log(`\nℹ 이미지가 아직 없는 제품 ${missing}개 (화면에는 브랜드 첫 글자로 보여요)`);
 
+  if (options.copyTo) {
+    // 프론트 public 폴더로 복사 (같은 이름은 덮어씀, 다른 파일은 그대로 둠)
+    fs.mkdirSync(options.copyTo, { recursive: true });
+    const files = fs.readdirSync(uploadDir);
+    files.forEach((name) => fs.copyFileSync(path.join(uploadDir, name), path.join(options.copyTo, name)));
+    console.log(`✔ 사진 ${files.length}개를 ${options.copyTo} 에 복사했어요`);
+    console.log("\n다음 단계: product-images.sql을 MySQL에서 실행하고, pnpm dev로 추천 화면을 확인하세요.\n");
+    return;
+  }
   const bucketHint = baseUrl.match(/^https:\/\/([^.]+)\.s3[.-]/)?.[1] ?? "<버킷 이름>";
   console.log("\n다음 단계: S3에 업로드 (AWS CLI)");
   console.log(`  aws s3 sync "${uploadDir}" s3://${bucketHint}/${prefix} --cache-control "public, max-age=604800"`);
