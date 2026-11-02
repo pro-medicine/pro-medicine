@@ -88,6 +88,7 @@ export default function DisposalMapScreen({ onNotifications }) {
   const [locationCandidates, setLocationCandidates] = useState([]);
   const [searchCenter, setSearchCenter] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [lastValidMap, setLastValidMap] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [pharmacies, setPharmacies] = useState([]);
@@ -144,7 +145,9 @@ export default function DisposalMapScreen({ onNotifications }) {
             setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
             return;
           }
-          setUserLocation({ latitude, longitude });
+          const nextLocation = { latitude, longitude };
+          setUserLocation(nextLocation);
+          setLastValidMap({ mode: "nearby", center: nextLocation });
           setSearchCenter(null);
           setLocationCandidates([]);
           setMode("nearby");
@@ -173,10 +176,12 @@ export default function DisposalMapScreen({ onNotifications }) {
       cancelWalkingRoute();
       setLoading(true);
       setError("");
-      setTruncated(false);
-      setPharmacies([]);
-      setSelected(null);
-      setFocusPharmacy(null);
+      if (mode !== "keyword") {
+        setTruncated(false);
+        setPharmacies([]);
+        setSelected(null);
+        setFocusPharmacy(null);
+      }
       if (mode === "keyword") setLocationCandidates([]);
 
       try {
@@ -222,7 +227,9 @@ export default function DisposalMapScreen({ onNotifications }) {
           setLocationCandidates(candidates);
           if (candidates.length) {
             // 지역 선택을 강요하지 않고 대표 지역으로 즉시 약국을 조회한다.
-            setSearchCenter(choosePreferredLocation(candidates, query));
+            const nextCenter = choosePreferredLocation(candidates, query);
+            setSearchCenter(nextCenter);
+            setLastValidMap({ mode: "area", center: nextCenter });
             setMode("area");
           } else {
             setSearchCenter(null);
@@ -272,6 +279,7 @@ export default function DisposalMapScreen({ onNotifications }) {
 
     if (mode !== "area" || searchCenter?.id !== place.id) {
       setSearchCenter(place);
+      setLastValidMap({ mode: "area", center: place });
       setMode("area");
     }
     setLocationError("");
@@ -285,12 +293,14 @@ export default function DisposalMapScreen({ onNotifications }) {
     setLocationError("");
     setLocationCandidates([]);
     setFocusPharmacy(null);
-    setSearchCenter({
+    const nextCenter = {
       id: "map-center",
       name: "지도 중심",
       latitude: center.latitude,
       longitude: center.longitude,
-    });
+    };
+    setSearchCenter(nextCenter);
+    setLastValidMap({ mode: "area", center: nextCenter });
     setMode("area");
   }, [cancelWalkingRoute]);
 
@@ -315,7 +325,9 @@ export default function DisposalMapScreen({ onNotifications }) {
             setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
             return;
           }
-          setUserLocation({ latitude, longitude });
+          const nextLocation = { latitude, longitude };
+          setUserLocation(nextLocation);
+          setLastValidMap({ mode: "nearby", center: nextLocation });
           setSearchCenter(null);
           setLocationCandidates([]);
           setMode("nearby");
@@ -516,7 +528,12 @@ export default function DisposalMapScreen({ onNotifications }) {
 
   const nearby = mode === "nearby";
   const area = mode === "area";
-  const mapCenterAvailable = nearby ? Boolean(userLocation) : area && Boolean(searchCenter);
+  const mapMode = mode === "keyword" ? lastValidMap?.mode : mode;
+  const mapUserLocation = mapMode === "nearby"
+      ? (mode === "keyword" ? lastValidMap?.center : userLocation) : null;
+  const mapSearchCenter = mapMode === "area"
+      ? (mode === "keyword" ? lastValidMap?.center : searchCenter) : null;
+  const mapCenterAvailable = Boolean(mapUserLocation || mapSearchCenter);
 
   return (
       <div className="screen map-screen">
@@ -589,9 +606,9 @@ export default function DisposalMapScreen({ onNotifications }) {
                 selected={selected}
                 onSelect={handlePharmacySelect}
                 onSearchThisArea={handleSearchThisArea}
-                mode={mode}
-                userLocation={nearby ? userLocation : null}
-                searchCenter={area ? searchCenter : null}
+                mode={mapMode}
+                userLocation={mapUserLocation}
+                searchCenter={mapSearchCenter}
                 radius={radius}
                 focusPharmacy={focusPharmacy}
                 walkingRoute={walkingRoute}
