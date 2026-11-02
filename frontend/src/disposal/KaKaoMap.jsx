@@ -363,7 +363,9 @@ export default function KakaoMap({
                                     {distanceOrigin}에서 직선거리 {selected.distanceText}
                                 </small>
                             )}
-                        {walkingRoute?.status === "OK" && (
+                        {walkingRoute?.status === "OK" &&
+                            Number.isFinite(walkingRoute.route?.properties?.totalDistance) &&
+                            Number.isFinite(walkingRoute.route?.properties?.totalTime) && (
                             <small role="status">
                                 내 현재 위치에서 도보 {walkingRoute.route.properties.totalDistance.toLocaleString()}m
                                 · 예상 {Math.ceil(walkingRoute.route.properties.totalTime / 60)}분
