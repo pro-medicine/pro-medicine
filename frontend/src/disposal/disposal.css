@@ -432,3 +432,126 @@
     gap: 14px;
   }
 }
+
+
+
+/* 이슈 #97: 검색 기준 지역 후보는 약국 목록 영역 위에서 전환한다. */
+.map-screen .disposal-location-candidates--sidebar {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0 8px 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.map-screen .disposal-location-candidates--sidebar h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.map-screen .disposal-candidate-buttons {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0 7px;
+}
+
+.map-screen .disposal-candidate-buttons button {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 174px;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-screen .disposal-candidate-buttons button:hover,
+.map-screen .disposal-candidate-buttons button:focus-visible {
+  border-color: var(--accent);
+}
+
+.map-screen .disposal-candidate-buttons button.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.map-screen .disposal-candidate-buttons strong,
+.map-screen .disposal-candidate-buttons small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-screen .disposal-candidate-buttons strong {
+  font-size: 12px;
+}
+
+.map-screen .disposal-candidate-buttons small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.map-screen .disposal-location-candidates--sidebar p {
+  margin: 5px 0 0;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* 지도에서 선택한 검색 지역의 중심 마커 */
+.map-screen .kakao-search-center {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(17, 23, 20, 0.24);
+}
+
+.map-screen .kakao-search-center span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+/* 약국 목록이 많아져도 새 디자인 카드 내부에서 스크롤된다. */
+.map-screen .pharmacy-list-wrap {
+  height: 540px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-screen .pharmacy-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 900px) {
+  .map-screen .pharmacy-list-wrap {
+    height: 480px;
+  }
+}
+
+@media (max-width: 680px) {
+  .map-screen .pharmacy-list-wrap {
+    height: 430px;
+  }
+}
