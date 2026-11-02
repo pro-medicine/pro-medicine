@@ -74,4 +74,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
                             and pi.ingredientCode <> 'OTHER')
         """)
     long countSupplementsWithoutIngredients(@Param("userId") Long userId);
+
+    //이 유저가 같은 이름으로 직접 입력한 영양제를 이미 복용 중으로 등록했는지(중복 등록 확인)
+    boolean existsByUserIdAndManualProductNameAndIsActiveTrue(Long userId, String manualProductName);
 }

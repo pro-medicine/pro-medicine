@@ -6,6 +6,7 @@ import java.util.List;
 // schedules는 없어도 됨 (일정 없이 등록)
 public record MySupplementAddRequest(
         Long catalogProductId,
+        String manualProductName,
         List<ScheduleRequest> schedules
 ) {
 }
