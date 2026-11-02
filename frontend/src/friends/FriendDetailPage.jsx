@@ -175,6 +175,23 @@ export default function FriendDetailPage({
             ? "안부지킴이 설정 (일수 변경 / 취소)"
             : "신청 취소 (수락 대기 중)";
 
+  const handleRejectIncoming = () => {
+    if (!pendingIncoming || guardianBusy) return;
+
+    const name = friend?.name ?? "이 친구";
+    askConfirm({
+      title: "안부지킴이 신청을 거절할까요?",
+      message: `${name}님이 보낸 안부지킴이 신청을 거절하고 삭제해요.`,
+      confirmLabel: "거절",
+      danger: true,
+      onConfirm: () =>
+        runGuardian(
+          () => removeGuardian(userId, incoming.guardianSettingId),
+          "안부지킴이 신청을 거절했어요.",
+        ),
+    });
+  };
+
   const handleGuardianClick = () => {
     const name = friend?.name ?? "이 친구";
     if (pendingIncoming) {
@@ -302,6 +319,17 @@ export default function FriendDetailPage({
     </button>
   );
 
+  const rejectGuardianButton = pendingIncoming ? (
+    <button
+      type="button"
+      className="btn-text danger"
+      disabled={guardianBusy}
+      onClick={handleRejectIncoming}
+    >
+      신청 거절
+    </button>
+  ) : null;
+
   const deleteButton = (
     <button
       type="button"
@@ -351,6 +379,7 @@ export default function FriendDetailPage({
         topBarActions={
           <>
             {deleteButton}
+            {rejectGuardianButton}
             {guardianButton}
           </>
         }
