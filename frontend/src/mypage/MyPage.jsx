@@ -128,6 +128,8 @@ export default function ProfileScreen({
 
   // 영양제 등록·일정 수정 모달을 연 버튼 (닫으면 포커스 복원)
   const supplementOpenerRef = useRef(null);
+  // 마이페이지의 "영양제 등록" 버튼 (홈에서 바로 연 모달을 닫으면 여기로 포커스 복원)
+  const addButtonRef = useRef(null);
 
   const openSettings = () => {
     settingsOpenerRef.current = document.activeElement;
@@ -190,6 +192,13 @@ export default function ProfileScreen({
       ignore = true;
     };
   }, [isMine, userId, refreshKey]);
+
+  // 홈의 "영양제 등록하기"로 바로 연 경우: openAdd를 거치지 않아서 마이페이지 등록 버튼을 복원 대상으로 지정
+  useEffect(() => {
+    if (startAdding) {
+      supplementOpenerRef.current = addButtonRef.current;
+    }
+  }, []);
 
   const reload = () => setRefreshKey((prev) => prev + 1);
 
@@ -423,6 +432,7 @@ export default function ProfileScreen({
             </h2>
             {isMine && (
               <button
+                ref={addButtonRef}
                 className="btn btn-soft btn-sm"
                 type="button"
                 onClick={openAdd}

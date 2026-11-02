@@ -589,7 +589,15 @@
   gap: 10px;
   list-style: none;
   margin: 14px 0 0;
-  padding: 0;
+  padding: 0 4px 0 0; /* 스크롤바와 카드가 붙지 않게 오른쪽 여백 */
+  /* 카드 5개 정도 높이까지만 보여주고, 나머지는 목록 안에서 스크롤 */
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+/* 스크롤 영역 안에서 카드가 눌려 줄어들지 않게 */
+.supplement-search-results > li {
+  flex-shrink: 0;
 }
 
 .supplement-search-item {
