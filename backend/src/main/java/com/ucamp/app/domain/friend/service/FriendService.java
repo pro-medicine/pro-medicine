@@ -88,6 +88,7 @@ public class FriendService {
 
     @Transactional
     public void deleteFriend(Long userId, Long friendId) {
+        followRepository.findAllBetweenUsersForUpdate(userId, friendId);
         Follow follow = getAcceptedFollow(userId, friendId);
         if (guardianService.existsBetween(userId, friendId)) {
             throw new BusinessException(ErrorCode.GUARDIAN_EXISTS);

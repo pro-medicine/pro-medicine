@@ -59,7 +59,7 @@ class AuthControllerRefreshTest {
     void refreshRotatesAndReissuesAccessToken() {
         when(tokens.rotate("old")).thenReturn(new RefreshTokenService.Rotated(
                 6L, new RefreshTokenService.Issued("new", 3600)));
-        when(authService.me(6L)).thenReturn(user);
+        when(authService.refresh(6L)).thenReturn(user);
         var result = controller.refresh(request, "old");
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertTrue(result.getHeaders().getFirst(HttpHeaders.SET_COOKIE).contains("new"));

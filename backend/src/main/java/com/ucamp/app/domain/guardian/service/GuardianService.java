@@ -26,6 +26,7 @@ public class GuardianService {
 
     @Transactional
     public GuardianResponse request(Long guardianUserId, Long targetId, int inactivityDays) {
+        followRepository.findAllBetweenUsersForUpdate(guardianUserId, targetId);
         User guardian = userRepository.findById(guardianUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         User target = userRepository.findById(targetId)

@@ -42,10 +42,17 @@ public class FollowService {
         if (followerId.equals(followingId)) {
             throw new BusinessException(ErrorCode.INVALID_FOLLOW);
         }
-        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
+
+        // 기존 신청 확인
+        Follow existing = followRepository
+                .findByFollowerIdAndFollowingId(followerId, followingId)
+                .orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() == FollowStatus.REJECTED) {
+                throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
+            }
             throw new BusinessException(ErrorCode.ALREADY_FOLLOWING);
         }
-
         try {
             Follow saved = followRepository.saveAndFlush(Follow.request(followerId, followingId));
             eventPublisher.publishEvent(new FollowRequestedEvent(followerId, followingId));
@@ -55,10 +62,14 @@ public class FollowService {
         }
     }
 
-    public List<FollowResponse> getRequests(Long userId, String direction, FollowStatus status) {
+    public List<FollowResponse> getRequests(
+            Long userId,
+            String direction,
+            FollowStatus status
+    ) {
         List<Follow> follows = switch (direction) {
-            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, status);
-            case "sent" -> followRepository.findByFollowerIdAndStatusOrderByFollowIdDesc(userId, status);
+            case "received" -> followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.PENDING);
+            case "sent" -> followRepository.findByFollowerIdAndStatusInOrderByFollowIdDesc(userId, List.of(FollowStatus.PENDING, FollowStatus.REJECTED));
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
         return toResponses(follows);
@@ -91,8 +102,14 @@ public class FollowService {
 
     @Transactional
     public void cancel(Long userId, Long followId) {
-        Follow follow = getFollow(followId);
-
+        Follow initialFollow = getFollow(followId);
+        Long followerId = initialFollow.getFollowerId();
+        Long followingId = initialFollow.getFollowingId();
+        List<Follow> lockedFollows = followRepository.findAllBetweenUsersForUpdate(followerId, followingId);
+        Follow follow = lockedFollows.stream()
+                .filter(f -> f.getFollowId().equals(followId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
         boolean isParty = follow.getFollowerId().equals(userId)
                 || follow.getFollowingId().equals(userId);
         if (!isParty) {
