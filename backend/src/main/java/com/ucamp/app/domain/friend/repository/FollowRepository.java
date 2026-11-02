@@ -43,4 +43,9 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     );
 
     List<Follow> findByFollowerIdAndStatusInOrderByFollowIdDesc(Long userId, List<FollowStatus> statuses);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM Follow f " +
+            "WHERE f.followId = :followId")
+    Optional<Follow> findByFollowIdForUpdate(@Param("followId") Long followId);
 }

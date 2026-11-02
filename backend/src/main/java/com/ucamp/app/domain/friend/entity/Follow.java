@@ -60,11 +60,4 @@ public class Follow extends Timestamped {
             throw new BusinessException(ErrorCode.COMPLETED_FOLLOW_REQUEST);
         }
     }
-
-    public void reRequest() {
-        if (this.status != FollowStatus.REJECTED) {
-            throw new BusinessException(ErrorCode.COMPLETED_FOLLOW_REQUEST);
-        }
-        this.status = FollowStatus.PENDING;
-    }
 }

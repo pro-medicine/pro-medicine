@@ -102,20 +102,16 @@ public class FollowService {
 
     @Transactional
     public void cancel(Long userId, Long followId) {
-        Follow initialFollow = getFollow(followId);
-        Long followerId = initialFollow.getFollowerId();
-        Long followingId = initialFollow.getFollowingId();
-        List<Follow> lockedFollows = followRepository.findAllBetweenUsersForUpdate(followerId, followingId);
-        Follow follow = lockedFollows.stream()
-                .filter(f -> f.getFollowId().equals(followId))
-                .findFirst()
+        Follow follow = followRepository.findByFollowIdForUpdate(followId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FOLLOWING_NOT_FOUND));
         boolean isParty = follow.getFollowerId().equals(userId)
                 || follow.getFollowingId().equals(userId);
         if (!isParty) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        if (guardianService.existsBetween(follow.getFollowerId(), follow.getFollowingId())) {
+        if (guardianService.existsBetween(
+                follow.getFollowerId(),
+                follow.getFollowingId())) {
             throw new BusinessException(ErrorCode.GUARDIAN_EXISTS);
         }
         followRepository.delete(follow);
