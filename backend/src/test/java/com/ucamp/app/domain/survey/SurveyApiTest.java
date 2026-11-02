@@ -139,6 +139,31 @@ class SurveyApiTest {
         assertThat(data.get("needsConfirm").asBoolean()).isTrue();
     }
 
+    // ---------- 문항 순서 (불편한 점을 먼저 묻는다) ----------
+
+    @Test
+    void 비회원_설문은_불편한_점_문항이_첫번째다() throws Exception {
+        JsonNode data = getActive(null);
+
+        assertThat(codes(data)).containsExactly(
+                "Q-GOAL", "Q-GENDER", "Q-BIRTH", "Q-SMOKING", "Q-DRINKING", "Q-CAFFEINE",
+                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE", "Q-SUPPLEMENTS");
+        assertThat(data.get("questions").get(0).get("text").asString())
+                .isEqualTo("뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점)");
+    }
+
+    @Test
+    void 동의한_회원_설문도_불편한_점_문항이_첫번째다() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+
+        JsonNode data = getActive(user.getId());
+
+        assertThat(codes(data)).containsExactly(
+                "Q-GOAL", "Q-GENDER", "Q-BIRTH", "Q-SMOKING", "Q-DRINKING", "Q-CAFFEINE",
+                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE",
+                "Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS");
+    }
+
     // ---------- 제출 ----------
 
     @Test
