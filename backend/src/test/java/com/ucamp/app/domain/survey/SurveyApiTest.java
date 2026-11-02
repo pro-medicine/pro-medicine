@@ -334,6 +334,17 @@ class SurveyApiTest {
                 .andExpect(jsonPath("$.data.length()").value(24));
     }
 
+    @Test
+    void 비회원은_성분_목록만_볼_수_있고_약_검색은_막힌다() throws Exception {
+        // 비회원 설문 마지막 문항(Q-SUPPLEMENTS)에서 성분 목록을 쓴다
+        mockMvc.perform(get("/api/v1/ingredients"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isNotEmpty());
+        // 약 검색은 회원 민감 문항(Q-MEDICATIONS)용이라 계속 로그인 필요
+        mockMvc.perform(get("/api/v1/drugs").param("keyword", "와파린"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // ---------- helpers ----------
 
     private JsonNode getActive(Long userId) throws Exception {
