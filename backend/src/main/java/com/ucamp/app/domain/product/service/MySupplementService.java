@@ -109,27 +109,45 @@ public class MySupplementService {
         return result;
     }
 
-    // 등록 흐름: 값 검사 → 유저·제품 확인 → 중복 확인 → 영양제 저장 → 복용 일정 저장
+    // 등록 흐름: 값 검사 → 유저 확인 → (검색 제품 / 직접 입력) 중복 확인 → 영양제 저장 → 복용 일정 저장
     @Transactional
     public MySupplementResponse addMySupplement(Long userId, MySupplementAddRequest request) {
-        // 1. 제품 id가 없거나 일정 값이 잘못되면 400 (일정은 없어도 됨)
-        if (request == null || request.catalogProductId() == null) {
+        // 1. 값 검사: 제품 id와 직접 입력 이름 중 하나만 있어야 함 (둘 다 있거나 둘 다 없으면 400)
+        if (request == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        String manualName = request.manualProductName() == null ? null : request.manualProductName().trim();
+        boolean hasCatalog = request.catalogProductId() != null;
+        boolean hasManual = manualName != null && !manualName.isEmpty();
+        if (hasCatalog == hasManual) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        // 직접 입력 이름이 너무 길면 400
+        if (hasManual && manualName.length() > MANUAL_NAME_MAX_LENGTH) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
         List<ScheduleRequest> scheduleRequests = request.schedules() == null ? List.of() : request.schedules();
         validateSchedules(scheduleRequests);
-        // 2. 유저가 없으면 404 (U001), 제품이 없으면 404 (P001)
+
+        // 2. 유저가 없으면 404 (U001)
         User user = userRepository.findWithLockById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 3. 직접 입력이면 따로 저장
+        if (hasManual) {
+            return addManualSupplement(user, manualName, scheduleRequests);
+        }
+
+        // 4. 검색해서 고른 제품: 제품이 없으면 404 (P001)
         CatalogProduct product = catalogProductRepository.findById(request.catalogProductId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-        // 3. 이미 먹고 있는 제품이면 409 (P002)
+        // 5. 이미 먹고 있는 제품이면 409 (P002)
         boolean alreadyAdded = userProductRepository
                 .existsByUserIdAndCatalogProductCatalogProductIdAndIsActiveTrue(userId, product.getCatalogProductId());
         if (alreadyAdded) {
             throw new BusinessException(ErrorCode.PRODUCT_ALREADY_ADDED);
         }
-        // 4. 저장 (검색해서 등록한 영양제, 오늘부터 복용)
+        // 6. 저장 (검색해서 등록한 영양제, 오늘부터 복용)
         UserProduct userProduct = UserProduct.builder()
                 .user(user)
                 .catalogProduct(product)
@@ -139,7 +157,7 @@ public class MySupplementService {
                 .isActive(true)
                 .build();
         UserProduct saved = userProductRepository.save(userProduct);
-        // 5. 복용 일정 저장
+        // 7. 복용 일정 저장
         List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(saved, scheduleRequests);
         return MySupplementResponse.of(saved, schedules);
     }
@@ -211,5 +229,30 @@ public class MySupplementService {
             result.add(MySupplementResponse.ScheduleResponse.from(supplementScheduleRepository.save(schedule)));
         }
         return result;
+    }
+
+    // 직접 입력 제품 이름 최대 길이
+    private static final int MANUAL_NAME_MAX_LENGTH = 100;
+
+    // 직접 입력 등록: 같은 이름 중복 확인 → 이름만 저장 (제품 정보 없음) → 복용 일정 저장
+    private MySupplementResponse addManualSupplement(User user, String manualName,
+                                                     List<ScheduleRequest> scheduleRequests) {
+        // 같은 이름으로 이미 먹고 있으면 409 (P002)
+        boolean alreadyAdded = userProductRepository
+                .existsByUserIdAndManualProductNameAndIsActiveTrue(user.getId(), manualName);
+        if (alreadyAdded) {
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_ADDED);
+        }
+        UserProduct userProduct = UserProduct.builder()
+                .user(user)
+                .productKind("SUPPLEMENT")
+                .manualProductName(manualName)
+                .registeredVia("MANUAL")
+                .startDate(LocalDate.now(ZoneId.of("Asia/Seoul")))
+                .isActive(true)
+                .build();
+        UserProduct saved = userProductRepository.save(userProduct);
+        List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(saved, scheduleRequests);
+        return MySupplementResponse.of(saved, schedules);
     }
 }

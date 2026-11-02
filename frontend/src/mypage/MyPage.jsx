@@ -126,6 +126,11 @@ export default function ProfileScreen({
   const shared = user?.shareIntakeStatus ?? false;
   const settingsOpenerRef = useRef(null);
 
+  // 영양제 등록·일정 수정 모달을 연 버튼 (닫으면 포커스 복원)
+  const supplementOpenerRef = useRef(null);
+  // 마이페이지의 "영양제 등록" 버튼 (홈에서 바로 연 모달을 닫으면 여기로 포커스 복원)
+  const addButtonRef = useRef(null);
+
   const openSettings = () => {
     settingsOpenerRef.current = document.activeElement;
     setShowSettings(true);
@@ -188,6 +193,13 @@ export default function ProfileScreen({
     };
   }, [isMine, userId, refreshKey]);
 
+  // 홈의 "영양제 등록하기"로 바로 연 경우: openAdd를 거치지 않아서 마이페이지 등록 버튼을 복원 대상으로 지정
+  useEffect(() => {
+    if (startAdding) {
+      supplementOpenerRef.current = addButtonRef.current;
+    }
+  }, []);
+
   const reload = () => setRefreshKey((prev) => prev + 1);
 
   // 내 영양제는 로그인 사용자 데이터 사용
@@ -215,45 +227,14 @@ export default function ProfileScreen({
     );
   }
 
-  // 영양제 등록 페이지: 등록에 성공하면 마이페이지로 돌아와서 목록·통계·영양관리를 다시 불러옴
-  if (isMine && adding) {
-    return (
-      <SupplementAddPage
-        userId={userId}
-        onBack={() => setAdding(false)}
-        onSaved={() => {
-          setAdding(false);
-          reload();
-        }}
-        onNotifications={onNotifications}
-      />
-    );
-  }
-
-  // 같은 페이지를 수정 모드로 사용 (제품은 고정, 복용 일정만 수정)
-  if (isMine && scheduleTarget) {
-    return (
-      <SupplementAddPage
-        userId={userId}
-        target={scheduleTarget}
-        onBack={() => setScheduleTarget(null)}
-        onSaved={() => {
-          setScheduleTarget(null);
-          reload();
-        }}
-        onNotifications={onNotifications}
-      />
-    );
-  }
-
   const openEdit = () => {
     setEditing(true);
     window.scrollTo({ top: 0 });
   };
 
   const openAdd = () => {
+    supplementOpenerRef.current = document.activeElement;
     setAdding(true);
-    window.scrollTo({ top: 0 });
   };
 
   // 삭제: 확인 → 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
@@ -368,6 +349,31 @@ export default function ProfileScreen({
           )}
         </SettingsModal>
       )}
+      {/* 영양제 등록 모달 */}
+      {isMine && adding && (
+        <SupplementAddPage
+          userId={userId}
+          openerRef={supplementOpenerRef}
+          onBack={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false);
+            reload();
+          }}
+        />
+      )}
+      {/* 복용 일정 수정 모달 (같은 컴포넌트, 제품은 고정) */}
+      {isMine && scheduleTarget && (
+        <SupplementAddPage
+          userId={userId}
+          target={scheduleTarget}
+          openerRef={supplementOpenerRef}
+          onBack={() => setScheduleTarget(null)}
+          onSaved={() => {
+            setScheduleTarget(null);
+            reload();
+          }}
+        />
+      )}
 
       {/* 내 화면: 그래프 통계 카드 3개 / 친구 화면: 같은 그래프 (비공개면 안내) */}
       {hidden ? (
@@ -426,6 +432,7 @@ export default function ProfileScreen({
             </h2>
             {isMine && (
               <button
+                ref={addButtonRef}
                 className="btn btn-soft btn-sm"
                 type="button"
                 onClick={openAdd}
@@ -457,8 +464,8 @@ export default function ProfileScreen({
             isMine={isMine}
             removingId={removingId}
             onEdit={(supplement) => {
+              supplementOpenerRef.current = document.activeElement;
               setScheduleTarget(supplement.raw);
-              window.scrollTo({ top: 0 });
             }}
             onRemove={removeSupplement}
           />
