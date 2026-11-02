@@ -77,9 +77,11 @@ public class AuthService {
         return UserResponse.from(user);
     }
 
+    @Transactional
     public UserResponse refresh(Long userId) {
         User user = users.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        user.touchActive();
         return UserResponse.from(user);
     }
 
