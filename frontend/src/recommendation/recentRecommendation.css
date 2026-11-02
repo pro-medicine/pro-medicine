@@ -26,3 +26,12 @@
   font-size: 13px;
   color: var(--muted);
 }
+
+/* 모달 겹침 순서: AI 상담 패널(chat.css, 최대 60)과 다른 모달(100)보다 위, 알림 패널(200)·토스트(210)보다 아래.
+   공통 .rec-backdrop은 그대로 두고 V7 모달을 감싼 배경만 올린다 */
+.rec-backdrop:has(> .recent-rec-modal) {
+  z-index: 110;
+}
+.recent-rec-modal {
+  z-index: 110;
+}
