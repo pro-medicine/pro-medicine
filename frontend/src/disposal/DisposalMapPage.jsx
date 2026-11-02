@@ -165,6 +165,8 @@ export default function DisposalMapScreen({ onNotifications }) {
     };
   }, []);
 
+  const lookupRadius = mode === "keyword" ? null : radius;
+
   useEffect(() => {
     if (mode === "nearby" && !userLocation) return;
     if (mode === "area" && !searchCenter) return;
@@ -176,12 +178,10 @@ export default function DisposalMapScreen({ onNotifications }) {
       cancelWalkingRoute();
       setLoading(true);
       setError("");
-      if (mode !== "keyword") {
-        setTruncated(false);
-        setPharmacies([]);
-        setSelected(null);
-        setFocusPharmacy(null);
-      }
+      setTruncated(false);
+      setPharmacies([]);
+      setSelected(null);
+      setFocusPharmacy(null);
       if (mode === "keyword") setLocationCandidates([]);
 
       try {
@@ -197,7 +197,7 @@ export default function DisposalMapScreen({ onNotifications }) {
           const center = mode === "area" ? searchCenter : userLocation;
           url.searchParams.set("latitude", String(center.latitude));
           url.searchParams.set("longitude", String(center.longitude));
-          url.searchParams.set("radius", String(radius));
+          url.searchParams.set("radius", String(lookupRadius));
         }
 
         const response = await fetch(url.toString(), { signal: controller.signal });
@@ -255,7 +255,7 @@ export default function DisposalMapScreen({ onNotifications }) {
       active = false;
       controller.abort();
     };
-  }, [mode, query, searchCount, radius, userLocation, searchCenter, cancelWalkingRoute]);
+  }, [mode, query, searchCount, lookupRadius, userLocation, searchCenter, cancelWalkingRoute]);
 
   function handleSearch(event) {
     event.preventDefault();
@@ -578,7 +578,16 @@ export default function DisposalMapScreen({ onNotifications }) {
                 value={radius}
                 onChange={(event) => {
                   const nextRadius = Number(event.target.value);
-                  if (RADII.includes(nextRadius)) setRadius(nextRadius);
+                  if (!RADII.includes(nextRadius)) return;
+                  if (mode === "keyword" && lastValidMap) {
+                    if (lastValidMap.mode === "area") {
+                      setSearchCenter(lastValidMap.center);
+                    } else if (lastValidMap.mode === "nearby") {
+                      setUserLocation(lastValidMap.center);
+                    }
+                    setMode(lastValidMap.mode);
+                  }
+                  setRadius(nextRadius);
                 }}
             >
               <option value={500}>500m</option>
