@@ -202,6 +202,9 @@ export default function DisposalMapScreen({ onNotifications }) {
   }
 
   function handleCandidateSelect(place) {
+    locationRequestId.current += 1;
+    setLocating(false);
+
     if (mode !== "area" || searchCenter?.id !== place.id) {
       setSearchCenter(place);
       setMode("area");
