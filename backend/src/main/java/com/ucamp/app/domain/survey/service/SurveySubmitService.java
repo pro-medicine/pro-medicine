@@ -29,11 +29,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,8 +95,30 @@ public class SurveySubmitService {
 
         if (user != null) {
             applyToProfile(user, answers);
+            return new SubmitSurveyResponse(response.getResponseId());
         }
-        return new SubmitSurveyResponse(response.getResponseId());
+        // 비회원: 32-byte 토큰 생성, SHA-256 해시만 DB 저장, 원문은 1회만 반환
+        String guestToken = generateGuestToken();
+        response.setGuestTokenHash(sha256Hex(guestToken));
+        return new SubmitSurveyResponse(response.getResponseId(), guestToken);
+    }
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private static String generateGuestToken() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
+    }
+
+    static String sha256Hex(String input) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     private List<ValidAnswer> validate(List<SubmitSurveyRequest.Answer> requested,

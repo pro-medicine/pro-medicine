@@ -2,14 +2,53 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
 import { useModalFocus } from "./useModalFocus";
 import "./calendar.css";
+import PrescriptionFields, {
+  makeEmptyPrescription,
+  validatePrescription,
+  toPrescriptionPayload,
+} from "../prescription/PrescriptionFields";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
 
+// 날짜 칸 진행 링 (#67 마이페이지 시안 ③: 그날 챙긴 비율만큼 초록 링이 채워짐)
+const RING = 34;
+const RING_R = 15;
+const RING_C = 2 * Math.PI * RING_R;
+
+function DayRing({ ratio }) {
+  return (
+    <svg
+      className="calendar-ring"
+      width={RING}
+      height={RING}
+      viewBox={`0 0 ${RING} ${RING}`}
+      aria-hidden="true"
+    >
+      <circle
+        cx={RING / 2}
+        cy={RING / 2}
+        r={RING_R}
+        className="calendar-ring-track"
+      />
+      {ratio > 0 && (
+        <circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={RING_R}
+          className="calendar-ring-fill"
+          strokeDasharray={RING_C}
+          strokeDashoffset={RING_C * (1 - Math.min(ratio, 1))}
+          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+        />
+      )}
+    </svg>
+  );
+}
+
 const EVENT_TYPES = [
   { value: "INJECTION", label: "주사" },
-  { value: "MEDICATION", label: "처방약" },
-  { value: "ONE_TIME_INTAKE", label: "일회성 복용" },
+  { value: "MEDICATION", label: "약" },
   { value: "APPOINTMENT", label: "병원 방문" },
   { value: "OTHER", label: "기타" },
 ];
@@ -34,6 +73,7 @@ function DayModal({
   openerRef,
   onClose,
   onSave,
+  onSavePrescription,
   onDelete,
   onToggle,
 }) {
@@ -42,11 +82,13 @@ function DayModal({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [rx, setRx] = useState(() => makeEmptyPrescription(dateKey));
 
   const openNew = () => {
     setForm(EMPTY_FORM);
     setError("");
     setMode("new");
+    setRx(makeEmptyPrescription(dateKey));
   };
 
   const openEdit = (event) => {
@@ -60,8 +102,31 @@ function DayModal({
     setMode(event);
   };
 
+  const isRx =
+    mode === "new" &&
+    form.eventType === "MEDICATION" &&
+    Boolean(onSavePrescription);
+
   const submit = async (e) => {
     e.preventDefault();
+    if (isRx) {
+      const message = validatePrescription(rx);
+      if (message) {
+        setError(message);
+        return;
+      }
+      setSaving(true);
+      setError("");
+      try {
+        await onSavePrescription(toPrescriptionPayload(rx));
+        setMode(null);
+      } catch (err) {
+        setError(err.message || "약을 저장하지 못했어요.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (!form.title.trim()) {
       setError("일정 이름을 입력해 주세요.");
       return;
@@ -86,10 +151,16 @@ function DayModal({
     }
   };
 
-  const remove = async (event) => {
-    if (!window.confirm(`'${event.title}' 일정을 삭제할까요?`)) return;
+  const remove = async (event, scope = "one") => {
+    const message =
+      scope === "all"
+        ? `'${event.title}'의 모든 날짜 일정을 삭제할까요?`
+        : event.prescriptionId
+          ? `${Number(dateKey.slice(5, 7))}월 ${Number(dateKey.slice(8))}일의 '${event.title}' 일정만 삭제할까요?`
+          : `'${event.title}' 일정을 삭제할까요?`;
+    if (!window.confirm(message)) return;
     try {
-      await onDelete(event.eventId);
+      await onDelete(event, scope);
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
     }
@@ -198,18 +269,29 @@ function DayModal({
                     </span>
                     <span className="day-copy">
                       <strong>{event.title}</strong>
-                      <small>
-                        {event.scheduledAt?.slice(11, 16)}
-                        {event.notes ? ` · ${event.notes}` : ""}
-                      </small>
+                      {event.scheduledAt && (
+                        <small>{event.scheduledAt.slice(11, 16)}</small>
+                      )}
                     </span>
                     <span className="event-actions">
                       <button type="button" onClick={() => openEdit(event)}>
                         수정
                       </button>
-                      <button type="button" onClick={() => remove(event)}>
-                        삭제
+                      <button
+                        type="button"
+                        onClick={() => remove(event, "one")}
+                      >
+                        {event.prescriptionId ? "삭제" : "전체 삭제"}
                       </button>
+                      {event.prescriptionId && (
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => remove(event, "all")}
+                        >
+                          전체 삭제
+                        </button>
+                      )}
                     </span>
                   </li>
                 ))}
@@ -233,37 +315,45 @@ function DayModal({
                     ))}
                   </select>
                 </label>
-                <label>
-                  이름
-                  <input
-                    autoFocus
-                    maxLength={150}
-                    placeholder="예: 독감 예방접종"
-                    value={form.title}
-                    onChange={(e) =>
-                      setForm({ ...form, title: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  시각
-                  <input
-                    type="time"
-                    value={form.time}
-                    onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  />
-                </label>
-                <label>
-                  메모
-                  <textarea
-                    maxLength={1000}
-                    rows={2}
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm({ ...form, notes: e.target.value })
-                    }
-                  />
-                </label>
+                {isRx ? (
+                  <PrescriptionFields value={rx} onChange={setRx} />
+                ) : (
+                  <>
+                    <label>
+                      이름
+                      <input
+                        autoFocus
+                        maxLength={30}
+                        placeholder="예: 독감 예방접종"
+                        value={form.title}
+                        onChange={(e) =>
+                          setForm({ ...form, title: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      시각
+                      <input
+                        type="time"
+                        value={form.time}
+                        onChange={(e) =>
+                          setForm({ ...form, time: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      메모
+                      <textarea
+                        maxLength={1000}
+                        rows={2}
+                        value={form.notes}
+                        onChange={(e) =>
+                          setForm({ ...form, notes: e.target.value })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
                 <div className="event-form-actions">
                   <button
                     type="button"
@@ -287,14 +377,19 @@ function DayModal({
   );
 }
 
+// fetchProgress가 있으면 날짜별 { date, expected, taken } 으로 일부 복용까지 링으로 보여주고,
+// 없으면 fetchDates(모두 복용한 날짜 목록)로 완료한 날만 꽉 찬 링으로 보여준다 (친구 달력)
 export default function IntakeCalendar({
   fetchDates,
+  fetchProgress,
   fetchDay,
   fetchEvents,
   createEvent,
   updateEvent,
   updateEventStatus,
   deleteEvent,
+  deletePrescription,
+  createPrescription,
   title = "복용 달력",
 }) {
   const now = new Date();
@@ -324,7 +419,9 @@ export default function IntakeCalendar({
         `${monthKey}-${pad(daysInMonth)}`,
       );
       setEvents(list ?? []);
-    } catch {}
+    } catch (err) {
+      setError(err.message || "일정을 불러오지 못했어요.");
+    }
   };
 
   // 완료한 날
@@ -332,7 +429,10 @@ export default function IntakeCalendar({
     let ignore = false;
     setError("");
     setDates([]);
-    fetchDates(`${monthKey}-01`, `${monthKey}-${pad(daysInMonth)}`)
+    (fetchProgress ?? fetchDates)(
+      `${monthKey}-01`,
+      `${monthKey}-${pad(daysInMonth)}`,
+    )
       .then((res) => {
         if (!ignore) setDates(res ?? []);
       })
@@ -342,7 +442,7 @@ export default function IntakeCalendar({
     return () => {
       ignore = true;
     };
-    // fetchDates는 매 렌더마다 새 함수라 의존성에서 제외 (친구가 바뀌면 부모가 key로 새로 마운트)
+    // fetchDates·fetchProgress는 매 렌더마다 새 함수라 의존성에서 제외 (친구가 바뀌면 부모가 key로 새로 마운트)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
 
@@ -399,8 +499,17 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
-  const handleDelete = async (eventId) => {
-    await deleteEvent(eventId);
+  const handleSavePrescription = async (payload) => {
+    await createPrescription(payload);
+    await reloadEvents();
+  };
+
+  const handleDelete = async (event, scope = "one") => {
+    if (scope === "all" && event.prescriptionId && deletePrescription) {
+      await deletePrescription(event.prescriptionId);
+    } else {
+      await deleteEvent(event.eventId);
+    }
     await reloadEvents();
   };
 
@@ -410,7 +519,19 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
-  const completed = new Set(dates);
+  // { "YYYY-MM-DD" → { expected, taken } } (날짜 문자열만 오면 모두 복용한 날)
+  const progress = new Map(
+    dates.map((item) =>
+      typeof item === "string"
+        ? [item, { expected: 1, taken: 1 }]
+        : [item.date, { expected: item.expected, taken: item.taken }],
+    ),
+  );
+  const completed = new Set(
+    [...progress]
+      .filter(([, p]) => p.expected > 0 && p.taken >= p.expected)
+      .map(([date]) => date),
+  );
   const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7; // 월요일 시작
   const cells = [
     ...Array(offset).fill(null),
@@ -454,13 +575,20 @@ export default function IntakeCalendar({
           const isFuture = key > todayKey;
           // 일정 기능이 있으면 미래도 열고, 없으면(친구 달력) 과거 기록만 연다
           const disabled = canEdit ? false : !fetchDay || isFuture;
+          const p = progress.get(key);
+          const ratio = p && p.expected > 0 ? p.taken / p.expected : 0;
+          // 링: 진행도 모드면 먹을 일정이 있던 날만, 완료 날짜 모드(친구)면 지난 날 모두
+          const showRing =
+            !isFuture && (fetchProgress ? p?.expected > 0 : true);
           const cls = [
             "calendar-day",
-            completed.has(key) ? "done" : "",
+            completed.has(key) ? "done" : ratio > 0 ? "partial" : "",
             key === todayKey ? "today" : "",
             isFuture ? "future" : "",
             selected === key ? "selected" : "",
-          ].join(" ");
+          ]
+            .filter(Boolean)
+            .join(" ");
           return (
             <button
               key={key}
@@ -469,7 +597,11 @@ export default function IntakeCalendar({
               className={cls}
               aria-label={
                 `${day}일` +
-                (completed.has(key) ? " 복용 완료" : "") +
+                (completed.has(key)
+                  ? " 모두 복용"
+                  : p && p.expected > 0
+                    ? ` ${p.taken}/${p.expected} 복용`
+                    : "") +
                 (dayEvents.length ? ` 일정 ${dayEvents.length}개` : "")
               }
               onClick={(e) => {
@@ -477,7 +609,8 @@ export default function IntakeCalendar({
                 setSelected(key);
               }}
             >
-              {day}
+              {showRing && <DayRing ratio={ratio} />}
+              <span className="calendar-day-num">{day}</span>
               {dayEvents.length > 0 && (
                 <span
                   className={`calendar-event-dot ${
@@ -494,9 +627,29 @@ export default function IntakeCalendar({
 
       {error && <p className="calendar-error">{error}</p>}
       {!error && (
-        <p className="calendar-summary">
-          {elapsed}일 중 <b>{completed.size}일</b> 완료
-        </p>
+        <div className="calendar-foot">
+          <div className="calendar-legend">
+            <span>
+              <i className="calendar-legend-full" aria-hidden="true" />
+              모두 복용
+            </span>
+            {fetchProgress && (
+              <span>
+                <i className="calendar-legend-part" aria-hidden="true" />
+                일부 복용
+              </span>
+            )}
+            {canEdit && (
+              <span>
+                <i className="calendar-legend-event" aria-hidden="true" />
+                일정
+              </span>
+            )}
+          </div>
+          <p className="calendar-summary">
+            {elapsed}일 중 <b>{completed.size}일</b> 완료
+          </p>
+        </div>
       )}
 
       {selected && (
@@ -510,6 +663,9 @@ export default function IntakeCalendar({
           openerRef={openerRef}
           onClose={() => setSelected(null)}
           onSave={handleSave}
+          onSavePrescription={
+            createPrescription ? handleSavePrescription : null
+          }
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
         />

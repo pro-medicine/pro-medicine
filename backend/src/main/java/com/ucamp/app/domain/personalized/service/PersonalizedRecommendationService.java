@@ -14,6 +14,7 @@ import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.domain.recommendation.service.RecommendationStore;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
+import com.ucamp.app.infra.llm.guard.LlmGuard;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class PersonalizedRecommendationService {
     private final RecommendationService recommendationService;
     private final RecommendationStore recommendationStore;
     private final RecommendationProperties properties;
+    private final LlmGuard llmGuard;
     private final MeterRegistry meterRegistry;
 
     public RecommendationResponse recommend(Long userId, Long sessionId) {
@@ -56,6 +58,15 @@ public class PersonalizedRecommendationService {
         if (!state.is(AiQuestionSession.READY)) {
             throw new BusinessException(ErrorCode.PERSONALIZED_INVALID_STATE);
         }
+        String lockValue = llmGuard.checkAndLock(userId, RecommendationService.FEATURE);
+        try {
+            return doRecommend(userId, sessionId, state);
+        } finally {
+            llmGuard.releaseInflight(userId, lockValue);
+        }
+    }
+
+    private RecommendationResponse doRecommend(Long userId, Long sessionId, SessionState state) {
         RecommendationInput input = input(userId, state);
         RecommendationResult result = recommendationService.runInput(input, pipelineVersion());
         PersonalizedSessionStore.Completed completed = sessionStore.complete(userId, sessionId, result);

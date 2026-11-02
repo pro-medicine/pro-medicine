@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import { viewOf } from "./notificationTypes";
+import TypeIcon from "./NotificationTypeIcon";
+import {
+  canCompleteIntake,
+  canRespondFollow,
+  completeIntakeFromNotification,
+  respondFollowFromNotification,
+} from "./notificationActions";
 import {
   getNotifications,
   getUnreadCount,
   markAllNotificationsRead,
   markNotificationRead,
 } from "../api/notificationApi";
-import { Icon } from "../shared/ui";
 
 // 탭: 전체 / 내 복용 / 친구 소식 (백엔드 NotificationCategory와 같은 값)
 const TABS = [
@@ -14,11 +21,10 @@ const TABS = [
   { id: "FRIEND", label: "친구 소식", category: "FRIEND" },
 ];
 
-// 알림 종류(category)별 표시 이름과 아이콘
-const CATEGORY_VIEW = {
-  INTAKE: { label: "복용 알림", icon: "clock" },
-  FRIEND: { label: "친구 소식", icon: "people" },
-};
+// "2026-10-30T12:30:00" → 오늘(KST) 알림인지, "12:30"
+const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+const isToday = (createdAt) => (createdAt ?? "").slice(0, 10) === todayKey();
+const hourMinute = (createdAt) => (createdAt ?? "").slice(11, 16);
 
 /**
  * 알림 시각을 "방금", "10분 전", "3시간 전", "어제", "3일 전", "10월 20일"로 바꾼다.
@@ -50,7 +56,7 @@ function timeAgo(createdAt, now = new Date()) {
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRead, onClose }) {
+export default function NotificationPanel({ userId, anchor, refreshKey, onRead, onClose, onNavigate, onChanged }) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
@@ -106,7 +112,7 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
     }));
   };
 
-  // 알림 하나 클릭 → 안 읽은 알림이면 읽음 처리
+  // 알림 하나 읽음 처리 (안 읽은 알림만)
   const handleItemClick = async (item) => {
     const id = item.notificationId;
     if (item.read || pendingIdsRef.current.has(id)) return; // 이미 읽음 또는 요청 중
@@ -122,6 +128,67 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
       pendingIdsRef.current.delete(id);
     }
   };
+
+  // 상단 고정 카드의 버튼: 읽음 처리 후 해당 화면으로 이동 (패널은 App이 닫음)
+  const readAndGo = (item, target) => {
+    handleItemClick(item);
+    onNavigate?.(target);
+  };
+
+  // 알림에서 바로 처리 (복용 완료 / 친구 신청 수락·거절) → 결과 문구를 위에 잠깐 보여주고 읽음 처리
+  const [busyId, setBusyId] = useState(null);
+  const [notice, setNotice] = useState(null); // { text, ok }
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  const runAction = async (item, run) => {
+    if (busyId) return;
+    setBusyId(item.notificationId);
+    try {
+      const text = await run();
+      setNotice({ text, ok: true });
+      await handleItemClick(item);
+      onChanged?.();
+    } catch (err) {
+      console.error(err);
+      setNotice({ text: "처리하지 못했어요. 다시 시도해 주세요", ok: false });
+    } finally {
+      setBusyId(null);
+    }
+  };
+  const completeIntake = (item) =>
+    runAction(item, async () => {
+      const count = await completeIntakeFromNotification(userId, item);
+      return count > 0 ? `영양제 ${count}개를 복용 완료했어요` : "이미 모두 챙겼어요";
+    });
+  const respondFollow = (item, status) =>
+    runAction(item, async () => {
+      const done = await respondFollowFromNotification(userId, item, status);
+      if (!done) return "이미 처리된 친구 신청이에요";
+      return status === "ACCEPTED" ? "친구 신청을 수락했어요" : "친구 신청을 거절했어요";
+    });
+
+  // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
+  // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
+  // - 오늘 복용 알림: 지금 먹을 영양제 → 민트 카드
+  const items = result.items;
+  const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
+  const intakeAlert =
+    tab !== "FRIEND" ? items.find((i) => !i.read && i.type === "INTAKE_REMINDER" && isToday(i.createdAt)) : null;
+  const pinnedIds = [guardianAlert, intakeAlert].filter(Boolean).map((i) => i.notificationId);
+  const others = items.filter((i) => !pinnedIds.includes(i.notificationId));
+
+  // Esc 키로 닫기 (패널 바깥을 눌러도 닫힘)
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   // 모두 읽음
   const handleReadAll = async () => {
@@ -144,11 +211,18 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="notification-header">
-          <div>
-            <span className="section-label">NOTIFICATIONS</span>
-            <h2>새로운 알림</h2>
-          </div>
-          <button aria-label="닫기" onClick={onClose}>×</button>
+          <h2>
+            알림
+            {unreadCount > 0 && <em aria-label={`안 읽은 알림 ${unreadCount}개`}>{unreadCount}</em>}
+          </h2>
+          <button
+            type="button"
+            className="read-all"
+            onClick={handleReadAll}
+            disabled={loading || (unreadCount === 0 && !hasUnreadItem)}
+          >
+            모두 읽음
+          </button>
         </div>
 
         <div className="notification-tabs" role="tablist">
@@ -161,60 +235,134 @@ export default function NotificationPanel({ userId = 1, anchor, refreshKey, onRe
               onClick={() => setTab(t.id)}
             >
               {t.label}
-              {t.id === "ALL" && unreadCount > 0 && <span>{unreadCount}</span>}
             </button>
           ))}
         </div>
 
         <div className="notification-list">
+          {notice && (
+            <p className={`noti-notice${notice.ok ? "" : " is-error"}`} role="status">
+              {notice.ok && "✓ "}
+              {notice.text}
+            </p>
+          )}
           {loading && <p className="notification-state">알림을 불러오는 중...</p>}
           {!loading && result.error && (
             <p className="notification-state">{result.error}</p>
           )}
-          {!loading && !result.error && result.items.length === 0 && (
+          {!loading && !result.error && items.length === 0 && (
             <p className="notification-state">새로운 알림이 없어요</p>
           )}
 
+          {/* 중요 알림 상단 고정 */}
+          {!loading && !result.error && guardianAlert && (
+            <section className="noti-pin is-guardian" aria-label="안부 확인이 필요한 알림">
+              <div className="noti-pin-body">
+                <TypeIcon item={guardianAlert} solid />
+                <div>
+                  <span className="noti-pin-label">안부 확인이 필요해요</span>
+                  <p>{guardianAlert.title}</p>
+                  <span className="notification-meta">{timeAgo(guardianAlert.createdAt)}</span>
+                </div>
+              </div>
+              <div className="noti-pin-actions">
+                {guardianAlert.actorUserId && (
+                  <button
+                    type="button"
+                    className="is-primary"
+                    onClick={() => readAndGo(guardianAlert, { tab: "friends", friendUserId: guardianAlert.actorUserId })}
+                  >
+                    친구 보기
+                  </button>
+                )}
+                <button type="button" onClick={() => handleItemClick(guardianAlert)}>
+                  나중에
+                </button>
+              </div>
+            </section>
+          )}
+          {!loading && !result.error && intakeAlert && (
+            <section className="noti-pin is-intake" aria-label="지금 먹을 영양제 알림">
+              <TypeIcon item={intakeAlert} solid />
+              <div className="noti-pin-text">
+                <p>{intakeAlert.title}</p>
+                <span className="notification-meta">
+                  {canCompleteIntake(intakeAlert)
+                    ? `${intakeAlert.scheduledAt.slice(11, 16)} 알림 · 여기서 바로 체크할 수 있어요`
+                    : `${hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요`}
+                </span>
+              </div>
+              {canCompleteIntake(intakeAlert) ? (
+                <button
+                  type="button"
+                  disabled={busyId === intakeAlert.notificationId}
+                  onClick={() => completeIntake(intakeAlert)}
+                >
+                  복용 완료
+                </button>
+              ) : (
+                <button type="button" onClick={() => readAndGo(intakeAlert, { tab: "home" })}>
+                  체크하기
+                </button>
+              )}
+            </section>
+          )}
+
+          {!loading && !result.error && pinnedIds.length > 0 && others.length > 0 && (
+            <h3 className="noti-section-title">다른 소식</h3>
+          )}
           {!loading &&
             !result.error &&
-            result.items.map((item) => {
-              const view = CATEGORY_VIEW[item.category] ?? CATEGORY_VIEW.INTAKE;
+            others.map((item) => {
+              const view = viewOf(item);
               const unread = !item.read;
               return (
+                // 항목 전체가 아닌 "제목 영역 버튼"만 누르는 대상 → 안의 수락·거절 버튼도 스크린 리더가 따로 읽을 수 있음
                 <article
                   className={unread ? "notification-item unread" : "notification-item"}
                   key={item.notificationId}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleItemClick(item)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault(); // Space로 페이지가 스크롤되지 않게
-                      handleItemClick(item);
-                    }
-                  }}
                 >
-                  <span className={`notification-type-icon ${view.icon}`}>
-                    <Icon name={view.icon} size={19} />
-                  </span>
-                  <div>
-                    <span className="notification-meta">
-                      {view.label} · {timeAgo(item.createdAt)}
+                  <button
+                    type="button"
+                    className="notification-item-main"
+                    aria-label={`${view.label}: ${item.title}${unread ? ", 안 읽음" : ""}`}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <TypeIcon item={item} size={36} />
+                    <span className="notification-item-text">
+                      <strong className="notification-item-title">{item.title}</strong>
+                      <span className="notification-meta">
+                        {view.label} · {timeAgo(item.createdAt)}
+                      </span>
                     </span>
-                    <h3>{item.title}</h3>
-                  </div>
-                  {unread && <i />}
+                  </button>
+                  {unread && <i aria-hidden="true" />}
+                  {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 (제목 버튼과 형제 요소) */}
+                  {unread && canRespondFollow(item) && (
+                    <span className="noti-follow-actions">
+                      <button
+                        type="button"
+                        className="is-accept"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 수락`}
+                        onClick={() => respondFollow(item, "ACCEPTED")}
+                      >
+                        수락
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 거절`}
+                        onClick={() => respondFollow(item, "REJECTED")}
+                      >
+                        거절
+                      </button>
+                    </span>
+                  )}
                 </article>
               );
             })}
         </div>
-        <button
-          className="read-all"
-          onClick={handleReadAll}
-          disabled={loading || (unreadCount === 0 && !hasUnreadItem)}
-        >
-          모두 읽음으로 표시
-        </button>
       </aside>
     </div>
   );

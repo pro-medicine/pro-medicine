@@ -4,6 +4,8 @@ import com.ucamp.app.domain.personalized.planner.OptionKind;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
+import com.ucamp.app.domain.recommendation.pipeline.BannedWords;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -22,7 +24,7 @@ public class PersonalizedQuestionValidator {
     public static final int MAX_LABEL_LENGTH = 20;
     public static final int MAX_QUESTION_LENGTH = 60;
     /** 약을 끊게 하거나 진단·처방처럼 들리는 말 */
-    public static final List<String> BANNED_WORDS = List.of("중단", "끊으세요", "진단", "처방", "복용을 멈추");
+    public static final List<String> BANNED_WORDS = BannedWords.BASE;
 
     /** 검증 실패 종류 */
     public enum Code {

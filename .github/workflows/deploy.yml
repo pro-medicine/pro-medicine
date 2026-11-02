@@ -86,16 +86,22 @@ jobs:
 
       # ---------- EC2에서 무중단 배포 ----------
       - name: EC2에서 배포 스크립트 실행
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 20m
+          envs: OPENAI_API_KEY
           script: |
             set -e
             cd ~/pro-medicine
             git fetch origin
             git checkout ${{ github.ref_name }}
             git reset --hard ${{ github.sha }}
+            # .env에 OPENAI_API_KEY 추가/갱신 (다른 키는 건드리지 않음)
+            sed -i '/^OPENAI_API_KEY=/d' backend/.env 2>/dev/null || true
+            echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> backend/.env
             bash scripts/deploy.sh

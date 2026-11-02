@@ -68,8 +68,8 @@ rm -rf backend/build/libs
 mkdir -p backend/build/libs
 cp "$ART_DIR/backend/app.jar" backend/build/libs/app.jar
 
-echo "▶ 2. MySQL·nginx 준비 (변경 없으면 그대로 유지)"
-docker compose up -d mysql
+echo "▶ 2. MySQL·Redis·nginx 준비 (변경 없으면 그대로 유지)"
+docker compose up -d mysql redis
 docker compose up -d --no-deps --build frontend
 
 echo "▶ 3. 새 백엔드 이미지 빌드"

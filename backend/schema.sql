@@ -35,6 +35,7 @@ DROP TABLE IF EXISTS `follows`;
 DROP TABLE IF EXISTS `disposal_locations`;
 DROP TABLE IF EXISTS `auth_demographics`;
 DROP TABLE IF EXISTS `calendar_events`;
+DROP TABLE IF EXISTS `prescriptions`;
 DROP TABLE IF EXISTS `users`;
 
 -- ============================================================
@@ -242,6 +243,7 @@ CREATE TABLE `disposal_locations` (
 CREATE TABLE `calendar_events` (
                                   `event_id` BIGINT NOT NULL AUTO_INCREMENT,
                                   `user_id` BIGINT NOT NULL,
+                                  `prescription_id` BIGINT NULL,
                                   `event_type` VARCHAR(30) NOT NULL,
                                   `title` VARCHAR(150) NOT NULL,
                                   `scheduled_at` DATETIME NOT NULL,
@@ -267,6 +269,21 @@ CREATE TABLE `calendar_events` (
                                                           'COMPLETED',
                                                           'CANCELED'
                                           ))
+);
+
+CREATE TABLE `prescriptions` (
+                                 `prescription_id` BIGINT NOT NULL AUTO_INCREMENT,
+                                 `user_id` BIGINT NOT NULL,
+                                 `name` VARCHAR(150) NOT NULL,
+                                 `ingredient_id` BIGINT NULL COMMENT '약 성분 마스터 ID. 상충 검사에 사용, 직접 입력이면 NULL',
+                                 `start_at` DATE NOT NULL,
+                                 `end_at` DATE NULL COMMENT 'NULL이면 종료일 미정',
+                                 `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+                                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                 PRIMARY KEY (`prescription_id`),
+                                 KEY `idx_prescriptions_user` (`user_id`, `start_at`),
+                                 CONSTRAINT `chk_prescription_status`
+                                     CHECK (`status` IN ('ACTIVE', 'ENDED', 'STOPPED'))
 );
 
 CREATE TABLE `ai_recommendation_items` (
@@ -518,15 +535,25 @@ ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (
 ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
                                                            `user_id`
     );
+
+ALTER TABLE `users`
+    MODIFY COLUMN `user_id` BIGINT NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `calendar_events`
     ADD CONSTRAINT `fk_calendar_event_user`
         FOREIGN KEY (`user_id`)
             REFERENCES `users` (`user_id`)
             ON DELETE CASCADE;
 
-ALTER TABLE `users`
-    MODIFY COLUMN `user_id` BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `prescriptions`
+    ADD CONSTRAINT `fk_prescriptions_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+            ON DELETE CASCADE;
 
+ALTER TABLE `calendar_events`
+    ADD CONSTRAINT `fk_calendar_event_prescription`
+        FOREIGN KEY (`prescription_id`) REFERENCES `prescriptions` (`prescription_id`)
+            ON DELETE CASCADE;
 
 ALTER TABLE `auth_demographics`
     ADD CONSTRAINT `fk_auth_demographics_user`
@@ -557,7 +584,6 @@ ALTER TABLE `ai_recommendations` ADD CONSTRAINT `PK_AI_RECOMMENDATIONS` PRIMARY 
 ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY (
                                                                                  `schedule_id`
     );
-
 
 ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (
                                                                `survey_id`

@@ -14,15 +14,30 @@ import ResultStep from "./ResultStep";
 import "./recommendation.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// 문항 코드 → 건강정보 키. 이 매핑에 있는 문항은 missing에 해당 키가 있을 때만 보여준다
+// 매핑에 없는 문항(생활습관: 흡연·음주 등)은 항상 보여준다
+const QUESTION_TO_MISSING_KEY = {
+  "Q-GENDER": "GENDER",
+  "Q-BIRTH": "BIRTH_YEAR",
+  "Q-CONDITIONS": "CONDITIONS_ANSWERED",
+  "Q-MEDICATIONS": "MEDICATIONS_ANSWERED",
+};
+
 const POLL_INTERVAL_MS = 1000; // queue 모드 조회 간격
 const MAX_POLLS = 90; // 1초 × 90번 ≈ 90초가 지나도 끝나지 않으면 에러 화면
+// 단계별 모달 제목 (위 작은 초록 글씨는 항상 "맞춤 영양 추천")
+const STEP_TITLE = {
+  consent: "건강정보 이용 동의",
+  survey: "생활 습관 체크",
+  result: "추천 결과",
+};
 const SURVEY_LOADING_TEXT = "설문을 불러오고 있어요";
 const AI_LOADING_TEXT = "AI가 추천을 만들고 있어요";
 
 // 설문과 성분 목록을 함께 받는다. 성분 이름을 못 받아도 코드로 표시하고 진행
-async function requestSurvey(userId) {
+async function requestSurvey() {
   const [data, ingredientList] = await Promise.all([
-    getActiveSurvey(userId),
+    getActiveSurvey(),
     getIngredients().catch(() => []),
   ]);
   return { data, ingredientList };
@@ -92,15 +107,12 @@ function toSubmitAnswers(questions, answers) {
         questionId: q.questionId,
         valueNumber: Number(a.valueNumber),
       });
-    } else if (a.list) {
+    } else if (a.list != null) {
       const list = toSubmitList(q.code, a.list);
-      // 저장돼 있던 목록을 모두 지운 경우에는 []를 보내야 서버에서도 지워진다
-      if (list.length || q.prefill?.valueText) {
-        result.push({
-          questionId: q.questionId,
-          valueText: JSON.stringify(list),
-        });
-      }
+      result.push({
+        questionId: q.questionId,
+        valueText: JSON.stringify(list),
+      });
     }
   });
   return result;
@@ -112,7 +124,7 @@ function toSubmitAnswers(questions, answers) {
  * - onClose: 모달 닫기
  * - onPersonalized: 회원 결과 화면에서 맞춤 질문(V2)으로 넘어가기 (없으면 안내를 띄우지 않음)
  */
-export default function RecommendationModal({ userId, onClose, onPersonalized }) {
+export default function RecommendationModal({ userId, missing, onClose, onPersonalized }) {
   const [step, setStep] = useState("loading"); // "consent" | "survey" | "loading" | "result" | "error"
   const [loadingText, setLoadingText] = useState(SURVEY_LOADING_TEXT); // 로딩 화면 문구
   const [survey, setSurvey] = useState(null); // GET /surveys/active 응답
@@ -151,8 +163,17 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
   // 1) 받아온 설문을 화면에 반영 (afterConsent: 동의 직후라 동의 단계를 다시 띄우지 않음)
   const applySurvey = useCallback(({ data, ingredientList }, afterConsent) => {
     if (!aliveRef.current) return;
-    setSurvey(data);
-    setAnswers(toInitialAnswers(data.questions));
+    // missing이 있으면(회원 V1 폴백) 이미 채워진 문항은 숨긴다
+    const missingSet = missing?.length ? new Set(missing) : null;
+    const filtered = missingSet
+      ? data.questions.filter((q) => {
+          const key = QUESTION_TO_MISSING_KEY[q.code];
+          return !key || missingSet.has(key); // 매핑 없는 문항은 항상 표시
+        })
+      : data.questions;
+    const shown = filtered.length > 0 ? filtered : data.questions; // 전부 숨겨지면 전체 표시
+    setSurvey({ ...data, questions: shown });
+    setAnswers(toInitialAnswers(shown));
     setIngredients(Object.fromEntries(ingredientList.map((i) => [i.code, i])));
     // 회원인데 민감 문항이 없으면 아직 동의하지 않은 것
     const needsConsent =
@@ -160,7 +181,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
       data.respondentType === "MEMBER" &&
       !data.questions.some((q) => q.sensitive);
     setStep(needsConsent ? "consent" : "survey");
-  }, []);
+  }, [missing]);
 
   const applyLoadError = useCallback((e) => {
     if (!aliveRef.current) return;
@@ -170,7 +191,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
 
   // 2) 화면이 처음 열릴 때 설문 + 성분 목록 불러오기
   useEffect(() => {
-    requestSurvey(userId).then(applySurvey).catch(applyLoadError);
+    requestSurvey().then(applySurvey).catch(applyLoadError);
   }, [userId, applySurvey, applyLoadError]);
 
   // 동의 직후·다시 설문할 때 설문을 다시 불러온다
@@ -182,7 +203,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
     setCanPersonalize(false);
     setError(null);
     try {
-      applySurvey(await requestSurvey(userId), afterConsent);
+      applySurvey(await requestSurvey(), afterConsent);
     } catch (e) {
       applyLoadError(e);
     }
@@ -193,7 +214,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
     if (sending) return;
     setSending(true);
     try {
-      await agreeSensitiveConsent(userId);
+      await agreeSensitiveConsent();
       await loadSurvey({ afterConsent: true });
     } catch (e) {
       fail(e.message);
@@ -215,7 +236,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
     } else {
       timerRef.current = setTimeout(async () => {
         try {
-          const next = await getRecommendation(userId, data.recommendationId);
+          const next = await getRecommendation(data.recommendationId);
           handleRecommendation(next, pollCount + 1);
         } catch (e) {
           fail(e.message);
@@ -234,12 +255,15 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
     const submitAnswers = { ...answers };
     if (skippedQuestionId != null) delete submitAnswers[skippedQuestionId];
     try {
-      const { responseId } = await submitSurvey(
-        userId,
+      const submitResult = await submitSurvey(
         survey.surveyId,
         toSubmitAnswers(survey.questions, submitAnswers),
       );
-      const data = await createRecommendation(userId, responseId);
+      const { responseId, guestToken } = submitResult;
+      if (guestToken) {
+        sessionStorage.setItem("guestToken", guestToken);
+      }
+      const data = await createRecommendation(responseId);
       handleRecommendation(data, 0);
     } catch (e) {
       fail(e.message);
@@ -251,7 +275,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
   // 5) 회원 결과가 나오면 건강정보가 채워져 맞춤 질문(V2)이 가능한지 확인한다
   useEffect(() => {
     if (step !== "result" || !userId || !onPersonalized) return;
-    getRecommendationMode(userId)
+    getRecommendationMode()
       .then((mode) => aliveRef.current && setCanPersonalize(mode.mode === "V2"))
       .catch(() => {});
   }, [step, userId, onPersonalized]);
@@ -276,8 +300,8 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
       >
         <div className="rec-header">
           <div>
-            <span className="rec-eyebrow">AI RECOMMENDATION</span>
-            <h2>맞춤 영양 추천</h2>
+            <span className="rec-eyebrow">맞춤 영양 추천</span>
+            <h2>{STEP_TITLE[step] ?? "맞춤 영양 추천"}</h2>
           </div>
           <button
             type="button"
@@ -325,6 +349,7 @@ export default function RecommendationModal({ userId, onClose, onPersonalized })
             ingredients={ingredients}
             onRestart={() => loadSurvey()}
             onClose={onClose}
+            userId={userId}
           >
             {canPersonalize && (
               <div className="rec-pq-guide">

@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.ucamp.app.support.TestJwt.bearer;
 import static com.ucamp.app.support.SurveyAnswers.choice;
 import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
@@ -78,26 +79,30 @@ class RecommendationApiGoldenTest {
 
         Map<String, Object> golden = new LinkedHashMap<>();
         MvcResult created = mockMvc.perform(post("/api/v1/recommendations").contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(user.getId()))
                 .content("{\"responseId\":" + responseId + "}")).andReturn();
         golden.put("post", response(created));
         long recommendationId = objectMapper.readTree(created.getResponse().getContentAsString())
                 .path("data").path("recommendationId").asLong();
 
-        golden.put("get", response(mockMvc.perform(get("/api/v1/recommendations/" + recommendationId)).andReturn()));
+        golden.put("get", response(mockMvc.perform(get("/api/v1/recommendations/" + recommendationId)
+                .header("Authorization", bearer(user.getId()))).andReturn()));
         golden.put("latest", response(mockMvc.perform(get("/api/v1/users/me/recommendations/latest")
-                .header("X-User-Id", user.getId())).andReturn()));
+                .header("Authorization", bearer(user.getId()))).andReturn()));
         golden.put("saved", saved(recommendationId));
         GoldenFiles.assertMatches("api/member-v4", golden);
     }
 
     @Test
     void 비회원_추천과_오류_응답() throws Exception {
-        long responseId = submit(null, List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, Year.now().getValue() - 30),
-                choice(Q_DIET, DIET_VEGAN), choice(Q_SUN, SUN_LOW)));
+        String[] tokenHolder = new String[1];
+        long responseId = submitGuest(List.of(choice(Q_GENDER, GENDER_F), number(Q_BIRTH, Year.now().getValue() - 30),
+                choice(Q_DIET, DIET_VEGAN), choice(Q_SUN, SUN_LOW)), tokenHolder);
 
         Map<String, Object> golden = new LinkedHashMap<>();
         golden.put("post", response(mockMvc.perform(post("/api/v1/recommendations")
-                .contentType(MediaType.APPLICATION_JSON).content("{\"responseId\":" + responseId + "}")).andReturn()));
+                .contentType(MediaType.APPLICATION_JSON).header("X-Guest-Token", tokenHolder[0])
+                .content("{\"responseId\":" + responseId + "}")).andReturn()));
         golden.put("notFound", response(mockMvc.perform(get("/api/v1/recommendations/999999")).andReturn()));
         golden.put("noResponseId", response(mockMvc.perform(post("/api/v1/recommendations")
                 .contentType(MediaType.APPLICATION_JSON).content("{}")).andReturn()));
@@ -177,9 +182,19 @@ class RecommendationApiGoldenTest {
         var req = post("/api/v1/surveys/" + SURVEY_ID + "/responses").contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("answers", answers)));
         if (userId != null) {
-            req.header("X-User-Id", userId);
+            req.header("Authorization", bearer(userId));
         }
         String body = mockMvc.perform(req).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).path("data").path("responseId").asLong();
+    }
+
+    private long submitGuest(List<Map<String, Object>> answers, String[] tokenHolder) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/surveys/" + SURVEY_ID + "/responses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("answers", answers))))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode data = objectMapper.readTree(body).path("data");
+        tokenHolder[0] = data.get("guestToken").asString();
+        return data.get("responseId").asLong();
     }
 }

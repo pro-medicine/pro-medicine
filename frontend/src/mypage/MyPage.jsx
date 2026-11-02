@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { Icon, SupplementCard, TopBar } from "../shared/ui";
+import { Icon, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
   fetchMySupplements,
@@ -11,16 +11,20 @@ import {
 import {
   getCalendarEvents,
   createCalendarEvent,
+  createPrescription,
   updateCalendarEvent,
   deleteCalendarEvent,
   updateCalendarEventStatus,
 } from "../api/calendarEventApi";
+import { deletePrescription } from "../api/prescriptionApi";
+import { useModalFocus } from "../common/useModalFocus";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
 import IntakeCalendar from "../common/IntakeCalendar";
-import { getMyCalendar, getMyDayIntakes } from "../api/intakeApi";
+import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
+import MyStats from "./MyStats";
+import SupplementGroups from "./SupplementGroups";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
-import { useModalFocus } from "../common/useModalFocus";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -52,8 +56,7 @@ function toSupplementCard(item, index) {
     brand: item.manufacturer ?? "",
     ingredient: item.ingredientSummary ?? "-",
     amount: item.packageSize ?? "-",
-    price:
-      item.price === null ? "-" : `${item.price.toLocaleString("ko-KR")}원`,
+    price: item.price == null ? "-" : `${item.price.toLocaleString("ko-KR")}원`,
     category: item.category ?? (isManual ? "직접 입력" : "영양제"),
     color: cardColors[index % cardColors.length],
     time: scheduleText(item.schedules ?? []),
@@ -66,7 +69,7 @@ function SettingsModal({ onClose, openerRef, children }) {
   const panelRef = useModalFocus(onClose, openerRef);
 
   return (
-    <div className="settings-overlay">
+    <div className="settings-overlay" role="presentation" onMouseDown={onClose}>
       <section
         ref={panelRef}
         className="settings-panel"
@@ -74,6 +77,7 @@ function SettingsModal({ onClose, openerRef, children }) {
         aria-modal="true"
         aria-labelledby="settings-title"
         tabIndex={-1}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="settings-header">
           <h2 id="settings-title">설정</h2>
@@ -89,17 +93,22 @@ function SettingsModal({ onClose, openerRef, children }) {
 }
 
 export default function ProfileScreen({
-    userId,
-    viewerId,
-    onUserUpdated,
-    friend,
-    onBack,
-    onNotifications,
-    topBarActions,
+  userId,
+  friend,
+  viewerId,
+  onUserUpdated,
+  onBack,
+  onNotifications,
+  topBarActions,
+  startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
+  account = null, // 로그인 계정 { email, nickname } (설정의 계정 정보)
+  onLogout, // 설정의 "로그아웃"
+  loggingOut = false,
 }) {
   const isMine = !friend;
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  // 친구가 복용 현황을 비공개로 두면 통계·달력·영양제 대신 안내만 보여줌
   const hidden = !isMine && friend.shared === false;
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(null);
@@ -108,7 +117,7 @@ export default function ProfileScreen({
   const [supplementError, setSupplementError] = useState(false);
   // 등록·삭제 후 숫자를 올려서 통계·영양관리·영양제 목록을 다시 불러옴
   const [refreshKey, setRefreshKey] = useState(0);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   // 복용 일정을 수정할 내 영양제 (API 응답 1개), null 이면 수정 안 함
   const [scheduleTarget, setScheduleTarget] = useState(null);
   // 삭제 중인 카드 id (중복 클릭 방지)
@@ -126,7 +135,7 @@ export default function ProfileScreen({
     if (sharing || !user) return;
     setSharing(true);
     try {
-      const updated = await updateShareIntake(MY_USER_ID, !shared);
+      const updated = await updateShareIntake(userId, !shared);
       setUser((prev) => ({
         ...prev,
         shareIntakeStatus: updated.shareIntakeStatus,
@@ -137,6 +146,7 @@ export default function ProfileScreen({
       setSharing(false);
     }
   };
+
   useEffect(() => {
     if (!isMine || userId == null) return;
     // 다시 불러오기(refreshKey 변경)로 이 effect가 다시 실행되면 true가 된다
@@ -180,68 +190,59 @@ export default function ProfileScreen({
 
   const reload = () => setRefreshKey((prev) => prev + 1);
 
-    // 내 영양제는 로그인 사용자 데이터 사용
-    // 친구 영양제는 API 응답을 화면 카드 형태로 변환
-    const supplements = isMine
-        ? (mySupplementList ?? [])
-        : (friend?.supplements ?? []).map(toSupplementCard);
+  // 내 영양제는 로그인 사용자 데이터 사용
+  // 친구 영양제는 API 응답을 화면 카드 형태로 변환
+  const supplements = isMine
+    ? (mySupplementList ?? [])
+    : (friend?.supplements ?? []).map(toSupplementCard);
 
-    // 사용자 이름
-    const name = friend?.name ?? user?.nickname ?? "사용자";
+  // 사용자 이름
+  const name = friend?.name ?? user?.nickname ?? "사용자";
 
   const initial = friend?.initial ?? name.charAt(0);
-  const avatarColor = friend?.color ?? "yellow";
-  // 내 통계는 API 값, 못 불러오면 "-" / 친구 화면은 기존 예시 데이터
-  const streak = isMine ? (stats?.streakDays ?? "-") : (friend.streak ?? 0);
-  const productCount = isMine
-    ? (stats?.activeProductCount ?? "-")
-    : (friend.supplementCount ?? supplements.length);
-  const monthlyRate = isMine
-    ? (stats?.monthlyRate ?? "-")
-    : (friend.monthlyRate ?? "-");
 
   if (isMine && editing) {
     return (
-        <ProfileEditPage
-            userId={userId}
-            onBack={() => setEditing(false)}
-            onSaved={(updatedUser) => {
-              setUser(updatedUser);
-              onUserUpdated?.(updatedUser);
-            }}
-            onNotifications={onNotifications}
-        />
+      <ProfileEditPage
+        userId={userId}
+        onBack={() => setEditing(false)}
+        onSaved={(updatedUser) => {
+          setUser(updatedUser);
+          onUserUpdated?.(updatedUser);
+        }}
+        onNotifications={onNotifications}
+      />
     );
   }
 
   // 영양제 등록 페이지: 등록에 성공하면 마이페이지로 돌아와서 목록·통계·영양관리를 다시 불러옴
   if (isMine && adding) {
     return (
-        <SupplementAddPage
-            userId={userId}
-            onBack={() => setAdding(false)}
-            onSaved={() => {
-              setAdding(false);
-              reload();
-            }}
-            onNotifications={onNotifications}
-        />
+      <SupplementAddPage
+        userId={userId}
+        onBack={() => setAdding(false)}
+        onSaved={() => {
+          setAdding(false);
+          reload();
+        }}
+        onNotifications={onNotifications}
+      />
     );
   }
 
   // 같은 페이지를 수정 모드로 사용 (제품은 고정, 복용 일정만 수정)
   if (isMine && scheduleTarget) {
     return (
-        <SupplementAddPage
-            userId={userId}
-            target={scheduleTarget}
-            onBack={() => setScheduleTarget(null)}
-            onSaved={() => {
-              setScheduleTarget(null);
-              reload();
-            }}
-            onNotifications={onNotifications}
-        />
+      <SupplementAddPage
+        userId={userId}
+        target={scheduleTarget}
+        onBack={() => setScheduleTarget(null)}
+        onSaved={() => {
+          setScheduleTarget(null);
+          reload();
+        }}
+        onNotifications={onNotifications}
+      />
     );
   }
 
@@ -279,98 +280,124 @@ export default function ProfileScreen({
   };
 
   return (
-    <div className="screen profile-screen">
+    <div className={`screen profile-screen${isMine ? " is-mine" : ""}`}>
+      {/* 머리: 큰 아바타 + 이름(화면 제목) + 오른쪽 버튼 (내 화면: 프로필 편집 / 친구: 안부지킴이·삭제) */}
       <TopBar
         back={onBack}
-        title={isMine ? "마이페이지" : `${name}님의 영양정보`}
-        subtitle={isMine ? "나의 건강 기록" : "친구 프로필"}
+        avatar={
+          <span
+            className={`avatar xlarge${isMine ? "" : ` is-${friend.color ?? "mint"}${(friend.streak ?? 0) > 0 ? " is-streaking" : ""}`}`}
+          >
+            {initial}
+          </span>
+        }
+        title={
+          <>
+            {name}
+            {!isMine && friend?.relation && (
+              <span
+                className={`chip ${friend.mutual === false ? "" : "green"} profile-relation`}
+              >
+                {friend.relation}
+              </span>
+            )}
+          </>
+        }
+        subtitle={isMine ? "건강한 하루를 만드는 중" : undefined}
+        description={isMine ? undefined : friend?.status}
         onNotifications={onNotifications}
         onSettings={isMine ? openSettings : undefined}
-        actions={topBarActions}
+        actions={
+          isMine ? (
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={openEdit}
+            >
+              프로필 편집
+            </button>
+          ) : (
+            topBarActions
+          )
+        }
       />
+
       {showSettings && (
         <SettingsModal
           onClose={() => setShowSettings(false)}
           openerRef={settingsOpenerRef}
         >
-          {isMine && (
-            <section className="share-setting">
+          <section className="share-setting">
+            <div>
+              <strong>친구에게 복용 현황 공개</strong>
+              <small>
+                {shared
+                  ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
+                  : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
+              </small>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={shared}
+              aria-label="친구에게 복용 현황 공개"
+              className={`switch ${shared ? "on" : ""}`}
+              disabled={sharing || !user}
+              onClick={toggleShare}
+            >
+              <span />
+            </button>
+          </section>
+          {onLogout && (
+            <section className="account-setting">
               <div>
-                <strong>친구에게 복용 현황 공개</strong>
+                <strong>계정</strong>
                 <small>
-                  {shared
-                    ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
-                    : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
+                  {account?.email ?? user?.email ?? "로그인한 계정"}
                 </small>
               </div>
-
               <button
                 type="button"
-                role="switch"
-                aria-checked={shared}
-                aria-label="친구에게 복용 현황 공개"
-                className={`switch ${shared ? "on" : ""}`}
-                disabled={sharing || !user}
-                onClick={toggleShare}
+                className="btn btn-outline btn-sm"
+                disabled={loggingOut}
+                onClick={onLogout}
               >
-                <span />
+                {loggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>
             </section>
           )}
         </SettingsModal>
       )}
-      <section
-        className={isMine ? "profile-hero clickable" : "profile-hero"}
-        onClick={isMine ? openEdit : undefined}
-      >
-        <span className={`avatar xlarge ${avatarColor}`}>{initial}</span>
-        <div className="profile-name">
-          <span>{isMine ? "건강한 하루를 만드는 중" : friend?.relation}</span>
-          <h2>{name}</h2>
-          <p>{isMine ? "꾸준함이 최고의 영양제예요" : friend?.status}</p>
-        </div>
-        {isMine && (
-          <button className="edit-button" type="button" onClick={openEdit}>
-            프로필 편집
-          </button>
-        )}
-      </section>
+
+      {/* 내 화면: 그래프 통계 카드 3개 / 친구 화면: 같은 그래프 (비공개면 안내) */}
       {hidden ? (
         <p className="share-hidden">
           {name}님이 복용 현황을 공개하지 않았어요.
         </p>
+      ) : isMine ? (
+        <MyStats stats={stats} />
       ) : (
-        <section className="stats-grid">
-          <div>
-            <span>연속 복용</span>
-            <strong>
-              {streak}
-              <small>일</small>
-            </strong>
-          </div>
-          <div>
-            <span>복용 영양제</span>
-            <strong>
-              {productCount}
-              <small>개</small>
-            </strong>
-          </div>
-          <div>
-            <span>이번 달 달성률</span>
-            <strong>
-              {monthlyRate}
-              <small>%</small>
-            </strong>
-          </div>
-        </section>
+        // 친구 상세: 친구 상세 API의 통계 값을 마이페이지 통계와 같은 모양으로 넘김
+        <MyStats
+          stats={{
+            streakDays: friend.streak ?? 0,
+            bestStreakDays: friend.bestStreakDays ?? 0,
+            weeklyRate: friend.weeklyRate,
+            weekDays: friend.weekDays,
+            monthlyRate: friend.monthlyRate,
+            monthWeeks: friend.monthWeeks,
+          }}
+        />
       )}
       {!hidden &&
         (isMine ? (
           <IntakeCalendar
-            fetchDates={getMyCalendar}
+            fetchProgress={getMyCalendarProgress}
             fetchDay={getMyDayIntakes}
             fetchEvents={getCalendarEvents}
             createEvent={createCalendarEvent}
+            createPrescription={createPrescription}
+            deletePrescription={deletePrescription}
             updateEvent={updateCalendarEvent}
             updateEventStatus={updateCalendarEventStatus}
             deleteEvent={deleteCalendarEvent}
@@ -385,93 +412,63 @@ export default function ProfileScreen({
             fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
           />
         ))}
-      {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
-      {/*{isMine && <NutritionManagement key={refreshKey} />}*/}
-      {/*DB에 영양제 정보 등록시 아래 코드로 수정*/}
-      {isMine && (
-          <NutritionManagement
-              key={refreshKey}
-              userId={userId}
-          />
-      )}
 
+      {/* 내 화면: 나의 영양관리(왼쪽) + 내가 먹는 영양제(오른쪽) / 친구 화면: 영양제만 */}
+      <div className={isMine ? "profile-columns" : "profile-columns single"}>
+        {/* key 가 바뀌면 다시 그려지면서 영양관리도 다시 불러옴 */}
+        {isMine && <NutritionManagement key={refreshKey} userId={userId} />}
 
-      <section className="section-block products-section">
-        <div className="section-title-row">
-          <div>
-            <span className="section-label">SUPPLEMENTS</span>
-            <h2>{isMine ? "내가 먹는 영양제" : `${name}님이 먹는 영양제`}</h2>
-          </div>
-          {isMine && (
-            <button
-              className="add-friend-button"
-              type="button"
-              onClick={openAdd}
-            >
-              <Icon name="plus" size={16} />
-              영양제 등록
-            </button>
-          )}
-        </div>
-        <p className="section-description">
-          상품명과 주요 영양성분, 함량 및 구매 가격을 확인할 수 있어요.
-        </p>
-        {isMine && supplementError && (
-          <p className="section-description">
-            영양제 정보를 불러오지 못했어요.
-          </p>
-        )}
-        {isMine && !supplementError && mySupplementList?.length === 0 && (
-          <p className="section-description">아직 등록된 영양제가 없어요.</p>
-        )}
-        {hidden ? (
-          <p className="share-hidden">
-            {name}님이 복용 현황을 공개하지 않았어요.
-          </p>
-        ) : (
-          <div className="product-grid">
-            {supplements.map((supplement) =>
-              isMine ? (
-                // 공용 SupplementCard 는 그대로 두고, 바깥을 감싸서 삭제 버튼만 얹음
-                <div className="supplement-card-wrap" key={supplement.id}>
-                  <SupplementCard supplement={supplement} />
-                  {/* 카드 오른쪽 위: 수정(복용 일정) / 삭제 */}
-                  <div className="supplement-card-actions">
-                    <button
-                      type="button"
-                      aria-label={`${supplement.name} 복용 일정 수정`}
-                      onClick={() => {
-                        setScheduleTarget(supplement.raw);
-                        window.scrollTo({ top: 0 });
-                      }}
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${supplement.name} 삭제`}
-                      disabled={removingId === supplement.id}
-                      onClick={() => removeSupplement(supplement)}
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <SupplementCard key={supplement.id} supplement={supplement} />
-              ),
+        <section className="products-section">
+          <div className="products-head">
+            <h2>
+              {isMine ? "내가 먹는 영양제" : `${name}님이 먹는 영양제`}
+              <span>{supplements.length}개</span>
+            </h2>
+            {isMine && (
+              <button
+                className="btn btn-soft btn-sm"
+                type="button"
+                onClick={openAdd}
+              >
+                <Icon name="plus" size={15} />
+                영양제 등록
+              </button>
             )}
           </div>
-        )}
-      </section>
+          {isMine && supplementError && (
+            <p className="section-description">
+              영양제 정보를 불러오지 못했어요.
+            </p>
+          )}
+          {isMine && !supplementError && mySupplementList?.length === 0 && (
+            <p className="section-description">아직 등록된 영양제가 없어요.</p>
+          )}
+          {!isMine && hidden && (
+            <p className="section-description">
+              {name}님이 복용 현황을 공개하지 않았어요.
+            </p>
+          )}
+          {!isMine && !hidden && supplements.length === 0 && (
+            <p className="section-description">아직 등록된 영양제가 없어요.</p>
+          )}
+          {/* 아침 · 점심 · 저녁 시간대별 묶음 (#67 영양제 시안 B) */}
+          <SupplementGroups
+            supplements={supplements}
+            isMine={isMine}
+            removingId={removingId}
+            onEdit={(supplement) => {
+              setScheduleTarget(supplement.raw);
+              window.scrollTo({ top: 0 });
+            }}
+            onRemove={removeSupplement}
+          />
+        </section>
+      </div>
     </div>
   );
 }
 
 // ───────────── 나의 영양관리 ─────────────
-
-// 성분 순서대로 게이지 색상
-const nutritionTones = ["yellow", "green", "purple", "orange", "blue"];
 
 // 권장량에 가장 못 미치는 성분 안내
 function nutritionNoticeText(nutrients) {
@@ -489,7 +486,7 @@ function nutritionNoticeText(nutrients) {
   return `${message} 식품 섭취량은 포함되지 않은 참고용 수치예요.`;
 }
 
-function NutritionManagement({userId}) {
+function NutritionManagement({ userId }) {
   const [nutrition, setNutrition] = useState(null);
 
   useEffect(() => {
@@ -498,12 +495,12 @@ function NutritionManagement({userId}) {
     let ignore = false;
 
     fetchNutrition(userId)
-        .then((data) => {
-          if (!ignore) setNutrition(data);
-        })
-        .catch(() => {
-          if (!ignore) setNutrition(null);
-        });
+      .then((data) => {
+        if (!ignore) setNutrition(data);
+      })
+      .catch(() => {
+        if (!ignore) setNutrition(null);
+      });
 
     return () => {
       ignore = true;
@@ -514,22 +511,21 @@ function NutritionManagement({userId}) {
   // 복용 중이지만 함량 정보가 없어 계산에서 빠진 영양제 수
   const unsupportedCount = nutrition?.unsupportedCount ?? 0;
 
-  // 섭취량이 모두 0이면 계산할 영양제가 없는 것 → 게이지 대신 안내
-  let hasIntake = false;
-  for (const item of nutrients) {
-    if (item.intakeAmount > 0) hasIntake = true;
-  }
+  // 서버가 먹는 성분만 보내므로, 목록이 비어 있으면 계산할 영양제가 없는 것 → 게이지 대신 안내
+  const hasIntake = nutrients.length > 0;
 
   return (
     <section className="nutrition-management">
       <div className="nutrition-heading">
         <div>
-          <span className="section-label">DAILY NUTRITION</span>
           <h2>나의 영양관리</h2>
-          <p>복용 중인 영양제를 기준으로 성인 하루 권장량과 비교했어요.</p>
+          <p>
+            복용 중인 영양제를 기준으로 성별별 하루 권장량과 비교했어요. 성별
+            정보가 없으면 남성 기준을 사용해요.
+          </p>
         </div>
         <span className="nutrition-date">
-          {nutrition?.sample ? "오늘 기준 · 예시 데이터" : "오늘 기준"}
+          {nutrition?.sample ? "오늘 기준" : "오늘 기준"}
         </span>
       </div>
 
@@ -542,7 +538,7 @@ function NutritionManagement({userId}) {
       ) : (
         <>
           <div className="nutrition-list">
-            {nutrients.map((item, index) => (
+            {nutrients.map((item) => (
               <div className="nutrition-row" key={item.name}>
                 <div className="nutrition-name">
                   <strong>{item.name}</strong>
@@ -554,13 +550,18 @@ function NutritionManagement({userId}) {
                 </div>
                 <div className="nutrition-gauge">
                   <span
-                    className={nutritionTones[index % nutritionTones.length]}
+                    className={item.percent < 50 ? "low" : "ok"}
                     style={{ width: `${Math.min(item.percent, 100)}%` }}
                   />
                 </div>
-                <div className="nutrition-percent">
-                  <strong>{item.percent}%</strong>
-                  {item.percent > 100 && <span>충분</span>}
+                <div
+                  className={`nutrition-percent ${item.percent < 50 ? "low" : item.percent >= 100 ? "ok" : ""}`}
+                >
+                  {item.percent < 50
+                    ? "부족"
+                    : item.percent >= 100
+                      ? "충분"
+                      : `${item.percent}%`}
                 </div>
               </div>
             ))}

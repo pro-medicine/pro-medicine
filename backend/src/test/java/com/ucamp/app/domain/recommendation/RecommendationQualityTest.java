@@ -96,16 +96,6 @@ class RecommendationQualityTest {
         assertThat(r.finalItems()).extracting(RecommendationItem::ingredient).containsExactly("VITAMIN_C");
     }
 
-    @Test
-    void v4_프롬프트가_아닌_버전은_품질_검사를_하지_않는다() {
-        script(output(LONG_SUMMARY, List.of()));
-
-        RecommendationResult r = registry.get("V3").run(smoker);
-
-        assertThat(fake.requests()).hasSize(1);
-        assertThat(r.summary()).isEqualTo(LONG_SUMMARY);
-    }
-
     private RecommendationQualityCheck.Result check(String summary, List<String> items) {
         return RecommendationQualityCheck.check(output(summary, items), List.of());
     }

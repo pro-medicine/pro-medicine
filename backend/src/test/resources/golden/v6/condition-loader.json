@@ -1,0 +1,7 @@
+{
+  "conditions" : [ "HYPERTENSION", "METFORMIN", "SMOKING_CURRENT" ],
+  "guest" : false,
+  "hasMedicationOrDisease" : true,
+  "recommendedInFilter" : [ "MAGNESIUM", "VITAMIN_D" ],
+  "recommendedIngredients" : [ "MAGNESIUM", "VITAMIN_D" ]
+}

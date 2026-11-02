@@ -8,8 +8,11 @@ import com.ucamp.app.domain.recommendation.pipeline.RuleOnlyPipeline;
 import com.ucamp.app.domain.recommendation.service.RecommendationService;
 import com.ucamp.app.domain.survey.dto.SubmitSurveyRequest;
 import com.ucamp.app.domain.survey.service.SurveySubmitService;
+import com.ucamp.app.domain.user.entity.User;
+import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmCallException;
+import com.ucamp.app.support.TestUsers;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,8 @@ class FallbackTest {
     FakeLlmClient fake;
     @Autowired
     MeterRegistry meterRegistry;
+    @Autowired
+    UserRepository userRepository;
 
     @AfterEach
     void reset() {
@@ -47,13 +52,14 @@ class FallbackTest {
         fake.setResponder(req -> {
             throw new LlmCallException(LlmCallException.Kind.HTTP_ERROR, 503, null, 1, "x", null);
         });
-        long responseId = surveySubmitService.submit(SURVEY_ID, null, new SubmitSurveyRequest(List.of(
+        User user = TestUsers.create(userRepository, false);
+        long responseId = surveySubmitService.submit(SURVEY_ID, user.getId(), new SubmitSurveyRequest(List.of(
                 new SubmitSurveyRequest.Answer(Q_GENDER, List.of(GENDER_M), null, null),
                 new SubmitSurveyRequest.Answer(Q_BIRTH, null, BigDecimal.valueOf(1990), null),
                 new SubmitSurveyRequest.Answer(Q_SMOKING, List.of(SMOKING_ONE_PACK), null, null),
                 new SubmitSurveyRequest.Answer(Q_SUN, List.of(SUN_LOW), null, null)))).responseId();
 
-        RecommendationResponse r = recommendationService.create(responseId);
+        RecommendationResponse r = recommendationService.create(user.getId(), responseId, null, null);
 
         assertThat(fake.requests()).hasSize(2); // 재시도 1회 포함
         assertThat(r.fallback()).isTrue();
