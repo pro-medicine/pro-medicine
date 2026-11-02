@@ -501,15 +501,46 @@
   justify-content: center;
 }
 
-.fr-avatar.is-sm { font-size: 13px; height: 36px; width: 36px; }
-.fr-avatar.is-md { font-size: 15px; height: 40px; width: 40px; }
-.fr-avatar.is-lg { font-size: 22px; height: 60px; width: 60px; }
-.fr-avatar.is-xl { font-size: 26px; height: 72px; width: 72px; }
-.fr-avatar.is-mint { background: #e3f6ee; color: #0b7f58; }
-.fr-avatar.is-blue { background: #e6f0ff; color: #2f5fd0; }
-.fr-avatar.is-yellow { background: #fff4d6; color: #a86b00; }
-.fr-avatar.is-pink { background: #ffe8ef; color: #c2416b; }
-.fr-avatar.is-me { background: #e3f6ee; color: #0b7f58; }
+.fr-avatar.is-sm {
+  font-size: 13px;
+  height: 36px;
+  width: 36px;
+}
+.fr-avatar.is-md {
+  font-size: 15px;
+  height: 40px;
+  width: 40px;
+}
+.fr-avatar.is-lg {
+  font-size: 22px;
+  height: 60px;
+  width: 60px;
+}
+.fr-avatar.is-xl {
+  font-size: 26px;
+  height: 72px;
+  width: 72px;
+}
+.fr-avatar.is-mint {
+  background: #e3f6ee;
+  color: #0b7f58;
+}
+.fr-avatar.is-blue {
+  background: #e6f0ff;
+  color: #2f5fd0;
+}
+.fr-avatar.is-yellow {
+  background: #fff4d6;
+  color: #a86b00;
+}
+.fr-avatar.is-pink {
+  background: #ffe8ef;
+  color: #c2416b;
+}
+.fr-avatar.is-me {
+  background: #e3f6ee;
+  color: #0b7f58;
+}
 
 /* ───────── 랭킹 카드 ───────── */
 .fr-rank {
@@ -605,11 +636,19 @@
   position: relative;
 }
 
-.is-place-2 .fr-podium-face { --medal: #9aa6ae; --stand: #eef1f3; }
-.is-place-3 .fr-podium-face { --medal: #c9824a; --stand: #fbede2; }
+.is-place-2 .fr-podium-face {
+  --medal: #9aa6ae;
+  --stand: #eef1f3;
+}
+.is-place-3 .fr-podium-face {
+  --medal: #c9824a;
+  --stand: #fbede2;
+}
 
 .fr-podium-face .fr-avatar {
-  box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--medal);
+  box-shadow:
+    0 0 0 3px var(--white),
+    0 0 0 5px var(--medal);
 }
 
 .fr-crown {
@@ -657,9 +696,17 @@
   width: 100%;
 }
 
-.is-place-1 .fr-podium-stand { background: linear-gradient(180deg, #fff6d6, rgba(255, 255, 255, 0)); height: 78px; }
-.is-place-2 .fr-podium-stand { background: linear-gradient(180deg, #eef1f3, rgba(255, 255, 255, 0)); }
-.is-place-3 .fr-podium-stand { background: linear-gradient(180deg, #fbede2, rgba(255, 255, 255, 0)); height: 38px; }
+.is-place-1 .fr-podium-stand {
+  background: linear-gradient(180deg, #fff6d6, rgba(255, 255, 255, 0));
+  height: 78px;
+}
+.is-place-2 .fr-podium-stand {
+  background: linear-gradient(180deg, #eef1f3, rgba(255, 255, 255, 0));
+}
+.is-place-3 .fr-podium-stand {
+  background: linear-gradient(180deg, #fbede2, rgba(255, 255, 255, 0));
+  height: 38px;
+}
 
 /* 전체 순위 */
 .fr-rank-list {
@@ -791,8 +838,14 @@ button.fr-rank-row:hover {
   padding: 0 9px;
 }
 
-.fr-chip.is-friend { background: var(--primary-soft); color: var(--primary-hover); }
-.fr-chip.is-follow { border: 1px solid var(--line); color: var(--muted); }
+.fr-chip.is-friend {
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+.fr-chip.is-follow {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
 
 .fr-guard-icon {
   color: var(--primary-hover);
@@ -970,10 +1023,20 @@ button.fr-rank-row:hover {
   opacity: 0.6;
 }
 
-.fr-request-actions .is-accept { background: var(--accent); color: var(--white); }
-.fr-request-actions .is-accept:hover { background: var(--accent-hover); }
-.fr-request-actions .is-reject { background: #f1f3f2; color: var(--muted); }
-.fr-request-actions .is-reject:hover { color: var(--ink); }
+.fr-request-actions .is-accept {
+  background: var(--accent);
+  color: var(--white);
+}
+.fr-request-actions .is-accept:hover {
+  background: var(--accent-hover);
+}
+.fr-request-actions .is-reject {
+  background: #f1f3f2;
+  color: var(--muted);
+}
+.fr-request-actions .is-reject:hover {
+  color: var(--ink);
+}
 
 .fr-guard-head {
   align-items: center;
@@ -1100,8 +1163,16 @@ button.fr-rank-row:hover {
     padding: 8px 14px 0;
   }
 
-  .fr-avatar.is-lg { font-size: 18px; height: 50px; width: 50px; }
-  .fr-avatar.is-xl { font-size: 22px; height: 60px; width: 60px; }
+  .fr-avatar.is-lg {
+    font-size: 18px;
+    height: 50px;
+    width: 50px;
+  }
+  .fr-avatar.is-xl {
+    font-size: 22px;
+    height: 60px;
+    width: 60px;
+  }
 
   .fr-rank-row {
     gap: 10px;
@@ -1194,9 +1265,18 @@ button.fr-rank-row:hover {
   height: 46px;
 }
 
-.confirm-dialog-actions .is-cancel { background: #f1f3f2; color: var(--ink); }
-.confirm-dialog-actions .is-primary { background: var(--accent); color: var(--white); }
-.confirm-dialog-actions .is-danger { background: var(--alert); color: var(--white); }
+.confirm-dialog-actions .is-cancel {
+  background: #f1f3f2;
+  color: var(--ink);
+}
+.confirm-dialog-actions .is-primary {
+  background: var(--accent);
+  color: var(--white);
+}
+.confirm-dialog-actions .is-danger {
+  background: var(--alert);
+  color: var(--white);
+}
 
 .confirm-dialog-actions button:disabled {
   cursor: wait;
@@ -1220,4 +1300,8 @@ button.fr-rank-row:hover {
     right: 0;
     top: 28px;
   }
+}
+
+.friend-delete.is-blocked {
+  opacity: 0.45;
 }

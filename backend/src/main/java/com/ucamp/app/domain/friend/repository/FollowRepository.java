@@ -2,7 +2,11 @@ package com.ucamp.app.domain.friend.repository;
 
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +31,21 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     Optional<Follow> findByFollowerIdAndFollowingIdAndStatus(Long followerId, Long followingId, FollowStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f " +
+            "FROM Follow f " +
+            "WHERE (f.followerId = :userId AND f.followingId = :targetId) " +
+            "OR (f.followerId = :targetId AND f.followingId = :userId) " +
+            "ORDER BY f.followerId ASC, f.followingId ASC")
+    List<Follow> findAllBetweenUsersForUpdate(
+            @Param("userId") Long userId,
+            @Param("targetId") Long targetId
+    );
+
+    List<Follow> findByFollowerIdAndStatusInOrderByFollowIdDesc(Long userId, List<FollowStatus> statuses);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM Follow f " +
+            "WHERE f.followId = :followId")
+    Optional<Follow> findByFollowIdForUpdate(@Param("followId") Long followId);
 }

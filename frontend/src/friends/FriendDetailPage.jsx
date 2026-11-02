@@ -54,7 +54,10 @@ export default function FriendDetailPage({
   const askConfirm = (options) => {
     // 다른 창(설정 모달 등) 안의 버튼에서 열면 그 버튼은 곧 사라지므로, 처음 창을 연 버튼을 그대로 복원 대상으로 둔다
     const active = document.activeElement;
-    if (active instanceof HTMLElement && !active.closest('[role="dialog"], [role="alertdialog"]')) {
+    if (
+      active instanceof HTMLElement &&
+      !active.closest('[role="dialog"], [role="alertdialog"]')
+    ) {
       openerRef.current = active;
     }
     setConfirm(options);
@@ -145,7 +148,10 @@ export default function FriendDetailPage({
       confirmLabel: "해제",
       danger: true,
       onConfirm: () =>
-        runGuardian(() => removeGuardian(userId, guardian.guardianSettingId), "안부지킴이를 해제했어요."),
+        runGuardian(
+          () => removeGuardian(userId, guardian.guardianSettingId),
+          "안부지킴이를 해제했어요.",
+        ),
     });
   };
 
@@ -153,6 +159,9 @@ export default function FriendDetailPage({
   const isMutual = fallback?.mutual === true;
   const needsMutual = !guardian && !incoming; // 새 신청만 상호 친구 필요
   const blocked = needsMutual && !isMutual;
+  const hasGuardianLink = Boolean(guardian || incoming);
+  const GUARDIAN_LINK_MSG =
+    "안부지킴이로 연결된 친구는 삭제할 수 없어요. 안부지킴이를 먼저 해제해 주세요.";
 
   const guardianLabel = blocked
     ? "서로 친구일 때 신청할 수 있어요"
@@ -166,6 +175,23 @@ export default function FriendDetailPage({
             ? "안부지킴이 설정 (일수 변경 / 취소)"
             : "신청 취소 (수락 대기 중)";
 
+  const handleRejectIncoming = () => {
+    if (!pendingIncoming || guardianBusy) return;
+
+    const name = friend?.name ?? "이 친구";
+    askConfirm({
+      title: "안부지킴이 신청을 거절할까요?",
+      message: `${name}님이 보낸 안부지킴이 신청을 거절하고 삭제해요.`,
+      confirmLabel: "거절",
+      danger: true,
+      onConfirm: () =>
+        runGuardian(
+          () => removeGuardian(userId, incoming.guardianSettingId),
+          "안부지킴이 신청을 거절했어요.",
+        ),
+    });
+  };
+
   const handleGuardianClick = () => {
     const name = friend?.name ?? "이 친구";
     if (pendingIncoming) {
@@ -174,7 +200,10 @@ export default function FriendDetailPage({
         message: `수락하면 ${name}님이 내 접속 여부를 알 수 있어요.`,
         confirmLabel: "수락",
         onConfirm: () =>
-          runGuardian(() => acceptGuardian(userId, incoming.guardianSettingId), "안부지킴이를 수락했어요."),
+          runGuardian(
+            () => acceptGuardian(userId, incoming.guardianSettingId),
+            "안부지킴이를 수락했어요.",
+          ),
       });
       return;
     }
@@ -186,7 +215,10 @@ export default function FriendDetailPage({
         confirmLabel: "해제",
         danger: true,
         onConfirm: () =>
-          runGuardian(() => removeGuardian(userId, incoming.guardianSettingId), "안부지킴이를 해제했어요."),
+          runGuardian(
+            () => removeGuardian(userId, incoming.guardianSettingId),
+            "안부지킴이를 해제했어요.",
+          ),
       });
       return;
     }
@@ -211,7 +243,8 @@ export default function FriendDetailPage({
         message: `${name}님에게 보낸 안부지킴이 신청을 취소해요.`,
         confirmLabel: "신청 취소",
         danger: true,
-        onConfirm: () => runGuardian(() => removeGuardian(userId, guardian.guardianSettingId)),
+        onConfirm: () =>
+          runGuardian(() => removeGuardian(userId, guardian.guardianSettingId)),
       });
       return;
     }
@@ -221,12 +254,21 @@ export default function FriendDetailPage({
     setDaysOpen(true);
   };
 
+  const deleteLabel = isMutual ? "친구 삭제" : "팔로우 취소";
+
   const handleDeleteFriend = () => {
     if (deleting) return;
+    if (hasGuardianLink) {
+      setGuardianMsg(GUARDIAN_LINK_MSG);
+      return;
+    }
+    const name = friend?.name ?? "이 친구";
     askConfirm({
-      title: "친구를 삭제할까요?",
-      message: `${friend?.name ?? "이 친구"}님을 친구 목록에서 삭제해요. 다시 친구가 되려면 친구 신청을 새로 보내야 해요.`,
-      confirmLabel: "삭제",
+      title: isMutual ? "친구를 삭제할까요?" : "팔로우를 취소할까요?",
+      message: isMutual
+        ? `삭제하면 ${name}님의 복용 현황을 더 이상 볼 수 없어요. ${name}님은 내 복용 현황을 계속 볼 수 있어요.`
+        : `취소하면 ${name}님의 복용 현황을 더 이상 볼 수 없어요. 다시 보려면 팔로우를 새로 신청해야 해요.`,
+      confirmLabel: isMutual ? "삭제" : "팔로우 취소",
       danger: true,
       onConfirm: deleteFriendNow,
     });
@@ -277,14 +319,27 @@ export default function FriendDetailPage({
     </button>
   );
 
+  const rejectGuardianButton = pendingIncoming ? (
+    <button
+      type="button"
+      className="btn-text danger"
+      disabled={guardianBusy}
+      onClick={handleRejectIncoming}
+    >
+      신청 거절
+    </button>
+  ) : null;
+
   const deleteButton = (
     <button
       type="button"
-      className="btn-text danger friend-delete"
+      className={`btn-text danger friend-delete ${hasGuardianLink ? "is-blocked" : ""}`}
+      aria-disabled={hasGuardianLink}
+      title={hasGuardianLink ? GUARDIAN_LINK_MSG : undefined}
       disabled={deleting}
       onClick={handleDeleteFriend}
     >
-      친구 삭제
+      {deleteLabel}
     </button>
   );
 
@@ -324,6 +379,7 @@ export default function FriendDetailPage({
         topBarActions={
           <>
             {deleteButton}
+            {rejectGuardianButton}
             {guardianButton}
           </>
         }
