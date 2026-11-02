@@ -218,6 +218,126 @@
   text-decoration: none;
 }
 
+.map-screen .map-selected-card {
+  flex-wrap: wrap;
+}
+
+.map-screen .map-selected-card .map-walking-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.map-screen .map-walking-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.map-screen .map-walking-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.map-screen .disposal-map-research-btn {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(17, 23, 20, 0.18);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  left: 50%;
+  padding: 10px 16px;
+  position: absolute;
+  top: 58px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 8;
+}
+
+.map-screen .disposal-map-research-btn:hover {
+  background: var(--surface);
+}
+
+.map-screen .kakao-route-start {
+  align-items: center;
+  background: #fff;
+  border: 2px solid #2563eb;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(17, 23, 20, 0.2);
+  color: #1d4ed8;
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.map-screen .kakao-route-start span {
+  background: #2563eb;
+  border-radius: 50%;
+  height: 9px;
+  width: 9px;
+}
+
+.map-screen .kakao-live-position {
+  align-items: center;
+  background: rgba(37, 99, 235, 0.17);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 50%;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  position: relative;
+  width: 38px;
+}
+
+.map-screen .kakao-live-dot {
+  background: #2563eb;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 8px rgba(37, 99, 235, 0.35);
+  height: 16px;
+  width: 16px;
+}
+
+.map-screen .kakao-live-direction {
+  border-bottom: 19px solid #2563eb;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 0;
+  height: 0;
+  left: 50%;
+  position: absolute;
+  top: -14px;
+  transform-origin: 50% 33px;
+  width: 0;
+}
+
+.map-screen .kakao-return-follow-button {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(17, 23, 20, 0.16);
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  left: 50%;
+  padding: 9px 14px;
+  position: absolute;
+  top: 58px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 12;
+}
+
 /* 내 위치 점 (카카오 지도 위 CustomOverlay) */
 .map-screen .kakao-my-location {
   background: rgba(46, 125, 215, 0.18);
