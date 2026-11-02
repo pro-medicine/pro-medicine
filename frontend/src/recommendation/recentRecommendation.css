@@ -1,0 +1,28 @@
+/* V7 마이페이지 "최근 추천 제품 보기" (담당: 영준). 모달 틀·카드는 recommendation.css의 rec-* 클래스를 그대로 쓰고,
+   여기에는 recent-rec- 접두어 스타일만 둔다. 색·글꼴은 기존 변수만 사용 */
+
+/* 마이페이지 맨 아래 작은 섹션 */
+.recent-rec-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.recent-rec-caption {
+  font-size: 13px;
+  color: var(--muted);
+}
+.recent-rec-section .btn {
+  flex-shrink: 0;
+}
+
+/* 모달 제목 아래 날짜 · 경로 */
+.recent-rec-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}

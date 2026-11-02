@@ -104,3 +104,10 @@ export function getRecommendedProducts(recommendationId, ingredient) {
     headers: guestTokenHeader(),
   });
 }
+
+// ---------- V7 마이페이지 최근 추천 ----------
+
+// 가장 최근 추천 1건 (회원 전용) → { exists, source, recommendedAt, recommendationId, chatSessionId, notice, ingredients }
+export function getRecentRecommendation() {
+  return api.get("/api/v1/users/me/recommendations/recent");
+}
