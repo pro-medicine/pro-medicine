@@ -166,3 +166,17 @@
 2. worktree 터미널(`C:\Projects\pro-medicine-v7`)에서 `git fetch && git rebase origin/develop` → `docs/logs/2026-11-02.md` 충돌이 나면 **두 블록 모두 남긴다**
 3. `./gradlew test`·`pnpm build` 다시 확인 후 V7 PR (PR 본문에 7장의 `MyPage.jsx` diff로 주연님께 알림)
 4. 끝나면 원본 폴더 터미널(`C:\Projects\pro-medicine`)에서 `git worktree remove ../pro-medicine-v7`
+
+## 12. rebase·머지 준비 결과 (2026-11-02)
+
+- **새 기준 커밋**: `origin/develop` = `f1d6d9c` ([FEAT] #115 폐의약품 지도 고도화 및 실시간 도보 안내 기능 추가 (#117)). `c1a826c` 이후 develop에 들어온 커밋은 이 1개뿐이고 V1은 아직 머지 전
+- **충돌 처리**: 충돌 없음. #117은 `domain/disposal`·`src/disposal` 파일만 바꿔서 V7 파일과 겹치지 않음. `docs/logs/2026-11-02.md`도 develop 쪽 변경이 없어 V7 블록이 그대로 맨 아래에 있음
+- **z-index 수정** (`[FIX]`, 화면 확인에서 발견: 모달 배경 위로 AI 상담 패널이 떠 보임)
+  - chat 쪽 z-index: 고정 버튼 40, 패널 45(모바일 60). 공통 모달 배경 `.rec-backdrop`은 100, 알림 패널 200, 토스트 210
+  - `recentRecommendation.css`에만 `.rec-backdrop:has(> .recent-rec-modal)`(V7 모달을 감싼 배경만)과 `.recent-rec-modal`을 z-index 110으로 지정. 다른 CSS 파일·JSX는 수정하지 않음
+  - 참고: 코드상으로는 원래 값(100)도 chat(최대 60)보다 높았고, 모달을 아래로 가두는 쌓임 맥락(z-index·transform이 있는 조상)도 찾지 못했음. 브라우저에서 다시 확인 필요
+- **테스트**: `./gradlew test` 676개, 실패 10, 건너뜀 3. 실패는 기준과 같은 intake·notification 10개뿐이라 **새 실패 0**. `QuestionHedgeTest`도 이번엔 통과. V7 테스트 12개 통과
+- **빌드**: `pnpm build` 통과
+- **변경 파일**: `git diff --name-only origin/develop..HEAD`가 V7 파일 15개뿐 (z-index 수정은 기존 V7 파일 `recentRecommendation.css`라 개수 그대로)
+- **화면 확인** (worktree 서버 8090·5180, 로컬 DB를 읽기 전용으로, 사용자 확인): 대화창 track 2 모달 정상
+  - 로그인에 필요한 Redis는 Docker 컨테이너 `v7-redis`로 띄움 (원본 8080 로그인에도 쓰여서 남겨 둠). 확인이 끝난 뒤 worktree 서버는 끄고, 복사했던 `backend/.env`·`application.yml`은 지움
