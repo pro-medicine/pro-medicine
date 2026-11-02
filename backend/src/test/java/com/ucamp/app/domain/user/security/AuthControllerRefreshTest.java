@@ -64,6 +64,7 @@ class AuthControllerRefreshTest {
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertTrue(result.getHeaders().getFirst(HttpHeaders.SET_COOKIE).contains("new"));
         verify(tokens).rotate("old");
+        verify(authService).refresh(6L);
     }
 
     @Test
