@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
@@ -15,6 +16,8 @@ public record SignupRequest(
         @NotBlank @Size(max = 50) String name,
         @NotNull @Min(1) @Max(120) Integer age,
         @NotBlank String gender,
-        @AssertTrue boolean termsAgreed
+        @AssertTrue boolean termsAgreed,
+        @Positive Long guestResponseId,
+        @Pattern(regexp = "^[0-9a-f]{64}$") String guestToken
 ) {
 }

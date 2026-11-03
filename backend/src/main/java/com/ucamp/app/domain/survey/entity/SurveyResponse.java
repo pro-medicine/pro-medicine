@@ -57,6 +57,11 @@ public class SurveyResponse {
     @Column(name = "guest_token_hash", length = 64)
     private String guestTokenHash;
 
+    public void claimForNewMember(User newMember) {
+        this.user = newMember;
+        this.guestTokenHash = null;
+    }
+
     @Builder
     public SurveyResponse(Survey survey, User user, RespondentType respondentType, Boolean includesSensitive,
                           ResponseStatus status, LocalDateTime submittedAt, String guestTokenHash) {

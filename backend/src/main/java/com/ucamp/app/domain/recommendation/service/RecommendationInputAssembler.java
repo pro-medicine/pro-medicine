@@ -10,10 +10,14 @@ import com.ucamp.app.domain.recommendation.pipeline.RecommendationInput;
 import com.ucamp.app.domain.survey.dto.SurveyResponseDetail;
 import com.ucamp.app.domain.survey.dto.SurveyResponseDetail.AnswerValue;
 import com.ucamp.app.domain.survey.entity.RespondentType;
+import com.ucamp.app.domain.survey.entity.ResponseStatus;
+import com.ucamp.app.domain.survey.entity.SurveyResponse;
+import com.ucamp.app.domain.survey.repository.SurveyResponseRepository;
 import com.ucamp.app.domain.survey.service.SurveyAnswerParser;
 import com.ucamp.app.domain.survey.service.SurveyCodes;
 import com.ucamp.app.domain.survey.service.SurveyQueryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +39,7 @@ public class RecommendationInputAssembler {
     private final HealthProfileService healthProfileService;
     private final DrugService drugService;
     private final MemberDemographicsFallback demographicsFallback;
+    private final SurveyResponseRepository surveyResponseRepository;
 
     public RecommendationInput assemble(Long responseId) {
         SurveyResponseDetail detail = surveyQueryService.getResponseDetail(responseId);
@@ -83,6 +88,16 @@ public class RecommendationInputAssembler {
      */
     public RecommendationInput assembleForMember(Long userId, String pregnancy) {
         HealthProfileSnapshot profile = healthProfileService.getSnapshot(userId);
+        SurveyResponse linkedGuest = surveyResponseRepository
+                .findFirstByUser_IdAndRespondentTypeOrderBySubmittedAtDesc(userId, RespondentType.GUEST)
+                .orElse(null);
+        SurveyResponseDetail guestV1 = linkedGuest == null ? null
+                : surveyQueryService.getResponseDetail(linkedGuest.getResponseId());
+        SurveyResponse latestMemberIntake = surveyResponseRepository.findLatestWithAnswer(
+                userId, RespondentType.MEMBER, ResponseStatus.SUBMITTED,
+                SurveyCodes.SUPPLEMENTS, PageRequest.of(0, 1)).stream().findFirst().orElse(null);
+        SurveyResponseDetail memberIntake = latestMemberIntake == null ? null
+                : surveyQueryService.getResponseDetail(latestMemberIntake.getResponseId());
         String gender = profileCode(profile, HealthProfile.KEY_GENDER);
         if (gender == null) gender = demographicsFallback.resolveGenderCode(userId);
         Integer bYear = profile.value(HealthProfile.KEY_BIRTH_YEAR) == null ? null
@@ -102,8 +117,11 @@ public class RecommendationInputAssembler {
                 .pregnancy(pregnancy)
                 .conditions(profile.conditions())
                 .medications(profileMedications(profile))
-                .goals(List.of())
-                .currentIntake(List.of())
+                .sleep(guestV1 == null ? null : code(guestV1, SurveyCodes.SLEEP, null, null))
+                .fatigue(guestV1 == null ? null : code(guestV1, SurveyCodes.FATIGUE, null, null))
+                .goals(guestV1 == null ? List.of() : codes(guestV1, SurveyCodes.GOAL))
+                .currentIntake(memberIntake != null ? intake(memberIntake)
+                        : guestV1 == null ? List.of() : intake(guestV1))
                 .userId(userId)
                 .build();
     }
