@@ -70,8 +70,8 @@ public class IntakeService {
             weekDays.add(day.isAfter(today) ? new DayProgress(day, 0, 0) : dayProgress(schedules, takenByDate, day));
         }
 
-        // 이번 달 1일 ~ 오늘 → 주차별 달성률
-        List<DayProgress> thisMonth = progressBetween(schedules, takenByDate, today.withDayOfMonth(1), today);
+        // 이번 달 1일 ~ 말일 → 주차별 달성률 (진행 중인 주도 그 주 전체 기준, 1103 수정)
+        List<DayProgress> thisMonth = progressBetween(schedules, takenByDate, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
 
         return new IntakeStatsResponse(
                 userId,
