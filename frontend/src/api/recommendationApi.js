@@ -30,11 +30,16 @@ export function getIngredients() {
 }
 
 // 설문 제출 → { responseId }
-export function submitSurvey(surveyId, answers) {
-  return api.post(
+export async function submitSurvey(surveyId, answers) {
+  const result = await api.post(
     `/api/v1/surveys/${surveyId}/responses`,
     { answers },
   );
+  if (!getAccessToken() && result.guestToken && result.responseId != null) {
+    sessionStorage.setItem("guestSurveyResponseId", String(result.responseId));
+    sessionStorage.setItem("guestToken", result.guestToken);
+  }
+  return result;
 }
 
 // 추천 생성 (sync 모드면 DONE, queue 모드면 PENDING으로 온다)

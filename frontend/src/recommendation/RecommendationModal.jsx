@@ -124,7 +124,7 @@ function toSubmitAnswers(questions, answers) {
  * - onClose: 모달 닫기
  * - onPersonalized: 회원 결과 화면에서 맞춤 질문(V2)으로 넘어가기 (없으면 안내를 띄우지 않음)
  */
-export default function RecommendationModal({ userId, missing, onClose, onPersonalized }) {
+export default function RecommendationModal({ userId, missing, onClose, onPersonalized, skipConsent = false }) {
   const [step, setStep] = useState("loading"); // "consent" | "survey" | "loading" | "result" | "error"
   const [loadingText, setLoadingText] = useState(SURVEY_LOADING_TEXT); // 로딩 화면 문구
   const [survey, setSurvey] = useState(null); // GET /surveys/active 응답
@@ -177,11 +177,12 @@ export default function RecommendationModal({ userId, missing, onClose, onPerson
     setIngredients(Object.fromEntries(ingredientList.map((i) => [i.code, i])));
     // 회원인데 민감 문항이 없으면 아직 동의하지 않은 것
     const needsConsent =
+      !skipConsent &&
       !afterConsent &&
       data.respondentType === "MEMBER" &&
       !data.questions.some((q) => q.sensitive);
     setStep(needsConsent ? "consent" : "survey");
-  }, [missing]);
+  }, [missing, skipConsent]);
 
   const applyLoadError = useCallback((e) => {
     if (!aliveRef.current) return;

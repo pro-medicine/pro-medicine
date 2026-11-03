@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.user.service;
 
+import com.ucamp.app.domain.survey.service.SurveySubmitService;
 import com.ucamp.app.domain.user.dto.LoginRequest;
 import com.ucamp.app.domain.user.dto.SignupRequest;
 import com.ucamp.app.domain.user.dto.UserResponse;
@@ -28,6 +29,7 @@ public class AuthService {
     private final UserRepository users;
     private final AuthDemographicRepository demographics;
     private final PasswordHasher passwordHasher;
+    private final SurveySubmitService surveySubmitService;
 
     @Transactional
     public UserResponse signup(SignupRequest request) {
@@ -36,7 +38,8 @@ public class AuthService {
         Integer age = request.age();
 
         if (name.isBlank() || age == null || age < 1 || age > 120
-                || !GENDERS.contains(request.gender()) || !request.termsAgreed()) {
+                || !GENDERS.contains(request.gender()) || !request.termsAgreed()
+                || (request.guestResponseId() == null) != (request.guestToken() == null)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
         boolean duplicateEmail = users.existsByEmailIgnoreCase(email);
@@ -62,6 +65,9 @@ public class AuthService {
 
             // 다른 DB 오류는 원본 예외 유지
             throw ex;
+        }
+        if (request.guestResponseId() != null) {
+            surveySubmitService.claimGuestResponse(request.guestResponseId(), request.guestToken(), user);
         }
         return UserResponse.from(user);
     }
