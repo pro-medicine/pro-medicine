@@ -25,6 +25,7 @@ import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
 import MyStats from "./MyStats";
 import SupplementGroups from "./SupplementGroups";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
+import RecentRecommendationSection from "../recommendation/RecentRecommendationSection";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -471,6 +472,9 @@ export default function ProfileScreen({
           />
         </section>
       </div>
+
+      {/* 최근 추천 제품 보기 (V7, 담당: 영준). 내 화면에서만 */}
+      {isMine && <RecentRecommendationSection />}
     </div>
   );
 }
