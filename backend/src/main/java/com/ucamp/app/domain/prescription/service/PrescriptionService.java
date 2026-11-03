@@ -78,6 +78,41 @@ public class PrescriptionService {
     }
 
     @Transactional
+    public PrescriptionResponse update(Long userId, Long prescriptionId, PrescriptionRequest request) {
+        if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        if (!userRepository.existsById(userId)) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        Prescription prescription = prescriptionRepository
+                .findByPrescriptionIdAndUserId(prescriptionId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRESCRIPTION_NOT_FOUND));
+        LocalDate start = request.startAt();
+        LocalDate end = request.endAt();
+        LocalDate scheduleEnd = end != null ? end : start.plusDays(2);
+        if (scheduleEnd.isBefore(start) || ChronoUnit.DAYS.between(start, scheduleEnd) + 1 > MAX_DAYS) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        LocalTime eventTime = request.scheduledTime() != null ? request.scheduledTime() : FALLBACK_TIME;
+        InteractionCheckResponse interactions = request.medicineId() == null ?
+                InteractionCheckResponse.unchecked(request.name()) : interactionCheckService.check(userId, request.medicineId(), start, scheduleEnd, prescriptionId);
+        prescription.update(request.name(), request.medicineId(), start, end);
+        calendarEventRepository.deleteByPrescriptionIdAndUserId(prescriptionId, userId);
+        String notes = (request.notes() == null || request.notes().isBlank()) ? null : request.notes().trim();
+        List<CalendarEvent> events = new ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(scheduleEnd); d = d.plusDays(1)) {
+            events.add(CalendarEvent.builder()
+                    .userId(userId)
+                    .prescriptionId(prescription.getPrescriptionId())
+                    .eventType(EventType.MEDICATION)
+                    .title(prescription.getName())
+                    .scheduledAt(d.atTime(eventTime))
+                    .notes(notes)
+                    .status(EventStatus.PLANNED)
+                    .build());
+        }
+        calendarEventRepository.saveAll(events);
+        return PrescriptionResponse.of(prescription, events.size(), interactions);
+    }
+
+    @Transactional
     public void delete(Long userId, Long prescriptionId) {
         Prescription prescription = prescriptionRepository
                 .findByPrescriptionIdAndUserId(prescriptionId, userId)

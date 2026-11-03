@@ -28,6 +28,15 @@ public class PrescriptionController {
                 .body(ApiResponse.success(response));
     }
 
+    @PutMapping("/{prescriptionId}")
+    public ResponseEntity<ApiResponse<PrescriptionResponse>> create(
+            @CurrentUserId Long userId,
+            @PathVariable Long prescriptionId,
+            @Valid @RequestBody PrescriptionRequest request) {
+        PrescriptionResponse response = prescriptionService.update(userId, prescriptionId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @DeleteMapping("/{prescriptionId}")
     public ResponseEntity<Void> delete(
             @CurrentUserId Long userId,
