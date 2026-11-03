@@ -16,8 +16,11 @@ export default function RecommendationEntry({ userId, onClose }) {
     if (userId) {
       // 회원 진입 시 이전 비회원 토큰 정리
       sessionStorage.removeItem("guestToken");
+      sessionStorage.removeItem("guestSurveyResponseId");
       return "V2";
     }
+    sessionStorage.removeItem("guestToken");
+    sessionStorage.removeItem("guestSurveyResponseId");
     return "V1";
   });
 

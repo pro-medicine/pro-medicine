@@ -20,6 +20,7 @@ import { UnreadNotificationContext } from "./common/unreadNotificationContext";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
 import RecommendationModal from "./recommendation";
+import SignupHealthFollowup from "./recommendation/SignupHealthFollowup";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
@@ -55,6 +56,7 @@ export default function App() {
   // 화면 상태
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const [postSignupHealth, setPostSignupHealth] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsOpenRef = useRef(false); // SSE 콜백에서 패널이 열려 있는지 확인용
   const [toast, setToast] = useState(null); // 새 알림 팝업에 보여줄 알림
@@ -72,6 +74,7 @@ export default function App() {
   const resetScreens = () => {
     setTab("home");
     setSurveyOpen(false);
+    setPostSignupHealth(false);
     setNotificationsOpen(false);
     notificationsOpenRef.current = false;
     setNotificationAnchor(null);
@@ -155,6 +158,7 @@ export default function App() {
         setHomeRefreshKey(0);
         setTab(completion.tab);
         setSurveyOpen(false);
+        setPostSignupHealth(completion.fromGuestV1);
         recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
         setPendingTab("home");
         window.scrollTo({ top: 0 });
@@ -232,11 +236,11 @@ export default function App() {
   }, []);
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
-  const handleAuthComplete = (account, attemptId) => {
+  const handleAuthComplete = (account, attemptId, fromGuestV1 = false) => {
     if (attemptId !== authAttemptRef.current) return;
     if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
-      authCompletionRef.current = { account, tab: pendingTab };
+      authCompletionRef.current = { account, tab: pendingTab, fromGuestV1 };
       window.history.back();
       return;
     }
@@ -247,6 +251,7 @@ export default function App() {
     setHomeRefreshKey(0);
     setTab(pendingTab);
     setSurveyOpen(false);
+    setPostSignupHealth(fromGuestV1);
     recordView({ kind: "member", tab: pendingTab }, { replace: true, reset: true });
     setPendingTab("home");
     window.scrollTo({ top: 0 });
@@ -491,6 +496,16 @@ export default function App() {
         <BottomNav tab={tab} onChange={changeTab} />
         <ChatLauncher userId={userId} />
 
+        {postSignupHealth && (
+          <SignupHealthFollowup
+            onClose={() => setPostSignupHealth(false)}
+            onReady={() => {
+              setPostSignupHealth(false);
+              setSurveyOpen(true);
+              recordView({ kind: "memberSurvey", tab });
+            }}
+          />
+        )}
         {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} />}
 
         {toast && (

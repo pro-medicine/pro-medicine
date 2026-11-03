@@ -75,8 +75,8 @@ class SurveyApiTest {
 
         assertThat(data.get("respondentType").asString()).isEqualTo("GUEST");
         List<String> codes = codes(data);
-        assertThat(codes).hasSize(11)
-                .doesNotContain("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS");
+        assertThat(codes).hasSize(10)
+                .doesNotContain("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS");
         for (JsonNode q : data.get("questions")) {
             assertThat(q.get("sensitive").asBoolean()).isFalse();
             assertThat(q.has("prefill")).isFalse();
@@ -147,7 +147,7 @@ class SurveyApiTest {
 
         assertThat(codes(data)).containsExactly(
                 "Q-GOAL", "Q-GENDER", "Q-BIRTH", "Q-SMOKING", "Q-DRINKING", "Q-CAFFEINE",
-                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE", "Q-SUPPLEMENTS");
+                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE");
         assertThat(data.get("questions").get(0).get("text").asString())
                 .isEqualTo("뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점)");
     }
@@ -226,8 +226,7 @@ class SurveyApiTest {
 
         long responseId = submitOk(null, List.of(
                 choice(Q_GENDER, GENDER_F),
-                choice(Q_SMOKING, SMOKING_NONE),
-                text(Q_SUPPLEMENTS, "[]")));
+                choice(Q_SMOKING, SMOKING_NONE)));
         entityManager.flush();
         entityManager.clear();
 
@@ -336,7 +335,7 @@ class SurveyApiTest {
 
     @Test
     void 비회원은_성분_목록만_볼_수_있고_약_검색은_막힌다() throws Exception {
-        // 비회원 설문 마지막 문항(Q-SUPPLEMENTS)에서 성분 목록을 쓴다
+        // 성분 목록 API의 비회원 접근 허용 정책은 유지한다
         mockMvc.perform(get("/api/v1/ingredients"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isNotEmpty());
