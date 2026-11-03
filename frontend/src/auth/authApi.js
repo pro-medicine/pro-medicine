@@ -73,21 +73,23 @@ export async function refreshAccessToken() {
 }
 
 export async function signup(data) {
-    if (USE_MOCK_AUTH) return mockAuth.signup(data);
+    const generation = ++authGeneration;
+    if (USE_MOCK_AUTH) return mockAuth.signup(data, () => generation === authGeneration);
     const result = await request("/api/v1/auth/signup", {
         method: "POST", body: data, credentials: "include", useAuth: false,
     });
-    authGeneration += 1;
+    if (generation !== authGeneration) return null;
     setAccessToken(result.accessToken);
     return result.user;
 }
 
 export async function login(data) {
-    if (USE_MOCK_AUTH) return mockAuth.login(data);
+    const generation = ++authGeneration;
+    if (USE_MOCK_AUTH) return mockAuth.login(data, () => generation === authGeneration);
     const result = await request("/api/v1/auth/login", {
         method: "POST", body: data, credentials: "include", useAuth: false,
     });
-    authGeneration += 1;
+    if (generation !== authGeneration) return null;
     setAccessToken(result.accessToken);
     return result.user;
 }

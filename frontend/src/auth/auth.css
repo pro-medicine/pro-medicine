@@ -674,3 +674,46 @@
     display: none;
   }
 }
+
+.auth-header-leading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.auth-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-header-back:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 520px) {
+  .auth-header-leading {
+    gap: 10px;
+  }
+
+  .auth-header-back {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .auth-header-back span {
+    display: none;
+  }
+}
