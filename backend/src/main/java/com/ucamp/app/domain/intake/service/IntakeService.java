@@ -135,7 +135,7 @@ public class IntakeService {
     }
 
     // 이번 달을 월요일 기준 주차로 나눠 주차별 달성률 계산
-    // days: 이번 달 1일 ~ 오늘의 진행도, 아직 오지 않은 주는 rate null
+    // days: 이번 달 1일~말일의 진행도. 아직 시작하지 않은 주 또는 예정 복용 일정이 없는 주는 rate null.
     static List<WeekRate> monthWeeks(List<DayProgress> days, LocalDate today) {
         LocalDate first = today.withDayOfMonth(1);
         LocalDate last = today.withDayOfMonth(today.lengthOfMonth());
@@ -170,8 +170,7 @@ public class IntakeService {
         return streak;
     }
 
-    // 이번 달 1일부터 오늘까지 (먹은 횟수 / 먹어야 했던 횟수) * 100, 먹어야 할 일정이 없으면 0
-    // 1130 수정 : 이번 달 1일부터 말일까지 (먹은 횟수 / 한 달치 먹어야 할 횟수) * 100, 먹어야 할 일정이 없으면 0로 수정
+    // 이번 달 전체 예정 복용 횟수를 분모로, 오늘까지의 복용 횟수를 분자로 계산한 달성률. 예정 복용 횟수가 없으면 0.
     private int monthlyRate(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate, LocalDate today) {
         long expected = 0;
         long taken = 0;
