@@ -46,7 +46,7 @@ class TodayNutritionServiceTest {
     }
 
     @Test
-    @DisplayName("대표 성분은 먹지 않아도 보여주고, 권장량은 건강 정보가 없으면 남성 기준")
+    @DisplayName("대표 성분은 먹지 않아도 보여주고, 권장량은 설문 정보가 없으면 2025 성인 19~29세 남성 기준")
     void nutrientsIncludeBase() {
         TodayNutritionResponse r = service.getTodayNutrition(9201L, NOV_3);
 
@@ -56,7 +56,7 @@ class TodayNutritionServiceTest {
                 .singleElement().satisfies(n -> {
                     assertThat(n.name()).isEqualTo("마그네슘");
                     assertThat(n.unit()).isEqualTo("mg");
-                    assertThat(n.recommended()).isEqualTo(370);
+                    assertThat(n.recommended()).isEqualTo(360);   // 2025 기준 남성 19~29세
                 });
     }
 
