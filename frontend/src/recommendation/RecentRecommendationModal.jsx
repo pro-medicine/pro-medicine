@@ -1,25 +1,19 @@
-// 마이페이지 "최근 추천 제품 보기" 모달 (담당: 영준, V7)
-// 가장 최근 추천 1건의 성분 카드 + 성분별 제품. 저장된 결과만 읽는다 (새 추천을 만들지 않음)
-// 카드·제품 목록은 설문 결과·대화창과 같은 IngredientCard / ProductRecommendations를 그대로 쓴다
+// 마이페이지 "추천 기록" 모달 (담당: 영준, V7 → V7.1)
+// 최근 추천 20건 (설문·맞춤 질문·대화창, 최신순): 날짜·경로 / 불편했던 점 / 추천 성분. 저장된 결과만 읽는다 (새 추천을 만들지 않음)
+// 제품은 기록마다 [제품 보기]를 누를 때 불러오고, 모달이 열려 있는 동안은 다시 부르지 않는다
 import { useEffect, useState } from "react";
-import { getIngredients, getRecentRecommendation } from "../api/recommendationApi";
+import {
+  getIngredients,
+  getRecommendationHistory,
+  getRecommendationHistoryDetail,
+} from "../api/recommendationApi";
 import { useModalFocus } from "../common/useModalFocus";
-import IngredientCard from "./IngredientCard";
-import ProductRecommendations from "./ProductRecommendations";
+import RecommendationHistoryCard from "./RecommendationHistoryCard";
 import "./recentRecommendation.css";
 
-const SOURCE_LABEL = {
-  V1_SURVEY: "설문 추천",
-  V2_PERSONALIZED: "맞춤 질문 추천",
-  V4_CHAT: "대화창 추천",
-};
-
-// "2026-11-01T21:03:11" → "11월 1일"
-function formatDate(value) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
+// 기록 하나의 키 (대화창 트랙 1은 chatResultId, 그 밖에는 recommendationId)
+const keyOf = (item) =>
+  item.chatResultId != null ? `chat-${item.chatResultId}` : `rec-${item.recommendationId}`;
 
 /**
  * props
@@ -28,39 +22,51 @@ function formatDate(value) {
  */
 export default function RecentRecommendationModal({ onClose, openerRef }) {
   const panelRef = useModalFocus(onClose, openerRef);
-  const [state, setState] = useState({ loading: true, data: null, error: false });
+  const [state, setState] = useState({ loading: true, items: [], error: false });
   const [ingredients, setIngredients] = useState({}); // 성분 코드 → { name, unit }
-  const [closedCards, setClosedCards] = useState(() => new Set()); // 제품 목록을 접은 성분
+  const [details, setDetails] = useState({}); // 기록 키 → { loading, data, error }
+  const [openKeys, setOpenKeys] = useState(() => new Set()); // 제품을 펼친 기록
 
   useEffect(() => {
     let alive = true;
     // 성분 이름을 못 받아도 코드로 표시하고 진행
-    Promise.all([getRecentRecommendation(), getIngredients().catch(() => [])])
+    Promise.all([getRecommendationHistory(), getIngredients().catch(() => [])])
       .then(([data, list]) => {
         if (!alive) return;
         setIngredients(Object.fromEntries((list ?? []).map((i) => [i.code, i])));
-        setState({ loading: false, data, error: false });
+        setState({ loading: false, items: data?.items ?? [], error: false });
       })
-      .catch(() => alive && setState({ loading: false, data: null, error: true }));
+      .catch(() => alive && setState({ loading: false, items: [], error: true }));
     return () => {
       alive = false;
     };
   }, []);
 
   const nameOf = (code) => ingredients[code]?.name ?? code;
-  const toggle = (code) =>
-    setClosedCards((cur) => {
+  const unitOf = (code) => ingredients[code]?.unit || "";
+
+  const loadDetail = (item, key) => {
+    setDetails((cur) => ({ ...cur, [key]: { loading: true, data: null, error: false } }));
+    getRecommendationHistoryDetail(item)
+      .then((data) => setDetails((cur) => ({ ...cur, [key]: { loading: false, data, error: false } })))
+      .catch(() => setDetails((cur) => ({ ...cur, [key]: { loading: false, data: null, error: true } })));
+  };
+
+  const toggle = (item) => {
+    const key = keyOf(item);
+    const opening = !openKeys.has(key);
+    setOpenKeys((cur) => {
       const next = new Set(cur);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
+      if (opening) next.add(key);
+      else next.delete(key);
       return next;
     });
+    // 처음 펼칠 때만 부른다. 오류였으면 다시 펼칠 때 다시 시도
+    const detail = details[key];
+    if (opening && (!detail || detail.error)) loadDetail(item, key);
+  };
 
-  const { loading, data, error } = state;
-  const cards = [...(data?.ingredients ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
-  const meta = data?.exists
-    ? [formatDate(data.recommendedAt), SOURCE_LABEL[data.source]].filter(Boolean).join(" · ")
-    : "";
+  const { loading, items, error } = state;
 
   return (
     <div className="rec-backdrop" role="presentation" onMouseDown={onClose}>
@@ -75,8 +81,8 @@ export default function RecentRecommendationModal({ onClose, openerRef }) {
       >
         <div className="rec-header">
           <div>
-            <h2 id="recent-rec-title">최근에 추천받은 제품이에요</h2>
-            {meta && <small className="recent-rec-meta">{meta}</small>}
+            <h2 id="recent-rec-title">추천 기록</h2>
+            <small className="recent-rec-meta">최근 추천 20건까지 보여드려요</small>
           </div>
           <button type="button" className="rec-close" aria-label="닫기" onClick={onClose}>
             ×
@@ -96,7 +102,7 @@ export default function RecentRecommendationModal({ onClose, openerRef }) {
           </div>
         )}
 
-        {!loading && !error && !data?.exists && (
+        {!loading && !error && items.length === 0 && (
           <div className="rec-empty">
             아직 추천받은 기록이 없어요.
             <br />
@@ -104,35 +110,20 @@ export default function RecentRecommendationModal({ onClose, openerRef }) {
           </div>
         )}
 
-        {!loading && !error && data?.exists && cards.length === 0 && (
-          <div className="rec-empty">이 추천에는 보여줄 성분이 없어요.</div>
-        )}
-
-        {!loading && !error && data?.exists && cards.length > 0 && (
-          <ul className="rec-cards">
-            {cards.map((card) => {
-              const products = card.products ?? [];
+        {!loading && !error && items.length > 0 && (
+          <ul className="recent-rec-list">
+            {items.map((item) => {
+              const key = keyOf(item);
               return (
-                <IngredientCard
-                  key={card.ingredient}
-                  item={card}
-                  name={nameOf(card.ingredient)}
-                  unit={ingredients[card.ingredient]?.unit || ""}
-                  showProducts
-                  productsOpen={!closedCards.has(card.ingredient)}
-                  onToggleProducts={() => toggle(card.ingredient)}
-                >
-                  {products.length > 0 ? (
-                    <ProductRecommendations
-                      ingredient={card.ingredient}
-                      nameOf={nameOf}
-                      products={products}
-                      notice={data.notice}
-                    />
-                  ) : (
-                    <p className="rec-prod-status">아직 추천할 제품이 없어요</p>
-                  )}
-                </IngredientCard>
+                <RecommendationHistoryCard
+                  key={key}
+                  item={item}
+                  nameOf={nameOf}
+                  unitOf={unitOf}
+                  detail={details[key]}
+                  open={openKeys.has(key)}
+                  onToggle={() => toggle(item)}
+                />
               );
             })}
           </ul>
@@ -141,4 +132,3 @@ export default function RecentRecommendationModal({ onClose, openerRef }) {
     </div>
   );
 }
-

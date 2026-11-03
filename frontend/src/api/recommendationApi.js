@@ -111,3 +111,18 @@ export function getRecommendedProducts(recommendationId, ingredient) {
 export function getRecentRecommendation() {
   return api.get("/api/v1/users/me/recommendations/recent");
 }
+
+// ---------- V7.1 마이페이지 추천 기록 ----------
+
+// 최근 추천 20건 (회원 전용) → { items: [{ source, recommendedAt, recommendationId, chatResultId, concern, ingredients }] }
+export function getRecommendationHistory() {
+  return api.get("/api/v1/users/me/recommendations/history");
+}
+
+// 기록 하나의 성분 카드 + 제품 → { source, recommendationId, chatResultId, snapshot, notice, ingredients }
+// 대화창 트랙 1 기록은 chatResultId, 그 밖에는 recommendationId로 부른다
+export function getRecommendationHistoryDetail({ recommendationId, chatResultId }) {
+  return chatResultId != null
+    ? api.get(`/api/v1/users/me/recommendations/history/chat/${chatResultId}`)
+    : api.get(`/api/v1/users/me/recommendations/history/${recommendationId}`);
+}
