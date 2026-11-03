@@ -382,6 +382,16 @@ export default function App() {
     recordView({ kind: "memberSurvey", tab });
   };
 
+  const startSignupFromGuestSurvey = () => {
+    if (userId != null || !surveyOpen) return;
+    setSurveyOpen(false);
+    setPendingTab("home");
+    setAuthNotice("");
+    setAuthMode("signup");
+    recordView({ kind: "auth", mode: "signup", tab: "home" }, { replace: true });
+    window.scrollTo({ top: 0 });
+  };
+
   const openSurvey = () => {
     setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
@@ -513,7 +523,7 @@ export default function App() {
               window.scrollTo({ top: 0 });
             }}
           />
-          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} />}
+          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} onSignup={startSignupFromGuestSurvey} />}
         </>
       );
     }
