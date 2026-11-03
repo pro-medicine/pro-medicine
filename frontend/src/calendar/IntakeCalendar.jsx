@@ -153,6 +153,7 @@ function DayModal({
   onClose,
   onSave,
   onSavePrescription,
+  updatePrescription,
   onDelete,
   onToggle,
   fetchInteractions,
@@ -226,15 +227,19 @@ function DayModal({
     });
 
     if (event.prescriptionId) {
+      const interactionData = interactionMap[event.prescriptionId]?.data;
       setRx({
         name: event.title,
         medicineId: event.medicineId ?? null,
         prescriptionId: event.prescriptionId,
-        startAt: dateKey,
-        endAt: dateKey,
+        startAt: interactionData?.startAt || dateKey,
+        endAt: interactionData?.endAt || dateKey,
         scheduledTime: scheduledTime,
-        oneDay: false,
-        openEnded: false,
+        oneDay:
+          interactionData?.startAt &&
+          interactionData?.endAt &&
+          interactionData.startAt === interactionData.endAt,
+        openEnded: interactionData?.startAt && !interactionData?.endAt,
         notes: event.notes ?? "",
       });
     }
@@ -263,15 +268,17 @@ function DayModal({
         if (mode === "new") {
           await onSavePrescription(toPrescriptionPayload(rx));
         } else {
-          await onSave(
-            {
-              eventType: "MEDICATION",
-              title: rx.name.trim(),
-              scheduledAt: `${dateKey}T${rx.scheduledTime || "09:00"}:00`,
-              notes: rx.notes.trim() || null,
-            },
-            mode.eventId,
-          );
+          if (updatePrescription) {
+            await onSave(
+              {
+                eventType: "MEDICATION",
+                title: rx.name.trim(),
+                scheduledAt: `${dateKey}T${rx.scheduledTime || "09:00"}:00`,
+                notes: rx.notes.trim() || null,
+              },
+              mode.eventId,
+            );
+          }
         }
         setMode(null);
       } catch (err) {
@@ -573,8 +580,9 @@ export default function IntakeCalendar({
   updateEvent,
   updateEventStatus,
   deleteEvent,
-  deletePrescription,
   createPrescription,
+  updatePrescription,
+  deletePrescription,
   fetchInteractions,
   title = "복용 달력",
 }) {
@@ -842,6 +850,10 @@ export default function IntakeCalendar({
           onSavePrescription={
             createPrescription ? handleSavePrescription : null
           }
+          updatePrescription={async (rxId, payload) => {
+            await updatePrescription(rxId, payload);
+            await reloadEvents();
+          }}
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
           fetchInteractions={fetchInteractions}
