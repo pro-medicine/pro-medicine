@@ -143,6 +143,11 @@ CREATE TABLE `catalog_products` (
                                     `blocked_kr`   BOOLEAN   NOT NULL   DEFAULT FALSE   COMMENT '국내 반입 차단 성분(멜라토닌 등) 포함',
                                     `image_key`   VARCHAR(500)   NULL   COMMENT 'S3 키 (리팩토링 때 사용)',
                                     `updated_at`   DATETIME   NULL   COMMENT '리뷰 데이터 import 시각',
+    -- STEP 10: 추천 제품 참고 가격의 용량·출처 (scripts/product-images로 수동 등록)
+                                    `price_package`   VARCHAR(100)   NULL   COMMENT 'price의 용량 (예: 60캡슐)',
+                                    `price_source`   VARCHAR(50)   NULL   COMMENT 'price 출처 이름 (예: 아이허브)',
+                                    `price_url`   VARCHAR(1000)   NULL   COMMENT 'price 출처 주소 (https)',
+                                    `price_checked_at`   DATE   NULL   COMMENT 'price 확인 날짜',
                                     UNIQUE KEY `uk_catalog_products_source_external` (`data_source`, `external_id`)
 );
 

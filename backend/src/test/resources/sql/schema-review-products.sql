@@ -10,6 +10,10 @@ ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT 
 ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS blocked_kr BOOLEAN DEFAULT FALSE NOT NULL;
 ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS image_key VARCHAR(500);
 ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS price_package VARCHAR(100);
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS price_source VARCHAR(50);
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS price_url VARCHAR(1000);
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS price_checked_at DATE;
 
 CREATE TABLE IF NOT EXISTS product_ingredients (
     product_ingredient_id BIGINT        NOT NULL AUTO_INCREMENT PRIMARY KEY,

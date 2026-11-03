@@ -157,9 +157,9 @@
 .rec-prod { margin-top: 10px; }
 .rec-prod-caption { display: block; margin-bottom: 8px; font-size: 12px; color: var(--r-sub); }
 .rec-prod-status { margin-top: 10px; font-size: 13px; color: var(--r-sub); }
-.rec-prod-list { display: flex; flex-direction: column; gap: 8px; }
-.rec-prod-item { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--r-line); border-radius: 14px; background: var(--r-bg); }
-.rec-prod-thumb { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: var(--r-card); }
+.rec-prod-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rec-prod-item { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--r-line); border-radius: 14px; background: var(--r-bg); }
+.rec-prod-thumb { flex: 0 0 64px; width: 64px; height: 64px; border: 1px solid var(--r-line); border-radius: 12px; object-fit: contain; background: var(--white); }
 .rec-prod-thumb.placeholder { display: flex; align-items: center; justify-content: center; border: 1px solid var(--r-line); font-weight: 700; color: var(--r-gold); }
 .rec-prod-body { flex: 1; min-width: 0; }
 .rec-prod-brand { display: block; font-size: 11px; font-weight: 700; color: var(--r-gold); }
@@ -206,4 +206,32 @@
 @media (max-width: 400px) {
   .rec-nav { flex-wrap: wrap; row-gap: 12px; }
   .rec-nav .rec-button.primary { flex: 1 0 100%; order: 1; }
+}
+
+/* 추천 제품: 추천순 번호 · 참고 가격(용량·출처) (수동 등록한 이미지·가격) */
+.rec-prod-rank { flex: 0 0 22px; width: 22px; height: 22px; margin: 21px 4px 0; border-radius: 50%; background: var(--accent-soft); color: var(--muted); font-size: 12px; font-weight: 800; line-height: 22px; text-align: center; }
+.rec-prod-item.is-first { border-color: var(--r-yellow-line); background: var(--primary-soft); }
+/* 추천 1~3위 메달 (금·은·동). 색은 메달 전용이라 공통 변수 대신 여기서만 쓴다 */
+.rec-prod-medal { flex: 0 0 30px; width: 30px; height: 39px; margin-top: 12px; }
+.rec-prod-medal svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rec-prod-medal .ribbon-l { fill: #e05a5a; }
+.rec-prod-medal .ribbon-r { fill: #3d7be0; }
+.rec-prod-medal .disc { fill: var(--medal); stroke: var(--medal-dark); stroke-width: 1.2; }
+.rec-prod-medal .ring { fill: none; stroke: var(--medal-light); stroke-width: 1.2; }
+.rec-prod-medal text { fill: var(--medal-text); font-size: 12px; font-weight: 800; }
+.rec-prod-medal.is-gold { --medal: #f2c230; --medal-dark: #c8961a; --medal-light: #fde68a; --medal-text: #7a5300; }
+.rec-prod-medal.is-silver { --medal: #cfd6de; --medal-dark: #9aa4af; --medal-light: #f1f4f7; --medal-text: #4b5563; }
+.rec-prod-medal.is-bronze { --medal: #d99a6c; --medal-dark: #a8673d; --medal-light: #f3cfb3; --medal-text: #5c3317; }
+.rec-prod-price { display: block; margin-top: 4px; font-size: 14px; font-weight: 800; color: var(--r-text); }
+.rec-prod-price small { margin-right: 2px; font-size: 11px; font-weight: 600; color: var(--r-sub); }
+.rec-prod-price-box { margin-top: 4px; }
+.rec-prod-price-box .rec-prod-price { margin-top: 0; }
+.rec-prod-pack { font-size: 12px; font-weight: 500; color: var(--r-sub); }
+.rec-prod-source { display: block; margin-top: 2px; font-size: 11px; line-height: 1.4; color: var(--r-sub); }
+.rec-prod-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.rec-prod-source a:hover { color: var(--r-text); }
+@media (max-width: 400px) {
+  .rec-prod-thumb { flex-basis: 52px; width: 52px; height: 52px; }
+  .rec-prod-rank { margin-top: 15px; }
+  .rec-prod-medal { margin-top: 7px; }
 }
