@@ -7,7 +7,7 @@ const SEVERITY = {
   INFO: { label: "참고", cls: "info" },
 };
 
-export default function InteractionWarningList({ data, datekey }) {
+export default function InteractionWarningList({ data, dateKey }) {
   if (!data) return null;
 
   if (!data.checked) {
@@ -20,7 +20,7 @@ export default function InteractionWarningList({ data, datekey }) {
 
   const generalWarnings = data.warnings ?? [];
   const datedWarnings = (data.datedWarnings ?? [])
-    .filter((item) => !datekey || item.date === datekey)
+    .filter((item) => !dateKey || item.date === dateKey)
     .map((item) => item.warning);
 
   const warnings = [...generalWarnings, ...datedWarnings];
