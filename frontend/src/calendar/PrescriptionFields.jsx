@@ -11,6 +11,7 @@ export const makeEmptyPrescription = (startDate) => ({
   oneDay: false,
   openEnded: false,
   notes: "",
+  prescriptionId: null,
 });
 
 // 유효성 검사
@@ -114,7 +115,12 @@ export default function PrescriptionFields({ value, onChange }) {
     let ignore = false;
     setLoadingPreview(true);
     setPreviewFailed(false);
-    previewInteractions(value.medicineId, value.startAt, previewEndAt)
+    previewInteractions(
+      value.medicineId,
+      value.startAt,
+      previewEndAt,
+      value.prescriptionId,
+    )
       .then((res) => {
         if (!ignore) setPreview(res);
       })
@@ -131,7 +137,7 @@ export default function PrescriptionFields({ value, onChange }) {
     return () => {
       ignore = true;
     };
-  }, [value.medicineId, value.startAt, previewEndAt]);
+  }, [value.medicineId, value.startAt, previewEndAt, value.prescriptionId]);
 
   return (
     <>

@@ -38,11 +38,15 @@ export function searchMedicines(q) {
   return api.get(`/api/v1/medicines/search`, { params: { q } }).then(unwrap);
 }
 
-// startAt, endAt: "YYYY-MM-DD" (endAt이 없으면 생략)
-export function previewInteractions(medicineId, startAt, endAt) {
+export function previewInteractions(
+  medicineId,
+  startAt,
+  endAt,
+  excludePrescriptionId,
+) {
   return api
     .get(`/api/v1/medicines/${medicineId}/interactions`, {
-      params: { startAt, endAt },
+      params: { startAt, endAt, excludePrescriptionId },
     })
     .then(unwrap);
 }
