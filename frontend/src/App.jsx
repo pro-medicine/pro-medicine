@@ -50,6 +50,7 @@ export default function App() {
   const [authNotice, setAuthNotice] = useState(""); // 로그인 화면에 보여줄 안내 (세션 만료 등)
   const [pendingTab, setPendingTab] = useState("home"); // 소개 화면에서 고른 화면 (로그인 후 이동)
   const authCompletionRef = useRef(null);
+  const authAttemptRef = useRef(0);
 
   // 화면 상태
   const [tab, setTab] = useState("home");
@@ -231,7 +232,8 @@ export default function App() {
   }, []);
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
-  const handleAuthComplete = (account) => {
+  const handleAuthComplete = (account, attemptId) => {
+    if (attemptId !== authAttemptRef.current) return;
     if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
       authCompletionRef.current = { account, tab: pendingTab };
@@ -443,6 +445,10 @@ export default function App() {
         onModeChange={(mode) => {
           setAuthMode(mode);
           recordView({ kind: "auth", mode, tab: pendingTab }, { replace: true });
+        }}
+        onAttemptStart={() => {
+          authAttemptRef.current += 1;
+          return authAttemptRef.current;
         }}
         onComplete={handleAuthComplete}
         onClose={() => {

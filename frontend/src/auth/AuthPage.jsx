@@ -105,7 +105,7 @@ function BrandPanel({ isSignup }) {
   );
 }
 
-export default function AuthPage({ mode, notice = "", onModeChange, onComplete, onClose }) {
+export default function AuthPage({ mode, notice = "", onModeChange, onAttemptStart, onComplete, onClose }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,6 +160,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
     }
     setError("");
     setBusy(true);
+    const attemptId = onAttemptStart();
     try {
       const user = isSignup
         ? await signup({
@@ -171,7 +172,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
             termsAgreed: agreed,
           })
         : await login({ email: email.trim(), password, rememberMe });
-      onComplete(user);
+      if (user) onComplete(user, attemptId);
     } catch (cause) {
       if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
