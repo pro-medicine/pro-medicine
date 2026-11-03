@@ -12,7 +12,7 @@
 --      (이미 90일이 지나 회차·대화 세션이 지워진 예전 V2·V4 추천은 회원을 알 수 없어 NULL로 남는다)
 --   ② ai_recommendation_products 새 테이블: 추천 성분 카드별 제품 순위 1~3위 + 추천 당시 같이 든 성분·안전 경고
 --   ③ ai_chat_results: user_id 컬럼 + 키 + FK(users, SET NULL), 기존 행 채우기,
---      chat_session_id NULL 허용 + FK를 ON DELETE CASCADE → SET NULL로 바꿈
+--      chat_session_id NULL 허용 + FK를 ON DELETE CASCADE → SET NULL로 바꿈 (이름이 다른 CASCADE FK가 있어도 모두 지움)
 --      (90일 뒤 대화 세션·원문은 지워지고 결과 행(cards, 사용자 문장 없음)은 남는다)
 --   - 테이블을 지우지 않는다. 기존 설문 응답·AI 추천 기록·회원 데이터는 그대로 남는다
 -- 여러 번 실행해도 결과가 같다 (컬럼·키·FK·테이블이 있으면 건너뜀, user_id가 NULL인 행만 채움).
@@ -99,12 +99,17 @@ SET @sql = IF((SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 세션 FK가 CASCADE면 지우고 → NULL 허용 → SET NULL로 다시 건다 (이미 SET NULL이면 건너뜀)
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS
-               WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_chat_results'
-                 AND CONSTRAINT_NAME = 'fk_chat_results_session' AND DELETE_RULE <> 'SET NULL') > 0,
-    'ALTER TABLE `ai_chat_results` DROP FOREIGN KEY `fk_chat_results_session`',
-    'DO 0');
+-- chat_session_id에 걸린 FK 중 SET NULL이 아닌 것(CASCADE 등)을 이름과 상관없이 모두 지운다
+-- (fk_chat_results_session 말고도 서버 ddl-auto가 예전에 만든 FKxxxx 이름의 CASCADE FK가 남아 있는 DB가 있음)
+-- → NULL 허용 → fk_chat_results_session을 SET NULL로 다시 건다 (이미 SET NULL이면 건너뜀)
+SET @drops = (SELECT GROUP_CONCAT(CONCAT('DROP FOREIGN KEY `', r.CONSTRAINT_NAME, '`') SEPARATOR ', ')
+              FROM information_schema.REFERENTIAL_CONSTRAINTS r
+              JOIN information_schema.KEY_COLUMN_USAGE k
+                ON k.CONSTRAINT_SCHEMA = r.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME = r.CONSTRAINT_NAME
+               AND k.TABLE_NAME = r.TABLE_NAME
+              WHERE r.CONSTRAINT_SCHEMA = DATABASE() AND r.TABLE_NAME = 'ai_chat_results'
+                AND k.COLUMN_NAME = 'chat_session_id' AND r.DELETE_RULE <> 'SET NULL');
+SET @sql = IF(@drops IS NULL, 'DO 0', CONCAT('ALTER TABLE `ai_chat_results` ', @drops));
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 ALTER TABLE `ai_chat_results` MODIFY `chat_session_id` BIGINT NULL COMMENT '90일 삭제 후 NULL (V7.1부터 결과 행은 남음)';
