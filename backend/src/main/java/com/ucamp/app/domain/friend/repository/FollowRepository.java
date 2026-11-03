@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,4 +49,6 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     @Query("SELECT f FROM Follow f " +
             "WHERE f.followId = :followId")
     Optional<Follow> findByFollowIdForUpdate(@Param("followId") Long followId);
+
+    List<Follow> findByFollowerIdAndFollowingIdIn(Long followerId, Collection<Long> followingIds);
 }

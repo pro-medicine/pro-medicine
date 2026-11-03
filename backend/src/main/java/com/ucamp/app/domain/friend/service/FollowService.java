@@ -1,6 +1,7 @@
 package com.ucamp.app.domain.friend.service;
 
 import com.ucamp.app.domain.friend.dto.FollowResponse;
+import com.ucamp.app.domain.friend.dto.FollowerResponse;
 import com.ucamp.app.domain.friend.entity.Follow;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.repository.FollowRepository;
@@ -21,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -98,6 +100,28 @@ public class FollowService {
                     new FollowAcceptedEvent(follow.getFollowerId(), follow.getFollowingId()));
         }
         return toResponse(follow);
+    }
+
+    public List<FollowerResponse> getFollowers(Long userId) {
+        List<Follow> incoming = followRepository.findByFollowingIdAndStatusOrderByFollowIdDesc(userId, FollowStatus.ACCEPTED);
+        if (incoming.isEmpty()) return List.of();
+        List<Long> followerIds = incoming.stream().map(Follow::getFollowerId).toList();
+        Map<Long, Follow> outgoing = followRepository
+                .findByFollowerIdAndFollowingIdIn(userId, followerIds).stream()
+                .collect(Collectors.toMap(Follow::getFollowingId, Function.identity()));
+
+        Map<Long, User> users = userRepository.findAllById(followerIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        return incoming.stream()
+                .filter(f -> users.containsKey(f.getFollowerId()))
+                .filter(f -> {
+                    Follow mine = outgoing.get(f.getFollowerId());
+                    return mine == null || mine.getStatus() != FollowStatus.ACCEPTED;
+                })
+                .map(f -> {
+                    Follow mine = outgoing.get(f.getFollowerId());
+                    return FollowerResponse.of(f.getFollowId(), users.get(f.getFollowerId()), mine == null ? null : mine.getStatus());
+                }).toList();
     }
 
     @Transactional
