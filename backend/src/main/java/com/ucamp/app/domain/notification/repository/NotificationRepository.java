@@ -31,7 +31,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             """;
 
     // 알림 목록: types에 해당하는 보이는 알림을 최신순으로 (pageable로 개수 제한)
-    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.notificationType IN :types AND "
+    // excludedIds: 따로 숨길 알림 id (복용을 마친 시각의 복용·놓침 알림). 비어 있으면 안 되므로 없으면 [-1]을 넣는다
+    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.notificationType IN :types"
+            + " AND n.notificationId NOT IN :excludedIds AND "
             + VISIBLE_CONDITION + " ORDER BY n.createdAt DESC, n.notificationId DESC")
     List<Notification> findVisible(@Param("userId") Long userId,
                                    @Param("types") Collection<NotificationType> types,
@@ -39,16 +41,18 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
                                    @Param("missedType") NotificationType missedType,
                                    @Param("reminderCutoff") LocalDateTime reminderCutoff,
                                    @Param("missedCutoff") LocalDateTime missedCutoff,
+                                   @Param("excludedIds") Collection<Long> excludedIds,
                                    Pageable pageable);
 
-    // 종 아이콘 뱃지: 보이는 알림 중 안 읽은 개수
-    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.readAt IS NULL AND "
-            + VISIBLE_CONDITION)
+    // 종 아이콘 뱃지: 보이는 알림 중 안 읽은 개수 (목록과 같은 조건, 개수 제한 없음)
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.readAt IS NULL"
+            + " AND n.notificationId NOT IN :excludedIds AND " + VISIBLE_CONDITION)
     long countVisibleUnread(@Param("userId") Long userId,
                             @Param("reminderType") NotificationType reminderType,
                             @Param("missedType") NotificationType missedType,
                             @Param("reminderCutoff") LocalDateTime reminderCutoff,
-                            @Param("missedCutoff") LocalDateTime missedCutoff);
+                            @Param("missedCutoff") LocalDateTime missedCutoff,
+                            @Param("excludedIds") Collection<Long> excludedIds);
 
     // 같은 알림이 이미 있는지 (친구 챙겨주기를 하루 1번으로 제한할 때 사용)
     boolean existsByDedupKey(String dedupKey);
@@ -68,10 +72,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query(value = """
             INSERT INTO notifications
                 (user_id, schedule_id, actor_user_id, notification_type, title,
-                 scheduled_at, sent_at, dedup_key, created_at)
+                 scheduled_at, sent_at, dedup_key, reference_id, created_at)
             VALUES
                 (:userId, :scheduleId, :actorUserId, :type, :title,
-                 :scheduledAt, NOW(), :dedupKey, NOW())
+                 :scheduledAt, NOW(), :dedupKey, :referenceId, NOW())
             ON DUPLICATE KEY UPDATE notification_id = notification_id
             """, nativeQuery = true)
     int insertIfAbsent(@Param("userId") Long userId,
@@ -80,5 +84,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
                        @Param("type") String type,
                        @Param("title") String title,
                        @Param("scheduledAt") LocalDateTime scheduledAt,
-                       @Param("dedupKey") String dedupKey);
+                       @Param("dedupKey") String dedupKey,
+                       @Param("referenceId") Long referenceId);
 }

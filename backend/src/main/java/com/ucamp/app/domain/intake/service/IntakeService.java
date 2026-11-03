@@ -8,6 +8,7 @@ import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import com.ucamp.app.domain.intake.repository.IntakeRecordRepository;
 import com.ucamp.app.domain.intake.repository.IntakeScheduleRepository;
 import com.ucamp.app.domain.notification.event.IntakeCheckedEvent;
+import com.ucamp.app.domain.notification.event.IntakeStateChangedEvent;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
@@ -231,6 +232,8 @@ public class IntakeService {
         } else {
             intakeRecordRepository.deleteRecord(scheduleId, date);
         }
+        // 체크·해제 모두: 다른 화면·기기의 알림 목록·홈을 다시 조회하게 한다 (알림 쪽 NotificationSseListener)
+        eventPublisher.publishEvent(new IntakeStateChangedEvent(userId, date));
     }
 
     // 홈 화면 "오늘 먹을 영양제" 목록

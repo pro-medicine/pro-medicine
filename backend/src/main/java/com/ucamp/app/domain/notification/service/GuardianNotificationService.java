@@ -55,7 +55,8 @@ public class GuardianNotificationService {
 
     /**
      * 신청을 받은 사람(targetUserId)에게 알림. 알림을 일으킨 사람 = 신청한 사람(guardianUserId).
-     * 프론트는 actorUserId로 "나를 지키려는 사람 목록"에서 대기 중인 신청을 찾아 수락·거절한다.
+     * 신청 id를 referenceId로 함께 저장해, 프론트가 이 알림의 신청만 수락·거절하게 한다.
+     * (신청을 취소하고 다시 신청해도, 예전 알림의 버튼이 새 신청을 처리하지 않음)
      */
     public void notifyRequested(Long settingId, Long guardianUserId, Long targetUserId) {
         User guardian = userRepository.findById(guardianUserId).orElse(null);
@@ -69,7 +70,8 @@ public class GuardianNotificationService {
                 guardianUserId,
                 null,
                 null,
-                requestedDedupKey(targetUserId, settingId));
+                requestedDedupKey(targetUserId, settingId),
+                settingId);   // 알림의 수락·거절 버튼이 이 신청만 처리하도록
     }
 
     /**
@@ -87,7 +89,8 @@ public class GuardianNotificationService {
                 targetUserId,
                 null,
                 null,
-                acceptedDedupKey(guardianUserId, settingId));
+                acceptedDedupKey(guardianUserId, settingId),
+                settingId);
     }
 
     /** 예: "김민지님이 안부지킴이를 신청했어요" */

@@ -207,6 +207,7 @@ CREATE TABLE `notifications` (
                                  `read_at`   DATETIME   NULL,
                                  `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                                  `dedup_key`   VARCHAR(150)   NOT NULL,
+                                 `reference_id`   BIGINT   NULL,
                                  PRIMARY KEY (`notification_id`),
                                  UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
                                  KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),

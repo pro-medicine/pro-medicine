@@ -15,7 +15,9 @@ public record NotificationResponse(
         boolean read,
         LocalDateTime createdAt,
         // 복용 알림의 알림 시각 (날짜 + 시각). 알림의 "복용 완료" 버튼이 이 시각의 일정을 체크할 때 사용
-        LocalDateTime scheduledAt
+        LocalDateTime scheduledAt,
+        // 알림이 가리키는 대상 id. 안부지킴이 신청·수락 알림이면 신청 id (그 외 null)
+        Long referenceId
 ) {
     public static NotificationResponse from(Notification n) {
         return new NotificationResponse(
@@ -26,7 +28,8 @@ public record NotificationResponse(
                 n.getActorUser() == null ? null : n.getActorUser().getId(),
                 n.isRead(),
                 n.getCreatedAt(),
-                n.getScheduledAt()
+                n.getScheduledAt(),
+                n.getReferenceId()
         );
     }
 }

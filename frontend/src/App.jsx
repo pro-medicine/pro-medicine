@@ -15,7 +15,7 @@ import ChatLauncher from "./chat";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
-import { msUntilNextExpiry } from "./common/notificationTypes";
+import { isExpired, msUntilNextExpiry } from "./common/notificationTypes";
 
 // 화면
 import DisposalMapPage from "./disposal/DisposalMapPage";
@@ -119,11 +119,20 @@ export default function App() {
         .then((items) => {
           if (ignore) return;
           clearTimeout(expiryTimer);
-          const wait = msUntilNextExpiry((items ?? []).filter((item) => !item.read));
+          const unread = (items ?? []).filter((item) => !item.read);
+          // 조회한 사이에 이미 만료된 알림이 섞여 왔으면 잠깐 뒤 다시 확인 (서버·브라우저 시계 차이로 반복되지 않게 1번만)
+          if (!retriedExpired && unread.some((item) => isExpired(item))) {
+            retriedExpired = true;
+            expiryTimer = setTimeout(checkUnread, 2000);
+            return;
+          }
+          retriedExpired = false;
+          const wait = msUntilNextExpiry(unread);
           if (wait != null) expiryTimer = setTimeout(checkUnread, wait + 1000);
         })
         .catch((err) => console.error(err));
     };
+    let retriedExpired = false;
     checkUnread();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") checkUnread(); // 안 보는 탭에서는 요청하지 않음

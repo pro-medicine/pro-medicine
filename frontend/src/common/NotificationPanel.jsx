@@ -200,7 +200,9 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
   // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
   // - 오늘 복용 알림 / 복용 놓침 알림: 지금 먹을 영양제 → 민트(놓침은 주황) 카드
-  const items = result.items.filter((i) => !isExpired(i, now));
+  // 만료 여부는 그릴 때의 현재 시각으로 계산한다. (목록이 만료 직후에 도착해도 바로 빠지게)
+  // now 상태는 1분마다·만료 시각에 다시 그리게 하는 신호로만 쓴다.
+  const items = result.items.filter((i) => !isExpired(i));
   const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
   const intakeAlert =
     tab !== "FRIEND" ? items.find((i) => !i.read && isIntakeAlert(i) && isToday(i.createdAt)) : null;

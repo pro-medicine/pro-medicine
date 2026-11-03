@@ -13,6 +13,7 @@ import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import java.util.List;
 public class NotificationService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final int LIST_SIZE = 50;
+    private static final List<Long> NO_EXCLUDED_IDS = List.of(-1L);
     private static final List<NotificationType> INTAKE_TYPES =
             List.of(NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED);
 
@@ -49,40 +51,53 @@ public class NotificationService {
     }
 
     /**
-     * now 기준으로 보이는 알림 최신 50개. (지난 복용·놓침 알림은 빠짐)
+     * now 기준으로 보이는 알림 최신 50개.
+     * - 지난 복용·놓침 알림(1시간·2시간 지남)은 빠진다.
+     * - 복용 체크를 마친 시각의 복용·놓침 알림도 빠진다.
+     * 두 조건 모두 조회 쿼리에서 거른 뒤 50개를 자르므로, 숨긴 알림 때문에 목록이 덜 채워지지 않는다.
      * 테스트에서 시각을 고정할 수 있도록 now를 받는 메서드를 따로 둔다.
      */
     public List<NotificationResponse> getNotifications(Long userId, NotificationCategory category, LocalDateTime now) {
         List<NotificationType> types = (category == null) ? List.of(NotificationType.values()) : typesOf(category);
-        return findVisible(userId, types, now).stream()
-                .filter(n -> !isIntakeDone(userId, n))   // 복용 체크를 마친 시각의 복용·놓침 알림은 숨김
-                .map(NotificationResponse::from)
-                .toList();
+        return notificationRepository.findVisible(
+                        userId, types,
+                        NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
+                        now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
+                        doneIntakeIds(userId, now),
+                        PageRequest.of(0, LIST_SIZE))
+                .stream().map(NotificationResponse::from).toList();
     }
 
     public UnreadCountResponse getUnreadCount(Long userId) {
         return getUnreadCount(userId, LocalDateTime.now(KST));
     }
 
+    // 목록과 같은 조건(지난 알림·복용 끝난 알림 제외)으로 개수 제한 없이 센다
     public UnreadCountResponse getUnreadCount(Long userId, LocalDateTime now) {
-        long visibleUnread = notificationRepository.countVisibleUnread(
+        return new UnreadCountResponse(notificationRepository.countVisibleUnread(
                 userId,
                 NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
-                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE));
-        // 위 개수에는 "이미 복용 체크한 시각"의 복용·놓침 알림도 들어 있으므로 빼 준다.
-        // (보이는 복용·놓침 알림은 최근 2시간 것뿐이라 몇 개 안 됨)
-        long doneIntakeUnread = findVisible(userId, INTAKE_TYPES, now).stream()
-                .filter(n -> !n.isRead() && isIntakeDone(userId, n))
-                .count();
-        return new UnreadCountResponse(visibleUnread - doneIntakeUnread);
+                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
+                doneIntakeIds(userId, now)));
     }
 
-    private List<Notification> findVisible(Long userId, List<NotificationType> types, LocalDateTime now) {
-        return notificationRepository.findVisible(
-                userId, types,
-                NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
-                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
-                PageRequest.of(0, LIST_SIZE));
+    /**
+     * 지금 보이는 복용·놓침 알림 중 "그 시각의 복용을 이미 마친" 알림 id.
+     * 보이는 복용·놓침 알림은 최근 2시간 것뿐이라 개수가 적어 전부(unpaged) 확인한다.
+     * 쿼리의 NOT IN에 빈 목록을 넣으면 DB에 따라 오류가 나므로, 없으면 존재하지 않는 id(-1)를 넣는다.
+     */
+    private List<Long> doneIntakeIds(Long userId, LocalDateTime now) {
+        List<Long> ids = notificationRepository.findVisible(
+                        userId, INTAKE_TYPES,
+                        NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
+                        now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
+                        NO_EXCLUDED_IDS,
+                        Pageable.unpaged())
+                .stream()
+                .filter(n -> isIntakeDone(userId, n))
+                .map(Notification::getNotificationId)
+                .toList();
+        return ids.isEmpty() ? NO_EXCLUDED_IDS : ids;
     }
 
     /**
@@ -127,8 +142,19 @@ public class NotificationService {
     @Transactional
     public void create(Long receiverId, NotificationType type, String title,
                        Long actorUserId, Long scheduleId, LocalDateTime scheduledAt, String dedupKey) {
+        create(receiverId, type, title, actorUserId, scheduleId, scheduledAt, dedupKey, null);
+    }
+
+    /**
+     * referenceId: 알림이 가리키는 대상 id (예: 안부지킴이 신청 알림 → 신청 id).
+     * 알림의 버튼이 "그 알림의 대상"만 처리하도록 프론트에 함께 내려준다.
+     */
+    @Transactional
+    public void create(Long receiverId, NotificationType type, String title,
+                       Long actorUserId, Long scheduleId, LocalDateTime scheduledAt, String dedupKey,
+                       Long referenceId) {
         notificationRepository.insertIfAbsent(
-                receiverId, scheduleId, actorUserId, type.name(), title, scheduledAt, dedupKey);
+                receiverId, scheduleId, actorUserId, type.name(), title, scheduledAt, dedupKey, referenceId);
         eventPublisher.publishEvent(new NotificationCreatedEvent(receiverId));
     }
 

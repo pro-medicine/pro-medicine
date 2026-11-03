@@ -34,6 +34,7 @@ export default function HomePage({
   const [streakDays, setStreakDays] = useState(0); // 연속 복용 일수 ("N일 연속 복용 중" 배지)
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
+  const hasRealDataRef = useRef(false); // 실제(서버) 홈 데이터를 한 번이라도 받았는지
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
@@ -41,6 +42,14 @@ export default function HomePage({
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     getHome(userId).then(({ data, isSample }) => {
       if (ignore) return;
+      // 다시 불러오기(복용 체크 후 갱신 등)가 실패하면 getHome이 예시 데이터를 돌려준다.
+      // 이미 실제 데이터를 보여주고 있으면 예시 데이터로 바꾸지 않고 그대로 둔다
+      // → 예시 데이터로 바뀐 뒤 복용 체크가 저장되지 않는 문제 방지. 다음 갱신 때 다시 시도한다.
+      if (isSample && hasRealDataRef.current) {
+        console.warn("[home] 홈 정보를 다시 불러오지 못해 기존 화면을 유지합니다");
+        return;
+      }
+      hasRealDataRef.current = !isSample;
       setHome(data);
       setIsSample(isSample);
     });

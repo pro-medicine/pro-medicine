@@ -39,6 +39,7 @@ class GuardianNotificationServiceTest {
         assertThat(rows.get(0)[1]).isEqualTo("목표테스트9302님이 안부지킴이를 신청했어요");
         assertThat(((Number) rows.get(0)[2]).longValue()).isEqualTo(9301L);
         assertThat(((Number) rows.get(0)[3]).longValue()).isEqualTo(9302L);
+        assertThat(((Number) rows.get(0)[4]).longValue()).isEqualTo(15L);   // 신청 id (reference_id)
     }
 
     @Test
@@ -54,11 +55,11 @@ class GuardianNotificationServiceTest {
         assertThat(((Number) rows.get(0)[2]).longValue()).isEqualTo(9302L);
     }
 
-    // 결과: [notification_type, title, user_id, actor_user_id]
+    // 결과: [notification_type, title, user_id, actor_user_id, reference_id]
     @SuppressWarnings("unchecked")
     private List<Object[]> findByDedupKey(String dedupKey) {
         return em.createNativeQuery("""
-                        SELECT notification_type, title, user_id, actor_user_id
+                        SELECT notification_type, title, user_id, actor_user_id, reference_id
                         FROM notifications
                         WHERE dedup_key = :dedupKey
                         """)

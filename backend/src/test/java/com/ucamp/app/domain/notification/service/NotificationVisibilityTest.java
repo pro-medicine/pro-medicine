@@ -96,6 +96,24 @@ class NotificationVisibilityTest {
                 .containsExactlyInAnyOrder("INTAKE_REMINDER", "INTAKE_MISSED", "NEW_FOLLOWER");
     }
 
+    @Test
+    @DisplayName("복용을 마친 알림을 뺀 뒤 50개를 채운다 (숨긴 알림 때문에 목록이 덜 채워지지 않음)")
+    void fillsFiftyAfterHidingDoneIntake() {
+        // 더 오래된(작은 id) 친구 알림 49개 → 친구 알림은 BeforeEach의 1개와 합쳐 50개
+        for (int i = 0; i < 49; i++) {
+            insert(99000 + i, "NEW_FOLLOWER", null, "V:OLD:" + i);
+        }
+        em.createNativeQuery("""
+                INSERT INTO intake_records (intake_record_id, schedule_id, intake_date, status, completed_at, is_shared)
+                VALUES (99106, 9001, '2026-10-23', 'TAKEN', '2026-10-23 12:40:00', false)
+                """).executeUpdate();
+
+        LocalDateTime now = INTAKE_TIME.plusMinutes(10);
+        List<String> types = types(now);
+        assertThat(types).hasSize(50).containsOnly("NEW_FOLLOWER");
+        assertThat(notificationService.getUnreadCount(9001L, now).unreadCount()).isEqualTo(50);
+    }
+
     private List<String> types(LocalDateTime now) {
         return notificationService.getNotifications(9001L, null, now).stream()
                 .map(NotificationResponse::type)

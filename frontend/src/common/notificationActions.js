@@ -35,14 +35,16 @@ export async function respondFollowFromNotification(userId, item, status) {
 }
 
 /**
- * 안부지킴이 신청 알림의 "수락 / 거절": 신청한 사람(actorUserId)이 보낸 대기 중인 신청을 찾아 처리한다.
+ * 안부지킴이 신청 알림의 "수락 / 거절": 이 알림이 가리키는 신청(referenceId = 신청 id)만 처리한다.
+ * 신청자가 취소 후 다시 신청해도, 예전 알림의 버튼이 새 신청을 처리하지 않는다.
  * 거절은 신청을 지운다. (친구 상세 화면의 "신청 거절"과 같음)
  * @param accept true면 수락, false면 거절
  * @returns 처리했으면 true, 이미 처리됐거나 취소된 신청이면 false
  */
 export async function respondGuardianFromNotification(userId, item, accept) {
+  if (item.referenceId == null) return false; // 신청 id가 없는 알림(예전 테스트 알림)은 처리하지 않음
   const list = await getMyGuardians(userId);
-  const request = (list ?? []).find((g) => g.guardianUserId === item.actorUserId && !g.active);
+  const request = (list ?? []).find((g) => g.guardianSettingId === item.referenceId && !g.active);
   if (!request) return false;
   if (accept) {
     await acceptGuardian(userId, request.guardianSettingId);
@@ -63,7 +65,7 @@ export function canCompleteIntake(item) {
 }
 
 export function canRespondGuardian(item) {
-  return item.type === "GUARDIAN_REQUESTED" && Boolean(item.actorUserId);
+  return item.type === "GUARDIAN_REQUESTED" && item.referenceId != null;
 }
 
 export function canRespondFollow(item) {
