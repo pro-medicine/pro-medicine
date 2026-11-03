@@ -22,4 +22,14 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
             + "order by r.createdAt desc, r.recommendationId desc")
     List<AiRecommendation> findLatestDoneByUserIdSince(@Param("userId") Long userId,
                                                        @Param("since") LocalDateTime since, Pageable pageable);
+
+    // V7 마이페이지 최근 추천: V1(설문 응답)·V2(맞춤 질문 회차)·V4 트랙 2(대화 세션) 중 하나로 회원이 일치하는 최근 완료 추천.
+    // 비교 시각은 완료 시각(finished_at). 90일 삭제로 FK가 모두 null이 된 추천은 회원을 찾을 수 없어 빠진다
+    @Query("select r from AiRecommendation r "
+            + "left join r.response resp left join resp.user ru "
+            + "left join r.session s left join s.user su "
+            + "left join r.chatSession cs left join cs.user cu "
+            + "where r.status = 'DONE' and (ru.id = :userId or su.id = :userId or cu.id = :userId) "
+            + "order by coalesce(r.finishedAt, r.createdAt) desc, r.recommendationId desc")
+    List<AiRecommendation> findRecentDoneByMember(@Param("userId") Long userId, Pageable pageable);
 }
