@@ -1,5 +1,5 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { getHome, getStreakDays, updateIntake } from "./homeApi";
+import { currentHomeDate, getHome, getStreakDays, updateIntake } from "./homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
@@ -35,28 +35,43 @@ export default function HomePage({
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
   const hasRealDataRef = useRef(false); // 실제(서버) 홈 데이터를 한 번이라도 받았는지
+  const shownDateRef = useRef(null); // 지금 화면에 보여주는 실제 데이터의 날짜
+  // 날짜가 바뀌었는데 새 날짜 홈을 아직 못 불러옴 → 어제 목록으로 저장하지 않도록 복용 체크를 막고 다시 시도
+  const [staleDate, setStaleDate] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
+    let retryTimer = null;
     getHome(userId).then(({ data, isSample }) => {
       if (ignore) return;
       // 다시 불러오기(복용 체크 후 갱신 등)가 실패하면 getHome이 예시 데이터를 돌려준다.
       // 이미 실제 데이터를 보여주고 있으면 예시 데이터로 바꾸지 않고 그대로 둔다
-      // → 예시 데이터로 바뀐 뒤 복용 체크가 저장되지 않는 문제 방지. 다음 갱신 때 다시 시도한다.
+      // → 예시 데이터로 바뀐 뒤 복용 체크가 저장되지 않는 문제 방지.
       if (isSample && hasRealDataRef.current) {
         console.warn("[home] 홈 정보를 다시 불러오지 못해 기존 화면을 유지합니다");
+        // 단, 자정이 지나 날짜가 바뀌었다면 어제 목록으로 오늘 복용을 저장하면 안 되므로
+        // 복용 체크를 막고 30초 뒤 다시 불러온다.
+        if (shownDateRef.current !== currentHomeDate()) {
+          setStaleDate(true);
+          setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요" });
+          retryTimer = setTimeout(() => setRetryKey((k) => k + 1), 30000);
+        }
         return;
       }
       hasRealDataRef.current = !isSample;
+      shownDateRef.current = isSample ? null : data.today;
+      setStaleDate(false);
       setHome(data);
       setIsSample(isSample);
     });
     return () => {
       ignore = true;
+      clearTimeout(retryTimer);
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, retryKey]);
 
   // 연속 복용 일수: 홈을 불러올 때와 복용 체크 저장 후 다시 조회 (예시 데이터면 예시 값 사용)
   useEffect(() => {
@@ -107,6 +122,11 @@ export default function HomePage({
   //    저장 중인 카드는 다시 못 누르게 해서, 늦게 끝난 요청이 최신 상태를 덮어쓰지 않게 한다.
   const handleToggle = async (id) => {
     if (pendingRef.current.has(id)) return; // 이 카드는 저장 중 → 클릭 무시
+    if (staleDate) {
+      // 날짜가 바뀌었는데 오늘 목록을 아직 못 불러옴 → 어제 날짜로 저장하지 않는다
+      setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요. 잠시 후 다시 시도해 주세요" });
+      return;
+    }
 
     const item = supplements.find((s) => s.id === id);
     const next = !item.taken;
@@ -167,7 +187,7 @@ export default function HomePage({
                 supplements={supplements}
                 done={done}
                 total={total}
-                pendingIds={pendingIds}
+                pendingIds={staleDate ? supplements.map((s) => s.id) : pendingIds}
                 onToggle={handleToggle}
                 today={home.today}
               />
