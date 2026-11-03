@@ -67,16 +67,16 @@ public class NutritionService {
             Map<Nutrient, Double> amounts = null;
             if (product != null) {
                 // 예시 제품은 예시 함량, 식약처 제품은 성분 요약 글에서 함량을 읽음
-                amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
-                if(amounts != null) {
+                // 품목번호가 없는 제품(AI 추천 등으로 넣은 제품)은 예시 제품이 아니므로 바로 글을 읽음
+                String itemNo = product.getMfdsItemNo();
+                if (itemNo != null) {
+                    amounts = SAMPLE_AMOUNTS.get(itemNo);
+                }
+                if (amounts != null) {
                     sample = true;
                 } else {
                     amounts = parseSummary(product.getIngredientSummary());
                 }
-            }
-            if(amounts == null || amounts.isEmpty()) {
-                unsupportedCount++;
-                continue;
             }
             for (Nutrient nutrient : amounts.keySet()) {
                 double amount = amounts.get(nutrient);
