@@ -5,10 +5,14 @@
 --   1) 서버를 한 번 실행해서 테이블을 만든다 (ddl-auto: update). 이미 실행해 둔 DB면 건너뛴다
 --   2) 이 파일 하나를 실행한다. 예전 STEP02~18 파일은 실행하지 않는다 (docs/sql/archive/에 기록만 남김)
 -- 하는 일
---   - AI 테이블 21개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
+--   - AI 테이블 22개를 지우고 다시 만든다 → 예전 구조·예시 데이터(테스트 응답·추천 기록 포함)가 모두 사라지고 깨끗한 상태가 된다
 --     surveys, survey_questions, question_options, survey_responses, survey_answers, drugs, ingredient_standards,
---     recommendation_rules, llm_call_logs, ai_question_sessions, ai_question_turns, ai_chat_sessions, ai_chat_turns,
---     ai_chat_results, ai_recommendations, ai_recommendation_items, product_ingredients, review_mentions, review_product_scores
+--     recommendation_rules, llm_call_logs, llm_blocklist, llm_user_strikes, ai_question_sessions, ai_question_turns,
+--     ai_chat_sessions, ai_chat_turns, ai_chat_results, ai_recommendations, ai_recommendation_items,
+--     ai_recommendation_products(V7.1), product_ingredients, review_mentions, review_product_scores
+--   - V7.1 추천 기록: ai_recommendations.user_id·ai_chat_results.user_id(FK users SET NULL), ai_chat_results.chat_session_id NULL 허용
+--     (90일 뒤 세션이 지워져도 결과 행은 남음, FK SET NULL), 성분 카드별 제품 순위 ai_recommendation_products
+--     이미 셋업한 DB(배포 DB 포함)는 이 파일 대신 AI_SETUP_4_v7_1_recommendation_history.sql만 실행한다
 --   - 기준 데이터만 넣는다: 설문 v1, 약물 마스터, 성분 기준값(KDRI-2025), 추천 규칙, 리뷰 제품 데이터. 회원 등 예시 데이터는 넣지 않는다
 --   - 다른 팀원 테이블(users, health_profiles, user_*, catalog_products, intake_*, notifications 등)의 데이터는 지우지 않는다
 --     · catalog_products: 리뷰 제품 컬럼·키 추가(없을 때만) + 리뷰 제품 87개 upsert (data_source = DSLD·MFDS). 기존 행은 그대로
@@ -36,6 +40,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `review_product_scores`;
 DROP TABLE IF EXISTS `review_mentions`;
 DROP TABLE IF EXISTS `product_ingredients`;
+DROP TABLE IF EXISTS `ai_recommendation_products`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
 DROP TABLE IF EXISTS `ai_chat_results`;
@@ -256,7 +261,8 @@ CREATE TABLE `ai_chat_turns` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_chat_results` (
   `chat_result_id` bigint NOT NULL AUTO_INCREMENT,
-  `chat_session_id` bigint NOT NULL,
+  `chat_session_id` bigint DEFAULT NULL COMMENT '90일 삭제 후 NULL (V7.1부터 결과 행은 남음)',
+  `user_id` bigint DEFAULT NULL COMMENT '대화한 회원 (세션 삭제 후에도 유지, V7.1)',
   `track` varchar(20) NOT NULL COMMENT 'REVIEW (트랙 1), RULE_BASED (트랙 2)',
   `recommendation_id` bigint DEFAULT NULL COMMENT '트랙 2 ai_recommendations id (FK 없음)',
   `cards` json DEFAULT NULL COMMENT '트랙 1 카드·제품 스냅샷',
@@ -268,13 +274,16 @@ CREATE TABLE `ai_chat_results` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`chat_result_id`),
   UNIQUE KEY `uq_chat_results_session` (`chat_session_id`),
-  CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE
+  KEY `idx_chat_results_user` (`user_id`,`created_at`),
+  CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_chat_results_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `ai_recommendations` (
   `recommendation_id` bigint NOT NULL AUTO_INCREMENT,
   `response_id` bigint DEFAULT NULL COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
   `session_id` bigint DEFAULT NULL COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
   `chat_session_id` bigint DEFAULT NULL COMMENT 'V4 대화창 트랙 2 (90일 삭제 후 NULL)',
+  `user_id` bigint DEFAULT NULL COMMENT '회원 추천의 회원 (비회원 NULL, V7.1)',
   `summary` text,
   `model_name` varchar(60) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -286,6 +295,8 @@ CREATE TABLE `ai_recommendations` (
   KEY `FK_survey_responses_TO_ai_recommendations_1` (`response_id`),
   KEY `fk_ai_recommendations_session` (`session_id`),
   KEY `fk_ai_recommendations_chat_session` (`chat_session_id`),
+  KEY `idx_ai_recommendations_user` (`user_id`,`finished_at`),
+  CONSTRAINT `fk_ai_recommendations_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_ai_recommendations_chat_session` FOREIGN KEY (`chat_session_id`) REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`) REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL,
   CONSTRAINT `FK_survey_responses_TO_ai_recommendations_1` FOREIGN KEY (`response_id`) REFERENCES `survey_responses` (`response_id`)
@@ -307,6 +318,20 @@ CREATE TABLE `ai_recommendation_items` (
   PRIMARY KEY (`recommendation_item_id`),
   KEY `FK_ai_recommendations_TO_ai_recommendation_items_1` (`recommendation_id`),
   CONSTRAINT `FK_ai_recommendations_TO_ai_recommendation_items_1` FOREIGN KEY (`recommendation_id`) REFERENCES `ai_recommendations` (`recommendation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `ai_recommendation_products` (
+  `recommendation_product_id` bigint NOT NULL AUTO_INCREMENT,
+  `recommendation_item_id` bigint NOT NULL COMMENT '어느 추천의 어느 성분 카드인지',
+  `catalog_product_id` bigint NOT NULL,
+  `product_rank` int NOT NULL COMMENT '성분 카드 안 순위 1~3',
+  `also_contains` json DEFAULT NULL COMMENT '같은 추천의 다른 성분 중 이 제품에 든 것 (추천 시점)',
+  `warnings` json DEFAULT NULL COMMENT '안전 경고 (추천 시점)',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`recommendation_product_id`),
+  UNIQUE KEY `uq_ai_rec_product_rank` (`recommendation_item_id`,`product_rank`),
+  KEY `fk_ai_rec_products_product` (`catalog_product_id`),
+  CONSTRAINT `fk_ai_rec_products_item` FOREIGN KEY (`recommendation_item_id`) REFERENCES `ai_recommendation_items` (`recommendation_item_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ai_rec_products_product` FOREIGN KEY (`catalog_product_id`) REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `product_ingredients` (
   `product_ingredient_id` bigint NOT NULL AUTO_INCREMENT,
