@@ -8,9 +8,12 @@ import com.ucamp.app.global.auth.CurrentUserId;
 import com.ucamp.app.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,15 +31,6 @@ public class PrescriptionController {
                 .body(ApiResponse.success(response));
     }
 
-    @PutMapping("/{prescriptionId}")
-    public ResponseEntity<ApiResponse<PrescriptionResponse>> create(
-            @CurrentUserId Long userId,
-            @PathVariable Long prescriptionId,
-            @Valid @RequestBody PrescriptionRequest request) {
-        PrescriptionResponse response = prescriptionService.update(userId, prescriptionId, request);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
     @DeleteMapping("/{prescriptionId}")
     public ResponseEntity<Void> delete(
             @CurrentUserId Long userId,
@@ -47,8 +41,15 @@ public class PrescriptionController {
 
     @GetMapping("/{prescriptionId}/interactions")
     public ResponseEntity<ApiResponse<InteractionCheckResponse>> interactions(
-            @CurrentUserId Long userId, @PathVariable Long prescriptionId) {
-        InteractionCheckResponse response = prescriptionService.interactions(userId, prescriptionId);
+            @CurrentUserId Long userId,
+            @PathVariable Long prescriptionId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startAt,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endAt
+    ) {
+        InteractionCheckResponse response = prescriptionService.interactions(userId, prescriptionId, startAt, endAt);
+
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
