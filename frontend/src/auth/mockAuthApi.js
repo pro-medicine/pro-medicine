@@ -96,7 +96,7 @@ function signIn(userId, rememberMe = false) {
   );
 }
 
-export async function signup(data) {
+export async function signup(data, isCurrent = () => true) {
   await initialize();
   const email = data.email?.trim().toLowerCase();
   const nickname = data.name?.trim();
@@ -114,17 +114,19 @@ export async function signup(data) {
   if (existing.some((u) => u.nickname === nickname)) throw new Error("이미 사용 중인 닉네임입니다.");
   const userId = Math.max(0, ...existing.map((u) => u.userId)) + 1;
   const record = await makeRecord({ userId, email, nickname, password: data.password, age, gender: data.gender });
+  if (!isCurrent()) return null;
   localStorage.setItem(USERS_KEY, JSON.stringify([...existing, record]));
   signIn(userId);
   return publicUser(record);
 }
 
-export async function login({ email, password, rememberMe = false }) {
+export async function login({ email, password, rememberMe = false }, isCurrent = () => true) {
   await initialize();
   const account = users().find((user) => user.email === email?.trim().toLowerCase());
   if (!account || await hashPassword(password ?? "", account.salt) !== account.passwordHash) {
     throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
   }
+  if (!isCurrent()) return null;
   signIn(account.userId, rememberMe);
   return publicUser(account);
 }

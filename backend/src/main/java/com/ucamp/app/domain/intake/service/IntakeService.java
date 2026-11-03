@@ -71,8 +71,8 @@ public class IntakeService {
             weekDays.add(day.isAfter(today) ? new DayProgress(day, 0, 0) : dayProgress(schedules, takenByDate, day));
         }
 
-        // 이번 달 1일 ~ 오늘 → 주차별 달성률
-        List<DayProgress> thisMonth = progressBetween(schedules, takenByDate, today.withDayOfMonth(1), today);
+        // 이번 달 1일 ~ 말일 → 주차별 달성률 (진행 중인 주도 그 주 전체 기준, 1103 수정)
+        List<DayProgress> thisMonth = progressBetween(schedules, takenByDate, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
 
         return new IntakeStatsResponse(
                 userId,
@@ -80,7 +80,8 @@ public class IntakeService {
                 intakeRecordRepository.countActiveSupplements(userId), //수정
                 monthlyRate(schedules, takenByDate, today),
                 Math.max(streak, bestStreak(lastYear)),
-                rate(weekDays),
+                // rate(weekDays),
+                rate(progressBetween(schedules, takenByDate, monday, monday.plusDays(6))), // 1103 수정
                 weekDays,
                 monthWeeks(thisMonth, today)
         );
@@ -171,10 +172,12 @@ public class IntakeService {
     }
 
     // 이번 달 1일부터 오늘까지 (먹은 횟수 / 먹어야 했던 횟수) * 100, 먹어야 할 일정이 없으면 0
+    // 1130 수정 : 이번 달 1일부터 말일까지 (먹은 횟수 / 한 달치 먹어야 할 횟수) * 100, 먹어야 할 일정이 없으면 0로 수정
     private int monthlyRate(List<IntakeSchedule> schedules, Map<LocalDate, Set<Long>> takenByDate, LocalDate today) {
         long expected = 0;
         long taken = 0;
-        for (LocalDate day = today.withDayOfMonth(1); !day.isAfter(today); day = day.plusDays(1)) {
+        LocalDate lastDay = today.withDayOfMonth(today.lengthOfMonth());
+        for (LocalDate day = today.withDayOfMonth(1); !day.isAfter(lastDay); day = day.plusDays(1)) {
             Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
             for (IntakeSchedule schedule : schedules) {
                 if (isScheduledOn(schedule, day)) {

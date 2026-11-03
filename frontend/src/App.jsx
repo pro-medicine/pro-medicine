@@ -25,6 +25,21 @@ import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
 
+const NAV_STATE_KEY = "yakssokView";
+const NAV_DEPTH_KEY = "yakssokDepth";
+const VALID_TABS = new Set(["home", "friends", "disposal", "my"]);
+
+function recordView(view, { replace = false, reset = false } = {}) {
+  const previous = window.history.state;
+  const state = previous && typeof previous === "object" ? previous : {};
+  const depth = reset ? 0 : replace ? (state[NAV_DEPTH_KEY] ?? 0) : (state[NAV_DEPTH_KEY] ?? 0) + 1;
+  window.history[replace ? "replaceState" : "pushState"](
+    { ...state, [NAV_STATE_KEY]: view, [NAV_DEPTH_KEY]: depth },
+    "",
+    window.location.href,
+  );
+}
+
 export default function App() {
   // 인증 상태 (#52)
   const [user, setUser] = useState(null);
@@ -35,6 +50,8 @@ export default function App() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [authNotice, setAuthNotice] = useState(""); // 로그인 화면에 보여줄 안내 (세션 만료 등)
   const [pendingTab, setPendingTab] = useState("home"); // 소개 화면에서 고른 화면 (로그인 후 이동)
+  const authCompletionRef = useRef(null);
+  const authAttemptRef = useRef(0);
 
   // 화면 상태
   const [tab, setTab] = useState("home");
@@ -75,6 +92,8 @@ export default function App() {
       setUser(null);
       resetScreens();
       setAuthMode("login");
+      setPendingTab("home");
+      recordView({ kind: "auth", mode: "login", tab: "home" }, { replace: true, reset: true });
       setAuthNotice("로그인 세션이 만료되었어요. 다시 로그인해 주세요.");
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
@@ -100,6 +119,71 @@ export default function App() {
       active = false;
     };
   }, [authCheckAttempt]);
+
+  useEffect(() => {
+    if (loading || authCheckError) return;
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (user) {
+      if (view?.kind === "member" || view?.kind === "memberSurvey") {
+        setTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(view.kind === "memberSurvey");
+      } else {
+        recordView({ kind: "member", tab: "home" }, { replace: true, reset: true });
+      }
+    } else if (view?.kind === "auth" && (view.mode === "login" || view.mode === "signup")) {
+      setAuthMode(view.mode);
+      setPendingTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+      setSurveyOpen(false);
+    } else if (view?.kind === "guestSurvey") {
+      setAuthMode(null);
+      setSurveyOpen(true);
+    } else {
+      setAuthMode(null);
+      setSurveyOpen(false);
+      if (view?.kind !== "landing") {
+        recordView({ kind: "landing" }, { replace: true, reset: true });
+      }
+    }
+  }, [loading, authCheckError]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const view = event.state?.[NAV_STATE_KEY];
+      const completion = authCompletionRef.current;
+      if (completion) {
+        authCompletionRef.current = null;
+        setUser(completion.account);
+        setAuthMode(null);
+        setAuthNotice("");
+        setHasUnreadNotifications(false);
+        setHomeRefreshKey(0);
+        setTab(completion.tab);
+        setSurveyOpen(false);
+        recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
+        setPendingTab("home");
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      if (userId != null) {
+        const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(isMember && view.kind === "memberSurvey");
+        setFriendTarget(null);
+        setMyStartAdding(false);
+        setNotificationsOpen(false);
+        notificationsOpenRef.current = false;
+        setToast(null);
+      } else {
+        setAuthMode(view?.kind === "auth" && ["login", "signup"].includes(view.mode) ? view.mode : null);
+        setPendingTab(view?.kind === "auth" && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(view?.kind === "guestSurvey");
+        setAuthNotice("");
+      }
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [userId]);
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
   // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
@@ -187,18 +271,27 @@ export default function App() {
   }, []);
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
-  const handleAuthComplete = (account) => {
+  const handleAuthComplete = (account, attemptId) => {
+    if (attemptId !== authAttemptRef.current) return;
+    if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      authCompletionRef.current = { account, tab: pendingTab };
+      window.history.back();
+      return;
+    }
     setUser(account);
     setAuthMode(null);
     setAuthNotice("");
     setHasUnreadNotifications(false);
     setHomeRefreshKey(0);
     setTab(pendingTab);
+    setSurveyOpen(false);
+    recordView({ kind: "member", tab: pendingTab }, { replace: true, reset: true });
     setPendingTab("home");
     window.scrollTo({ top: 0 });
   };
 
-  // 로그아웃 → 로그인 화면
+  // 로그아웃 → 서비스 시작 화면
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -207,7 +300,8 @@ export default function App() {
       setUser(null);
       resetScreens();
       setAuthNotice("");
-      setAuthMode("login");
+      setAuthMode(null);
+      recordView({ kind: "landing" }, { replace: true, reset: true });
     } catch (err) {
       window.alert(err.message || "로그아웃에 실패했어요.");
     } finally {
@@ -233,12 +327,38 @@ export default function App() {
     setHomeRefreshKey((key) => key + 1);
   };
 
-  const changeTab = (nextTab) => {
+  const changeTab = (nextTab, { replace = false } = {}) => {
+    if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
+    if (nextTab !== tab) recordView({ kind: "member", tab: nextTab }, { replace });
     setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleBack = () => {
+    if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      window.history.back();
+    } else if (tab !== "home") {
+      changeTab("home", { replace: true });
+    }
+  };
+
+  const openSurvey = () => {
+    setSurveyOpen(true);
+    recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
+  };
+
+  const closeSurvey = () => {
+    const kind = window.history.state?.[NAV_STATE_KEY]?.kind;
+    if ((kind === "guestSurvey" || kind === "memberSurvey") &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      window.history.back();
+    } else {
+      setSurveyOpen(false);
+      recordView(userId == null ? { kind: "landing" } : { kind: "member", tab }, { replace: true });
+    }
   };
 
   // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
@@ -343,24 +463,42 @@ export default function App() {
   if (!user) {
     if (authMode === null) {
       return (
-        <LandingPage
-          onStart={(nextTab = "home", mode = "signup") => {
-            setPendingTab(nextTab);
-            setAuthMode(mode);
-            window.scrollTo({ top: 0 });
-          }}
-        />
+        <>
+          <LandingPage
+            onSurvey={openSurvey}
+            onStart={(nextTab = "home", mode = "signup") => {
+              const destination = VALID_TABS.has(nextTab) ? nextTab : "home";
+              setPendingTab(destination);
+              setAuthMode(mode);
+              recordView({ kind: "auth", mode, tab: destination });
+              window.scrollTo({ top: 0 });
+            }}
+          />
+          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} />}
+        </>
       );
     }
     return (
       <AuthPage
         mode={authMode}
         notice={authNotice}
-        onModeChange={setAuthMode}
+        onModeChange={(mode) => {
+          setAuthMode(mode);
+          recordView({ kind: "auth", mode, tab: pendingTab }, { replace: true });
+        }}
+        onAttemptStart={() => {
+          authAttemptRef.current += 1;
+          return authAttemptRef.current;
+        }}
         onComplete={handleAuthComplete}
         onClose={() => {
           setAuthNotice("");
-          setAuthMode(null);
+          if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+            window.history.back();
+          } else {
+            setAuthMode(null);
+            recordView({ kind: "landing" }, { replace: true, reset: true });
+          }
         }}
       />
     );
@@ -375,13 +513,25 @@ export default function App() {
           hasUnread={hasUnreadNotifications}
           ringing={toast !== null}
           onNotifications={openNotifications}
+          onBack={handleBack}
+          canGoBack={tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0}
+          onLogout={handleLogout}
+          loggingOut={loggingOut}
         />
+        <div className="mobile-session-bar">
+          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={tab === "home" && (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0}>
+            <span aria-hidden="true">←</span> 이전
+          </button>
+          <button type="button" onClick={handleLogout} disabled={loggingOut}>
+            {loggingOut ? "로그아웃 중..." : "로그아웃"}
+          </button>
+        </div>
         <main>{renderContent()}</main>
 
         <BottomNav tab={tab} onChange={changeTab} />
         <ChatLauncher userId={userId} />
 
-        {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
+        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} />}
 
         {toast && (
           <NotificationToast

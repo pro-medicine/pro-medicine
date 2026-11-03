@@ -1,0 +1,37 @@
+/* V7 마이페이지 "최근 추천 제품 보기" (담당: 영준). 모달 틀·카드는 recommendation.css의 rec-* 클래스를 그대로 쓰고,
+   여기에는 recent-rec- 접두어 스타일만 둔다. 색·글꼴은 기존 변수만 사용 */
+
+/* 마이페이지 맨 아래 작은 섹션 */
+.recent-rec-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.recent-rec-caption {
+  font-size: 13px;
+  color: var(--muted);
+}
+.recent-rec-section .btn {
+  flex-shrink: 0;
+}
+
+/* 모달 제목 아래 날짜 · 경로 */
+.recent-rec-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* 모달 겹침 순서: AI 상담 패널(chat.css, 최대 60)과 다른 모달(100)보다 위, 알림 패널(200)·토스트(210)보다 아래.
+   공통 .rec-backdrop은 그대로 두고 V7 모달을 감싼 배경만 올린다 */
+.rec-backdrop:has(> .recent-rec-modal) {
+  z-index: 110;
+}
+.recent-rec-modal {
+  z-index: 110;
+}
