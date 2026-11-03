@@ -315,15 +315,26 @@ class SurveyApiTest {
                 .andExpect(status().isBadRequest());
     }
 
+
     @Test
     void 영양제_JSON_형식이_틀리거나_모르는_성분이면_400() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"UNKNOWN\",\"amount\":1,\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":\"30\",\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":-1,\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
+
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"UNKNOWN\",\"amount\":1,\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":\"30\",\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":-1,\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
     }
+
 
     @Test
     void 같은_문항_답이_중복되면_400() throws Exception {
