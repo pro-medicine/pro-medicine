@@ -475,12 +475,38 @@ export default function ProfileScreen({
   );
 }
 
+// 게이지 상태: 상한 초과 → 과다, 권장량 절반 미만 → 부족, 권장량 이상 → 충분(상한 미평가 성분은 상한 미평가), 그 외 → 퍼센트
+function nutrientStatus(item) {
+  if (item.overUpper) {
+    return { className: "over", label: "과다" };
+  }
+  if (item.percent < 50) {
+    return { className: "low", label: "부족" };
+  }
+  // 비타민 A처럼 상한을 평가하지 못한 성분은 권장량을 넘어도 "충분" 대신 "상한 미평가"
+  if (item.percent >= 100 && item.upperUnchecked) {
+    return { className: "unchecked", label: "상한 미평가" };
+  }
+  if (item.percent >= 100) {
+    return { className: "ok", label: "충분" };
+  }
+  return { className: "", label: `${item.percent}%` };
+}
+
 // ───────────── 나의 영양관리 ─────────────
 
 // 권장량에 가장 못 미치는 성분 안내
 function nutritionNoticeText(nutrients) {
   if (nutrients.length === 0) {
     return "영양 정보를 불러오지 못했어요.";
+  }
+  // 상한을 넘은 성분이 있으면 부족보다 먼저 알림
+  const overNames = [];
+  for (const item of nutrients) {
+    if (item.overUpper) overNames.push(item.name);
+  }
+  if (overNames.length > 0) {
+    return `${overNames.join(", ")}이(가) 하루 상한 섭취량을 넘었어요. 과다 섭취는 건강에 해로울 수 있으니 약사나 의사와 상담해 보세요.`;
   }
   let lowest = nutrients[0];
   for (const item of nutrients) {
@@ -495,6 +521,18 @@ function nutritionNoticeText(nutrients) {
 
 function NutritionManagement({ userId }) {
   const [nutrition, setNutrition] = useState(null);
+
+  // 펼쳐서 상세를 보고 있는 성분 이름, null 이면 모두 접힘
+  const [openName, setOpenName] = useState(null);
+
+  // 같은 성분을 다시 누르면 접고, 다른 성분을 누르면 그 성분을 펼침
+  const toggleDetail = (name) => {
+    if (openName === name) {
+      setOpenName(null);
+    } else {
+      setOpenName(name);
+    }
+  };
 
   useEffect(() => {
     if (userId == null) return;
@@ -545,33 +583,81 @@ function NutritionManagement({ userId }) {
       ) : (
         <>
           <div className="nutrition-list">
-            {nutrients.map((item) => (
-              <div className="nutrition-row" key={item.name}>
-                <div className="nutrition-name">
-                  <strong>{item.name}</strong>
-                  <span>
-                    {item.intakeAmount}
-                    {item.unit} / 권장 {item.recommendedAmount}
-                    {item.unit}
-                  </span>
+            {nutrients.map((item) => {
+              const status = nutrientStatus(item);
+              const open = openName === item.name;
+              const sources = item.sources ?? [];
+              return (
+                <div className="nutrition-item" key={item.name}>
+                  <div className="nutrition-row">
+                    {/* 이름을 누르면 섭취량 전체와 영양제별 출처를 펼침 */}
+                    <button
+                      type="button"
+                      className="nutrition-name"
+                      aria-expanded={open}
+                      onClick={() => toggleDetail(item.name)}
+                    >
+                      <strong>{item.name}</strong>
+                      <span>
+                        {item.intakeAmount}
+                        {item.unit} / 권장 {item.recommendedAmount}
+                        {item.unit}
+                      </span>
+                      {item.overUpper && (
+                        <span className="nutrition-upper">
+                          상한 {item.upperAmount}
+                          {item.unit}
+                        </span>
+                      )}
+                    </button>
+                    <div className="nutrition-gauge">
+                      <span
+                        className={status.className}
+                        style={{ width: `${Math.min(item.percent, 100)}%` }}
+                      />
+                    </div>
+                    <div className={`nutrition-percent ${status.className}`}>
+                      {status.label}
+                    </div>
+                  </div>
+
+                  {open && (
+                    <div className="nutrition-detail">
+                      <p>
+                        하루 {item.intakeAmount}
+                        {item.unit} · 권장 {item.recommendedAmount}
+                        {item.unit}
+                        {item.upperAmount > 0 &&
+                          ` · 상한 ${item.upperAmount}${item.unit}`}
+                      </p>
+                      {item.upperUnchecked && (
+                        <p className="nutrition-detail-note">
+                          제품 성분표에 레티놀과 베타카로틴이 합쳐 적혀 있어
+                          원료별 함량을 구분할 수 없어요. 그래서 상한
+                          섭취량(레티놀 기준 3,000㎍)은 평가하지 않았어요.
+                        </p>
+                      )}
+                      {sources.length >= 2 && (
+                        <p className="nutrition-detail-dup">
+                          {sources.length}개 제품에 들어 있어요
+                        </p>
+                      )}
+                      <ul>
+                        {sources.map((source) => (
+                          <li key={source.userProductId}>
+                            <span>{source.productName}</span>
+                            <strong>
+                              {source.amount}
+                              {item.unit}
+                            </strong>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <div className="nutrition-gauge">
-                  <span
-                    className={item.percent < 50 ? "low" : "ok"}
-                    style={{ width: `${Math.min(item.percent, 100)}%` }}
-                  />
-                </div>
-                <div
-                  className={`nutrition-percent ${item.percent < 50 ? "low" : item.percent >= 100 ? "ok" : ""}`}
-                >
-                  {item.percent < 50
-                    ? "부족"
-                    : item.percent >= 100
-                      ? "충분"
-                      : `${item.percent}%`}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="nutrition-notice">
             <Icon name="sparkles" size={17} />

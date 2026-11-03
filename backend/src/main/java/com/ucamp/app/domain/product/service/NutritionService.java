@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import com.ucamp.app.domain.product.dto.NutrientSource;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +55,7 @@ public class NutritionService {
 
         // 1. 먹고 있는 영양제의 성분 함량을 성분별로 더한다
         Map<Nutrient, Double> totals = new EnumMap<>(Nutrient.class);
+        Map<Nutrient, List<NutrientSource>> sourcesByNutrient = new EnumMap<>(Nutrient.class);
         boolean sample = false;
         int unsupportedCount = 0; // 함량 정보가 없어 계산에서 빠진 영양제 수
         for (UserProduct userProduct : userProductRepository.findActiveWithCatalogByUserId(userId)) {
@@ -77,8 +79,17 @@ public class NutritionService {
                 continue;
             }
             for (Nutrient nutrient : amounts.keySet()) {
+                double amount = amounts.get(nutrient);
                 double before = totals.getOrDefault(nutrient, 0.0);  // 지금까지 더한 양 (없으면 0)
-                totals.put(nutrient, before + amounts.get(nutrient));
+                totals.put(nutrient, before + amount);
+
+                // 이 성분의 출처 목록에 지금 영양제 추가
+                List<NutrientSource> sources = sourcesByNutrient.get(nutrient);
+                if (sources == null) {
+                    sources = new ArrayList<>();
+                    sourcesByNutrient.put(nutrient, sources);
+                }
+                sources.add(new NutrientSource(userProduct.getUserProductId(), product.getProductName(), round2(amount)));
             }
         }
 
@@ -99,12 +110,22 @@ public class NutritionService {
             if (intake == 0) {
                 intake = total;
             }
+            // 상한 섭취량이 있는 성분만 넘었는지 확인
+            double upper = nutrient.getUpperAmount();
+            boolean overUpper = false;
+            if (upper > 0 && total > upper) {
+                overUpper = true;
+            }
             nutrients.add(new NutrientIntakeResponse(
                     nutrient.getDisplayName(),
                     nutrient.getUnit(),
                     intake,
                     recommended,
-                    percent
+                    percent,
+                    upper,
+                    overUpper,
+                    nutrient.isUpperUnchecked(),
+                    sourcesByNutrient.get(nutrient)
             ));
         }
         return new NutritionResponse(userId, nutrients, sample, unsupportedCount);
