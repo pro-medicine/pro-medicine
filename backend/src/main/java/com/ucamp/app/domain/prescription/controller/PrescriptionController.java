@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.prescription.controller;
 
+import com.ucamp.app.domain.medicine.dto.InteractionCheckResponse;
 import com.ucamp.app.domain.prescription.dto.PrescriptionResponse;
 import com.ucamp.app.domain.prescription.dto.PrescriptionRequest;
 import com.ucamp.app.domain.prescription.service.PrescriptionService;
@@ -33,5 +34,12 @@ public class PrescriptionController {
             @PathVariable Long prescriptionId) {
         prescriptionService.delete(userId, prescriptionId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{prescriptionId}/interactions")
+    public ResponseEntity<ApiResponse<InteractionCheckResponse>> interactions(
+            @CurrentUserId Long userId, @PathVariable Long prescriptionId) {
+        InteractionCheckResponse response = prescriptionService.interactions(userId, prescriptionId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
