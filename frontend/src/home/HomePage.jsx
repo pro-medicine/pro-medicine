@@ -7,7 +7,8 @@ import RecommendBanner from "./RecommendBanner";
 import IntakeAlarmCard from "./IntakeAlarmCard";
 import { EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
 import "./home.css";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { UnreadNotificationContext } from "../common/unreadNotificationContext";
 
 /**
  * props (App.jsx에서 전달)
@@ -15,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
  * - onOpenNotifications: 종 버튼 클릭 시 알림 패널 열기
  * * - refreshKey: 값이 바뀌면 홈 데이터를 다시 불러옴 (알림 패널을 닫을 때 → 종 아이콘 빨간 점 갱신)
  * - onAddSupplement: 영양제가 없을 때 "영양제 등록하기" → 마이페이지 영양제 등록 화면으로
+ * - onIntakeChanged: 복용 체크·해제가 저장되면 호출 (App이 알림 목록·빨간 점을 다시 조회 → 체크한 시각의 복용·놓침 알림이 사라짐)
  */
 export default function HomePage({
   userId,
@@ -22,7 +24,10 @@ export default function HomePage({
   onSurvey,
   refreshKey,
   onAddSupplement,
+  onIntakeChanged,
 }) {
+  // 종 아이콘 빨간 점: 다른 화면 TopBar와 같은 App 값을 쓴다 (복용 체크·1분 주기 확인 때 바로 갱신됨)
+  const hasUnreadNotifications = useContext(UnreadNotificationContext);
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
   const [toast, setToast] = useState(null); // 체크 결과 토스트 { type, text, actionLabel, id }
@@ -117,6 +122,7 @@ export default function HomePage({
       await updateIntake(userId, id, next, home.today); // 화면에 표시 중인 날짜로 저장
       setIntakeSavedKey((k) => k + 1);
       setToast(doneToast);
+      onIntakeChanged?.(); // 알림 쪽에 알림 (복용·놓침 알림 숨김/다시 표시)
     } catch (e) {
       console.warn("[home] 복용 체크 저장 실패", e);
       setTaken(id, !next);
@@ -134,7 +140,7 @@ export default function HomePage({
         <HomeHeader
           userName={home.userName}
           today={home.today}
-          hasUnread={home.hasUnreadNotifications}
+          hasUnread={isSample ? home.hasUnreadNotifications : hasUnreadNotifications}
           onBellClick={onOpenNotifications}
         />
 

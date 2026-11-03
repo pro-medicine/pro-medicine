@@ -123,7 +123,7 @@ export default function App() {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [userId, homeRefreshKey]);
+  }, [userId, homeRefreshKey, notificationRefreshKey]);
 
   // 실시간 알림(SSE, 로그인한 사용자만): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
   // 진짜 새 알림 신호(재연결 제외)면 가장 최근 안 읽은 알림을 팝업으로 띄운다. (알림 패널이 열려 있으면 생략)
@@ -217,6 +217,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
+  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
+  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
+
   // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
   const refreshAfterNotificationAction = () => {
     setHomeRefreshKey((key) => key + 1);
@@ -272,6 +276,7 @@ export default function App() {
             userId={userId}
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
+            onIntakeChanged={refreshNotifications}
             onSurvey={() => setSurveyOpen(true)}
             onAddSupplement={() => {
               changeTab("my");
@@ -377,7 +382,7 @@ export default function App() {
           <NotificationPanel
             userId={userId}
             anchor={notificationAnchor}
-            refreshKey={homeRefreshKey}
+            refreshKey={`${homeRefreshKey}-${notificationRefreshKey}`}
             onRead={() => setHomeRefreshKey((key) => key + 1)}
             onClose={closeNotifications}
             onNavigate={navigateFromNotification}
