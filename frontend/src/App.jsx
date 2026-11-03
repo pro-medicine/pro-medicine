@@ -49,6 +49,7 @@ export default function App() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [authNotice, setAuthNotice] = useState(""); // 로그인 화면에 보여줄 안내 (세션 만료 등)
   const [pendingTab, setPendingTab] = useState("home"); // 소개 화면에서 고른 화면 (로그인 후 이동)
+  const authCompletionRef = useRef(null);
 
   // 화면 상태
   const [tab, setTab] = useState("home");
@@ -143,6 +144,21 @@ export default function App() {
   useEffect(() => {
     const handlePopState = (event) => {
       const view = event.state?.[NAV_STATE_KEY];
+      const completion = authCompletionRef.current;
+      if (completion) {
+        authCompletionRef.current = null;
+        setUser(completion.account);
+        setAuthMode(null);
+        setAuthNotice("");
+        setHasUnreadNotifications(false);
+        setHomeRefreshKey(0);
+        setTab(completion.tab);
+        setSurveyOpen(false);
+        recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
+        setPendingTab("home");
+        window.scrollTo({ top: 0 });
+        return;
+      }
       if (userId != null) {
         const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
         setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
@@ -216,6 +232,12 @@ export default function App() {
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
   const handleAuthComplete = (account) => {
+    if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      authCompletionRef.current = { account, tab: pendingTab };
+      window.history.back();
+      return;
+    }
     setUser(account);
     setAuthMode(null);
     setAuthNotice("");
@@ -406,7 +428,7 @@ export default function App() {
               const destination = VALID_TABS.has(nextTab) ? nextTab : "home";
               setPendingTab(destination);
               setAuthMode(mode);
-              recordView({ kind: "auth", mode, tab: destination }, { replace: true, reset: true });
+              recordView({ kind: "auth", mode, tab: destination });
               window.scrollTo({ top: 0 });
             }}
           />
