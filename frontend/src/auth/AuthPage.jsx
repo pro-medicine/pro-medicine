@@ -171,7 +171,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
             termsAgreed: agreed,
           })
         : await login({ email: email.trim(), password, rememberMe });
-      if (mountedRef.current) onComplete(user);
+      onComplete(user);
     } catch (cause) {
       if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
