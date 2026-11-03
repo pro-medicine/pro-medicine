@@ -526,27 +526,6 @@ button.calendar-day {
   opacity: 0.75;
 }
 
-.medicine-suggestions {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-
-.medicine-suggestions button {
-  border: none;
-  background: white;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.medicine-suggestions button:hover {
-  background: #f2f4f7;
-}
-
 .interaction-list {
   margin-top: 12px;
   padding: 12px;
@@ -605,21 +584,35 @@ button.calendar-day {
 .medicine-suggestions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 4px 0 8px;
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  margin-top: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
 }
+
 .medicine-suggestions button {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  border: 1px solid #d0d5dd;
+  background: transparent;
+  border: 0;
   border-radius: 8px;
-  background: #fff;
+  color: var(--ink, #1a1a1a);
   cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  font-size: 13px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  text-align: left;
+  transition: background-color 0.15s ease;
+  width: 100%;
 }
+
 .medicine-suggestions button:hover {
-  background: #f2f4f7;
+  background: var(--soft, #f4f6f8);
 }
 
 .event-time-badge {
