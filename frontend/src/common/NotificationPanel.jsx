@@ -66,7 +66,15 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   const [unreadCount, setUnreadCount] = useState(0);
   const pendingIdsRef = useRef(new Set()); // 읽음 요청 중인 알림 id (같은 알림 중복 클릭 방지)
 
-  // 안 읽은 개수: 패널이 열릴 때와 refreshKey가 바뀔 때(새 알림, 읽음 처리 후) 서버에서 다시 조회한다.
+  // 패널을 열어 둔 채 시간이 지나도 지난 복용 알림이 사라지도록 1분마다
+  // 현재 시각을 바꾸고(화면에서 바로 숨김) 목록·안 읽은 개수를 서버에서 다시 받는다.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 안 읽은 개수: 패널이 열릴 때, refreshKey가 바뀔 때(새 알림, 읽음 처리 후), 1분마다 서버에서 다시 조회한다.
   // 이전 요청은 cleanup의 ignore로 버려서, 늦게 도착한 옛날 개수가 최신 값을 덮어쓰지 않는다.
   useEffect(() => {
     let ignore = false;
@@ -78,9 +86,10 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
     return () => {
       ignore = true;
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, now]);
 
-  // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때 목록을 불러온다.
+  // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때, 1분마다 목록을 불러온다.
+  // (1분마다 다시 받을 때는 "불러오는 중"을 띄우지 않고 결과만 바꾼다)
   useEffect(() => {
     let ignore = false;   // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
     const category = TABS.find((t) => t.id === tab).category;
@@ -99,7 +108,7 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
     return () => {
       ignore = true;
     };
-  }, [userId, tab, refreshKey]);
+  }, [userId, tab, refreshKey, now]);
 
   const loading = result.tab !== tab;
   // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.
@@ -179,13 +188,6 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       if (!done) return "이미 처리된 친구 신청이에요";
       return status === "ACCEPTED" ? "친구 신청을 수락했어요" : "친구 신청을 거절했어요";
     });
-
-  // 패널을 열어 둔 채 시간이 지나도 지난 복용 알림이 사라지도록 1분마다 다시 그린다
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
   // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드

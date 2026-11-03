@@ -98,16 +98,30 @@ export default function App() {
   }, [authCheckAttempt]);
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
+  // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
+  //   (복용 알림은 1시간, 놓침 알림은 2시간이 지나면 서버 목록에서 빠지므로 새로고침 없이 빨간 점이 꺼지게)
   useEffect(() => {
-    if (userId == null) return;
+    if (userId == null) return undefined;
     let ignore = false;
-    getUnreadCount(userId)
-      .then((data) => {
-        if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
-      })
-      .catch((err) => console.error(err));
+    const checkUnread = () => {
+      getUnreadCount(userId)
+        .then((data) => {
+          if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
+        })
+        .catch((err) => console.error(err));
+    };
+    checkUnread();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") checkUnread(); // 안 보는 탭에서는 요청하지 않음
+    }, 60000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkUnread();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       ignore = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [userId, homeRefreshKey]);
 
