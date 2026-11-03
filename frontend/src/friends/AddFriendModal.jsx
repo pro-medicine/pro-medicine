@@ -2,7 +2,7 @@ import { requestFollow } from "../api/followApi";
 import { useState } from "react";
 import { useModalFocus } from "../common/useModalFocus";
 
-export default function AddFriendModal({ userId, onClose, openerRef }) {
+export default function AddFriendModal({ onClose, openerRef }) {
   const [nickname, setNickname] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { type: "success" | "error", text }

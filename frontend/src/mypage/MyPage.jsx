@@ -161,7 +161,7 @@ export default function ProfileScreen({
     // → 늦게 도착한 이전 요청의 응답은 화면에 반영하지 않는다
     let ignore = false;
 
-    fetchUser(userId)
+    fetchUser()
       .then((loadedUser) => {
         if (ignore) return;
         setUser(loadedUser);
@@ -170,7 +170,7 @@ export default function ProfileScreen({
         if (ignore) return;
         setUser(null);
       });
-    fetchIntakeStats(userId)
+    fetchIntakeStats()
       .then((loadedStats) => {
         if (ignore) return;
         setStats(loadedStats);
@@ -179,7 +179,7 @@ export default function ProfileScreen({
         if (ignore) return;
         setStats(null);
       });
-    fetchMySupplements(userId)
+    fetchMySupplements()
       .then((list) => {
         if (ignore) return;
         setMySupplementList(list.map(toSupplementCard));
@@ -246,7 +246,7 @@ export default function ProfileScreen({
       return;
     setRemovingId(supplement.id);
     try {
-      await removeMySupplement(userId, supplement.id);
+      await removeMySupplement(supplement.id);
       // 재조회가 실패해도 삭제한 카드가 남지 않도록 목록에서 먼저 뺀다
       setMySupplementList((prev) => {
         const next = [];
@@ -417,10 +417,8 @@ export default function ProfileScreen({
           <IntakeCalendar
             key={friend.userId}
             title={`${name}님의 복용 달력`}
-            fetchDates={(s, e) =>
-              getFriendCalendar(viewerId, friend.userId, s, e)
-            }
-            fetchDay={(d) => getFriendDayIntakes(viewerId, friend.userId, d)}
+            fetchDates={(s, e) => getFriendCalendar(friend.userId, s, e)}
+            fetchDay={(d) => getFriendDayIntakes(friend.userId, d)}
           />
         ))}
 
@@ -547,7 +545,7 @@ function NutritionManagement({ userId }) {
 
     let ignore = false;
 
-    fetchNutrition(userId)
+    fetchNutrition()
       .then((data) => {
         if (!ignore) setNutrition(data);
       })
