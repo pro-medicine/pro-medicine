@@ -19,8 +19,6 @@ const mealRelationOptions = [
   ["ANY", "상관없음"],
 ];
 
-// 등록: 아침 식후 08:00 만 체크된 상태
-// 수정: 지금 저장된 일정대로 체크 (remindAt "08:00:00" → "08:00")
 function initialSchedules(savedSchedules) {
   const result = {};
   for (const option of mealSlotOptions) {
@@ -42,7 +40,6 @@ function initialSchedules(savedSchedules) {
   return result;
 }
 
-// 영양제 등록·복용 일정 수정 모달 틀 (Esc 닫기, Tab 포커스 가두기, 닫으면 여는 버튼으로 포커스 복원)
 function SupplementModal({ title, onClose, openerRef, children }) {
   const panelRef = useModalFocus(onClose, openerRef);
 
@@ -68,26 +65,20 @@ function SupplementModal({ title, onClose, openerRef, children }) {
   );
 }
 
-// 영양제 등록 모달 (마이페이지 "영양제 등록" 버튼)
-// 흐름: 제품 검색 → 제품 선택(또는 직접 입력) → 복용 일정 선택 → 등록 → 모달 닫힘
-// target(내 영양제 1개)을 받으면 수정 모드: 제품은 고정, 복용 일정만 바꿈 (카드의 연필 버튼)
 export default function SupplementAddPage({
   userId,
   target,
-  openerRef, // 모달을 연 버튼 (닫을 때 포커스 복원)
+  openerRef,
   onBack,
   onSaved,
 }) {
   const isEdit = !!target;
   const [keyword, setKeyword] = useState("");
-  // 검색 결과, null 이면 아직 검색 안 함
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState(null);
-  // 직접 입력: 검색해도 안 나오는 제품을 이름으로 등록
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState("");
-  // 끼니별 { checked, relation, time }
   const [schedules, setSchedules] = useState(() =>
     initialSchedules(target?.schedules),
   );
@@ -95,7 +86,7 @@ export default function SupplementAddPage({
   const [message, setMessage] = useState(null);
 
   const [tips, setTips] = useState([]);
-  const tipSeq = useRef(0); // 늦게 도착한 응답이 최신 결과를 덮어쓰지 않게
+  const tipSeq = useRef(0);
 
   const loadTips = async (catalogProductId) => {
     const seq = ++tipSeq.current;
@@ -114,14 +105,12 @@ export default function SupplementAddPage({
     setTips([]);
   };
 
-  // 수정 모드: 이미 정해진 제품의 안내도 보여준다
   useEffect(() => {
-    if (isEdit) loadTips(target.catalogProductId);
+    if (isEdit && target?.catalogProductId) loadTips(target.catalogProductId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const search = async () => {
-    // 검색 중이면 새 요청을 보내지 않는다 (Enter 연타로 요청이 겹치는 것 방지)
     if (searching) return;
     const trimmed = keyword.trim();
     if (trimmed === "") {
@@ -151,13 +140,11 @@ export default function SupplementAddPage({
   };
 
   const submit = async () => {
-    // 로그인 사용자 ID 확인
     if (userId == null) {
       setMessage("로그인 사용자 정보를 확인할 수 없어요.");
       return;
     }
 
-    // 직접 입력이면 이름, 아니면 검색에서 고른 제품이 있어야 함
     const trimmedName = manualName.trim();
     if (!isEdit && manualMode && trimmedName === "") {
       setMessage("영양제 이름을 입력해 주세요.");
@@ -167,7 +154,7 @@ export default function SupplementAddPage({
       setMessage("등록할 제품을 골라 주세요.");
       return;
     }
-    // 체크한 끼니만 서버로 보냄
+
     const picked = mealSlotOptions
       .filter((option) => schedules[option.slot].checked)
       .map((option) => ({
@@ -200,9 +187,8 @@ export default function SupplementAddPage({
               },
         );
       }
-      onSaved(); // 성공하면 마이페이지로 돌아가므로 saving 은 되돌리지 않음
+      onSaved();
     } catch (e) {
-      // 예: 이미 등록한 영양제입니다.
       setMessage(e.message || "등록하지 못했어요.");
       setSaving(false);
     }
@@ -257,7 +243,7 @@ export default function SupplementAddPage({
                 aria-pressed={manualMode}
                 onClick={() => {
                   setManualMode((prev) => !prev);
-                  setSelected(null); // 직접 입력과 검색 선택은 둘 중 하나만
+                  setSelected(null);
                   clearTips();
                   setMessage(null);
                 }}
@@ -282,7 +268,7 @@ export default function SupplementAddPage({
                       }
                       onClick={() => {
                         setSelected(product);
-                        setManualMode(false); // 검색 결과를 고르면 직접 입력은 끔
+                        setManualMode(false);
                         loadTips(product.catalogProductId);
                         setMessage(null);
                       }}
@@ -318,26 +304,26 @@ export default function SupplementAddPage({
             <p className="profile-edit-hint">
               직접 입력한 영양제는 함량 정보가 없어 영양 관리 계산에서 빠져요.
             </p>
-            {tips.length > 0 && (
-              <div className="supplement-intake-tips">
-                <ul>
-                  {tips.map((tip) => (
-                    <li key={tip.ingredient}>{tip.message}</li>
-                  ))}
-                </ul>
-                <small>
-                  제품에 적힌 섭취 방법과 의사·약사 안내를 먼저 따라 주세요.
-                </small>
-              </div>
-            )}
           </section>
         )}
-
         <section className="profile-edit-card">
           <h2>{!isEdit && <span className="step-num">2</span>}복용 일정</h2>
           <p className="profile-edit-hint">
             먹는 끼니를 고르면 그 시간에 알림을 보내드려요.
           </p>
+          {tips.length > 0 && (
+            <div className="supplement-intake-tips">
+              <ul>
+                {tips.map((tip, index) => (
+                  <li key={tip.ingredient || index}>{tip.message}</li>
+                ))}
+              </ul>
+              <small>
+                제품에 적힌 섭취 방법과 의사·약사 안내를 먼저 따라 주세요.
+              </small>
+            </div>
+          )}
+
           {mealSlotOptions.map((option) => {
             const schedule = schedules[option.slot];
             return (
@@ -363,7 +349,6 @@ export default function SupplementAddPage({
                   />
                   {option.label}
                 </label>
-                {/* 체크한 끼니만 식전·식후와 알림 시각을 고른다 */}
                 {schedule.checked && (
                   <>
                     <div
