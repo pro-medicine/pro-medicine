@@ -88,6 +88,16 @@ export function parsePrice(value) {
   return /^\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
+// 형식만 보면 2026-02-30 같은 없는 날짜도 통과한다 → 실제 달력 날짜인지 확인
+// (MySQL strict 모드는 없는 날짜를 오류로 거부하고, 그러면 SQL 실행이 그 줄에서 멈춘다)
+export function isCalendarDate(text) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return false;
+  const [year, month, day] = match.slice(1).map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+}
+
 // 가격의 용량·출처·확인 날짜 (STEP10 컬럼). 빈칸이면 NULL로 지운다 (예전 값이 남지 않게)
 // price_url은 화면에서 링크가 되므로 https 주소만 받는다
 export function priceInfo(row) {
@@ -98,7 +108,7 @@ export function priceInfo(row) {
   if (pkg.length > 100) return { problem: `price_package는 100자 이하로 적어 주세요` };
   if (source.length > 50) return { problem: `price_source는 50자 이하로 적어 주세요` };
   if (url && !/^https:\/\/[^\s"'<>]+$/.test(url)) return { problem: `price_url "${url}"은 https:// 로 시작하는 주소여야 해요` };
-  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { problem: `price_checked_at "${date}"은 2026-11-02 형식이어야 해요` };
+  if (date && !isCalendarDate(date)) return { problem: `price_checked_at "${date}"은 실제 있는 날짜를 2026-11-02 형식으로 적어야 해요` };
   return {
     sets: [
       `price_package = ${sqlText(pkg || null)}`,
