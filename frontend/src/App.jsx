@@ -406,7 +406,7 @@ export default function App() {
               const destination = VALID_TABS.has(nextTab) ? nextTab : "home";
               setPendingTab(destination);
               setAuthMode(mode);
-              recordView({ kind: "auth", mode, tab: destination });
+              recordView({ kind: "auth", mode, tab: destination }, { replace: true, reset: true });
               window.scrollTo({ top: 0 });
             }}
           />

@@ -1,7 +1,7 @@
 // 로그인 · 회원가입 화면 (#52 로그인 기능 + #67 새 디자인)
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { login, signup } from "./authApi";
 import "./auth.css";
 
@@ -117,7 +117,15 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const mountedRef = useRef(true);
   const isSignup = mode === "signup";
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // 로그인 / 회원가입 모드 전환 시 오류 메시지 초기화
   const changeMode = (nextMode) => {
@@ -163,11 +171,11 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
             termsAgreed: agreed,
           })
         : await login({ email: email.trim(), password, rememberMe });
-      onComplete(user);
+      if (mountedRef.current) onComplete(user);
     } catch (cause) {
-      setError(cause.message || "요청을 완료하지 못했습니다.");
+      if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   };
 
