@@ -16,6 +16,7 @@ import {
   deleteCalendarEvent,
   updateCalendarEventStatus,
   fetchInteractions,
+  updatePrescription,
 } from "../api/calendarEventApi";
 import { deletePrescription } from "../api/prescriptionApi";
 import { useModalFocus } from "../common/useModalFocus";
@@ -405,6 +406,7 @@ export default function ProfileScreen({
             fetchEvents={getCalendarEvents}
             createEvent={createCalendarEvent}
             createPrescription={createPrescription}
+            updatePrescription={updatePrescription}
             deletePrescription={deletePrescription}
             updateEvent={updateCalendarEvent}
             updateEventStatus={updateCalendarEventStatus}

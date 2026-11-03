@@ -50,3 +50,7 @@ export function previewInteractions(
     })
     .then(unwrap);
 }
+
+export async function updatePrescription(prescriptionId, payload) {
+  return api.put(`/api/v1/prescriptions/${prescriptionId}`, payload);
+}
