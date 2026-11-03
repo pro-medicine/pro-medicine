@@ -2,7 +2,7 @@ import { requestFollow } from "../api/followApi";
 import { useState } from "react";
 import { useModalFocus } from "../common/useModalFocus";
 
-export default function AddFriendModal({ userId, onClose, openerRef }) {
+export default function AddFriendModal({ onClose, openerRef }) {
   const [nickname, setNickname] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { type: "success" | "error", text }
@@ -17,7 +17,7 @@ export default function AddFriendModal({ userId, onClose, openerRef }) {
     setResult(null);
 
     try {
-      await requestFollow(userId, trimmed);
+      await requestFollow(trimmed);
       setResult({
         type: "success",
         text: `${trimmed}님에게 팔로우를 신청했어요. 상대가 수락하면 친구 목록에 나타나요.`,

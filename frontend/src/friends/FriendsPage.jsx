@@ -30,8 +30,11 @@ function toFriend(item, index) {
 }
 
 // openFriendUserId: 알림의 "친구 보기"로 들어오면 그 친구 상세부터 보여줌
-export default function FriendsPage({ userId, onNotifications, openFriendUserId = null }) {
-
+export default function FriendsPage({
+  userId,
+  onNotifications,
+  openFriendUserId = null,
+}) {
   const [friends, setFriends] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -84,7 +87,7 @@ export default function FriendsPage({ userId, onNotifications, openFriendUserId 
         if (!ignore) setRequests([]);
       });
     // 랭킹의 "나": 내 연속 복용일 + 닉네임 (못 불러오면 나를 빼고 친구끼리만 보여줌)
-    Promise.all([fetchIntakeStats(userId), fetchUser(userId).catch(() => null)])
+    Promise.all([fetchIntakeStats(), fetchUser().catch(() => null)])
       .then(([stats, user]) => {
         if (ignore) return;
         setMe({
@@ -98,7 +101,7 @@ export default function FriendsPage({ userId, onNotifications, openFriendUserId 
         if (!ignore) setMe(null);
       });
 
-    getFriends(userId)
+    getFriends()
       .then((data) => {
         if (!ignore) {
           setFriends((data ?? []).map(toFriend));

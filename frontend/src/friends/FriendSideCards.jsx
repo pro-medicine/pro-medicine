@@ -6,7 +6,7 @@ import { respondFollow } from "../api/followApi";
 const MAX_REQUESTS = 3; // 카드에 바로 보여줄 받은 신청 수 (나머지는 "모두 보기")
 
 // 받은 친구 신청: 카드에서 바로 수락 / 거절
-export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
+export function RequestCard({ requests, onChanged, onOpenModal }) {
   const [pendingId, setPendingId] = useState(null);
   const [error, setError] = useState("");
 
@@ -15,7 +15,7 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
     setPendingId(followId);
     setError("");
     try {
-      await respondFollow(userId, followId, status);
+      await respondFollow(followId, status);
       onChanged(status === "ACCEPTED");
     } catch (err) {
       setError(err.message || "요청을 처리하지 못했어요.");
@@ -33,7 +33,11 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
           친구 신청
           {list.length > 0 && <span className="fr-count">{list.length}</span>}
         </h3>
-        <button type="button" className="fr-link" onClick={(e) => onOpenModal("sent", e)}>
+        <button
+          type="button"
+          className="fr-link"
+          onClick={(e) => onOpenModal("sent", e)}
+        >
           보낸 신청
         </button>
       </div>
@@ -80,7 +84,11 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
       })}
 
       {list.length > MAX_REQUESTS && (
-        <button type="button" className="fr-more" onClick={(e) => onOpenModal("received", e)}>
+        <button
+          type="button"
+          className="fr-more"
+          onClick={(e) => onOpenModal("received", e)}
+        >
           받은 신청 {list.length}건 모두 보기
         </button>
       )}
@@ -105,7 +113,8 @@ export function GuardianCard({ watching, friendsById, onSelect }) {
       </div>
       {list.length === 0 ? (
         <p className="fr-side-empty">
-          아직 지키는 친구가 없어요. 친구 상세에서 안부지킴이를 신청할 수 있어요.
+          아직 지키는 친구가 없어요. 친구 상세에서 안부지킴이를 신청할 수
+          있어요.
         </p>
       ) : (
         <ul className="fr-guard-list">
@@ -114,8 +123,15 @@ export function GuardianCard({ watching, friendsById, onSelect }) {
             const name = friend?.name ?? g.nickname ?? "친구";
             return (
               <li key={g.guardianSettingId ?? g.userId}>
-                <button type="button" disabled={!friend} onClick={() => friend && onSelect(friend)}>
-                  <span className={`fr-avatar is-sm is-${friend?.color ?? "mint"}`} aria-hidden="true">
+                <button
+                  type="button"
+                  disabled={!friend}
+                  onClick={() => friend && onSelect(friend)}
+                >
+                  <span
+                    className={`fr-avatar is-sm is-${friend?.color ?? "mint"}`}
+                    aria-hidden="true"
+                  >
                     {name.charAt(0)}
                   </span>
                   <span className="fr-guard-text">

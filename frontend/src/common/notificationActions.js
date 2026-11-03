@@ -26,11 +26,13 @@ export async function completeIntakeFromNotification(userId, item) {
  * @param status "ACCEPTED" | "REJECTED"
  * @returns 처리했으면 true, 이미 처리된 신청이면 false
  */
-export async function respondFollowFromNotification(userId, item, status) {
-  const requests = await getFollowRequests(userId, "received");
-  const request = (requests ?? []).find((r) => r.followerId === item.actorUserId);
+export async function respondFollowFromNotification(item, status) {
+  const requests = await getFollowRequests("received");
+  const request = (requests ?? []).find(
+    (r) => r.followerId === item.actorUserId,
+  );
   if (!request) return false;
-  await respondFollow(userId, request.followId, status);
+  await respondFollow(request.followId, status);
   return true;
 }
 

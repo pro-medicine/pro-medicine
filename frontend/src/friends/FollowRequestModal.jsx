@@ -54,7 +54,7 @@ export default function FollowRequestModal({
     setPendingId(followId);
     setError("");
     try {
-      await respondFollow(userId, followId, status);
+      await respondFollow(followId, status);
       removeItem(followId);
       if (status === "ACCEPTED") onAccepted?.();
     } catch (err) {

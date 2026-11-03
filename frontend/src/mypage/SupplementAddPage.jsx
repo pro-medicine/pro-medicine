@@ -160,10 +160,9 @@ export default function SupplementAddPage({
     setMessage(null);
     try {
       if (isEdit) {
-        await updateSupplementSchedules(userId, target.userProductId, picked);
+        await updateSupplementSchedules(target.userProductId, picked);
       } else {
         await addMySupplement(
-          userId,
           manualMode
             ? { manualProductName: trimmedName, schedules: picked }
             : {
