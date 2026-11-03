@@ -74,7 +74,13 @@ public class FollowService {
             case "sent" -> followRepository.findByFollowerIdAndStatusInOrderByFollowIdDesc(userId, List.of(FollowStatus.PENDING, FollowStatus.REJECTED));
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
-        return toResponses(follows);
+        List<FollowResponse> responses = toResponses(follows);
+        if (!direction.equals("sent")) {
+            return responses;
+        }
+        return responses.stream()
+                .map(r -> r.status() == FollowStatus.REJECTED
+                ? new FollowResponse(r.followId(), r.followerId(), r.followerNickname(), r.followingId(), r.followingNickname(), FollowStatus.PENDING) : r).toList();
     }
 
     @Transactional
@@ -120,7 +126,8 @@ public class FollowService {
                 })
                 .map(f -> {
                     Follow mine = outgoing.get(f.getFollowerId());
-                    return FollowerResponse.of(f.getFollowId(), users.get(f.getFollowerId()), mine == null ? null : mine.getStatus());
+                    FollowStatus followBack = mine == null ? null : (mine.getStatus() == FollowStatus.REJECTED ? FollowStatus.PENDING : mine.getStatus());
+                    return FollowerResponse.of(f.getFollowId(), users.get(f.getFollowerId()), followBack);
                 }).toList();
     }
 
