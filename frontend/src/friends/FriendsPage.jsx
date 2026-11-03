@@ -103,7 +103,7 @@ export default function FriendsPage({
       .catch(() => {});
 
     // 랭킹의 "나": 내 연속 복용일 + 닉네임 (못 불러오면 나를 빼고 친구끼리만 보여줌)
-    Promise.all([fetchIntakeStats(userId), fetchUser(userId).catch(() => null)])
+    Promise.all([fetchIntakeStats(), fetchUser().catch(() => null)])
       .then(([stats, user]) => {
         if (ignore) return;
         setMe({
@@ -117,7 +117,7 @@ export default function FriendsPage({
         if (!ignore) setMe(null);
       });
 
-    getFriends(userId)
+    getFriends()
       .then((data) => {
         if (!ignore) {
           setFriends((data ?? []).map(toFriend));

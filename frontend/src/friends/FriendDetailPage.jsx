@@ -74,7 +74,7 @@ export default function FriendDetailPage({
     setFriend(null);
     setError("");
 
-    getFriendDetail(userId, friendUserId)
+    getFriendDetail(friendUserId)
       .then((data) => {
         if (!ignore) setFriend(toFriendDetail(data, fallback));
       })
@@ -92,8 +92,8 @@ export default function FriendDetailPage({
   const loadGuardian = useCallback(async () => {
     try {
       const [watching, mine] = await Promise.all([
-        getWatching(userId),
-        getMyGuardians(userId),
+        getWatching(),
+        getMyGuardians(),
       ]);
       setGuardian(
         (watching ?? []).find((g) => g.userId === friendUserId) ?? null,
@@ -104,7 +104,7 @@ export default function FriendDetailPage({
     } catch (err) {
       console.error(err);
     }
-  }, [userId, friendUserId]);
+  }, [friendUserId]);
 
   // 이 친구에 대한 내 지킴이 상태 조회 (상세 조회와 분리: 실패해도 화면은 유지)
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function FriendDetailPage({
 
   const handleChangeDays = async (days) => {
     await runGuardian(
-      () => changeGuardianDays(userId, guardian.guardianSettingId, days),
+      () => changeGuardianDays(guardian.guardianSettingId, days),
       `${days}일 이상 접속하지 않으면 알림을 받아요.`,
     );
     setDaysOpen(false);
@@ -154,7 +154,7 @@ export default function FriendDetailPage({
       danger: true,
       onConfirm: () =>
         runGuardian(
-          () => removeGuardian(userId, guardian.guardianSettingId),
+          () => removeGuardian(guardian.guardianSettingId),
           "안부지킴이를 해제했어요.",
         ),
     });
@@ -191,7 +191,7 @@ export default function FriendDetailPage({
       danger: true,
       onConfirm: () =>
         runGuardian(
-          () => removeGuardian(userId, incoming.guardianSettingId),
+          () => removeGuardian(incoming.guardianSettingId),
           "안부지킴이 신청을 거절했어요.",
         ),
     });
@@ -206,7 +206,7 @@ export default function FriendDetailPage({
         confirmLabel: "수락",
         onConfirm: () =>
           runGuardian(
-            () => acceptGuardian(userId, incoming.guardianSettingId),
+            () => acceptGuardian(incoming.guardianSettingId),
             "안부지킴이를 수락했어요.",
           ),
       });
@@ -221,7 +221,7 @@ export default function FriendDetailPage({
         danger: true,
         onConfirm: () =>
           runGuardian(
-            () => removeGuardian(userId, incoming.guardianSettingId),
+            () => removeGuardian(incoming.guardianSettingId),
             "안부지킴이를 해제했어요.",
           ),
       });
@@ -235,7 +235,7 @@ export default function FriendDetailPage({
         confirmLabel: "신청",
         onConfirm: () =>
           runGuardian(
-            () => requestGuardian(userId, friendUserId, 3),
+            () => requestGuardian(friendUserId, 3),
             "안부지킴이를 신청했어요. 상대가 수락하면 알림을 받을 수 있어요.",
           ),
       });
@@ -249,7 +249,7 @@ export default function FriendDetailPage({
         confirmLabel: "신청 취소",
         danger: true,
         onConfirm: () =>
-          runGuardian(() => removeGuardian(userId, guardian.guardianSettingId)),
+          runGuardian(() => removeGuardian(guardian.guardianSettingId)),
       });
       return;
     }
@@ -314,7 +314,7 @@ export default function FriendDetailPage({
     setDeleting(true);
     setGuardianMsg("");
     try {
-      await deleteFriend(userId, friendUserId);
+      await deleteFriend(friendUserId);
       onDeleted?.();
     } catch (err) {
       setGuardianMsg(err.message || "친구를 삭제하지 못했어요.");
