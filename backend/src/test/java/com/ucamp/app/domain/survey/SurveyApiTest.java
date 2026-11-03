@@ -7,7 +7,9 @@ import com.ucamp.app.domain.health.entity.UserCondition;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.health.repository.UserConditionRepository;
 import com.ucamp.app.domain.health.repository.UserMedicationRepository;
+import com.ucamp.app.domain.recommendation.service.RecommendationInputAssembler;
 import com.ucamp.app.domain.survey.entity.RespondentType;
+import com.ucamp.app.domain.survey.entity.ResponseStatus;
 import com.ucamp.app.domain.survey.entity.SurveyResponse;
 import com.ucamp.app.domain.survey.repository.SurveyAnswerRepository;
 import com.ucamp.app.domain.survey.repository.SurveyResponseRepository;
@@ -18,6 +20,7 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -60,6 +63,8 @@ class SurveyApiTest {
     UserMedicationRepository userMedicationRepository;
     @Autowired
     SurveyResponseRepository surveyResponseRepository;
+    @Autowired
+    RecommendationInputAssembler recommendationInputAssembler;
     @Autowired
     SurveyAnswerRepository surveyAnswerRepository;
     @Autowired
@@ -217,6 +222,24 @@ class SurveyApiTest {
 
         assertThat(userConditionRepository.findByUser_IdOrderByUserConditionIdAsc(user.getId())).isEmpty();
         assertThat(userMedicationRepository.findWithDrugByUserId(user.getId())).isEmpty();
+    }
+
+    @Test
+    void 회원_최신_영양제_응답은_다른_설문_제출이_있어도_우선한다() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+        submitOk(user.getId(), List.of(text(Q_SUPPLEMENTS,
+                "[{\"ingredient\":\"MAGNESIUM\",\"amount\":30,\"unit\":\"mg\"}]")));
+        assertThat(recommendationInputAssembler.assembleForMember(user.getId(), null)
+                .currentIntake()).hasSize(1);
+        long latestSupplementId = submitOk(user.getId(), List.of(text(Q_SUPPLEMENTS, "[]")));
+        submitOk(user.getId(), List.of(choice(Q_SMOKING, SMOKING_NONE)));
+
+        List<SurveyResponse> found = surveyResponseRepository.findLatestWithAnswer(
+                user.getId(), RespondentType.MEMBER, ResponseStatus.SUBMITTED,
+                "Q-SUPPLEMENTS", PageRequest.of(0, 1));
+        assertThat(found).extracting(SurveyResponse::getResponseId).containsExactly(latestSupplementId);
+        assertThat(recommendationInputAssembler.assembleForMember(user.getId(), null)
+                .currentIntake()).isEmpty();
     }
 
     @Test

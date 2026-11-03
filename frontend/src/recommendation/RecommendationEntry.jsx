@@ -12,17 +12,7 @@ import { useCallback, useState } from "react";
  * 기본 설문을 마친 회원이 맞춤 질문 조건을 갖추면 결과 화면에서 맞춤 질문으로 넘어갈 수 있다.
  */
 export default function RecommendationEntry({ userId, onClose }) {
-  const [mode, setMode] = useState(() => {
-    if (userId) {
-      // 회원 진입 시 이전 비회원 토큰 정리
-      sessionStorage.removeItem("guestToken");
-      sessionStorage.removeItem("guestSurveyResponseId");
-      return "V2";
-    }
-    sessionStorage.removeItem("guestToken");
-    sessionStorage.removeItem("guestSurveyResponseId");
-    return "V1";
-  });
+  const [mode, setMode] = useState(() => (userId ? "V2" : "V1"));
 
   const [missing, setMissing] = useState(null); // V1 폴백 시 부족한 건강정보 키 목록
 
