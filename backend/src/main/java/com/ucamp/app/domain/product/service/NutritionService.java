@@ -78,6 +78,10 @@ public class NutritionService {
                     amounts = parseSummary(product.getIngredientSummary());
                 }
             }
+            if (amounts == null || amounts.isEmpty()) {
+                unsupportedCount++;
+                continue;
+            }
             for (Nutrient nutrient : amounts.keySet()) {
                 double amount = amounts.get(nutrient);
                 double before = totals.getOrDefault(nutrient, 0.0);  // 지금까지 더한 양 (없으면 0)
