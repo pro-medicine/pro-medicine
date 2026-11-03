@@ -163,29 +163,3 @@ export function FriendTipCard() {
     </section>
   );
 }
-
-export function FollowerCard({ followers, onFollowBack, busyId }) {
-  if (!followers?.length) return null;
-  return (
-    <section className="fr-card">
-      <h3>
-        나를 팔로우하는 사람 <span>{followers.length}</span>
-      </h3>
-      <ul>
-        {followers.map((f) => (
-          <li key={f.userId}>
-            <span>{f.nickname}</span>
-            <button
-              type="button"
-              className="btn btn-outline"
-              disabled={busyId === f.userId || f.followBackStatus === "PENDING"}
-              onClick={() => onFollowBack(f)}
-            >
-              {f.followBackStatus === "PENDING" ? "신청 중" : "맞팔로우"}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
