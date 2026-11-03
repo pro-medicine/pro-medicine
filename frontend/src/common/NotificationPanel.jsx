@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isExpired, viewOf } from "./notificationTypes";
+import { isExpired, msUntilNextExpiry, viewOf } from "./notificationTypes";
 import TypeIcon from "./NotificationTypeIcon";
 import {
   canCompleteIntake,
@@ -109,6 +109,14 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       ignore = true;
     };
   }, [userId, tab, refreshKey, now]);
+
+  // 복용 알림(1시간)·놓침 알림(2시간)이 사라질 시각에 맞춰 타이머를 건다 → 그 순간 바로 사라짐
+  useEffect(() => {
+    const wait = msUntilNextExpiry(result.items);
+    if (wait == null) return undefined;
+    const timer = setTimeout(() => setNow(new Date()), wait + 500);
+    return () => clearTimeout(timer);
+  }, [result.items, now]);
 
   const loading = result.tab !== tab;
   // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.

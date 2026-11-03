@@ -15,6 +15,7 @@ import ChatLauncher from "./chat";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
+import { msUntilNextExpiry } from "./common/notificationTypes";
 
 // 화면
 import DisposalMapPage from "./disposal/DisposalMapPage";
@@ -106,10 +107,20 @@ export default function App() {
   useEffect(() => {
     if (userId == null) return undefined;
     let ignore = false;
+    let expiryTimer = null;
     const checkUnread = () => {
       getUnreadCount(userId)
         .then((data) => {
           if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
+        })
+        .catch((err) => console.error(err));
+      // 안 읽은 복용·놓침 알림이 사라질 시각에 맞춰 한 번 더 확인 → 그 순간 빨간 점이 꺼진다
+      getNotifications(userId, "INTAKE")
+        .then((items) => {
+          if (ignore) return;
+          clearTimeout(expiryTimer);
+          const wait = msUntilNextExpiry((items ?? []).filter((item) => !item.read));
+          if (wait != null) expiryTimer = setTimeout(checkUnread, wait + 1000);
         })
         .catch((err) => console.error(err));
     };
@@ -124,6 +135,7 @@ export default function App() {
     return () => {
       ignore = true;
       clearInterval(timer);
+      clearTimeout(expiryTimer);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [userId, homeRefreshKey, notificationRefreshKey]);
