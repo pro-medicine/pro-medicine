@@ -72,8 +72,17 @@ const SEVERITY_LABEL = {
 };
 
 // 처방 하나의 경고 중 가장 심각한 단계. 경고가 없으면 null (배지를 안 띄움)
-const topSeverity = (data) => {
-  const found = new Set((data?.warnings ?? []).map((w) => w.severity));
+const topSeverity = (data, dateKey) => {
+  const generalWarnings = data?.warnings ?? [];
+
+  const datedWarnings = (data?.datedWarnings ?? [])
+    .filter((item) => item.date === dateKey)
+    .map((item) => item.warning);
+
+  const found = new Set(
+    [...generalWarnings, ...datedWarnings].map((w) => w.severity),
+  );
+
   return SEVERITY_ORDER.find((s) => found.has(s)) ?? null;
 };
 
@@ -122,7 +131,10 @@ function EventDetail({ event, interaction, onBack, onEdit }) {
           {interaction.status === "error" ? (
             <p className="interaction-empty">상충 정보를 불러오지 못했어요.</p>
           ) : interaction.status === "done" ? (
-            <InteractionWarningList data={interaction.data} />
+            <InteractionWarningList
+              data={interaction.data}
+              dateKey={event.scheduledAt?.slice(0, 10)}
+            />
           ) : (
             <p className="interaction-empty">상충 정보를 확인하고 있어요...</p>
           )}
@@ -153,10 +165,10 @@ function DayModal({
   onClose,
   onSave,
   onSavePrescription,
-  updatePrescription,
   onDelete,
   onToggle,
   fetchInteractions,
+  interactionRefreshKey,
 }) {
   const dialogRef = useModalFocus(onClose, openerRef);
   const [mode, setMode] = useState(null); // null | "new" | event 객체(수정)
@@ -177,15 +189,23 @@ function DayModal({
 
   useEffect(() => {
     if (!fetchInteractions || prescriptionIds.length === 0) return;
+
     let ignore = false;
+
     prescriptionIds.forEach((id) => {
-      setInteractionMap((prev) => ({ ...prev, [id]: { status: "loading" } }));
-      fetchInteractions(id)
+      const key = `${id}:${dateKey}`;
+
+      setInteractionMap((prev) => ({
+        ...prev,
+        [key]: { status: "loading" },
+      }));
+
+      fetchInteractions(id, dateKey)
         .then((data) => {
           if (!ignore) {
             setInteractionMap((prev) => ({
               ...prev,
-              [id]: { status: "done", data },
+              [key]: { status: "done", data },
             }));
           }
         })
@@ -193,21 +213,24 @@ function DayModal({
           if (!ignore) {
             setInteractionMap((prev) => ({
               ...prev,
-              [id]: { status: "error" },
+              [key]: { status: "error" },
             }));
           }
         });
     });
+
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey]);
+  }, [idsKey, dateKey, fetchInteractions, interactionRefreshKey]);
 
-  const interactionOf = (event) =>
-    fetchInteractions && event.prescriptionId
-      ? (interactionMap[event.prescriptionId] ?? { status: "loading" })
+  const interactionOf = (event) => {
+    const key = `${event.prescriptionId}:${dateKey}`;
+
+    return fetchInteractions && event.prescriptionId
+      ? (interactionMap[key] ?? { status: "loading" })
       : null;
+  };
 
   const openNew = () => {
     setForm(EMPTY_FORM);
@@ -226,37 +249,26 @@ function DayModal({
       notes: event.notes ?? "",
     });
 
-    if (event.prescriptionId) {
-      const interactionData = interactionMap[event.prescriptionId]?.data;
-      setRx({
-        name: event.title,
-        medicineId: event.medicineId ?? null,
-        prescriptionId: event.prescriptionId,
-        startAt: interactionData?.startAt || dateKey,
-        endAt: interactionData?.endAt || dateKey,
-        scheduledTime: scheduledTime,
-        oneDay:
-          interactionData?.startAt &&
-          interactionData?.endAt &&
-          interactionData.startAt === interactionData.endAt,
-        openEnded: interactionData?.startAt && !interactionData?.endAt,
-        notes: event.notes ?? "",
-      });
-    }
     setError("");
     setViewEvent(null);
     setMode(event);
   };
 
-  const isRx =
-    (mode === "new" &&
-      form.eventType === "MEDICATION" &&
-      Boolean(onSavePrescription)) ||
-    (mode !== null && mode !== "new" && Boolean(mode.prescriptionId));
+  const isNewPrescription =
+    mode === "new" &&
+    form.eventType === "MEDICATION" &&
+    Boolean(onSavePrescription);
+
+  const isPrescriptionEdit =
+    mode !== null && mode !== "new" && Boolean(mode.prescriptionId);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (isRx) {
+    if (
+      mode === "new" &&
+      form.eventType === "MEDICATION" &&
+      Boolean(onSavePrescription)
+    ) {
       const message = validatePrescription(rx);
       if (message) {
         setError(message);
@@ -265,21 +277,7 @@ function DayModal({
       setSaving(true);
       setError("");
       try {
-        if (mode === "new") {
-          await onSavePrescription(toPrescriptionPayload(rx));
-        } else {
-          if (updatePrescription) {
-            await onSave(
-              {
-                eventType: "MEDICATION",
-                title: rx.name.trim(),
-                scheduledAt: `${dateKey}T${rx.scheduledTime || "09:00"}:00`,
-                notes: rx.notes.trim() || null,
-              },
-              mode.eventId,
-            );
-          }
-        }
+        await onSavePrescription(toPrescriptionPayload(rx));
         setMode(null);
       } catch (err) {
         setError(err.message || "약을 저장하지 못했어요.");
@@ -289,10 +287,12 @@ function DayModal({
       return;
     }
 
+    // 2. 단건 일정/약 수정 (선택한 개별 eventId의 시간 및 메모 업데이트)
     if (!form.title.trim()) {
       setError("일정 이름을 입력해 주세요.");
       return;
     }
+
     setSaving(true);
     setError("");
     try {
@@ -303,7 +303,7 @@ function DayModal({
           scheduledAt: `${dateKey}T${form.time}:00`,
           notes: form.notes.trim() || null,
         },
-        mode !== "new" ? mode.eventId : null,
+        mode !== "new" ? mode.eventId : null, // 선택한 개별 eventId 전달
       );
       setMode(null);
     } catch (err) {
@@ -413,7 +413,11 @@ function DayModal({
               <ul>
                 {events.map((event) => {
                   const severity = event.prescriptionId
-                    ? topSeverity(interactionMap[event.prescriptionId]?.data)
+                    ? topSeverity(
+                        interactionMap[`${event.prescriptionId}:${dateKey}`]
+                          ?.data,
+                        dateKey,
+                      )
                     : null;
                   return (
                     <li
@@ -509,8 +513,32 @@ function DayModal({
                     ))}
                   </select>
                 </label>
-                {isRx ? (
+                {isNewPrescription ? (
                   <PrescriptionFields value={rx} onChange={setRx} />
+                ) : isPrescriptionEdit ? (
+                  <>
+                    <label>
+                      복용 시각
+                      <input
+                        type="time"
+                        value={form.time}
+                        onChange={(e) =>
+                          setForm({ ...form, time: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      메모
+                      <textarea
+                        maxLength={1000}
+                        rows={2}
+                        value={form.notes}
+                        onChange={(e) =>
+                          setForm({ ...form, notes: e.target.value })
+                        }
+                      />
+                    </label>
+                  </>
                 ) : (
                   <>
                     <label>
@@ -597,6 +625,7 @@ export default function IntakeCalendar({
   const [dayItems, setDayItems] = useState(null);
   const [dayError, setDayError] = useState("");
   const [events, setEvents] = useState([]);
+  const [interactionRefreshKey, setInteractionRefreshKey] = useState(0);
   const openerRef = useRef(null);
 
   const monthKey = `${ym.year}-${pad(ym.month)}`;
@@ -698,6 +727,7 @@ export default function IntakeCalendar({
       await deleteEvent(event.eventId);
     }
     await reloadEvents();
+    setInteractionRefreshKey((prev) => prev + 1);
   };
 
   const handleToggle = async (event) => {
@@ -838,6 +868,7 @@ export default function IntakeCalendar({
 
       {selected && (
         <DayModal
+          key={selected}
           dateKey={selected}
           showIntake={Boolean(fetchDay) && selected <= todayKey}
           dayItems={dayItems}
@@ -857,6 +888,7 @@ export default function IntakeCalendar({
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
           fetchInteractions={fetchInteractions}
+          interactionRefreshKey={interactionRefreshKey}
         />
       )}
     </section>

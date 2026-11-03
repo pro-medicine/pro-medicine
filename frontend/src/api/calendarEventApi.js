@@ -28,9 +28,14 @@ export function createPrescription(payload) {
 
 const unwrap = (res) => res?.data?.data ?? res?.data ?? res;
 
-export function fetchInteractions(prescriptionId) {
+export function fetchInteractions(prescriptionId, dateKey) {
   return api
-    .get(`/api/v1/prescriptions/${prescriptionId}/interactions`)
+    .get(`/api/v1/prescriptions/${prescriptionId}/interactions`, {
+      params: {
+        startAt: dateKey,
+        endAt: dateKey,
+      },
+    })
     .then(unwrap);
 }
 
