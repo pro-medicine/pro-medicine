@@ -86,7 +86,8 @@ export default function App() {
       setUser(null);
       resetScreens();
       setAuthMode("login");
-      recordView({ kind: "auth", mode: "login" }, { replace: true, reset: true });
+      setPendingTab("home");
+      recordView({ kind: "auth", mode: "login", tab: "home" }, { replace: true, reset: true });
       setAuthNotice("로그인 세션이 만료되었어요. 다시 로그인해 주세요.");
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
@@ -125,6 +126,7 @@ export default function App() {
       }
     } else if (view?.kind === "auth" && (view.mode === "login" || view.mode === "signup")) {
       setAuthMode(view.mode);
+      setPendingTab(VALID_TABS.has(view.tab) ? view.tab : "home");
       setSurveyOpen(false);
     } else if (view?.kind === "guestSurvey") {
       setAuthMode(null);
@@ -152,6 +154,7 @@ export default function App() {
         setToast(null);
       } else {
         setAuthMode(view?.kind === "auth" && ["login", "signup"].includes(view.mode) ? view.mode : null);
+        setPendingTab(view?.kind === "auth" && VALID_TABS.has(view.tab) ? view.tab : "home");
         setSurveyOpen(view?.kind === "guestSurvey");
         setAuthNotice("");
       }
@@ -400,9 +403,10 @@ export default function App() {
           <LandingPage
             onSurvey={openSurvey}
             onStart={(nextTab = "home", mode = "signup") => {
-              setPendingTab(nextTab);
+              const destination = VALID_TABS.has(nextTab) ? nextTab : "home";
+              setPendingTab(destination);
               setAuthMode(mode);
-              recordView({ kind: "auth", mode });
+              recordView({ kind: "auth", mode, tab: destination });
               window.scrollTo({ top: 0 });
             }}
           />
@@ -416,7 +420,7 @@ export default function App() {
         notice={authNotice}
         onModeChange={(mode) => {
           setAuthMode(mode);
-          recordView({ kind: "auth", mode }, { replace: true });
+          recordView({ kind: "auth", mode, tab: pendingTab }, { replace: true });
         }}
         onComplete={handleAuthComplete}
         onClose={() => {
