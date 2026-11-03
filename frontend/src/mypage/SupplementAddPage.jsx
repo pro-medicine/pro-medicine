@@ -86,24 +86,36 @@ export default function SupplementAddPage({
   const [message, setMessage] = useState(null);
 
   const [tips, setTips] = useState([]);
+  const [tipError, setTipError] = useState(false);
   const tipSeq = useRef(0);
 
   const loadTips = async (catalogProductId) => {
     const seq = ++tipSeq.current;
     setTips([]);
+    setTipError(false);
     if (!catalogProductId) return;
     try {
       const list = await fetchIntakeTips(catalogProductId);
-      if (seq === tipSeq.current) setTips(Array.isArray(list) ? list : []);
+      if (seq === tipSeq.current) {
+        setTips(Array.isArray(list) ? list : []);
+      }
     } catch {
-      if (seq === tipSeq.current) setTips([]);
+      if (seq === tipSeq.current) {
+        setTips([]);
+        setTipError(true);
+      }
     }
   };
 
   const clearTips = () => {
     tipSeq.current += 1;
     setTips([]);
+    setTipError(false);
   };
+
+  const activeCatalogProductId = isEdit
+    ? target?.catalogProductId
+    : selected?.catalogProductId;
 
   useEffect(() => {
     if (isEdit && target?.catalogProductId) loadTips(target.catalogProductId);
@@ -321,6 +333,20 @@ export default function SupplementAddPage({
               <small>
                 제품에 적힌 섭취 방법과 의사·약사 안내를 먼저 따라 주세요.
               </small>
+            </div>
+          )}
+          {tipError && (
+            <div className="supplement-intake-tips error">
+              <p className="profile-edit-hint error">
+                섭취 안내 정보를 불러오지 못했어요.
+              </p>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => loadTips(activeCatalogProductId)}
+              >
+                다시 시도
+              </button>
             </div>
           )}
 
