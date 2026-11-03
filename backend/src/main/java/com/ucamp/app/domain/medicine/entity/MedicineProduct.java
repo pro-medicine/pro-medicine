@@ -31,6 +31,9 @@ public class MedicineProduct {
     @Column(name = "active", nullable = false)
     private boolean active;
 
+    @Column(name = "search_keywords", length = 300)
+    private String searchKeywords;
+
     public String shownName() {
         return displayName != null ? displayName : nameKo;
     }

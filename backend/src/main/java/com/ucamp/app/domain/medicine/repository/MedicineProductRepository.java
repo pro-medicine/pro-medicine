@@ -17,6 +17,7 @@ public interface MedicineProductRepository extends JpaRepository<MedicineProduct
           and (
             lower(m.nameKo) like lower(concat('%', :q, '%'))
             or lower(coalesce(m.displayName, '')) like lower(concat('%', :q, '%'))
+            or lower(coalesce(m.searchKeywords, '')) like lower(concat('%', :q, '%'))
           )
         order by m.medicineId asc
         """)
