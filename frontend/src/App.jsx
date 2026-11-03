@@ -274,7 +274,8 @@ export default function App() {
   // 로그아웃 → 서비스 시작 화면
   const handleLogout = async () => {
     if (loggingOut) return;
-    signupFollowupOwnerRef.current = null;
+    const followupOwner = signupFollowupOwnerRef.current;
+    if (followupOwner) followupOwner.logoutPending = true;
     setLoggingOut(true);
     try {
       await logout();
@@ -284,6 +285,11 @@ export default function App() {
       setAuthMode(null);
       recordView({ kind: "landing" }, { replace: true, reset: true });
     } catch (err) {
+      if (followupOwner && signupFollowupOwnerRef.current === followupOwner &&
+          postSignupHealth && userId === followupOwner.userId &&
+          followupOwner.authAttempt === authAttemptRef.current) {
+        followupOwner.logoutPending = false;
+      }
       window.alert(err.message || "로그아웃에 실패했어요.");
     } finally {
       setLoggingOut(false);
@@ -328,7 +334,7 @@ export default function App() {
 
   const finishSignupFollowup = (skipConsent = false) => {
     const owner = signupFollowupOwnerRef.current;
-    if (!owner || owner.userId !== userId ||
+    if (!owner || owner.logoutPending || owner.userId !== userId ||
         owner.authAttempt !== authAttemptRef.current || loggingOut) return;
     signupFollowupOwnerRef.current = null;
     setPostSignupHealth(false);
