@@ -93,7 +93,8 @@ public enum ErrorCode {
 
     // CALENDAR
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "일정을 찾을 수 없습니다."),
-    PRESCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "C002", "복약 일정을 찾을 수 없습니다.");
+    PRESCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "C002", "복약 일정을 찾을 수 없습니다."),
+    MEDICINE_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "상비약을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
