@@ -1,5 +1,7 @@
 package com.ucamp.app.domain.chat.repository;
 
+import com.ucamp.app.domain.review.dto.ReviewProductResponse;
+import com.ucamp.app.domain.review.repository.PriceColumns;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -24,10 +26,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatCandidateRepository {
     private static final String PRODUCTS_SQL = """
-            SELECT catalog_product_id, COALESCE(name_ko, product_name) AS display_name, brand, image_url
+            SELECT catalog_product_id, COALESCE(name_ko, product_name) AS display_name, brand, image_url, %s
             FROM catalog_products
             WHERE catalog_product_id IN (:ids) AND is_active = TRUE AND blocked_kr = FALSE
-            """;
+            """.formatted(PriceColumns.select(""));
     private static final String SCORES_SQL = """
             SELECT ingredient_code, catalog_product_id, base_score, common_cautions
             FROM review_product_scores
@@ -37,7 +39,8 @@ public class ChatCandidateRepository {
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final ObjectMapper objectMapper;
 
-    public record Product(long catalogProductId, String productName, String brand, String imageUrl) {
+    public record Product(long catalogProductId, String productName, String brand, String imageUrl,
+                          ReviewProductResponse.Price price) {
     }
 
     /** V3 성분 x 제품 인기 점수 (상황 무관). 행이 없으면 맵에 없다 → 0으로 본다 */
@@ -52,7 +55,8 @@ public class ChatCandidateRepository {
         }
         namedJdbcTemplate.query(PRODUCTS_SQL, new MapSqlParameterSource("ids", ids), rs -> {
             long id = rs.getLong("catalog_product_id");
-            out.put(id, new Product(id, rs.getString("display_name"), rs.getString("brand"), rs.getString("image_url")));
+            out.put(id, new Product(id, rs.getString("display_name"), rs.getString("brand"), rs.getString("image_url"),
+                    PriceColumns.read(rs)));
         });
         return out;
     }

@@ -171,7 +171,7 @@ public class ReviewProductRecommendationService {
 
     private ReviewProductResponse.Product toProduct(Scored s) {
         Candidate c = s.candidate();
-        return new ReviewProductResponse.Product(c.catalogProductId(), c.productName(), c.brand(), c.imageUrl(),
+        return new ReviewProductResponse.Product(c.catalogProductId(), c.productName(), c.brand(), c.imageUrl(), c.price(),
                 s.alsoContains(), c.commonCautions(), s.safety().warnings());
     }
 
