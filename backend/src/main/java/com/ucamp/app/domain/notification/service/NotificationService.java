@@ -11,10 +11,13 @@ import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,20 +25,51 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NotificationService {
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final int LIST_SIZE = 50;
+
+    // 복용 알림은 복용 시각부터 1시간 동안 보인다
+    public static final Duration REMINDER_VISIBLE = Duration.ofHours(1);
+    // 복용 놓침 알림은 복용 시각 1시간 뒤에 생기고, 다시 1시간 동안 보인다 (복용 시각부터 2시간)
+    public static final Duration MISSED_VISIBLE = Duration.ofHours(2);
+
     private final NotificationRepository notificationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // ===== 조회 / 읽음 (컨트롤러에서 사용) =====
 
     public List<NotificationResponse> getNotifications(Long userId, NotificationCategory category) {
-        List<Notification> notifications = (category == null)
-                ? notificationRepository.findTop50ByUser_IdOrderByCreatedAtDesc(userId)
-                : notificationRepository.findTop50ByUser_IdAndNotificationTypeInOrderByCreatedAtDesc(userId, typesOf(category));
-        return notifications.stream().map(NotificationResponse::from).toList();
+        return getNotifications(userId, category, LocalDateTime.now(KST));
+    }
+
+    /**
+     * now 기준으로 보이는 알림 최신 50개. (지난 복용·놓침 알림은 빠짐)
+     * 테스트에서 시각을 고정할 수 있도록 now를 받는 메서드를 따로 둔다.
+     */
+    public List<NotificationResponse> getNotifications(Long userId, NotificationCategory category, LocalDateTime now) {
+        List<NotificationType> types = (category == null) ? List.of(NotificationType.values()) : typesOf(category);
+        return notificationRepository.findVisible(
+                        userId, types,
+                        NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
+                        now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
+                        PageRequest.of(0, LIST_SIZE))
+                .stream().map(NotificationResponse::from).toList();
     }
 
     public UnreadCountResponse getUnreadCount(Long userId) {
-        return new UnreadCountResponse(notificationRepository.countByUser_IdAndReadAtIsNull(userId));
+        return getUnreadCount(userId, LocalDateTime.now(KST));
+    }
+
+    public UnreadCountResponse getUnreadCount(Long userId, LocalDateTime now) {
+        return new UnreadCountResponse(notificationRepository.countVisibleUnread(
+                userId,
+                NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
+                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE)));
+    }
+
+    // 같은 dedupKey의 알림이 이미 있는지
+    public boolean exists(String dedupKey) {
+        return notificationRepository.existsByDedupKey(dedupKey);
     }
 
     @Transactional

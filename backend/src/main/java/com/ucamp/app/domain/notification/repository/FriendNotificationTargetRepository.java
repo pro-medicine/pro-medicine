@@ -31,4 +31,22 @@ public interface FriendNotificationTargetRepository extends Repository<Follow, L
     default List<Long> findAcceptedFollowerIds(Long userId) {
         return findFollowerIds(userId, FollowStatus.ACCEPTED);
     }
+
+    /**
+     * followerId가 followingId를 팔로우하고 있는지 (수락됨, 취소 안 함). 친구 챙겨주기를 보낼 수 있는지 확인할 때 사용.
+     */
+    @Query("""
+            SELECT COUNT(f) > 0 FROM Follow f
+            WHERE f.followerId = :followerId
+              AND f.followingId = :followingId
+              AND f.status = :status
+              AND f.deletedAt IS NULL
+            """)
+    boolean existsFollow(@Param("followerId") Long followerId,
+                         @Param("followingId") Long followingId,
+                         @Param("status") FollowStatus status);
+
+    default boolean isAcceptedFollowing(Long followerId, Long followingId) {
+        return existsFollow(followerId, followingId, FollowStatus.ACCEPTED);
+    }
 }

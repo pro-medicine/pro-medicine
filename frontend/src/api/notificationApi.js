@@ -42,6 +42,14 @@ export function markNotificationRead(userId, notificationId) {
     );
 }
 
+/**
+ * 친구 챙겨주기: 친구에게 "영양제 챙겨 드시래요" 알림을 보낸다. (같은 친구에게 하루 1번)
+ * 이미 보냈거나 친구가 다 먹었으면 서버가 오류 메시지를 보내므로 err.message를 그대로 보여주면 된다.
+ */
+export function nudgeFriend(targetUserId) {
+    return api.post("/api/v1/notifications/nudges", { targetUserId });
+}
+
 /** 모두 읽음 */
 export function markAllNotificationsRead(userId) {
     return api.patch("/api/v1/notifications/read-all", null, userHeader(userId));

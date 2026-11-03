@@ -149,6 +149,9 @@
 .noti-icon.is-blue { background: #e6f0ff; color: #2f5fd0; }
 .noti-icon.is-purple { background: #f1eeff; color: #6741d9; }
 .noti-icon.is-red { background: #ffecec; color: #d63b3f; }
+.noti-icon.is-orange { background: #fff3e0; color: #c25e00; }
+.noti-icon.is-pink { background: #ffeef5; color: #c2307a; }
+.noti-icon.is-solid.is-orange { background: #e07a12; color: var(--white); }
 .noti-icon.is-solid.is-mint,
 .noti-icon.is-solid.is-green { background: var(--primary); color: var(--white); }
 .noti-icon.is-solid.is-red { background: #d63b3f; color: var(--white); }
@@ -723,6 +726,15 @@
   font-weight: 700;
   height: 32px;
   padding: 0 12px;
+}
+
+/* 복용 놓침: 복용 시간이 1시간 지났는데 아직 체크하지 않음 → 주황 카드 */
+.noti-pin.is-intake.is-missed {
+  background: linear-gradient(135deg, #fff6ea, #ffe9cc);
+}
+
+.noti-pin.is-intake.is-missed button {
+  background: #e07a12;
 }
 
 .noti-section-title {

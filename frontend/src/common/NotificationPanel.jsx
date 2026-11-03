@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { viewOf } from "./notificationTypes";
+import { isExpired, viewOf } from "./notificationTypes";
 import TypeIcon from "./NotificationTypeIcon";
 import {
   canCompleteIntake,
   canRespondFollow,
+  canRespondGuardian,
   completeIntakeFromNotification,
+  isIntakeAlert,
   respondFollowFromNotification,
+  respondGuardianFromNotification,
 } from "./notificationActions";
 import {
   getNotifications,
@@ -100,7 +103,7 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
 
   const loading = result.tab !== tab;
   // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.
-  const hasUnreadItem = result.items.some((item) => !item.read);
+  const hasUnreadItem = result.items.some((item) => !item.read && !isExpired(item));
 
   // 화면에 있는 알림의 읽음 상태만 바꾼다. (ids가 없으면 전부)
   const markItemsRead = (ids) => {
@@ -164,6 +167,12 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       const count = await completeIntakeFromNotification(userId, item);
       return count > 0 ? `영양제 ${count}개를 복용 완료했어요` : "이미 모두 챙겼어요";
     });
+  const respondGuardian = (item, accept) =>
+    runAction(item, async () => {
+      const done = await respondGuardianFromNotification(userId, item, accept);
+      if (!done) return "이미 처리된 안부지킴이 신청이에요";
+      return accept ? "안부지킴이 신청을 수락했어요" : "안부지킴이 신청을 거절했어요";
+    });
   const respondFollow = (item, status) =>
     runAction(item, async () => {
       const done = await respondFollowFromNotification(userId, item, status);
@@ -171,13 +180,21 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       return status === "ACCEPTED" ? "친구 신청을 수락했어요" : "친구 신청을 거절했어요";
     });
 
+  // 패널을 열어 둔 채 시간이 지나도 지난 복용 알림이 사라지도록 1분마다 다시 그린다
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
   // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
-  // - 오늘 복용 알림: 지금 먹을 영양제 → 민트 카드
-  const items = result.items;
+  // - 오늘 복용 알림 / 복용 놓침 알림: 지금 먹을 영양제 → 민트(놓침은 주황) 카드
+  const items = result.items.filter((i) => !isExpired(i, now));
   const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
   const intakeAlert =
-    tab !== "FRIEND" ? items.find((i) => !i.read && i.type === "INTAKE_REMINDER" && isToday(i.createdAt)) : null;
+    tab !== "FRIEND" ? items.find((i) => !i.read && isIntakeAlert(i) && isToday(i.createdAt)) : null;
+  const intakeMissed = intakeAlert?.type === "INTAKE_MISSED";
   const pinnedIds = [guardianAlert, intakeAlert].filter(Boolean).map((i) => i.notificationId);
   const others = items.filter((i) => !pinnedIds.includes(i.notificationId));
 
@@ -282,13 +299,16 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
             </section>
           )}
           {!loading && !result.error && intakeAlert && (
-            <section className="noti-pin is-intake" aria-label="지금 먹을 영양제 알림">
+            <section
+              className={`noti-pin is-intake${intakeMissed ? " is-missed" : ""}`}
+              aria-label={intakeMissed ? "아직 안 먹은 영양제 알림" : "지금 먹을 영양제 알림"}
+            >
               <TypeIcon item={intakeAlert} solid />
               <div className="noti-pin-text">
                 <p>{intakeAlert.title}</p>
                 <span className="notification-meta">
                   {canCompleteIntake(intakeAlert)
-                    ? `${intakeAlert.scheduledAt.slice(11, 16)} 알림 · 여기서 바로 체크할 수 있어요`
+                    ? `${intakeAlert.scheduledAt.slice(11, 16)} ${intakeMissed ? "복용 시간이 지났어요" : "알림"} · 여기서 바로 체크할 수 있어요`
                     : `${hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요`}
                 </span>
               </div>
@@ -338,6 +358,28 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
                   </button>
                   {unread && <i aria-hidden="true" />}
                   {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 (제목 버튼과 형제 요소) */}
+                  {/* 안 읽은 안부지킴이 신청: 알림에서 바로 수락 / 거절 */}
+                  {unread && canRespondGuardian(item) && (
+                    <span className="noti-follow-actions">
+                      <button
+                        type="button"
+                        className="is-accept"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 수락`}
+                        onClick={() => respondGuardian(item, true)}
+                      >
+                        수락
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 거절`}
+                        onClick={() => respondGuardian(item, false)}
+                      >
+                        거절
+                      </button>
+                    </span>
+                  )}
                   {unread && canRespondFollow(item) && (
                     <span className="noti-follow-actions">
                       <button

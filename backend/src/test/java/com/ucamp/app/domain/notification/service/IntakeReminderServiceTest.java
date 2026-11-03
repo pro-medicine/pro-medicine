@@ -125,4 +125,47 @@ class IntakeReminderServiceTest {
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0)[1]).isEqualTo("점심 영양제 2개를 드실 시간이에요");
     }
+
+    @Test
+    @DisplayName("복용 시각 1시간 뒤에도 체크가 없으면 복용 놓침 알림이 생성된다")
+    void createsMissedReminder() {
+        // 12:30 일정 → 13:31 실행
+        intakeReminderService.sendMissedReminders(LocalDateTime.of(OCT_23, LocalTime.of(13, 31)));
+
+        List<Object[]> rows = findByDedupKey("INTAKE_MISSED:9001:2026-10-23:12:30");
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0)[0]).isEqualTo("INTAKE_MISSED");
+        assertThat(rows.get(0)[1]).isEqualTo("점심 영양제 1개를 아직 안 드셨어요");
+    }
+
+    @Test
+    @DisplayName("복용 시각에서 1시간이 지나지 않았으면 복용 놓침 알림이 생성되지 않는다")
+    void noMissedReminderBeforeOneHour() {
+        intakeReminderService.sendMissedReminders(LocalDateTime.of(OCT_23, LocalTime.of(13, 0)));
+
+        assertThat(findByDedupKey("INTAKE_MISSED:9001:2026-10-23:12:30")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("1시간 안에 복용했으면 복용 놓침 알림이 생성되지 않는다")
+    void noMissedReminderWhenTaken() {
+        em.createNativeQuery("""
+                INSERT INTO intake_records
+                    (intake_record_id, schedule_id, intake_date, status, completed_at, is_shared)
+                VALUES (99002, 9001, '2026-10-23', 'TAKEN', '2026-10-23 13:00:00', false)
+                """).executeUpdate();
+
+        intakeReminderService.sendMissedReminders(LocalDateTime.of(OCT_23, LocalTime.of(13, 31)));
+
+        assertThat(findByDedupKey("INTAKE_MISSED:9001:2026-10-23:12:30")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("복용 놓침 알림도 자정을 넘으면 전날 일정으로 생성된다")
+    void createsPreviousDayMissedReminderAfterMidnight() {
+        // 10/23 23:59 일정 → 10/24 00:59 실행
+        intakeReminderService.sendMissedReminders(LocalDateTime.of(2026, 10, 24, 0, 59));
+
+        assertThat(findByDedupKey("INTAKE_MISSED:9001:2026-10-23:23:59")).hasSize(1);
+    }
 }
