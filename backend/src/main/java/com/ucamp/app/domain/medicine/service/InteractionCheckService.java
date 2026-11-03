@@ -82,23 +82,40 @@ public class InteractionCheckService {
         }
 
         // 2) 기간이 겹치는 다른 약과 같은 주성분 (supplementProducts 자리에 '겹치는 약 이름'을 담는다)
+        // 2) 복용 날짜가 실제로 겹치는 다른 약과 같은 주성분
         LocalDate s = startAt != null ? startAt : LocalDate.now();
         LocalDate e = endAt != null ? endAt : s.plusDays(2);
-        Map<String, Set<String>> dupByMedicine = new LinkedHashMap<>();
-        if (!activeCodes.isEmpty()) {
-            prescriptionRepository.findOverlapCandidates(userId, activeCodes, s, e,
-                            excludePrescriptionId == null ? -1L : excludePrescriptionId)
-                    .stream()
-                    // 종료일 미정 처방은 시작일 + 2일까지로 본다 (일정 생성 규칙과 동일)
-                    .filter(r -> (r.getEndAt() != null ? r.getEndAt() : r.getStartAt().plusDays(2)).compareTo(s) >= 0)
-                    .forEach(r -> dupByMedicine.computeIfAbsent(r.getName(), k -> new LinkedHashSet<>())
-                            .add(r.getActiveNameKo()));
-        }
-        dupByMedicine.forEach((name, names) -> merged.put("DUP|" + name,
-                new InteractionWarning("CAUTION", "DUPLICATE_INGREDIENT", List.of(name),
-                        "같은 성분(" + String.join(", ", names) + ")이 들어 있어요. 함께 드시면 과량이 될 수 있으니 용량을 확인하세요",
-                        SRC_REVIEW)));
 
+        Map<LocalDate, Map<String, Set<String>>> dupByDate = new TreeMap<>();
+
+        if (!activeCodes.isEmpty()) {
+            prescriptionRepository.findOverlapCandidates(userId, activeCodes, s.atStartOfDay(), e.plusDays(1).atStartOfDay(), excludePrescriptionId == null ? -1L : excludePrescriptionId)
+                    .forEach(r -> {
+                        LocalDate otherEnd = r.getEndAt() != null ? r.getEndAt() : r.getStartAt().plusDays(2);
+                        LocalDate overlapStart = r.getStartAt().isAfter(s) ? r.getStartAt() : s;
+                        LocalDate overlapEnd = otherEnd.isBefore(e) ? otherEnd : e;
+                        for (LocalDate date = overlapStart; !date.isAfter(overlapEnd); date = date.plusDays(1)) {
+                            dupByDate
+                                    .computeIfAbsent(date, k -> new LinkedHashMap<>())
+                                    .computeIfAbsent(r.getName(), k -> new LinkedHashSet<>())
+                                    .add(r.getActiveNameKo());
+                        }
+                    });
+        }
+        List<DatedInteractionWarning> datedWarnings = new ArrayList<>();
+        dupByDate.forEach((date, medicines) ->
+                medicines.forEach((name, names) -> {
+                    InteractionWarning warning = new InteractionWarning(
+                            "CAUTION",
+                            "DUPLICATE_INGREDIENT",
+                            List.of(name),
+                            "같은 성분(" + String.join(", ", names)
+                                    + ")이 들어 있어요. 함께 드시면 과량이 될 수 있으니 용량을 확인하세요",
+                            SRC_REVIEW
+                    );
+                    datedWarnings.add(new DatedInteractionWarning(date, warning));
+                })
+        );
         // 3) 아세트아미노펜 × 잦은 음주
         if (activeCodes.contains("ACETAMINOPHEN") && "HIGH".equals(findDrinking(userId))) {
             merged.put("HABIT|DRINKING_HIGH|ACETAMINOPHEN",
@@ -112,7 +129,7 @@ public class InteractionCheckService {
                 .toList();
 
         return new InteractionCheckResponse(true, medicine.shownName(),
-                (int) userProductRepository.countSupplementsWithoutIngredients(userId), warnings);
+                (int) userProductRepository.countSupplementsWithoutIngredients(userId), warnings, datedWarnings);
     }
 
     private String findDrinking(Long userId) {
