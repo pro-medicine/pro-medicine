@@ -1,5 +1,5 @@
 
-import { SAMPLE_HOME, SAMPLE_RECOMMEND } from "./sampleData";
+import { SAMPLE_HOME, SAMPLE_NUTRITION, SAMPLE_RECOMMEND } from "./sampleData";
 import { fetchWithAuth } from "../auth/authApi";
 
 // 팀 공통 api/client.js와 동일한 환경변수 사용
@@ -106,6 +106,23 @@ export async function updateIntake(userId, scheduleId, taken, date) {
             date,
         }),
     });
+}
+
+/**
+ * 오늘 먹은 영양소 (홈): 오늘 일정별 성분 함량 + 성분별 권장량
+ * GET /api/v1/users/{userId}/nutrition/today?date=yyyy-MM-dd
+ * 먹은 양 합계는 화면에서 복용 체크 상태로 계산한다 (체크하자마자 그래프가 올라가도록)
+ * 예시 데이터 홈이면 예시 값, 실패하면 null (카드를 숨김)
+ */
+export async function getTodayNutrition(userId, date, isSample) {
+    if (isSample) return SAMPLE_NUTRITION;
+    try {
+        const res = await request(`/api/v1/users/${userId}/nutrition/today?date=${date}`);
+        return res?.data ?? null;
+    } catch (e) {
+        console.warn("[home] 오늘 먹은 영양소 조회 실패", e);
+        return null;
+    }
 }
 
 /**

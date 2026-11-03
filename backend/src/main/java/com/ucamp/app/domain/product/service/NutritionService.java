@@ -111,6 +111,26 @@ public class NutritionService {
 
     }
 
+    /**
+     * 영양제 하나의 하루 섭취 기준 성분 함량 (홈 "오늘 먹은 영양소" TodayNutritionService에서 사용).
+     * getNutrition과 같은 규칙: 예시 제품은 예시 함량, 식약처 제품은 성분 요약 글에서 읽음. 함량을 모르면 빈 맵
+     */
+    public Map<Nutrient, Double> dailyAmounts(CatalogProduct product) {
+        if (product == null) {
+            return Map.of();
+        }
+        return isSampleProduct(product)
+                ? SAMPLE_AMOUNTS.get(product.getMfdsItemNo())
+                : parseSummary(product.getIngredientSummary());
+    }
+
+    /** 예시 함량(예시 데이터)으로 계산하는 제품인지. 품목번호가 없는 제품(DSLD 등)은 아님 */
+    public boolean isSampleProduct(CatalogProduct product) {
+        // Map.of로 만든 맵은 null로 찾으면 오류가 나서 먼저 확인한다
+        return product != null && product.getMfdsItemNo() != null
+                && SAMPLE_AMOUNTS.containsKey(product.getMfdsItemNo());
+    }
+
     // 식약처 성분 요약 글을 성분별 함량으로 바꿈
     // 예: "EPA+DHA 530mg, 루테인 20mg" → 오메가3 530 (게이지에 없는 루테인은 건너뜀)
     private Map<Nutrient, Double> parseSummary(String summary) {

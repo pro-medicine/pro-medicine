@@ -1,8 +1,10 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { getHome, getStreakDays, updateIntake } from "./homeApi";
+import { getHome, getStreakDays, getTodayNutrition, updateIntake } from "./homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
+import TodayNutrients from "./TodayNutrients";
+import "./todayNutrients.css";
 import RecommendBanner from "./RecommendBanner";
 import IntakeAlarmCard from "./IntakeAlarmCard";
 import { EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
@@ -30,6 +32,7 @@ export default function HomePage({
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
+  const [nutrition, setNutrition] = useState(null); // 오늘 먹은 영양소 (일정별 함량 + 권장량)
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
@@ -59,6 +62,19 @@ export default function HomePage({
       ignore = true;
     };
   }, [userId, refreshKey, intakeSavedKey, isSample]);
+
+  // 오늘 먹은 영양소: 홈 날짜·영양제 목록이 바뀔 때만 다시 조회 (복용 체크는 화면에서 바로 계산)
+  const homeDate = home?.today;
+  useEffect(() => {
+    if (!homeDate) return undefined;
+    let ignore = false;
+    getTodayNutrition(userId, homeDate, isSample).then((data) => {
+      if (!ignore) setNutrition(data);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [userId, refreshKey, homeDate, isSample]);
 
   // 토스트는 4초 뒤 자동으로 닫힘
   useEffect(() => {
@@ -157,6 +173,7 @@ export default function HomePage({
                 today={home.today}
               />
             )}
+            {total > 0 && <TodayNutrients nutrition={nutrition} supplements={supplements} />}
             {/* TODO: 추천 설문 모달 만들면 연결 */}
             <RecommendBanner onClick={onSurvey} />
           </div>
