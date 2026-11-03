@@ -70,9 +70,20 @@ export default function App() {
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
 
   const userId = user?.userId;
+  const signupFollowupOwnerRef = useRef(null);
+
+  useEffect(() => {
+    signupFollowupOwnerRef.current = postSignupHealth && userId != null
+      ? { userId, authAttempt: authAttemptRef.current }
+      : null;
+    return () => {
+      signupFollowupOwnerRef.current = null;
+    };
+  }, [postSignupHealth, userId]);
 
   // 화면 상태 초기화 (로그아웃·세션 만료)
   const resetScreens = () => {
+    signupFollowupOwnerRef.current = null;
     setTab("home");
     setSurveyOpen(false);
     setPostSignupHealth(false);
@@ -152,6 +163,7 @@ export default function App() {
       const completion = authCompletionRef.current;
       if (completion) {
         authCompletionRef.current = null;
+        signupFollowupOwnerRef.current = null;
         setUser(completion.account);
         setAuthMode(null);
         setAuthNotice("");
@@ -239,6 +251,7 @@ export default function App() {
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
   const handleAuthComplete = (account, attemptId, fromGuestV1 = false) => {
     if (attemptId !== authAttemptRef.current) return;
+    signupFollowupOwnerRef.current = null;
     if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
       authCompletionRef.current = { account, tab: pendingTab, fromGuestV1 };
@@ -261,6 +274,7 @@ export default function App() {
   // 로그아웃 → 서비스 시작 화면
   const handleLogout = async () => {
     if (loggingOut) return;
+    signupFollowupOwnerRef.current = null;
     setLoggingOut(true);
     try {
       await logout();
@@ -310,6 +324,17 @@ export default function App() {
     } else if (tab !== "home") {
       changeTab("home", { replace: true });
     }
+  };
+
+  const finishSignupFollowup = (skipConsent = false) => {
+    const owner = signupFollowupOwnerRef.current;
+    if (!owner || owner.userId !== userId ||
+        owner.authAttempt !== authAttemptRef.current || loggingOut) return;
+    signupFollowupOwnerRef.current = null;
+    setPostSignupHealth(false);
+    setSkipConsentAfterSignup(skipConsent);
+    setSurveyOpen(true);
+    recordView({ kind: "memberSurvey", tab });
   };
 
   const openSurvey = () => {
@@ -501,19 +526,12 @@ export default function App() {
 
         {postSignupHealth && (
           <SignupHealthFollowup
-            onClose={() => setPostSignupHealth(false)}
-            onReady={() => {
+            onClose={() => {
+              signupFollowupOwnerRef.current = null;
               setPostSignupHealth(false);
-              setSkipConsentAfterSignup(false);
-              setSurveyOpen(true);
-              recordView({ kind: "memberSurvey", tab });
             }}
-            onSkip={() => {
-              setPostSignupHealth(false);
-              setSkipConsentAfterSignup(true);
-              setSurveyOpen(true);
-              recordView({ kind: "memberSurvey", tab });
-            }}
+            onReady={() => finishSignupFollowup()}
+            onSkip={() => finishSignupFollowup(true)}
           />
         )}
         {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} skipConsent={skipConsentAfterSignup} />}
