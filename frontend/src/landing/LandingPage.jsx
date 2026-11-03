@@ -39,7 +39,7 @@ function todayLabel() {
  * - onStart(tab?, mode?): 로그인·회원가입 화면으로 (mode: "login" | "signup", 기본 회원가입)
  *   tab을 주면 로그인 후 그 화면으로, 없으면 홈
  */
-export default function LandingPage({ onStart }) {
+export default function LandingPage({ onStart, onSurvey }) {
   const [checked, setChecked] = useState([1]);
   const rootRef = useRef(null);
 
@@ -104,14 +104,32 @@ export default function LandingPage({ onStart }) {
             약속처럼 챙겨요
           </h1>
           <p className="landing-hero-sub">알림을 받고, 체크하고, 친구와 함께 꾸준히.</p>
-          <div className="landing-hero-actions">
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => onStart()}>
-              무료로 시작하기
-            </button>
-            <button type="button" className="landing-more" onClick={() => scrollTo("landing-features")}>
-              기능 보기 →
-            </button>
+          <div className="landing-entry-grid" aria-label="이용 방법 선택">
+            <section className="landing-entry-card is-guest">
+              <span className="landing-entry-icon"><Icon name="sparkles" size={26} /></span>
+              <span className="landing-entry-label">비회원으로 체험하기</span>
+              <h2>기본 설문조사</h2>
+              <p>로그인 없이 건강 습관을 체크하고 추천 영양 성분을 확인해 보세요.</p>
+              <button type="button" className="btn landing-entry-button is-guest" onClick={onSurvey}>
+                무료 기본 설문하기
+              </button>
+            </section>
+            <section className="landing-entry-card is-member">
+              <span className="landing-entry-icon"><Icon name="user" size={26} /></span>
+              <span className="landing-entry-label">회원으로 이용하기</span>
+              <h2>로그인 / 회원가입</h2>
+              <p>내 건강정보를 바탕으로 더 자세한 AI 맞춤 설문과 복용 관리를 시작하세요.</p>
+              <button type="button" className="btn landing-entry-button is-member" onClick={() => onStart("home", "login")}>
+                로그인하기
+              </button>
+              <button type="button" className="landing-entry-signup" onClick={() => onStart("home", "signup")}>
+                계정이 없나요? 회원가입
+              </button>
+            </section>
           </div>
+          <button type="button" className="landing-more landing-feature-link" onClick={() => scrollTo("landing-features")}>
+            기능 자세히 보기 →
+          </button>
 
           {/* 미리보기 카드 (예시) */}
           <div className="landing-preview" aria-label="오늘 먹을 영양제 예시">
