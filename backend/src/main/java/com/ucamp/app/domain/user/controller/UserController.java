@@ -16,34 +16,27 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/users/me")
 public class UserController {
 
     private final UserService userService;
 
     // 사용자 정보 조회 - 본인만 허용
-    // TODO: userId -> me 등으로 변경, PathVariable 제거
-    @GetMapping("/{userId}")
+    @GetMapping
     public ResponseEntity<ApiResponse<UserResponse>> getUser(
-            @PathVariable Long userId,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(userService.getUser(userId))
         );
     }
 
     // 닉네임 변경 - 본인만 허용
-    @PatchMapping("/{userId}/nickname")
+    @PatchMapping("/nickname")
     public ResponseEntity<ApiResponse<UserResponse>> changeNickname(
-            @PathVariable Long userId,
             @RequestBody NicknameUpdateRequest request,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         userService.changeNickname(userId, request.nickname())
@@ -51,19 +44,9 @@ public class UserController {
         );
     }
 
-    // JWT 인증 사용자와 요청한 사용자 ID 비교
-    private void requireSelf(Long requestedUserId, Long currentUserId) {
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        if (!requestedUserId.equals(currentUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-    }
-
-    @PatchMapping("/{userId}/share-intake")
+    @PatchMapping("/share-intake")
     public ResponseEntity<ApiResponse<UserResponse>> changeShareIntake(
-            @PathVariable Long userId,
+            @CurrentUserId Long userId,
             @Valid @RequestBody ShareIntakeRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(userService.changeShareIntakeStatus(userId, request.shared())));
