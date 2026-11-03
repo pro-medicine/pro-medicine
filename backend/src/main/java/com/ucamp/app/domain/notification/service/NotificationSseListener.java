@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.notification.service;
 
+import com.ucamp.app.domain.notification.event.IntakeStateChangedEvent;
 import com.ucamp.app.domain.notification.event.NotificationCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,5 +23,14 @@ public class NotificationSseListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onNotificationCreated(NotificationCreatedEvent event) {
         notificationSseService.sendNotification(event.receiverId());
+    }
+
+    /**
+     * 복용 체크·해제가 저장되면 본인의 다른 화면(알림 패널·빨간 점·홈, 다른 기기 포함)이 다시 조회하도록 신호를 보낸다.
+     * 체크하면 그 시각의 복용·놓침 알림이 사라지고, 해제하면 다시 나타난다.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onIntakeStateChanged(IntakeStateChangedEvent event) {
+        notificationSseService.sendRefresh(event.userId());
     }
 }

@@ -149,6 +149,9 @@
 .noti-icon.is-blue { background: #e6f0ff; color: #2f5fd0; }
 .noti-icon.is-purple { background: #f1eeff; color: #6741d9; }
 .noti-icon.is-red { background: #ffecec; color: #d63b3f; }
+.noti-icon.is-orange { background: #fff3e0; color: #c25e00; }
+.noti-icon.is-pink { background: #ffeef5; color: #c2307a; }
+.noti-icon.is-solid.is-orange { background: #e07a12; color: var(--white); }
 .noti-icon.is-solid.is-mint,
 .noti-icon.is-solid.is-green { background: var(--primary); color: var(--white); }
 .noti-icon.is-solid.is-red { background: #d63b3f; color: var(--white); }
@@ -725,6 +728,15 @@
   padding: 0 12px;
 }
 
+/* 복용 놓침: 복용 시간이 1시간 지났는데 아직 체크하지 않음 → 주황 카드 */
+.noti-pin.is-intake.is-missed {
+  background: linear-gradient(135deg, #fff6ea, #ffe9cc);
+}
+
+.noti-pin.is-intake.is-missed button {
+  background: #e07a12;
+}
+
 .noti-section-title {
   color: var(--faint);
   font-size: 12px;
@@ -962,5 +974,121 @@
 @media (min-width: 769px) {
   .bottom-nav {
     display: none;
+  }
+}
+
+.top-nav-back,
+.top-nav-logout,
+.mobile-session-bar button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  padding: 8px 12px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.top-nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.top-nav-logout {
+  border-color: var(--accent-line);
+}
+
+.top-nav-back:disabled,
+.top-nav-logout:disabled,
+.mobile-session-bar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mobile-session-bar {
+  display: none;
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .top-nav-inner {
+    gap: 12px;
+    padding: 0 18px;
+  }
+
+  .top-nav-menu {
+    gap: 14px;
+  }
+
+  .top-nav-back {
+    padding: 8px 10px;
+    font-size: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-session-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 17px;
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.top-nav-leading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  justify-self: start;
+}
+
+.top-nav-leading .top-nav-logo {
+  white-space: nowrap;
+}
+
+.top-nav-leading .top-nav-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.top-nav-leading .top-nav-back:not(:disabled):hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+.mobile-session-bar .mobile-session-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: var(--surface);
+}
+
+.mobile-session-back span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .top-nav-leading {
+    gap: 8px;
+  }
+
+  .top-nav-leading .top-nav-back {
+    width: 36px;
+    padding: 0;
+    font-size: 0;
   }
 }

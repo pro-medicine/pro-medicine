@@ -207,10 +207,11 @@ CREATE TABLE `notifications` (
                                  `read_at`   DATETIME   NULL,
                                  `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                                  `dedup_key`   VARCHAR(150)   NOT NULL,
+                                 `reference_id`   BIGINT   NULL,
                                  PRIMARY KEY (`notification_id`),
                                  UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
                                  KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),
-                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'GUARDIAN'))
+                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','INTAKE_MISSED','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'FRIEND_NUDGE', 'GUARDIAN', 'GUARDIAN_REQUESTED', 'GUARDIAN_ACCEPTED'))
 );
 
 CREATE TABLE `guardian_settings` (
@@ -947,16 +948,16 @@ INSERT INTO `surveys` (`survey_id`, `version`, `status`) VALUES
     (1, 'v1', 'ACTIVE');
 
 INSERT INTO `survey_questions` (`question_id`, `survey_id`, `code`, `question_text`, `answer_type`, `profile_key`, `is_sensitive`, `guest_visible`, `display_order`) VALUES
-                                                                                                                                                                         (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 1),
-                                                                                                                                                                         (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 2),
-                                                                                                                                                                         (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 3),
-                                                                                                                                                                         (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 4),
-                                                                                                                                                                         (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 5),
-                                                                                                                                                                         (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 6),
-                                                                                                                                                                         (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 7),
-                                                                                                                                                                         (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 8),
-                                                                                                                                                                         (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
-                                                                                                                                                                         (10, 1, 'Q-GOAL', '원하는 효과를 모두 골라주세요', 'MULTI', NULL, FALSE, TRUE, 10),
+                                                                                                                                                                         (1, 1, 'Q-GENDER', '성별을 알려주세요', 'SINGLE', 'gender', FALSE, TRUE, 2),
+                                                                                                                                                                         (2, 1, 'Q-BIRTH', '출생 연도를 알려주세요', 'NUMBER', 'birth_year', FALSE, TRUE, 3),
+                                                                                                                                                                         (3, 1, 'Q-SMOKING', '흡연하시나요?', 'SINGLE', 'smoking', FALSE, TRUE, 4),
+                                                                                                                                                                         (4, 1, 'Q-DRINKING', '술은 얼마나 자주 드시나요?', 'SINGLE', 'drinking', FALSE, TRUE, 5),
+                                                                                                                                                                         (5, 1, 'Q-CAFFEINE', '커피·차는 얼마나 드시나요?', 'SINGLE', 'caffeine', FALSE, TRUE, 6),
+                                                                                                                                                                         (6, 1, 'Q-DIET', '어떤 식단을 드시나요?', 'SINGLE', 'diet_type', FALSE, TRUE, 7),
+                                                                                                                                                                         (7, 1, 'Q-SUN', '햇빛을 얼마나 쬐시나요?', 'SINGLE', 'sun_exposure', FALSE, TRUE, 8),
+                                                                                                                                                                         (8, 1, 'Q-SLEEP', '최근 수면 상태는 어떤가요?', 'SINGLE', NULL, FALSE, TRUE, 9),
+                                                                                                                                                                         (9, 1, 'Q-FATIGUE', '최근 피로감은 어느 정도인가요?', 'SINGLE', NULL, FALSE, TRUE, 10),
+                                                                                                                                                                         (10, 1, 'Q-GOAL', '뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점)', 'MULTI', NULL, FALSE, TRUE, 1),
                                                                                                                                                                          (11, 1, 'Q-PREGNANCY', '임신·수유 중이신가요?', 'SINGLE', NULL, TRUE, FALSE, 11),
                                                                                                                                                                          (12, 1, 'Q-CONDITIONS', '진단받은 질환을 모두 골라주세요', 'MULTI', 'conditions', TRUE, FALSE, 12),
                                                                                                                                                                          (13, 1, 'Q-MEDICATIONS', '복용 중인 약을 알려주세요', 'TEXT', 'medications', TRUE, FALSE, 13),

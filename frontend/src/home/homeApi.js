@@ -38,6 +38,11 @@ function todayString() {
     }).format(new Date());
 }
 
+// 홈이 지금 보여줘야 하는 날짜 (getHome과 같은 기준: VITE_HOME_DATE가 있으면 그 날짜)
+export function currentHomeDate() {
+    return HOME_DATE ?? todayString();
+}
+
 /**
  * 홈 화면 데이터 조회
  * 사용자 정보 + 안 읽은 알림 + 오늘 복용 목록

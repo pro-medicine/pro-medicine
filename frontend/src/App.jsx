@@ -15,6 +15,7 @@ import ChatLauncher from "./chat";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
+import { isExpired, msUntilNextExpiry } from "./common/notificationTypes";
 
 // 화면
 import DisposalMapPage from "./disposal/DisposalMapPage";
@@ -23,6 +24,21 @@ import RecommendationModal from "./recommendation";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
+
+const NAV_STATE_KEY = "yakssokView";
+const NAV_DEPTH_KEY = "yakssokDepth";
+const VALID_TABS = new Set(["home", "friends", "disposal", "my"]);
+
+function recordView(view, { replace = false, reset = false } = {}) {
+  const previous = window.history.state;
+  const state = previous && typeof previous === "object" ? previous : {};
+  const depth = reset ? 0 : replace ? (state[NAV_DEPTH_KEY] ?? 0) : (state[NAV_DEPTH_KEY] ?? 0) + 1;
+  window.history[replace ? "replaceState" : "pushState"](
+    { ...state, [NAV_STATE_KEY]: view, [NAV_DEPTH_KEY]: depth },
+    "",
+    window.location.href,
+  );
+}
 
 export default function App() {
   // 인증 상태 (#52)
@@ -34,6 +50,8 @@ export default function App() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [authNotice, setAuthNotice] = useState(""); // 로그인 화면에 보여줄 안내 (세션 만료 등)
   const [pendingTab, setPendingTab] = useState("home"); // 소개 화면에서 고른 화면 (로그인 후 이동)
+  const authCompletionRef = useRef(null);
+  const authAttemptRef = useRef(0);
 
   // 화면 상태
   const [tab, setTab] = useState("home");
@@ -45,6 +63,9 @@ export default function App() {
   const [friendTarget, setFriendTarget] = useState(null); // 알림에서 바로 열 친구 상세 (친구 userId)
   const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
+  // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
+  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
+  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
@@ -71,6 +92,8 @@ export default function App() {
       setUser(null);
       resetScreens();
       setAuthMode("login");
+      setPendingTab("home");
+      recordView({ kind: "auth", mode: "login", tab: "home" }, { replace: true, reset: true });
       setAuthNotice("로그인 세션이 만료되었어요. 다시 로그인해 주세요.");
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
@@ -97,22 +120,122 @@ export default function App() {
     };
   }, [authCheckAttempt]);
 
-  // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
   useEffect(() => {
-    if (userId == null) return;
+    if (loading || authCheckError) return;
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (user) {
+      if (view?.kind === "member" || view?.kind === "memberSurvey") {
+        setTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(view.kind === "memberSurvey");
+      } else {
+        recordView({ kind: "member", tab: "home" }, { replace: true, reset: true });
+      }
+    } else if (view?.kind === "auth" && (view.mode === "login" || view.mode === "signup")) {
+      setAuthMode(view.mode);
+      setPendingTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+      setSurveyOpen(false);
+    } else if (view?.kind === "guestSurvey") {
+      setAuthMode(null);
+      setSurveyOpen(true);
+    } else {
+      setAuthMode(null);
+      setSurveyOpen(false);
+      if (view?.kind !== "landing") {
+        recordView({ kind: "landing" }, { replace: true, reset: true });
+      }
+    }
+  }, [loading, authCheckError]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const view = event.state?.[NAV_STATE_KEY];
+      const completion = authCompletionRef.current;
+      if (completion) {
+        authCompletionRef.current = null;
+        setUser(completion.account);
+        setAuthMode(null);
+        setAuthNotice("");
+        setHasUnreadNotifications(false);
+        setHomeRefreshKey(0);
+        setTab(completion.tab);
+        setSurveyOpen(false);
+        recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
+        setPendingTab("home");
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      if (userId != null) {
+        const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(isMember && view.kind === "memberSurvey");
+        setFriendTarget(null);
+        setMyStartAdding(false);
+        setNotificationsOpen(false);
+        notificationsOpenRef.current = false;
+        setToast(null);
+      } else {
+        setAuthMode(view?.kind === "auth" && ["login", "signup"].includes(view.mode) ? view.mode : null);
+        setPendingTab(view?.kind === "auth" && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setSurveyOpen(view?.kind === "guestSurvey");
+        setAuthNotice("");
+      }
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [userId]);
+
+  // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
+  // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
+  //   (복용 알림은 1시간, 놓침 알림은 2시간이 지나면 서버 목록에서 빠지므로 새로고침 없이 빨간 점이 꺼지게)
+  useEffect(() => {
+    if (userId == null) return undefined;
     let ignore = false;
-    getUnreadCount(userId)
-      .then((data) => {
-        if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
-      })
-      .catch((err) => console.error(err));
+    let expiryTimer = null;
+    const checkUnread = () => {
+      getUnreadCount(userId)
+        .then((data) => {
+          if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
+        })
+        .catch((err) => console.error(err));
+      // 안 읽은 복용·놓침 알림이 사라질 시각에 맞춰 한 번 더 확인 → 그 순간 빨간 점이 꺼진다
+      getNotifications(userId, "INTAKE")
+        .then((items) => {
+          if (ignore) return;
+          clearTimeout(expiryTimer);
+          const unread = (items ?? []).filter((item) => !item.read);
+          // 조회한 사이에 이미 만료된 알림이 섞여 왔으면 잠깐 뒤 다시 확인 (서버·브라우저 시계 차이로 반복되지 않게 1번만)
+          if (!retriedExpired && unread.some((item) => isExpired(item))) {
+            retriedExpired = true;
+            expiryTimer = setTimeout(checkUnread, 2000);
+            return;
+          }
+          retriedExpired = false;
+          const wait = msUntilNextExpiry(unread);
+          if (wait != null) expiryTimer = setTimeout(checkUnread, wait + 1000);
+        })
+        .catch((err) => console.error(err));
+    };
+    let retriedExpired = false;
+    checkUnread();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") checkUnread(); // 안 보는 탭에서는 요청하지 않음
+    }, 60000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkUnread();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       ignore = true;
+      clearInterval(timer);
+      clearTimeout(expiryTimer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [userId, homeRefreshKey]);
+  }, [userId, homeRefreshKey, notificationRefreshKey]);
 
   // 실시간 알림(SSE, 로그인한 사용자만): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
   // 진짜 새 알림 신호(재연결 제외)면 가장 최근 안 읽은 알림을 팝업으로 띄운다. (알림 패널이 열려 있으면 생략)
+  // "refresh" 신호(복용 체크 등)는 다시 조회만 하고 팝업은 띄우지 않는다.
   useEffect(() => {
     if (userId == null) return undefined;
     return subscribeNotifications(userId, (event) => {
@@ -148,18 +271,27 @@ export default function App() {
   }, []);
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
-  const handleAuthComplete = (account) => {
+  const handleAuthComplete = (account, attemptId) => {
+    if (attemptId !== authAttemptRef.current) return;
+    if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      authCompletionRef.current = { account, tab: pendingTab };
+      window.history.back();
+      return;
+    }
     setUser(account);
     setAuthMode(null);
     setAuthNotice("");
     setHasUnreadNotifications(false);
     setHomeRefreshKey(0);
     setTab(pendingTab);
+    setSurveyOpen(false);
+    recordView({ kind: "member", tab: pendingTab }, { replace: true, reset: true });
     setPendingTab("home");
     window.scrollTo({ top: 0 });
   };
 
-  // 로그아웃 → 로그인 화면
+  // 로그아웃 → 서비스 시작 화면
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -168,7 +300,8 @@ export default function App() {
       setUser(null);
       resetScreens();
       setAuthNotice("");
-      setAuthMode("login");
+      setAuthMode(null);
+      recordView({ kind: "landing" }, { replace: true, reset: true });
     } catch (err) {
       window.alert(err.message || "로그아웃에 실패했어요.");
     } finally {
@@ -194,12 +327,38 @@ export default function App() {
     setHomeRefreshKey((key) => key + 1);
   };
 
-  const changeTab = (nextTab) => {
+  const changeTab = (nextTab, { replace = false } = {}) => {
+    if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
+    if (nextTab !== tab) recordView({ kind: "member", tab: nextTab }, { replace });
     setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleBack = () => {
+    if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      window.history.back();
+    } else if (tab !== "home") {
+      changeTab("home", { replace: true });
+    }
+  };
+
+  const openSurvey = () => {
+    setSurveyOpen(true);
+    recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
+  };
+
+  const closeSurvey = () => {
+    const kind = window.history.state?.[NAV_STATE_KEY]?.kind;
+    if ((kind === "guestSurvey" || kind === "memberSurvey") &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      window.history.back();
+    } else {
+      setSurveyOpen(false);
+      recordView(userId == null ? { kind: "landing" } : { kind: "member", tab }, { replace: true });
+    }
   };
 
   // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
@@ -257,6 +416,7 @@ export default function App() {
             userId={userId}
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
+            onIntakeChanged={refreshNotifications}
             onSurvey={() => setSurveyOpen(true)}
             onAddSupplement={() => {
               changeTab("my");
@@ -303,24 +463,42 @@ export default function App() {
   if (!user) {
     if (authMode === null) {
       return (
-        <LandingPage
-          onStart={(nextTab = "home", mode = "signup") => {
-            setPendingTab(nextTab);
-            setAuthMode(mode);
-            window.scrollTo({ top: 0 });
-          }}
-        />
+        <>
+          <LandingPage
+            onSurvey={openSurvey}
+            onStart={(nextTab = "home", mode = "signup") => {
+              const destination = VALID_TABS.has(nextTab) ? nextTab : "home";
+              setPendingTab(destination);
+              setAuthMode(mode);
+              recordView({ kind: "auth", mode, tab: destination });
+              window.scrollTo({ top: 0 });
+            }}
+          />
+          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} />}
+        </>
       );
     }
     return (
       <AuthPage
         mode={authMode}
         notice={authNotice}
-        onModeChange={setAuthMode}
+        onModeChange={(mode) => {
+          setAuthMode(mode);
+          recordView({ kind: "auth", mode, tab: pendingTab }, { replace: true });
+        }}
+        onAttemptStart={() => {
+          authAttemptRef.current += 1;
+          return authAttemptRef.current;
+        }}
         onComplete={handleAuthComplete}
         onClose={() => {
           setAuthNotice("");
-          setAuthMode(null);
+          if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+            window.history.back();
+          } else {
+            setAuthMode(null);
+            recordView({ kind: "landing" }, { replace: true, reset: true });
+          }
         }}
       />
     );
@@ -335,13 +513,25 @@ export default function App() {
           hasUnread={hasUnreadNotifications}
           ringing={toast !== null}
           onNotifications={openNotifications}
+          onBack={handleBack}
+          canGoBack={tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0}
+          onLogout={handleLogout}
+          loggingOut={loggingOut}
         />
+        <div className="mobile-session-bar">
+          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={tab === "home" && (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0}>
+            <span aria-hidden="true">←</span> 이전
+          </button>
+          <button type="button" onClick={handleLogout} disabled={loggingOut}>
+            {loggingOut ? "로그아웃 중..." : "로그아웃"}
+          </button>
+        </div>
         <main>{renderContent()}</main>
 
         <BottomNav tab={tab} onChange={changeTab} />
         <ChatLauncher userId={userId} />
 
-        {surveyOpen && <RecommendationModal userId={userId} onClose={() => setSurveyOpen(false)} />}
+        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} />}
 
         {toast && (
           <NotificationToast
@@ -362,7 +552,7 @@ export default function App() {
           <NotificationPanel
             userId={userId}
             anchor={notificationAnchor}
-            refreshKey={homeRefreshKey}
+            refreshKey={`${homeRefreshKey}-${notificationRefreshKey}`}
             onRead={() => setHomeRefreshKey((key) => key + 1)}
             onClose={closeNotifications}
             onNavigate={navigateFromNotification}

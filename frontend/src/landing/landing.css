@@ -490,3 +490,121 @@
     transform: none;
   }
 }
+
+.landing-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 860px;
+  margin: 44px auto 0;
+  text-align: left;
+}
+
+.landing-entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 296px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.landing-entry-card.is-guest {
+  background: #f0faf4;
+  border-color: var(--primary-line);
+}
+
+.landing-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.landing-entry-card.is-guest .landing-entry-icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.landing-entry-label {
+  display: block;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.landing-entry-card h2 {
+  margin: 6px 0 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.landing-entry-card p {
+  flex: 1;
+  margin: 12px 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.landing-entry-button {
+  width: 100%;
+  height: 48px;
+  color: var(--white);
+  background: var(--ink);
+}
+
+.landing-entry-button.is-guest {
+  background: var(--primary);
+}
+
+.landing-entry-button.is-guest:hover {
+  background: var(--primary-hover);
+}
+
+.landing-entry-button.is-member:hover {
+  background: var(--accent-hover);
+}
+
+.landing-entry-signup {
+  align-self: center;
+  margin-top: 12px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.landing-feature-link {
+  margin-top: 26px;
+}
+
+@media (max-width: 620px) {
+  .landing-entry-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .landing-entry-card {
+    min-height: 260px;
+    padding: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-entry-grid {
+    animation: landing-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+  }
+}

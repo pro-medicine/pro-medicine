@@ -113,21 +113,23 @@ POST /api/v1/surveys/{surveyId}/responses    제출 → responseId
 
 ## 5. 설문 v1 문항 (시드: `backend/docs/sql/STEP02_seed_survey_v1.sql`, 예시 데이터)
 
-| questionId | code | answerType | 민감 | 비회원 | 선택지 value_code |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Q-GENDER | SINGLE | N | Y | M, F |
-| 2 | Q-BIRTH | NUMBER | N | Y | - |
-| 3 | Q-SMOKING | SINGLE | N | Y | NONE, HALF_PACK, ONE_PACK, TWO_PACK_PLUS |
-| 4 | Q-DRINKING | SINGLE | N | Y | NONE, LOW, HIGH |
-| 5 | Q-CAFFEINE | SINGLE | N | Y | NONE, LOW, HIGH |
-| 6 | Q-DIET | SINGLE | N | Y | OMNI, VEGETARIAN, VEGAN |
-| 7 | Q-SUN | SINGLE | N | Y | LOW, NORMAL |
-| 8 | Q-SLEEP | SINGLE | N | Y | GOOD, NORMAL, POOR |
-| 9 | Q-FATIGUE | SINGLE | N | Y | LOW, NORMAL, HIGH |
-| 10 | Q-GOAL | MULTI | N | Y | SLEEP, FATIGUE, IMMUNITY, BONE, EYE |
-| 11 | Q-PREGNANCY | SINGLE | Y | N | NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING |
-| 12 | Q-CONDITIONS | MULTI | Y | N | NONE, HYPERTENSION, DIABETES, THYROID, KIDNEY |
-| 13 | Q-MEDICATIONS | TEXT | Y | N | - |
-| 14 | Q-SUPPLEMENTS | TEXT | N | Y | - |
+표는 `display_order`(응답 `questions` 배열 순서) 순이다. 2026-11-02부터 `Q-GOAL`("뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점)")이 첫 문항이다 (기존 DB는 `backend/docs/sql/AI_SETUP_3_v1_survey_order.sql`로 갱신).
+
+| 순서 | questionId | code | answerType | 민감 | 비회원 | 선택지 value_code |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 10 | Q-GOAL | MULTI | N | Y | SLEEP, FATIGUE, IMMUNITY, BONE, EYE |
+| 2 | 1 | Q-GENDER | SINGLE | N | Y | M, F |
+| 3 | 2 | Q-BIRTH | NUMBER | N | Y | - |
+| 4 | 3 | Q-SMOKING | SINGLE | N | Y | NONE, HALF_PACK, ONE_PACK, TWO_PACK_PLUS |
+| 5 | 4 | Q-DRINKING | SINGLE | N | Y | NONE, LOW, HIGH |
+| 6 | 5 | Q-CAFFEINE | SINGLE | N | Y | NONE, LOW, HIGH |
+| 7 | 6 | Q-DIET | SINGLE | N | Y | OMNI, VEGETARIAN, VEGAN |
+| 8 | 7 | Q-SUN | SINGLE | N | Y | LOW, NORMAL |
+| 9 | 8 | Q-SLEEP | SINGLE | N | Y | GOOD, NORMAL, POOR |
+| 10 | 9 | Q-FATIGUE | SINGLE | N | Y | LOW, NORMAL, HIGH |
+| 11 | 11 | Q-PREGNANCY | SINGLE | Y | N | NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING |
+| 12 | 12 | Q-CONDITIONS | MULTI | Y | N | NONE, HYPERTENSION, DIABETES, THYROID, KIDNEY |
+| 13 | 13 | Q-MEDICATIONS | TEXT | Y | N | - |
+| 14 | 14 | Q-SUPPLEMENTS | TEXT | N | Y | - |
 
 ID는 시드 기준이라 환경마다 다를 수 있다. 화면은 `code`/`valueCode`로 분기하고 `questionId`/`optionId`는 응답에서 받은 값을 그대로 쓴다.

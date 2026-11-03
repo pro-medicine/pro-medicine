@@ -5,11 +5,14 @@ import com.ucamp.app.domain.friend.repository.FollowRepository;
 import com.ucamp.app.domain.guardian.dto.GuardianResponse;
 import com.ucamp.app.domain.guardian.entity.GuardianSetting;
 import com.ucamp.app.domain.guardian.repository.GuardianSettingRepository;
+import com.ucamp.app.domain.notification.event.GuardianAcceptedEvent;
+import com.ucamp.app.domain.notification.event.GuardianRequestedEvent;
 import com.ucamp.app.domain.user.entity.User;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ public class GuardianService {
     private final GuardianSettingRepository guardianSettingRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public GuardianResponse request(Long guardianUserId, Long targetId, int inactivityDays) {
@@ -40,7 +44,9 @@ public class GuardianService {
             throw new BusinessException(ErrorCode.ALREADY_GUARDIAN);
         }
         GuardianSetting saved = guardianSettingRepository.save(GuardianSetting.request(target, guardian, inactivityDays));
-        // TODO: 안부지킴이 신청 알림
+        // 안부지킴이 신청 알림: 커밋된 뒤 알림 쪽(GuardianNotificationService)에서 받는 사람에게 알림을 만든다
+        eventPublisher.publishEvent(new GuardianRequestedEvent(
+                saved.getGuardianSettingId(), guardianUserId, targetId));
         return GuardianResponse.from(saved);
     }
 
@@ -50,7 +56,16 @@ public class GuardianService {
         if (!setting.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+        boolean alreadyActive = Boolean.TRUE.equals(setting.getIsActive());
         setting.accept();
+        if (!alreadyActive) {
+            // 안부지킴이 수락 알림: 처음 수락할 때만 신청한 사람에게 보낸다
+            eventPublisher.publishEvent(new GuardianAcceptedEvent(
+                    setting.getGuardianSettingId(),
+                    setting.getGuardianUser().getId(),
+                    userId,
+                    setting.getInactivityDays()));
+        }
         return GuardianResponse.from(setting);
     }
 

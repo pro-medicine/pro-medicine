@@ -1,7 +1,5 @@
 package com.ucamp.app.domain.product.service;
 
-import com.ucamp.app.domain.health.entity.HealthProfile;
-import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.product.dto.NutrientIntakeResponse;
 import com.ucamp.app.domain.product.dto.NutritionResponse;
 import com.ucamp.app.domain.product.entity.CatalogProduct;
@@ -15,10 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import com.ucamp.app.domain.product.dto.NutrientSource;
 
 @Service
 @RequiredArgsConstructor
@@ -38,35 +38,48 @@ public class NutritionService {
 
     private final UserProductRepository userProductRepository;
     private final UserRepository userRepository;
-    private final HealthProfileRepository healthProfileRepository;
+    private final SupplementService supplementService;
+    private final PersonalNutrientStandardService personalNutrientStandardService;
 
     public NutritionResponse getNutrition(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        //성별에 맞는 권장량을 쓰려고 건강 정보의 성별을 읽음(없으면 null → 남성 값)
-        String gender = null;
-        HealthProfile profile = healthProfileRepository.findById(userId).orElse(null);
-        if(profile != null) {
-            gender = profile.getGender();
-        }
+        // 설문(v1·v2) 결과로 만든 사람별 하루 권장량 (홈 "오늘 먹은 영양소"와 같은 값)
+        // 2025 한국인 영양소 섭취기준, 정보가 없으면 19~29세·남성 기준
+        Map<Nutrient, Double> recommendedAmounts =
+                personalNutrientStandardService.recommendedAmounts(userId, LocalDate.now());
+
+        List<UserProduct> userProducts = userProductRepository.findActiveWithCatalogByUserId(userId);
+        // 엑셀 영양제 성분 함량은 한 번에 조회 (영양제 id → 성분 → 하루 함량 = 1회 함량 × 1일 섭취횟수)
+        List<Long> supplementIds = userProducts.stream()
+                .filter(p -> p.getSupplement() != null)
+                .map(p -> p.getSupplement().getSupplementId())
+                .distinct()
+                .toList();
+        Map<Long, Map<Nutrient, Double>> supplementAmounts = supplementService.dailyAmounts(supplementIds);
 
         // 1. 먹고 있는 영양제의 성분 함량을 성분별로 더한다
         Map<Nutrient, Double> totals = new EnumMap<>(Nutrient.class);
+        Map<Nutrient, List<NutrientSource>> sourcesByNutrient = new EnumMap<>(Nutrient.class);
         boolean sample = false;
         int unsupportedCount = 0; // 함량 정보가 없어 계산에서 빠진 영양제 수
-        for (UserProduct userProduct : userProductRepository.findActiveWithCatalogByUserId(userId)) {
+        for (UserProduct userProduct : userProducts) {
             // 처방약 등 영양제가 아닌 것은 영양 계산 대상이 아님
             if (!"SUPPLEMENT".equals(userProduct.getProductKind())) {
                 continue;
             }
-            CatalogProduct product = userProduct.getCatalogProduct();
             Map<Nutrient, Double> amounts = null;
-            if (product != null) {
+            if (userProduct.getSupplement() != null) {
+                // 엑셀 영양제: supplement_nutrients의 하루 함량
+                amounts = supplementAmounts.get(userProduct.getSupplement().getSupplementId());
+            } else if (userProduct.getCatalogProduct() != null) {
+                CatalogProduct product = userProduct.getCatalogProduct();
                 // 예시 제품은 예시 함량, 식약처 제품은 성분 요약 글에서 함량을 읽음
-                amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
-                if(amounts != null) {
+                // 품목번호가 없는 제품(DSLD 등)도 있어서 isSampleProduct로 먼저 확인
+                if (isSampleProduct(product)) {
+                    amounts = SAMPLE_AMOUNTS.get(product.getMfdsItemNo());
                     sample = true;
                 } else {
                     amounts = parseSummary(product.getIngredientSummary());
@@ -77,8 +90,17 @@ public class NutritionService {
                 continue;
             }
             for (Nutrient nutrient : amounts.keySet()) {
+                double amount = amounts.get(nutrient);
                 double before = totals.getOrDefault(nutrient, 0.0);  // 지금까지 더한 양 (없으면 0)
-                totals.put(nutrient, before + amounts.get(nutrient));
+                totals.put(nutrient, before + amount);
+
+                // 이 성분의 출처 목록에 지금 영양제 추가
+                List<NutrientSource> sources = sourcesByNutrient.get(nutrient);
+                if (sources == null) {
+                    sources = new ArrayList<>();
+                    sourcesByNutrient.put(nutrient, sources);
+                }
+                sources.add(new NutrientSource(userProduct.getUserProductId(), userProduct.displayName(), round2(amount)));
             }
         }
 
@@ -91,7 +113,7 @@ public class NutritionService {
                 continue;
             }
             double total = totals.get(nutrient);
-            double recommended = nutrient.getRecommendationAmount(gender);
+            double recommended = recommendedAmounts.getOrDefault(nutrient, nutrient.getRecommendationAmount(null));
             // 섭취율은 반올림 전 합계로 계산
             int percent = (int) Math.round(total * 100.0 / recommended);
             // 화면 표시용 섭취량: 소수 둘째 자리까지, 0.004처럼 아주 작은 양이 0으로 보이지 않게 그때는 원래 값
@@ -99,12 +121,22 @@ public class NutritionService {
             if (intake == 0) {
                 intake = total;
             }
+            // 상한 섭취량이 있는 성분만 넘었는지 확인
+            double upper = nutrient.getUpperAmount();
+            boolean overUpper = false;
+            if (upper > 0 && total > upper) {
+                overUpper = true;
+            }
             nutrients.add(new NutrientIntakeResponse(
                     nutrient.getDisplayName(),
                     nutrient.getUnit(),
                     intake,
                     recommended,
-                    percent
+                    percent,
+                    upper,
+                    overUpper,
+                    nutrient.isUpperUnchecked(),
+                    sourcesByNutrient.get(nutrient)
             ));
         }
         return new NutritionResponse(userId, nutrients, sample, unsupportedCount);

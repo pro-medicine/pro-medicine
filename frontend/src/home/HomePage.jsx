@@ -1,5 +1,5 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { getHome, getStreakDays, getTodayNutrition, updateIntake } from "./homeApi";
+import { currentHomeDate, getHome, getStreakDays, getTodayNutrition, updateIntake } from "./homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
@@ -9,7 +9,8 @@ import RecommendBanner from "./RecommendBanner";
 import IntakeAlarmCard from "./IntakeAlarmCard";
 import { EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
 import "./home.css";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { UnreadNotificationContext } from "../common/unreadNotificationContext";
 
 /**
  * props (App.jsx에서 전달)
@@ -17,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
  * - onOpenNotifications: 종 버튼 클릭 시 알림 패널 열기
  * * - refreshKey: 값이 바뀌면 홈 데이터를 다시 불러옴 (알림 패널을 닫을 때 → 종 아이콘 빨간 점 갱신)
  * - onAddSupplement: 영양제가 없을 때 "영양제 등록하기" → 마이페이지 영양제 등록 화면으로
+ * - onIntakeChanged: 복용 체크·해제가 저장되면 호출 (App이 알림 목록·빨간 점을 다시 조회 → 체크한 시각의 복용·놓침 알림이 사라짐)
  */
 export default function HomePage({
   userId,
@@ -24,28 +26,55 @@ export default function HomePage({
   onSurvey,
   refreshKey,
   onAddSupplement,
+  onIntakeChanged,
 }) {
+  // 종 아이콘 빨간 점: 다른 화면 TopBar와 같은 App 값을 쓴다 (복용 체크·1분 주기 확인 때 바로 갱신됨)
+  const hasUnreadNotifications = useContext(UnreadNotificationContext);
   const [home, setHome] = useState(null); // 홈 데이터
   const [isSample, setIsSample] = useState(false); // 예시 데이터 사용 여부
   const [toast, setToast] = useState(null); // 체크 결과 토스트 { type, text, actionLabel, id }
   const [streakDays, setStreakDays] = useState(0); // 연속 복용 일수 ("N일 연속 복용 중" 배지)
   const [pendingIds, setPendingIds] = useState([]); // 저장 중인 카드 id (화면 비활성화용)
   const pendingRef = useRef(new Set()); // 연속 클릭을 즉시 막기 위한 기록
+  const hasRealDataRef = useRef(false); // 실제(서버) 홈 데이터를 한 번이라도 받았는지
+  const shownDateRef = useRef(null); // 지금 화면에 보여주는 실제 데이터의 날짜
+  // 날짜가 바뀌었는데 새 날짜 홈을 아직 못 불러옴 → 어제 목록으로 저장하지 않도록 복용 체크를 막고 다시 시도
+  const [staleDate, setStaleDate] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
   const [nutrition, setNutrition] = useState(null); // 오늘 먹은 영양소 (일정별 함량 + 권장량)
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
+    let retryTimer = null;
     getHome(userId).then(({ data, isSample }) => {
       if (ignore) return;
+      // 다시 불러오기(복용 체크 후 갱신 등)가 실패하면 getHome이 예시 데이터를 돌려준다.
+      // 이미 실제 데이터를 보여주고 있으면 예시 데이터로 바꾸지 않고 그대로 둔다
+      // → 예시 데이터로 바뀐 뒤 복용 체크가 저장되지 않는 문제 방지.
+      if (isSample && hasRealDataRef.current) {
+        console.warn("[home] 홈 정보를 다시 불러오지 못해 기존 화면을 유지합니다");
+        // 단, 자정이 지나 날짜가 바뀌었다면 어제 목록으로 오늘 복용을 저장하면 안 되므로
+        // 복용 체크를 막고 30초 뒤 다시 불러온다.
+        if (shownDateRef.current !== currentHomeDate()) {
+          setStaleDate(true);
+          setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요" });
+          retryTimer = setTimeout(() => setRetryKey((k) => k + 1), 30000);
+        }
+        return;
+      }
+      hasRealDataRef.current = !isSample;
+      shownDateRef.current = isSample ? null : data.today;
+      setStaleDate(false);
       setHome(data);
       setIsSample(isSample);
     });
     return () => {
       ignore = true;
+      clearTimeout(retryTimer);
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, retryKey]);
 
   // 연속 복용 일수: 홈을 불러올 때와 복용 체크 저장 후 다시 조회 (예시 데이터면 예시 값 사용)
   useEffect(() => {
@@ -109,6 +138,11 @@ export default function HomePage({
   //    저장 중인 카드는 다시 못 누르게 해서, 늦게 끝난 요청이 최신 상태를 덮어쓰지 않게 한다.
   const handleToggle = async (id) => {
     if (pendingRef.current.has(id)) return; // 이 카드는 저장 중 → 클릭 무시
+    if (staleDate) {
+      // 날짜가 바뀌었는데 오늘 목록을 아직 못 불러옴 → 어제 날짜로 저장하지 않는다
+      setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요. 잠시 후 다시 시도해 주세요" });
+      return;
+    }
 
     const item = supplements.find((s) => s.id === id);
     const next = !item.taken;
@@ -133,6 +167,7 @@ export default function HomePage({
       await updateIntake(userId, id, next, home.today); // 화면에 표시 중인 날짜로 저장
       setIntakeSavedKey((k) => k + 1);
       setToast(doneToast);
+      onIntakeChanged?.(); // 알림 쪽에 알림 (복용·놓침 알림 숨김/다시 표시)
     } catch (e) {
       console.warn("[home] 복용 체크 저장 실패", e);
       setTaken(id, !next);
@@ -150,7 +185,7 @@ export default function HomePage({
         <HomeHeader
           userName={home.userName}
           today={home.today}
-          hasUnread={home.hasUnreadNotifications}
+          hasUnread={isSample ? home.hasUnreadNotifications : hasUnreadNotifications}
           onBellClick={onOpenNotifications}
         />
 
@@ -168,7 +203,7 @@ export default function HomePage({
                 supplements={supplements}
                 done={done}
                 total={total}
-                pendingIds={pendingIds}
+                pendingIds={staleDate ? supplements.map((s) => s.id) : pendingIds}
                 onToggle={handleToggle}
                 today={home.today}
               />

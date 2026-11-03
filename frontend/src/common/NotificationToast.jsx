@@ -7,8 +7,11 @@ import { markNotificationRead } from "../api/notificationApi";
 import {
   canCompleteIntake,
   canRespondFollow,
+  canRespondGuardian,
   completeIntakeFromNotification,
+  isIntakeAlert,
   respondFollowFromNotification,
+  respondGuardianFromNotification,
 } from "./notificationActions";
 import { viewOf } from "./notificationTypes";
 import TypeIcon from "./NotificationTypeIcon";
@@ -43,7 +46,24 @@ function actionsOf(item, userId) {
       },
     ];
   }
-  if (item.type === "INTAKE_REMINDER") return [{ label: "체크", target: { tab: "home" } }];
+  if (isIntakeAlert(item)) return [{ label: "체크", target: { tab: "home" } }];
+  if (canRespondGuardian(item)) {
+    return [
+      {
+        label: "수락",
+        run: async () =>
+          (await respondGuardianFromNotification(userId, item, true)) ? "안부지킴이를 수락했어요" : "이미 처리된 신청이에요",
+      },
+      {
+        label: "거절",
+        ghost: true,
+        run: async () =>
+          (await respondGuardianFromNotification(userId, item, false)) ? "안부지킴이 신청을 거절했어요" : "이미 처리된 신청이에요",
+      },
+    ];
+  }
+  // 친구가 챙겨줬어요 → 홈에서 바로 복용 체크
+  if (item.type === "FRIEND_NUDGE") return [{ label: "복용 체크", target: { tab: "home" } }];
   if (canRespondFollow(item)) {
     return [
       {
@@ -59,7 +79,7 @@ function actionsOf(item, userId) {
       },
     ];
   }
-  if (item.type === "GUARDIAN" && item.actorUserId) {
+  if ((item.type === "GUARDIAN" || item.type === "GUARDIAN_ACCEPTED") && item.actorUserId) {
     return [{ label: "보기", target: { tab: "friends", friendUserId: item.actorUserId } }];
   }
   return [];
