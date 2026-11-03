@@ -45,6 +45,9 @@ export default function App() {
   const [friendTarget, setFriendTarget] = useState(null); // 알림에서 바로 열 친구 상세 (친구 userId)
   const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
+  // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
+  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
+  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
@@ -216,10 +219,6 @@ export default function App() {
     setTab(nextTab);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
-  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
-  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
 
   // 알림에서 복용 완료 · 친구 신청 수락/거절을 처리한 뒤: 빨간 점·홈·알림 목록 다시 조회, 친구 화면이면 새로 그림
   const refreshAfterNotificationAction = () => {
