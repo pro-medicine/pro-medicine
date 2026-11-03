@@ -14,6 +14,7 @@ import com.ucamp.app.domain.survey.service.SurveyQueryService;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +32,15 @@ public class RecommendationStore {
     private final AiRecommendationItemRepository itemRepository;
     private final SurveyQueryService surveyQueryService;
     private final RecommendationMapper mapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 동기 API: 결과를 바로 DONE으로 저장 */
     @Transactional
     public RecommendationResponse save(Long responseId, RecommendationResult result) {
         AiRecommendation rec = newRecommendation(responseId, AiRecommendation.DONE, result.summary(), result.model());
-        return mapper.toResponse(rec, saveItems(rec, result));
+        List<AiRecommendationItem> items = saveItems(rec, result);
+        publishDone(rec);
+        return mapper.toResponse(rec, items);
     }
 
     /** V2 정밀 추천: 설문 응답 없이 맞춤 질문 회차로 DONE 저장 (response_id = null, session_id = 회차) */
@@ -44,11 +48,14 @@ public class RecommendationStore {
     public RecommendationResponse saveForSession(AiQuestionSession session, RecommendationResult result) {
         AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
                 .session(session)
+                .user(session.getUser())
                 .summary(result.summary())
                 .modelName(truncate(result.model(), AiRecommendation.MODEL_NAME_LENGTH))
                 .status(AiRecommendation.DONE)
                 .build());
-        return mapper.toResponse(rec, saveItems(rec, result));
+        List<AiRecommendationItem> items = saveItems(rec, result);
+        publishDone(rec);
+        return mapper.toResponse(rec, items);
     }
 
     /** V4 대화창 트랙 2: 대화 세션으로 PENDING 행 생성 (response_id·session_id = null, chat_session_id = 대화 세션) */
@@ -56,6 +63,7 @@ public class RecommendationStore {
     public RecommendationResponse createPendingForChat(AiChatSession chatSession) {
         AiRecommendation rec = recommendationRepository.save(AiRecommendation.builder()
                 .chatSession(chatSession)
+                .user(chatSession.getUser())
                 .status(AiRecommendation.PENDING)
                 .build());
         return mapper.toResponse(rec, List.of());
@@ -68,6 +76,7 @@ public class RecommendationStore {
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_NOT_FOUND));
         saveItems(rec, result);
         rec.markDone(result.summary(), truncate(result.model(), AiRecommendation.MODEL_NAME_LENGTH));
+        publishDone(rec);
     }
 
     @Transactional
@@ -110,10 +119,21 @@ public class RecommendationStore {
         SurveyResponse response = surveyQueryService.getResponse(responseId);
         return recommendationRepository.save(AiRecommendation.builder()
                 .response(response)
+                .user(response.getUser())
                 .summary(summary)
                 .modelName(truncate(model, AiRecommendation.MODEL_NAME_LENGTH))
                 .status(status)
                 .build());
+    }
+
+    /**
+     * V7.1: 회원 추천이 DONE이 되면 성분별 제품 순위 스냅샷 이벤트 발행. 세 저장 메서드(save·saveForSession·complete)가 모두
+     * 트랜잭션 안에서 부르므로 리스너는 커밋 뒤에 돈다 (V2는 바깥 PersonalizedSessionStore.complete 커밋 뒤). 비회원은 발행하지 않는다
+     */
+    private void publishDone(AiRecommendation rec) {
+        if (rec.userIdOrNull() != null) {
+            eventPublisher.publishEvent(new RecommendationCompletedEvent(rec.getRecommendationId()));
+        }
     }
 
     private List<AiRecommendationItem> saveItems(AiRecommendation rec, RecommendationResult result) {

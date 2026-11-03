@@ -32,4 +32,12 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
             + "where r.status = 'DONE' and (ru.id = :userId or su.id = :userId or cu.id = :userId) "
             + "order by coalesce(r.finishedAt, r.createdAt) desc, r.recommendationId desc")
     List<AiRecommendation> findRecentDoneByMember(@Param("userId") Long userId, Pageable pageable);
+
+    // V7.1 추천 기록: user_id가 나인 완료 추천 (V1·V2·V4 트랙 2). 회차·대화 세션이 90일 뒤 지워져도 남는다.
+    // 불편한 점을 찾으려고 응답·회차·대화 세션을 같이 읽는다 (모두 단일 연관이라 페이지와 같이 써도 된다)
+    @Query("select r from AiRecommendation r left join fetch r.response left join fetch r.session "
+            + "left join fetch r.chatSession "
+            + "where r.user.id = :userId and r.status = 'DONE' "
+            + "order by coalesce(r.finishedAt, r.createdAt) desc, r.recommendationId desc")
+    List<AiRecommendation> findHistoryDoneByUserId(@Param("userId") Long userId, Pageable pageable);
 }

@@ -109,6 +109,6 @@ public class RecentRecommendationService {
         List<ChatCard> cards = objectMapper.readValue(root.path("cards").toString(), new TypeReference<>() {
         });
         return new RecentRecommendationResponse(true, RecentRecommendationResponse.V4_CHAT, chat.getCreatedAt(), null,
-                chat.getChatSession().getChatSessionId(), ReviewProductResponse.MEMBER_NOTICE, cards);
+                chat.chatSessionIdOrNull(), ReviewProductResponse.MEMBER_NOTICE, cards);
     }
 }
