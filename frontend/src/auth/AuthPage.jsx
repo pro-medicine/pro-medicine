@@ -194,6 +194,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
             <button
               type="button"
               className="top-nav-logo"
+              disabled={busy}
               onClick={() => {
                 setError("");
                 onClose();
