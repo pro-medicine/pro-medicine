@@ -83,6 +83,12 @@ class ReviewProductApiTest {
                 .andExpect(jsonPath("$.data.products[1].catalogProductId").value(9302))
                 .andExpect(jsonPath("$.data.products[2].catalogProductId").value(9306))
                 .andExpect(jsonPath("$.data.products[2].alsoContains[0]").value("VITAMIN_B6"))
+                // 참고 가격은 용량·출처·확인 날짜(yyyy-MM-dd 문자열)와 함께 내려간다
+                .andExpect(jsonPath("$.data.products[2].price.amount").value(15900))
+                .andExpect(jsonPath("$.data.products[2].price.packageSize").value("60캡슐"))
+                .andExpect(jsonPath("$.data.products[2].price.source").value("아이허브"))
+                .andExpect(jsonPath("$.data.products[2].price.checkedAt").value("2026-11-02"))
+                .andExpect(jsonPath("$.data.products[0].price").doesNotExist())
                 .andExpect(jsonPath("$.data.excludedCount").value(1))
                 .andExpect(jsonPath("$.data.notice").value(ReviewProductResponse.MEMBER_NOTICE))
                 .andReturn().getResponse().getContentAsString();

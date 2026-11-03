@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.review.repository;
 
+import com.ucamp.app.domain.review.dto.ReviewProductResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,13 +29,14 @@ import java.util.Map;
 public class ReviewProductQueryRepository {
     private static final String CANDIDATES_SQL = """
             SELECT s.catalog_product_id, COALESCE(p.name_ko, p.product_name) AS display_name, p.brand, p.image_url,
+                   %s,
                    s.base_score, s.recommend_channels, s.not_recommend_channels, s.last_published_at, s.common_cautions
             FROM review_product_scores s
             JOIN catalog_products p ON p.catalog_product_id = s.catalog_product_id
             WHERE s.ingredient_code = ? AND p.is_active = TRUE AND p.blocked_kr = FALSE
             ORDER BY s.base_score DESC, s.catalog_product_id ASC
             LIMIT ?
-            """;
+            """.formatted(PriceColumns.select("p."));
     private static final String INGREDIENTS_SQL = """
             SELECT catalog_product_id, ingredient_code
             FROM product_ingredients
@@ -48,7 +50,7 @@ public class ReviewProductQueryRepository {
 
     /** 성분 x 제품 인기 점수 한 행 + 제품 표시 정보 */
     public record Candidate(long catalogProductId, String productName, String brand, String imageUrl,
-                            BigDecimal baseScore, int recommendChannels, int notRecommendChannels,
+                            ReviewProductResponse.Price price, BigDecimal baseScore, int recommendChannels, int notRecommendChannels,
                             LocalDate lastPublishedAt, List<String> commonCautions) {
     }
 
@@ -57,7 +59,7 @@ public class ReviewProductQueryRepository {
         return jdbcTemplate.query(CANDIDATES_SQL, (rs, n) -> {
             Date last = rs.getDate("last_published_at");
             return new Candidate(rs.getLong("catalog_product_id"), rs.getString("display_name"), rs.getString("brand"),
-                    rs.getString("image_url"), rs.getBigDecimal("base_score"), rs.getInt("recommend_channels"),
+                    rs.getString("image_url"), PriceColumns.read(rs), rs.getBigDecimal("base_score"), rs.getInt("recommend_channels"),
                     rs.getInt("not_recommend_channels"), last == null ? null : last.toLocalDate(),
                     cautions(rs.getString("common_cautions")));
         }, ingredientCode, limit);

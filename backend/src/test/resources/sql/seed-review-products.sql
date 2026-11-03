@@ -69,3 +69,9 @@ INSERT INTO review_mentions (video_id, mention_no, channel_id, published_at, cat
     ('TESTVID0001', 1, 'TESTCH01', '2026-09-01', 9301, 'RESOLVED', '나우 마그네슘 글리시네이트', 'NOW', '["MAGNESIUM"]', 'RECOMMEND', FALSE, '["SLEEP"]', '[{"category": "FORM", "text": "알약이 클 수 있어요"}]', '예시 데이터: 잠들기 어려운 사람에게 추천', 'text-embedding-3-small', 120, '예시 인용', 'review-extract-v3'),
     ('TESTVID0002', 1, 'TESTCH02', '2026-08-15', 9301, 'RESOLVED', '나우 마그네슘', 'NOW', '["MAGNESIUM"]', 'RECOMMEND', FALSE, NULL, '[{"category": "FORM", "text": "알약이 클 수 있어요"}]', NULL, NULL, 300, NULL, 'review-extract-v3'),
     ('TESTVID0003', 2, 'TESTCH03', '2026-07-01', NULL, 'PENDING_REVIEW', '예시 국내 유산균', NULL, '["PROBIOTICS"]', 'RECOMMEND', TRUE, NULL, NULL, NULL, NULL, NULL, NULL, 'review-extract-v3');
+
+-- 참고 가격 (수동 등록 값, 응답 price 확인용). 다른 제품은 가격 없음(NULL)
+UPDATE catalog_products SET price = 15900, price_package = '60캡슐', price_source = '아이허브',
+    price_url = 'https://kr.iherb.com/pr/example/1', price_checked_at = '2026-11-02' WHERE catalog_product_id = 9306;
+-- http(s)가 아닌 출처 주소는 응답에서 빠져야 한다
+UPDATE catalog_products SET price = 9900, price_url = 'javascript:alert(1)' WHERE catalog_product_id = 9305;
