@@ -38,6 +38,34 @@
 .home-nutri-tile.is-up { animation: home-nutri-bump 0.5s ease; }
 .home-nutri-delta { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 999px; background: var(--primary); color: var(--white); font-size: 11px; font-style: normal; font-weight: 800; pointer-events: none; animation: home-nutri-float 1.4s ease-out forwards; }
 
+/* 함께 먹을 때 주의: 종류별 색 (피하세요 빨강 · 주의 주황 · 시간 간격 파랑, 밝기도 달라 색약에서도 구분) */
+.home-nutri-tile.is-exclude { --warn-fg: #c92a2a; --warn-bg: #ffecec; }
+.home-nutri-tile.is-warn,
+.home-nutri-warn-item.is-warn { --warn-fg: #b85400; --warn-bg: #fff1e0; }
+.home-nutri-tile.is-timing,
+.home-nutri-warn-item.is-timing { --warn-fg: #2a56c6; --warn-bg: #e8f0ff; }
+.home-nutri-warn-item.is-exclude { --warn-fg: #c92a2a; --warn-bg: #ffecec; }
+
+/* 주의가 걸린 성분 타일: 테두리 + 왼쪽 위 표시 */
+.home-nutri-tile.has-warn { box-shadow: inset 0 0 0 2px var(--warn-fg); }
+.home-nutri-flag { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--warn-fg); color: var(--white); }
+.home-nutri-flag svg { width: 12px; height: 12px; }
+
+.home-nutri-warn { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.home-nutri-warn-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.home-nutri-warn-head h4 { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); }
+.home-nutri-warn-head span { font-size: 12px; color: var(--faint); }
+.home-nutri-warn-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.home-nutri-warn-item { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: var(--surface); }
+.home-nutri-warn-top { display: flex; align-items: center; gap: 6px; }
+.home-nutri-warn-pair { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.home-nutri-warn-pair > span { display: inline-flex; align-items: center; gap: 6px; }
+.home-nutri-warn-pair i { font-size: 12px; font-style: normal; font-weight: 800; color: var(--faint); }
+.home-nutri-warn-pair b { padding: 3px 9px; border: 1px solid #dfe3e1; border-radius: 999px; background: var(--white); font-size: 12px; font-weight: 700; color: var(--ink); }
+.home-nutri-warn-kind { flex-shrink: 0; margin-left: auto; padding: 3px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-fg); font-size: 12px; font-style: normal; font-weight: 800; }
+.home-nutri-warn-item p { margin: 0; font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--ink); }
+.home-nutri-warn-item p small { display: block; margin-top: 2px; font-size: 12px; color: var(--faint); }
+
 .home-nutri-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.5; color: var(--muted); }
 
 @keyframes home-nutri-bump { 0%, 100% { transform: none; } 40% { transform: translateY(-3px) scale(1.03); } }
@@ -61,5 +89,9 @@
   .home-nutri-tile strong { margin-top: 6px; font-size: 12px; }
   .home-nutri-tile small { font-size: 10px; letter-spacing: -0.02em; }
   .home-nutri-delta { top: 4px; right: 4px; padding: 1px 6px; font-size: 10px; }
+}
+@media (max-width: 760px) {
+  .home-nutri-warn-list { grid-template-columns: minmax(0, 1fr); }
+  .home-nutri-flag { top: 4px; left: 4px; width: 18px; height: 18px; }
 }
 @media (max-width: 380px) { .home-nutri-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

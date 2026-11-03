@@ -96,11 +96,8 @@ public class IntakeSummaryService {
         return schedule.getRemindAt().truncatedTo(ChronoUnit.MINUTES);
     }
 
-    /** 검색해서 등록한 제품은 제품명, 직접 입력한 제품은 입력한 이름 */
+    /** 검색해서 등록한 제품은 제품명, 직접 입력한 제품은 입력한 이름 (엑셀 영양제 포함) */
     private static String productName(UserProduct product) {
-        if (product.getCatalogProduct() != null) {
-            return product.getCatalogProduct().getProductName();
-        }
-        return product.getManualProductName();
+        return product.displayName();
     }
 }

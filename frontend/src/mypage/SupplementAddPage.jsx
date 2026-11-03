@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   addMySupplement,
-  searchCatalogProducts,
+  searchSupplements,
   updateSupplementSchedules,
 } from "../api/mypageApi";
 import { useModalFocus } from "../common/useModalFocus";
@@ -105,7 +105,8 @@ export default function SupplementAddPage({
     setMessage(null);
     setSelected(null);
     try {
-      setResults(await searchCatalogProducts(trimmed));
+      // 엑셀 영양제(성분 함량 데이터가 있는 목록)에서 검색
+      setResults(await searchSupplements(trimmed));
     } catch (e) {
       setResults(null);
       setMessage(e.message || "검색하지 못했어요.");
@@ -167,7 +168,7 @@ export default function SupplementAddPage({
           manualMode
             ? { manualProductName: trimmedName, schedules: picked }
             : {
-                catalogProductId: selected.catalogProductId,
+                supplementId: selected.supplementId,
                 schedules: picked,
               },
         );
@@ -243,11 +244,11 @@ export default function SupplementAddPage({
             {results && results.length > 0 && (
               <ul className="supplement-search-results">
                 {results.map((product) => (
-                  <li key={product.catalogProductId}>
+                  <li key={product.supplementId}>
                     <button
                       type="button"
                       className={
-                        selected?.catalogProductId === product.catalogProductId
+                        selected?.supplementId === product.supplementId
                           ? "supplement-search-item selected"
                           : "supplement-search-item"
                       }
@@ -261,6 +262,9 @@ export default function SupplementAddPage({
                       <span>{product.manufacturer ?? "제조사 정보 없음"}</span>
                       {product.intakeMethod && (
                         <small>{product.intakeMethod}</small>
+                      )}
+                      {product.nutrientSummary && (
+                        <small>하루 {product.nutrientSummary}</small>
                       )}
                     </button>
                   </li>

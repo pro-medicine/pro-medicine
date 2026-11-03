@@ -1,10 +1,9 @@
 package com.ucamp.app.domain.product.service;
 
-import com.ucamp.app.domain.health.entity.HealthProfile;
-import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 import com.ucamp.app.domain.intake.repository.IntakeScheduleRepository;
 import com.ucamp.app.domain.product.dto.TodayNutritionResponse;
+import com.ucamp.app.domain.product.dto.TodayNutritionResponse.IntakeWarning;
 import com.ucamp.app.domain.product.dto.TodayNutritionResponse.NutrientInfo;
 import com.ucamp.app.domain.product.dto.TodayNutritionResponse.ScheduleNutrients;
 import com.ucamp.app.domain.product.entity.UserProduct;
@@ -18,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,8 @@ import java.util.stream.Collectors;
 
 /**
  * 홈 "오늘 먹은 영양소" (오늘 복용 일정별 성분 함량 + 성분별 권장량).
- * 성분 함량 계산은 마이페이지 영양관리(NutritionService)와 같은 방법을 쓴다.
+ * - 엑셀 영양제(supplements)로 등록한 제품: supplement_nutrients의 하루 함량(1회 함량 × 1일 섭취횟수)
+ * - 기존 제품(catalog_products): 마이페이지 영양관리(NutritionService)와 같은 방법
  */
 @Service
 @RequiredArgsConstructor
@@ -41,16 +43,19 @@ public class TodayNutritionService {
             Nutrient.MAGNESIUM, Nutrient.ZINC, Nutrient.IRON, Nutrient.OMEGA3);
 
     private final UserRepository userRepository;
-    private final HealthProfileRepository healthProfileRepository;
     private final IntakeScheduleRepository intakeScheduleRepository;
     private final NutritionService nutritionService;
+    private final SupplementService supplementService;
+    private final PersonalNutrientStandardService personalNutrientStandardService;
+    private final TodayIntakeWarningService todayIntakeWarningService;
 
     public TodayNutritionResponse getTodayNutrition(Long userId, LocalDate date) {
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-        // 성별에 맞는 권장량 (건강 정보가 없으면 null → 남성 값, 마이페이지 영양관리와 같음)
-        String gender = healthProfileRepository.findById(userId).map(HealthProfile::getGender).orElse(null);
+        // 설문(v1·v2) 결과로 만든 사용자 정보 → 사람별 하루 권장량 (2025 한국인 영양소 섭취기준, 정보가 없으면 19~29세·남성 기준)
+        PersonalNutrientStandardService.Profile profile = personalNutrientStandardService.profile(userId, date);
+        Map<Nutrient, Double> recommended = personalNutrientStandardService.recommendedAmounts(profile);
 
         // 홈 타임라인과 같은 "오늘 일정" 목록 (id = scheduleId)
         List<Long> scheduleIds = intakeScheduleRepository.findTodaySupplements(userId, date).stream()
@@ -62,7 +67,18 @@ public class TodayNutritionService {
         Map<Long, Long> timesPerProduct = byId.values().stream()
                 .collect(Collectors.groupingBy(s -> s.getUserProduct().getUserProductId(), Collectors.counting()));
 
+        // 엑셀 영양제 성분 함량은 한 번에 조회 (영양제 id → 성분 → 하루 함량)
+        List<Long> supplementIds = byId.values().stream()
+                .map(IntakeSchedule::getUserProduct)
+                .filter(p -> p.getSupplement() != null)
+                .map(p -> p.getSupplement().getSupplementId())
+                .distinct()
+                .toList();
+        Map<Long, Map<Nutrient, Double>> supplementAmounts = supplementService.dailyAmounts(supplementIds);
+
         Set<Nutrient> shown = EnumSet.copyOf(BASE_NUTRIENTS);
+        // 오늘 먹는 성분 → 먹는 끼니 (주의 문구 판단용: 체크 여부와 상관없이 오늘 일정 전체)
+        Map<Nutrient, Set<String>> slotsByNutrient = new EnumMap<>(Nutrient.class);
         List<ScheduleNutrients> schedules = new ArrayList<>();
         int unsupported = 0;
         boolean sample = false;
@@ -76,9 +92,11 @@ public class TodayNutritionService {
             if (!"SUPPLEMENT".equals(product.getProductKind())) {
                 continue;
             }
-            Map<Nutrient, Double> daily = nutritionService.dailyAmounts(product.getCatalogProduct());
+            Map<Nutrient, Double> daily = product.getSupplement() != null
+                    ? supplementAmounts.getOrDefault(product.getSupplement().getSupplementId(), Map.of())
+                    : nutritionService.dailyAmounts(product.getCatalogProduct());
             if (daily.isEmpty()) {
-                unsupported++;
+                unsupported++;   // 함량을 모르는 영양제 (직접 입력, 엑셀에 함량이 없는 제품 등)
                 continue;
             }
             sample |= nutritionService.isSampleProduct(product.getCatalogProduct());
@@ -89,15 +107,18 @@ public class TodayNutritionService {
                 if (amount != null) {
                     amounts.put(nutrient.name(), round3(amount / times));
                     shown.add(nutrient);
+                    slotsByNutrient.computeIfAbsent(nutrient, k -> new LinkedHashSet<>()).add(schedule.getMealSlot());
                 }
             }
             schedules.add(new ScheduleNutrients(id, amounts));
         }
 
         List<NutrientInfo> nutrients = shown.stream() // EnumSet → Nutrient 선언 순서
-                .map(n -> new NutrientInfo(n.name(), n.getDisplayName(), n.getUnit(), n.getRecommendationAmount(gender)))
+                .map(n -> new NutrientInfo(n.name(), n.getDisplayName(), n.getUnit(), recommended.get(n)))
                 .toList();
-        return new TodayNutritionResponse(date, nutrients, schedules, unsupported, sample);
+        // 함께 먹을 때 주의할 점 (recommendation_rules)
+        List<IntakeWarning> warnings = todayIntakeWarningService.warnings(profile, slotsByNutrient);
+        return new TodayNutritionResponse(date, nutrients, schedules, unsupported, sample, warnings);
     }
 
     // 소수 셋째 자리까지 (3번에 나눠 먹는 1mg → 0.333)

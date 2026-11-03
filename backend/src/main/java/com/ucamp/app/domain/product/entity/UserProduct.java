@@ -41,6 +41,11 @@ public class UserProduct {
     @JoinColumn(name = "catalog_product_id")
     private CatalogProduct catalogProduct;
 
+    // 엑셀 영양제로 등록한 경우 (supplements). catalogProduct와 동시에 값이 있지 않다
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplement_id")
+    private Supplement supplement;
+
     // TODO: enum 전환
     @Column(name = "product_kind", nullable = false, length = 15)
     private String productKind;
@@ -63,14 +68,26 @@ public class UserProduct {
     private LocalDateTime createdAt;
 
     @Builder
-    public UserProduct(User user, CatalogProduct catalogProduct, String productKind, String manualProductName,
-                       String registeredVia, LocalDate startDate, Boolean isActive) {
+    public UserProduct(User user, CatalogProduct catalogProduct, Supplement supplement, String productKind,
+                       String manualProductName, String registeredVia, LocalDate startDate, Boolean isActive) {
         this.user = user;
         this.catalogProduct = catalogProduct;
+        this.supplement = supplement;
         this.productKind = productKind;
         this.manualProductName = manualProductName;
         this.registeredVia = registeredVia != null ? registeredVia : "SEARCH";
         this.startDate = startDate;
         this.isActive = isActive != null ? isActive : true;
+    }
+
+    /** 화면에 보여줄 제품 이름: 엑셀 영양제 → 검색 제품 → 직접 입력 이름 순 */
+    public String displayName() {
+        if (supplement != null) {
+            return supplement.getProductName();
+        }
+        if (catalogProduct != null) {
+            return catalogProduct.getProductName();
+        }
+        return manualProductName;
     }
 }

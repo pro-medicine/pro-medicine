@@ -5,6 +5,25 @@ import { useEffect, useRef, useState } from "react";
 const REDUCED_MOTION =
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+// 함께 먹을 때 주의할 점 종류 (강한 순서) → 표시 이름
+const WARNING_KINDS = {
+  EXCLUDE: { label: "피하세요", rank: 0 },
+  WARN: { label: "주의", rank: 1 },
+  TIMING: { label: "시간 간격", rank: 2 },
+};
+
+// 성분 코드 → 그 성분에 걸린 가장 강한 주의 종류 (타일 표시용)
+function strongestByNutrient(warnings) {
+  const result = {};
+  for (const w of warnings) {
+    for (const code of w.nutrients ?? []) {
+      const before = result[code];
+      if (!before || WARNING_KINDS[w.kind].rank < WARNING_KINDS[before].rank) result[code] = w.kind;
+    }
+  }
+  return result;
+}
+
 // 4.25 → "4.3", 100 → "100", 0.333 → "0.3"
 const fmt = (n) => (n >= 10 ? Math.round(n).toLocaleString("ko-KR") : String(Math.round(n * 10) / 10));
 
@@ -32,7 +51,7 @@ function useCountUp(target, duration = 700) {
   return REDUCED_MOTION ? target : value;
 }
 
-function NutrientTile({ nutrient, taken }) {
+function NutrientTile({ nutrient, taken, warningKind }) {
   const percent = Math.round((taken / nutrient.recommended) * 100);
   const shown = useCountUp(percent);
   // 막 늘어났을 때 "+N%" 표시 (줄어든 경우·처음 그릴 때는 표시 안 함)
@@ -52,8 +71,18 @@ function NutrientTile({ nutrient, taken }) {
   const full = shown >= 99.5; // 그래프가 다 찬 다음에 체크 표시
   return (
     <li
-      className={`home-nutri-tile${taken > 0 ? " is-on" : ""}${full ? " is-full" : ""}${delta ? " is-up" : ""}`}
+      className={`home-nutri-tile${taken > 0 ? " is-on" : ""}${full ? " is-full" : ""}${delta ? " is-up" : ""}${
+        warningKind ? ` has-warn is-${warningKind.toLowerCase()}` : ""
+      }`}
     >
+      {/* 아래 "함께 먹을 때 주의할 점"에 나온 성분이면 왼쪽 위에 표시 */}
+      {warningKind && (
+        <span className="home-nutri-flag" role="img" aria-label={`${nutrient.name} ${WARNING_KINDS[warningKind].label}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 6v8M12 18.5h.01" />
+          </svg>
+        </span>
+      )}
       <span
         className="home-nutri-ring"
         style={{ "--p": Math.min(shown, 100) }}
@@ -89,7 +118,7 @@ function NutrientTile({ nutrient, taken }) {
 
 /**
  * props
- * - nutrition: GET /users/{id}/nutrition/today 응답 { nutrients, schedules, unsupportedCount, sample }
+ * - nutrition: GET /users/{id}/nutrition/today 응답 { nutrients, schedules, unsupportedCount, sample, warnings }
  * - supplements: 홈 타임라인 목록 (id = scheduleId, taken = 복용 체크 여부)
  */
 export default function TodayNutrients({ nutrition, supplements }) {
@@ -104,6 +133,8 @@ export default function TodayNutrients({ nutrition, supplements }) {
     }
   }
   const takenCount = takenIds.size;
+  const warnings = (nutrition.warnings ?? []).filter((w) => WARNING_KINDS[w.kind]);
+  const warningByNutrient = strongestByNutrient(warnings);
 
   return (
     <section className="home-nutri" aria-labelledby="home-nutri-title">
@@ -121,14 +152,46 @@ export default function TodayNutrients({ nutrition, supplements }) {
       {/* 순서는 고정 (값이 바뀌어도 타일이 움직이지 않게) */}
       <ul className="home-nutri-tiles">
         {nutrition.nutrients.map((n) => (
-          <NutrientTile key={n.code} nutrient={n} taken={totals[n.code] ?? 0} />
+          <NutrientTile key={n.code} nutrient={n} taken={totals[n.code] ?? 0} warningKind={warningByNutrient[n.code]} />
         ))}
       </ul>
 
+      {/* 함께 먹을 때 주의할 점: 오늘 먹는 영양제 성분 + 설문 조건(임신·흡연·복용 약 등)으로 걸린 규칙 */}
+      {warnings.length > 0 && (
+        <div className="home-nutri-warn">
+          <div className="home-nutri-warn-head">
+            <h4>함께 먹을 때 주의할 점</h4>
+            <span>표시된 성분에 해당해요</span>
+          </div>
+          <ul className="home-nutri-warn-list">
+            {warnings.map((w) => (
+              <li key={w.ruleId} className={`home-nutri-warn-item is-${w.kind.toLowerCase()}`}>
+                <div className="home-nutri-warn-top">
+                  <span className="home-nutri-warn-pair">
+                    {w.pair.map((label, i) => (
+                      <span key={label}>
+                        {i > 0 && <i aria-hidden="true">+</i>}
+                        <b>{label}</b>
+                      </span>
+                    ))}
+                  </span>
+                  <em className="home-nutri-warn-kind">{WARNING_KINDS[w.kind].label}</em>
+                </div>
+                <p>
+                  {w.message}
+                  {w.note && <small>{w.note}</small>}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <p className="home-nutri-foot">
-        권장량은 한국인 영양소 섭취기준(성인)이에요. 음식으로 먹은 양은 들어가지 않아요.
+        권장량은 2025 한국인 영양소 섭취기준(설문 결과 기준)이에요. 음식으로 먹은 양은 들어가지 않아요.
         {nutrition.unsupportedCount > 0 && ` 함량 정보가 없는 영양제 ${nutrition.unsupportedCount}개는 빠졌어요.`}
         {nutrition.sample && " 일부 함량은 예시 데이터예요."}
+        {warnings.length > 0 && " 주의 문구는 참고용이에요. 정확한 복용은 의사·약사와 상담하세요."}
       </p>
     </section>
   );
