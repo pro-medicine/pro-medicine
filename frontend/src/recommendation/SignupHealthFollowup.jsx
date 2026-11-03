@@ -10,7 +10,7 @@ import ConsentStep from "./ConsentStep";
 import SurveyStep from "./SurveyStep";
 import "./recommendation.css";
 
-const FOLLOWUP_CODES = new Set(["Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS"]);
+const FOLLOWUP_CODES = new Set(["Q-GENDER", "Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS"]);
 
 export default function SignupHealthFollowup({ onClose, onReady, onSkip }) {
   const [step, setStep] = useState("consent");

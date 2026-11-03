@@ -14,11 +14,13 @@ import com.ucamp.app.domain.survey.entity.SurveyResponse;
 import com.ucamp.app.domain.survey.repository.SurveyAnswerRepository;
 import com.ucamp.app.domain.survey.repository.SurveyResponseRepository;
 import com.ucamp.app.domain.user.entity.User;
+import com.ucamp.app.domain.user.security.RefreshTokenService;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.support.TestUsers;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,11 +41,20 @@ import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.ucamp.app.domain.user.security.RefreshTokenService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -51,6 +62,8 @@ class SurveyApiTest {
 
     @Autowired
     MockMvc mockMvc;
+    @MockitoBean
+    RefreshTokenService refreshTokens;
     @Autowired
     ObjectMapper objectMapper;
     @Autowired
@@ -261,6 +274,70 @@ class SurveyApiTest {
         assertThat(userConditionRepository.count()).isEqualTo(conditionsBefore);
     }
 
+
+    @Test
+    void 비회원_V1_응답을_회원가입하면_프로필에_연결된다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "success")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+        assertThat(userId).isPositive();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        SurveyResponse linked = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(linked.getUser().getId()).isEqualTo(userId);
+        assertThat(linked.getGuestTokenHash()).isNull();
+        assertThat(linked.getRespondentType()).isEqualTo(RespondentType.GUEST);
+
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isEqualTo("F");
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 잘못된_게스트_토큰으로_회원가입하면_연결되지_않는다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+
+        signupWithGuest(responseId, "0".repeat(64), "invalid")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("S002"));
+
+        entityManager.clear();
+        SurveyResponse response = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(response.getUser()).isNull();
+        assertThat(response.getGuestTokenHash()).isNotNull();
+    }
+
+    @Test
+    void 이미_연결된_게스트_응답은_재사용할_수_없다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "first")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long firstUserId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+        entityManager.flush();
+        entityManager.clear();
+
+        signupWithGuest(responseId, guestToken, "second")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("S002"));
+
+        entityManager.clear();
+        SurveyResponse linked = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(linked.getUser().getId()).isEqualTo(firstUserId);
+        assertThat(linked.getGuestTokenHash()).isNull();
+    }
+
     // ---------- 검증 실패 ----------
 
     @Test
@@ -376,6 +453,32 @@ class SurveyApiTest {
         // 약 검색은 회원 민감 문항(Q-MEDICATIONS)용이라 계속 로그인 필요
         mockMvc.perform(get("/api/v1/drugs").param("keyword", "와파린"))
                 .andExpect(status().isUnauthorized());
+    }
+
+
+    private JsonNode submitGuestForSignup() throws Exception {
+        String body = submit(null, List.of(
+                choice(Q_GENDER, GENDER_F),
+                choice(Q_SMOKING, SMOKING_NONE)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body).get("data");
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix) throws Exception {
+        when(refreshTokens.issue(anyLong(), eq(false)))
+                .thenReturn(new RefreshTokenService.Issued("test-refresh", 604800));
+        return mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                        "email", "guest-claim-" + suffix + "@example.com",
+                        "password", "Password123!",
+                        "name", "guest-claim-" + suffix,
+                        "age", 26,
+                        "gender", "여성",
+                        "termsAgreed", true,
+                        "guestResponseId", responseId,
+                        "guestToken", guestToken))));
     }
 
     // ---------- helpers ----------
