@@ -12,6 +12,7 @@ public record NutrientIntakeResponse(
         int percent,
         double upperAmount,
         boolean overUpper,
+        boolean upperUnchecked, // 상한 기준은 있지만 평가하지 못한 성분이면 true (비타민 A)
         List<NutrientSource> sources
 ) {
 }

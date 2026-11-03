@@ -124,6 +124,7 @@ public class NutritionService {
                     percent,
                     upper,
                     overUpper,
+                    nutrient.isUpperUnchecked(),
                     sourcesByNutrient.get(nutrient)
             ));
         }

@@ -126,7 +126,7 @@
   align-items: center;
   display: grid;
   gap: 14px;
-  grid-template-columns: 88px minmax(0, 1fr) 40px;
+  grid-template-columns: 88px minmax(0, 1fr) 64px;
 }
 
 .nutrition-name {
@@ -193,6 +193,16 @@
   font-weight: 700;
 }
 
+/* 상한을 평가하지 못한 성분 (비타민 A) */
+.nutrition-gauge > span.unchecked {
+  background: #9aa3b2;
+}
+
+.nutrition-percent.unchecked {
+  color: #6b7280;
+  font-weight: 700;
+}
+
 .nutrition-name .nutrition-upper {
   color: var(--alert);
   font-weight: 600;
@@ -231,6 +241,10 @@ button.nutrition-name:focus-visible {
 .nutrition-detail .nutrition-detail-dup {
   color: #c27f17;
   font-weight: 700;
+}
+
+.nutrition-detail .nutrition-detail-note {
+  color: #6b7280;
 }
 
 .nutrition-detail ul {

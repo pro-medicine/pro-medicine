@@ -475,13 +475,17 @@ export default function ProfileScreen({
   );
 }
 
-// 게이지 상태: 상한 초과 → 과다, 권장량 절반 미만 → 부족, 권장량 이상 → 충분, 그 외 → 퍼센트
+// 게이지 상태: 상한 초과 → 과다, 권장량 절반 미만 → 부족, 권장량 이상 → 충분(상한 미평가 성분은 상한 미평가), 그 외 → 퍼센트
 function nutrientStatus(item) {
   if (item.overUpper) {
     return { className: "over", label: "과다" };
   }
   if (item.percent < 50) {
     return { className: "low", label: "부족" };
+  }
+  // 비타민 A처럼 상한을 평가하지 못한 성분은 권장량을 넘어도 "충분" 대신 "상한 미평가"
+  if (item.percent >= 100 && item.upperUnchecked) {
+    return { className: "unchecked", label: "상한 미평가" };
   }
   if (item.percent >= 100) {
     return { className: "ok", label: "충분" };
@@ -626,6 +630,13 @@ function NutritionManagement({ userId }) {
                         {item.upperAmount > 0 &&
                           ` · 상한 ${item.upperAmount}${item.unit}`}
                       </p>
+                      {item.upperUnchecked && (
+                        <p className="nutrition-detail-note">
+                          제품 성분표에 레티놀과 베타카로틴이 합쳐 적혀 있어
+                          원료별 함량을 구분할 수 없어요. 그래서 상한
+                          섭취량(레티놀 기준 3,000㎍)은 평가하지 않았어요.
+                        </p>
+                      )}
                       {sources.length >= 2 && (
                         <p className="nutrition-detail-dup">
                           {sources.length}개 제품에 들어 있어요

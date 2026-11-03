@@ -8,8 +8,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum Nutrient {
-    // 비타민 A 상한(3000㎍)은 레티놀 같은 기성형 비타민 A에만 적용되는데,
-    // 식약처 성분 요약은 베타카로틴까지 합친 RAE 총량이라 구분할 수 없어서 상한 판정에서 뺌
+    // 비타민 A: 한국인 영양소 섭취기준(2020) 성인 상한섭취량은 3,000㎍ RAE인데, 이 상한은 레티놀(기성형 비타민 A)만 기준으로 정한 값임
+    // 식약처 성분표의 비타민 A는 레티놀과 베타카로틴을 합친 RAE 총량이라(1㎍ RAE = 레티놀 1㎍ = 보충제 베타카로틴 2㎍) 레티놀 양만 따로 알 수 없음
+    // 그래서 상한 판정은 하지 않고(upperAmount 0), 화면에 "상한 미평가"로 따로 알림 (isUpperUnchecked)
     VITAMIN_A("비타민 A", "㎍", 800, 650, 0),
     VITAMIN_B1("비타민 B1", "mg", 1.2, 1.1, 0),
     VITAMIN_B2("비타민 B2", "mg", 1.5, 1.2, 0),
@@ -38,5 +39,11 @@ public enum Nutrient {
             return femaleAmount;
         }
         return maleAmount;
+    }
+
+    // 상한 기준은 있지만 성분표로는 평가할 수 없는 성분인지 (지금은 비타민 A만)
+    // upperAmount가 0인 성분 중 B1처럼 상한 자체가 없는 성분과 구분하려고 따로 둠
+    public boolean isUpperUnchecked() {
+        return this == VITAMIN_A;
     }
 }
