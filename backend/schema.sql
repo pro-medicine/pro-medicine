@@ -1111,14 +1111,12 @@ INSERT INTO `medicine_interactions` (`active_code`, `supplement_ingredient_code`
                                                                                                                                        ('IBUPROFEN',  'POTASSIUM', 'CAUTION', '소염진통제와 칼륨 보충제를 함께 드시면 혈중 칼륨이 높아질 수 있어요. 의사·약사와 상담하세요', 'REVIEW-NEEDED', TRUE),
                                                                                                                                        ('IBUPROFEN',  'OMEGA3',    'INFO',    '소염진통제와 고용량 오메가3를 함께 드시면 출혈 경향이 조금 늘 수 있어요',                    'DRAFT',         TRUE),
                                                                                                                                        ('CAFFEINE',   'IRON',      'INFO',    '카페인이 든 약은 철분제와 시간 간격을 두고 드시는 게 좋아요',                              'DRAFT',         TRUE),
-                                                                                                                                       ('PANCREATIN', 'IRON',      'INFO',    '판크레아틴(소화효소)은 철분 흡수에 영향을 줄 수 있어요. 간격을 두세요',                    'DRAFT',         TRUE),
-                                                                                                                                       ('BROMELAIN',  'OMEGA3',    'INFO',    '브로멜라인과 고용량 오메가3를 함께 드시면 출혈 경향이 늘 수 있어요',                       'DRAFT',         TRUE);
-
-INSERT INTO `medicine_interactions` (`active_code`, `supplement_ingredient_code`, `severity`, `message_ko`, `source_id`, `active`) VALUES
-                                                                                                                                       ('PANCREATIN', 'IRON', 'TIMING', '소화제(판크레아틴)와 철분제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE),
-                                                                                                                                       ('PANCREATIN', 'ZINC', 'TIMING', '소화제(판크레아틴)와 아연 보충제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE)
-    ON DUPLICATE KEY UPDATE
-                         `severity` = VALUES(`severity`),
-                         `message_ko` = VALUES(`message_ko`),
-                         `source_id` = VALUES(`source_id`),
-                         `active` = VALUES(`active`);
+                                                                                                                                       ('PANCREATIN', 'IRON',      'TIMING',  '소화제(판크레아틴)와 철분제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE),
+                                                                                                                                       ('PANCREATIN', 'ZINC',      'TIMING',  '소화제(판크레아틴)와 아연 보충제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE),
+                                                                                                                                       ('BROMELAIN',  'OMEGA3',    'INFO',    '브로멜라인과 고용량 오메가3를 함께 드시면 출혈 경향이 늘 수 있어요',                       'DRAFT',         TRUE)
+    AS new_row
+ON DUPLICATE KEY UPDATE
+                     `severity` = new_row.`severity`,
+                     `message_ko` = new_row.`message_ko`,
+                     `source_id` = new_row.`source_id`,
+                     `active` = new_row.`active`;
