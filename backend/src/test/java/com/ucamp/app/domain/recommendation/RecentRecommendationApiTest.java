@@ -282,7 +282,8 @@ class RecentRecommendationApiTest {
         cleanupScheduler.purge(LocalDateTime.now());
         entityManager.clear();
 
-        // V2·트랙 2 추천 행은 남지만 회원을 찾을 FK가 비어 빠지고, 트랙 1 결과는 세션과 함께 지워진다 (후속 개선 항목)
+        // V2·트랙 2 추천 행은 남지만 회원을 찾을 FK가 비어 빠지고, 트랙 1 결과 행(V7.1부터 남음, chat_session_id NULL)도
+        // /recent는 세션으로 회원을 찾아 빠진다 (D13: /recent 동작은 그대로. 90일 뒤 기록은 V7.1 /history에서 보인다)
         assertThat(recommendationRepository.findById(v2)).isPresent();
         assertThat(recommendationRepository.findById(track2)).isPresent();
         JsonNode data = recent(user);
