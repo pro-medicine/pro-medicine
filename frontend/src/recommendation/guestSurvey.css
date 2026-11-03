@@ -1,0 +1,28 @@
+/* 온보딩 맨 아래 비회원 설문 섹션 (GuestSurveySection.jsx). 이 섹션 클래스(rec-guest-*)만 정의한다 */
+.rec-guest-section {
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.rec-guest-desc {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 14px auto 0;
+  max-width: 460px;
+  word-break: keep-all;
+}
+
+.rec-guest-start {
+  margin-top: 28px;
+}
+
+@media (max-width: 520px) {
+  .rec-guest-desc {
+    font-size: 15px;
+  }
+
+  .rec-guest-start {
+    width: 100%;
+  }
+}

@@ -54,6 +54,7 @@ public class SecurityConfig {
                     ).permitAll()
                 // 비회원도 설문 → 추천 흐름을 사용한다 (컨트롤러에서 userId=null 허용)
                 .requestMatchers(HttpMethod.POST, "/api/v1/recommendations").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/ingredients").permitAll() // 비회원 설문 Q-SUPPLEMENTS 성분 목록
                 .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/*/products", "/api/v1/recommendations/*/products/availability").permitAll()
                 .anyRequest().authenticated())

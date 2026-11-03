@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
 import "./landing.css";
+import GuestSurveySection from "../recommendation/GuestSurveySection";
 
 const FEATURES = [
   { icon: "clock", title: "복용 알림과 체크", desc: "정해둔 시간에 알림을 받고, 한 번에 체크해요." },
@@ -206,6 +207,7 @@ export default function LandingPage({ onStart }) {
             무료로 시작하기
           </button>
         </section>
+        <GuestSurveySection />
       </main>
 
       <footer className="landing-footer">

@@ -67,8 +67,11 @@ LLM 호출은 이번 STEP에서 하지 않는다.
 
 `src/main/resources/data/survey-v1.sql`(또는 프로젝트 방식에 맞는 시드)에 설문 v1을 넣는다. `status = ACTIVE`.
 
+표는 표시 순서(`display_order`) 순이다. 2026-11-02에 `Q-GOAL`을 첫 문항으로 옮겼다.
+
 | code | 문항 | answer_type | profile_key | is_sensitive | guest_visible | 선택지 value_code |
 | --- | --- | --- | --- | --- | --- | --- |
+| Q-GOAL | 뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점) (복수) | MULTI | (없음) | N | Y | SLEEP, FATIGUE, IMMUNITY, BONE, EYE |
 | Q-GENDER | 성별 | SINGLE | gender | N | Y | M, F |
 | Q-BIRTH | 출생 연도 | NUMBER | birth_year | N | Y | - |
 | Q-SMOKING | 흡연하시나요? | SINGLE | smoking | N | Y | NONE, HALF_PACK, ONE_PACK, TWO_PACK_PLUS |
@@ -78,7 +81,6 @@ LLM 호출은 이번 STEP에서 하지 않는다.
 | Q-SUN | 햇빛 노출 | SINGLE | sun_exposure | N | Y | LOW, NORMAL |
 | Q-SLEEP | 최근 수면 상태 | SINGLE | (없음) | N | Y | GOOD, NORMAL, POOR |
 | Q-FATIGUE | 최근 피로감 | SINGLE | (없음) | N | Y | LOW, NORMAL, HIGH |
-| Q-GOAL | 원하는 효과 (복수) | MULTI | (없음) | N | Y | SLEEP, FATIGUE, IMMUNITY, BONE, EYE |
 | Q-PREGNANCY | 임신·수유 | SINGLE | (없음) | Y | N | NOT_APPLICABLE, POSSIBLE, PREGNANT, LACTATING |
 | Q-CONDITIONS | 진단받은 질환 (복수) | MULTI | conditions | Y | N | NONE, HYPERTENSION, DIABETES, THYROID, KIDNEY |
 | Q-MEDICATIONS | 복용 중인 약 | TEXT | medications | Y | N | 선택지 없음. 약 검색 → 아래 참고 |
