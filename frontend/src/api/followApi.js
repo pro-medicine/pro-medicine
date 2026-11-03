@@ -21,3 +21,7 @@ export function respondFollow(userId, followId, status) {
 export function cancelFollow(userId, followId) {
   return api.delete(`/api/v1/follows/${followId}`, { params: { userId } });
 }
+
+export function getFollowers() {
+  return api.get(`/api/v1/follows/followers`);
+}

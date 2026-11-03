@@ -33,7 +33,11 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
           친구 신청
           {list.length > 0 && <span className="fr-count">{list.length}</span>}
         </h3>
-        <button type="button" className="fr-link" onClick={(e) => onOpenModal("sent", e)}>
+        <button
+          type="button"
+          className="fr-link"
+          onClick={(e) => onOpenModal("sent", e)}
+        >
           보낸 신청
         </button>
       </div>
@@ -80,7 +84,11 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
       })}
 
       {list.length > MAX_REQUESTS && (
-        <button type="button" className="fr-more" onClick={(e) => onOpenModal("received", e)}>
+        <button
+          type="button"
+          className="fr-more"
+          onClick={(e) => onOpenModal("received", e)}
+        >
           받은 신청 {list.length}건 모두 보기
         </button>
       )}
@@ -105,7 +113,8 @@ export function GuardianCard({ watching, friendsById, onSelect }) {
       </div>
       {list.length === 0 ? (
         <p className="fr-side-empty">
-          아직 지키는 친구가 없어요. 친구 상세에서 안부지킴이를 신청할 수 있어요.
+          아직 지키는 친구가 없어요. 친구 상세에서 안부지킴이를 신청할 수
+          있어요.
         </p>
       ) : (
         <ul className="fr-guard-list">
@@ -114,8 +123,15 @@ export function GuardianCard({ watching, friendsById, onSelect }) {
             const name = friend?.name ?? g.nickname ?? "친구";
             return (
               <li key={g.guardianSettingId ?? g.userId}>
-                <button type="button" disabled={!friend} onClick={() => friend && onSelect(friend)}>
-                  <span className={`fr-avatar is-sm is-${friend?.color ?? "mint"}`} aria-hidden="true">
+                <button
+                  type="button"
+                  disabled={!friend}
+                  onClick={() => friend && onSelect(friend)}
+                >
+                  <span
+                    className={`fr-avatar is-sm is-${friend?.color ?? "mint"}`}
+                    aria-hidden="true"
+                  >
                     {name.charAt(0)}
                   </span>
                   <span className="fr-guard-text">
@@ -144,6 +160,32 @@ export function FriendTipCard() {
         <strong>친구가 오늘 약속을 모두 지키면</strong>
         <small>알림으로 바로 알려드려요. 함께 꾸준함을 이어가 보세요.</small>
       </span>
+    </section>
+  );
+}
+
+export function FollowerCard({ followers, onFollowBack, busyId }) {
+  if (!followers?.length) return null;
+  return (
+    <section className="fr-card">
+      <h3>
+        나를 팔로우하는 사람 <span>{followers.length}</span>
+      </h3>
+      <ul>
+        {followers.map((f) => (
+          <li key={f.userId}>
+            <span>{f.nickname}</span>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={busyId === f.userId || f.followBackStatus === "PENDING"}
+              onClick={() => onFollowBack(f)}
+            >
+              {f.followBackStatus === "PENDING" ? "신청 중" : "맞팔로우"}
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
