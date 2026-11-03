@@ -1,7 +1,7 @@
 // 로그인 · 회원가입 화면 (#52 로그인 기능 + #67 새 디자인)
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { login, signup } from "./authApi";
 import "./auth.css";
 
@@ -105,7 +105,7 @@ function BrandPanel({ isSignup }) {
   );
 }
 
-export default function AuthPage({ mode, notice = "", onModeChange, onComplete, onClose }) {
+export default function AuthPage({ mode, notice = "", onModeChange, onAttemptStart, onComplete, onClose }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -117,7 +117,15 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const mountedRef = useRef(true);
   const isSignup = mode === "signup";
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // 로그인 / 회원가입 모드 전환 시 오류 메시지 초기화
   const changeMode = (nextMode) => {
@@ -152,6 +160,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
     }
     setError("");
     setBusy(true);
+    const attemptId = onAttemptStart();
     try {
       const user = isSignup
         ? await signup({
@@ -163,11 +172,11 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
             termsAgreed: agreed,
           })
         : await login({ email: email.trim(), password, rememberMe });
-      onComplete(user);
+      if (user) onComplete(user, attemptId);
     } catch (cause) {
-      setError(cause.message || "요청을 완료하지 못했습니다.");
+      if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   };
 
@@ -175,18 +184,36 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
     <div className={`auth-page${isSignup ? " is-signup" : ""}`}>
       <header className="auth-header">
         <div className="auth-header-inner">
-          <button
-            type="button"
-            className="top-nav-logo"
-            onClick={() => {
-              setError("");
-              onClose();
-            }}
-            aria-label="약쏙해줘 소개 화면으로"
-          >
-            <span className="top-nav-mark" aria-hidden="true" />
-            약쏙해줘
-          </button>
+          <div className="auth-header-leading">
+            <button
+              type="button"
+              className="auth-header-back"
+              disabled={busy}
+              onClick={() => {
+                setError("");
+                onClose();
+              }}
+              aria-label="이전 화면으로"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              <span>이전</span>
+            </button>
+            <button
+              type="button"
+              className="top-nav-logo"
+              disabled={busy}
+              onClick={() => {
+                setError("");
+                onClose();
+              }}
+              aria-label="약쏙해줘 소개 화면으로"
+            >
+              <span className="top-nav-mark" aria-hidden="true" />
+              약쏙해줘
+            </button>
+          </div>
           <p className="auth-header-switch">
             <span>{isSignup ? "이미 회원이신가요?" : "처음이신가요?"}</span>
             <button type="button" disabled={busy} onClick={() => changeMode(isSignup ? "login" : "signup")}>
