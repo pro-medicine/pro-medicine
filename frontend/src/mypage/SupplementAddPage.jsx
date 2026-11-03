@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   addMySupplement,
   searchCatalogProducts,
   updateSupplementSchedules,
+  fetchIntakeTips,
 } from "../api/mypageApi";
 import { useModalFocus } from "../common/useModalFocus";
 
@@ -93,6 +94,32 @@ export default function SupplementAddPage({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
+  const [tips, setTips] = useState([]);
+  const tipSeq = useRef(0); // 늦게 도착한 응답이 최신 결과를 덮어쓰지 않게
+
+  const loadTips = async (catalogProductId) => {
+    const seq = ++tipSeq.current;
+    setTips([]);
+    if (!catalogProductId) return;
+    try {
+      const list = await fetchIntakeTips(catalogProductId);
+      if (seq === tipSeq.current) setTips(Array.isArray(list) ? list : []);
+    } catch {
+      if (seq === tipSeq.current) setTips([]);
+    }
+  };
+
+  const clearTips = () => {
+    tipSeq.current += 1;
+    setTips([]);
+  };
+
+  // 수정 모드: 이미 정해진 제품의 안내도 보여준다
+  useEffect(() => {
+    if (isEdit) loadTips(target.catalogProductId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const search = async () => {
     // 검색 중이면 새 요청을 보내지 않는다 (Enter 연타로 요청이 겹치는 것 방지)
     if (searching) return;
@@ -104,6 +131,7 @@ export default function SupplementAddPage({
     setSearching(true);
     setMessage(null);
     setSelected(null);
+    clearTips();
     try {
       setResults(await searchCatalogProducts(trimmed));
     } catch (e) {
@@ -230,6 +258,7 @@ export default function SupplementAddPage({
                 onClick={() => {
                   setManualMode((prev) => !prev);
                   setSelected(null); // 직접 입력과 검색 선택은 둘 중 하나만
+                  clearTips();
                   setMessage(null);
                 }}
               >
@@ -254,6 +283,7 @@ export default function SupplementAddPage({
                       onClick={() => {
                         setSelected(product);
                         setManualMode(false); // 검색 결과를 고르면 직접 입력은 끔
+                        loadTips(product.catalogProductId);
                         setMessage(null);
                       }}
                     >
@@ -288,6 +318,18 @@ export default function SupplementAddPage({
             <p className="profile-edit-hint">
               직접 입력한 영양제는 함량 정보가 없어 영양 관리 계산에서 빠져요.
             </p>
+            {tips.length > 0 && (
+              <div className="supplement-intake-tips">
+                <ul>
+                  {tips.map((tip) => (
+                    <li key={tip.ingredient}>{tip.message}</li>
+                  ))}
+                </ul>
+                <small>
+                  제품에 적힌 섭취 방법과 의사·약사 안내를 먼저 따라 주세요.
+                </small>
+              </div>
+            )}
           </section>
         )}
 
