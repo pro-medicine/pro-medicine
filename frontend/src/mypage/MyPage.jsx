@@ -518,7 +518,7 @@ function nutritionNoticeText(nutrients) {
 function NutritionManagement({ userId }) {
   const [nutrition, setNutrition] = useState(null);
 
-    // 펼쳐서 상세를 보고 있는 성분 이름, null 이면 모두 접힘
+  // 펼쳐서 상세를 보고 있는 성분 이름, null 이면 모두 접힘
   const [openName, setOpenName] = useState(null);
 
   // 같은 성분을 다시 누르면 접고, 다른 성분을 누르면 그 성분을 펼침
@@ -579,7 +579,7 @@ function NutritionManagement({ userId }) {
       ) : (
         <>
           <div className="nutrition-list">
-                        {nutrients.map((item) => {
+            {nutrients.map((item) => {
               const status = nutrientStatus(item);
               const open = openName === item.name;
               const sources = item.sources ?? [];
@@ -633,7 +633,7 @@ function NutritionManagement({ userId }) {
                       )}
                       <ul>
                         {sources.map((source) => (
-                          <li key={source.productName}>
+                          <li key={source.userProductId}>
                             <span>{source.productName}</span>
                             <strong>
                               {source.amount}

@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum Nutrient {
-    VITAMIN_A("비타민 A", "㎍", 800, 650, 3000),
+    // 비타민 A 상한(3000㎍)은 레티놀 같은 기성형 비타민 A에만 적용되는데,
+    // 식약처 성분 요약은 베타카로틴까지 합친 RAE 총량이라 구분할 수 없어서 상한 판정에서 뺌
+    VITAMIN_A("비타민 A", "㎍", 800, 650, 0),
     VITAMIN_B1("비타민 B1", "mg", 1.2, 1.1, 0),
     VITAMIN_B2("비타민 B2", "mg", 1.5, 1.2, 0),
     VITAMIN_B6("비타민 B6", "mg", 1.5, 1.4, 100),

@@ -89,7 +89,7 @@ public class NutritionService {
                     sources = new ArrayList<>();
                     sourcesByNutrient.put(nutrient, sources);
                 }
-                sources.add(new NutrientSource(product.getProductName(), round2(amount)));
+                sources.add(new NutrientSource(userProduct.getUserProductId(), product.getProductName(), round2(amount)));
             }
         }
 
