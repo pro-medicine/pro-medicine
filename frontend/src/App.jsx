@@ -57,6 +57,7 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [postSignupHealth, setPostSignupHealth] = useState(false);
+  const [skipConsentAfterSignup, setSkipConsentAfterSignup] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsOpenRef = useRef(false); // SSE 콜백에서 패널이 열려 있는지 확인용
   const [toast, setToast] = useState(null); // 새 알림 팝업에 보여줄 알림
@@ -312,11 +313,13 @@ export default function App() {
   };
 
   const openSurvey = () => {
+    setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
     recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
   };
 
   const closeSurvey = () => {
+    setSkipConsentAfterSignup(false);
     const kind = window.history.state?.[NAV_STATE_KEY]?.kind;
     if ((kind === "guestSurvey" || kind === "memberSurvey") &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
@@ -501,12 +504,19 @@ export default function App() {
             onClose={() => setPostSignupHealth(false)}
             onReady={() => {
               setPostSignupHealth(false);
+              setSkipConsentAfterSignup(false);
+              setSurveyOpen(true);
+              recordView({ kind: "memberSurvey", tab });
+            }}
+            onSkip={() => {
+              setPostSignupHealth(false);
+              setSkipConsentAfterSignup(true);
               setSurveyOpen(true);
               recordView({ kind: "memberSurvey", tab });
             }}
           />
         )}
-        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} />}
+        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} skipConsent={skipConsentAfterSignup} />}
 
         {toast && (
           <NotificationToast

@@ -12,7 +12,7 @@ import "./recommendation.css";
 
 const FOLLOWUP_CODES = new Set(["Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS"]);
 
-export default function SignupHealthFollowup({ onClose, onReady }) {
+export default function SignupHealthFollowup({ onClose, onReady, onSkip }) {
   const [step, setStep] = useState("consent");
   const [survey, setSurvey] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -100,7 +100,7 @@ export default function SignupHealthFollowup({ onClose, onReady }) {
           <button type="button" className="rec-close" onClick={onClose} aria-label="나중에 하기">×</button>
         </div>
         {step === "consent" && (
-          <ConsentStep sending={sending} onAgree={agree} onSkip={onClose} />
+          <ConsentStep sending={sending} onAgree={agree} onSkip={onSkip} />
         )}
         {step === "survey" && survey && (
           <SurveyStep
