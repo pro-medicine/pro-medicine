@@ -175,18 +175,34 @@ export default function AuthPage({ mode, notice = "", onModeChange, onComplete, 
     <div className={`auth-page${isSignup ? " is-signup" : ""}`}>
       <header className="auth-header">
         <div className="auth-header-inner">
-          <button
-            type="button"
-            className="top-nav-logo"
-            onClick={() => {
-              setError("");
-              onClose();
-            }}
-            aria-label="약쏙해줘 소개 화면으로"
-          >
-            <span className="top-nav-mark" aria-hidden="true" />
-            약쏙해줘
-          </button>
+          <div className="auth-header-leading">
+            <button
+              type="button"
+              className="auth-header-back"
+              onClick={() => {
+                setError("");
+                onClose();
+              }}
+              aria-label="이전 화면으로"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              <span>이전</span>
+            </button>
+            <button
+              type="button"
+              className="top-nav-logo"
+              onClick={() => {
+                setError("");
+                onClose();
+              }}
+              aria-label="약쏙해줘 소개 화면으로"
+            >
+              <span className="top-nav-mark" aria-hidden="true" />
+              약쏙해줘
+            </button>
+          </div>
           <p className="auth-header-switch">
             <span>{isSignup ? "이미 회원이신가요?" : "처음이신가요?"}</span>
             <button type="button" disabled={busy} onClick={() => changeMode(isSignup ? "login" : "signup")}>
