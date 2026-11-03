@@ -25,16 +25,16 @@ public class MedicineController {
         return ResponseEntity.ok(ApiResponse.success(interactionCheckService.search(q)));
     }
 
-    /** 저장 전 미리보기. 먹을 기간을 받아야 '기간이 겹치는 다른 약과 같은 성분' 검사가 정확해진다 */
     @GetMapping("/{medicineId}/interactions")
     public ResponseEntity<ApiResponse<InteractionCheckResponse>> previewInteractions(
             @CurrentUserId Long userId,
             @PathVariable Long medicineId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startAt,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endAt) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endAt,
+            @RequestParam(required = false) Long excludePrescriptionId) {   // 추가
         LocalDate start = startAt != null ? startAt : LocalDate.now();
-        LocalDate end = endAt != null ? endAt : start.plusDays(2); // 종료일 미정 = 시작일 + 2일 (저장 규칙과 동일)
+        LocalDate end = endAt != null ? endAt : start.plusDays(2);
         return ResponseEntity.ok(ApiResponse.success(
-                interactionCheckService.check(userId, medicineId, start, end, null)));
+                interactionCheckService.check(userId, medicineId, start, end, excludePrescriptionId)));  // null -> excludePrescriptionId
     }
 }
