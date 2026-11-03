@@ -61,4 +61,11 @@ public class Prescription {
     public boolean isActiveOn(LocalDate date) {
         return status == PrescriptionStatus.ACTIVE && !date.isBefore(startAt) && (endAt == null || !date.isAfter(endAt));
     }
+
+    public void update(String name, Long medicineId, LocalDate startAt, LocalDate endAt) {
+        this.name = name;
+        this.medicineId = medicineId;
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
 }
