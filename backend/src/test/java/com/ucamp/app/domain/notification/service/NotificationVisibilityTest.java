@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 12:30 일정 기준
  * - 복용 알림: 12:30 ~ 13:30 보임
  * - 복용 놓침 알림: 13:30에 생기고 14:30까지 보임
+ * - 12:30 일정을 먹음·건너뜀 체크하면 시간과 상관없이 둘 다 숨김
  */
 @SpringBootTest
 @Transactional
@@ -65,6 +66,34 @@ class NotificationVisibilityTest {
         assertThat(types(now)).containsExactly("NEW_FOLLOWER");
         assertThat(notificationService.getUnreadCount(9001L, now).unreadCount()).isEqualTo(1);
         assertThat(notificationService.getNotifications(9001L, NotificationCategory.INTAKE, now)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("그 시각의 일정을 복용 체크하면 복용 알림과 놓침 알림이 사라진다")
+    void hiddenAfterIntakeChecked() {
+        LocalDateTime now = INTAKE_TIME.plusMinutes(10);
+        assertThat(notificationService.getUnreadCount(9001L, now).unreadCount()).isEqualTo(3);
+
+        // 사용자 9001의 12:30 일정(9001)을 10/23에 복용
+        em.createNativeQuery("""
+                INSERT INTO intake_records (intake_record_id, schedule_id, intake_date, status, completed_at, is_shared)
+                VALUES (99104, 9001, '2026-10-23', 'TAKEN', '2026-10-23 12:40:00', false)
+                """).executeUpdate();
+
+        assertThat(types(now)).containsExactly("NEW_FOLLOWER");
+        assertThat(notificationService.getUnreadCount(9001L, now).unreadCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("다른 날짜에 복용 체크한 것은 영향을 주지 않는다")
+    void otherDateCheckDoesNotHide() {
+        em.createNativeQuery("""
+                INSERT INTO intake_records (intake_record_id, schedule_id, intake_date, status, completed_at, is_shared)
+                VALUES (99105, 9001, '2026-10-22', 'TAKEN', '2026-10-22 12:40:00', false)
+                """).executeUpdate();
+
+        assertThat(types(INTAKE_TIME.plusMinutes(10)))
+                .containsExactlyInAnyOrder("INTAKE_REMINDER", "INTAKE_MISSED", "NEW_FOLLOWER");
     }
 
     private List<String> types(LocalDateTime now) {

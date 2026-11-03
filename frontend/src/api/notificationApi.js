@@ -150,6 +150,10 @@ export function subscribeNotifications(userId, onNotification) {
                     if (eventType === "notification" && !stopped) {
                         onNotification({ type: "notification" });
                     }
+                    // 화면 갱신 신호 (예: 복용 체크 → 그 시각의 복용·놓침 알림이 사라짐). 새 알림 팝업은 띄우지 않는다.
+                    if (eventType === "refresh" && !stopped) {
+                        onNotification({ type: "refresh" });
+                    }
                 }
             }
         } catch (error) {

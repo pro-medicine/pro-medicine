@@ -127,6 +127,7 @@ export default function App() {
 
   // 실시간 알림(SSE, 로그인한 사용자만): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
   // 진짜 새 알림 신호(재연결 제외)면 가장 최근 안 읽은 알림을 팝업으로 띄운다. (알림 패널이 열려 있으면 생략)
+  // "refresh" 신호(복용 체크 등)는 다시 조회만 하고 팝업은 띄우지 않는다.
   useEffect(() => {
     if (userId == null) return undefined;
     return subscribeNotifications(userId, (event) => {

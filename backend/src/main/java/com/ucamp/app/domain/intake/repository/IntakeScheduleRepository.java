@@ -163,4 +163,30 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
           AND s.isEnabled = true
         """)
     List<IntakeSchedule> findActiveSchedulesByUserIds(@Param("userIds") Collection<Long> userIds);
+    /**
+     * userId의 date 날짜 일정 중 알림 시각이 from ~ to이고 아직 먹음·건너뜀 체크를 안 한 일정 수.
+     * (findReminderTargets와 같은 기준을 한 사용자에 대해 센다)
+     * 0이면 그 시각의 복용 알림·놓침 알림은 할 일이 끝난 것이므로 알림 목록에서 숨긴다.
+     */
+    @Query("""
+            SELECT COUNT(s) FROM IntakeSchedule s
+            JOIN s.userProduct up
+            WHERE up.user.id = :userId
+              AND s.isEnabled = true
+              AND up.isActive = true
+              AND (up.startDate IS NULL OR up.startDate <= :date)
+              AND s.remindAt >= :from
+              AND s.remindAt <= :to
+              AND NOT EXISTS (
+                  SELECT r FROM IntakeRecord r
+                  WHERE r.schedule = s
+                    AND r.intakeDate = :date
+                    AND r.status IN ('TAKEN', 'SKIPPED')
+              )
+            """)
+    long countUnchecked(@Param("userId") Long userId,
+                        @Param("date") LocalDate date,
+                        @Param("from") LocalTime from,
+                        @Param("to") LocalTime to);
+
 }   // 끝

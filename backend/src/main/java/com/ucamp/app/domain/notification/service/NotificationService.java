@@ -1,5 +1,6 @@
 package com.ucamp.app.domain.notification.service;
 
+import com.ucamp.app.domain.intake.repository.IntakeScheduleRepository;
 import com.ucamp.app.domain.notification.dto.NotificationResponse;
 import com.ucamp.app.domain.notification.dto.UnreadCountResponse;
 import com.ucamp.app.domain.notification.entity.Notification;
@@ -17,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,6 +30,8 @@ import java.util.List;
 public class NotificationService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final int LIST_SIZE = 50;
+    private static final List<NotificationType> INTAKE_TYPES =
+            List.of(NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED);
 
     // 복용 알림은 복용 시각부터 1시간 동안 보인다
     public static final Duration REMINDER_VISIBLE = Duration.ofHours(1);
@@ -34,6 +39,7 @@ public class NotificationService {
     public static final Duration MISSED_VISIBLE = Duration.ofHours(2);
 
     private final NotificationRepository notificationRepository;
+    private final IntakeScheduleRepository intakeScheduleRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // ===== 조회 / 읽음 (컨트롤러에서 사용) =====
@@ -48,12 +54,10 @@ public class NotificationService {
      */
     public List<NotificationResponse> getNotifications(Long userId, NotificationCategory category, LocalDateTime now) {
         List<NotificationType> types = (category == null) ? List.of(NotificationType.values()) : typesOf(category);
-        return notificationRepository.findVisible(
-                        userId, types,
-                        NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
-                        now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
-                        PageRequest.of(0, LIST_SIZE))
-                .stream().map(NotificationResponse::from).toList();
+        return findVisible(userId, types, now).stream()
+                .filter(n -> !isIntakeDone(userId, n))   // 복용 체크를 마친 시각의 복용·놓침 알림은 숨김
+                .map(NotificationResponse::from)
+                .toList();
     }
 
     public UnreadCountResponse getUnreadCount(Long userId) {
@@ -61,10 +65,38 @@ public class NotificationService {
     }
 
     public UnreadCountResponse getUnreadCount(Long userId, LocalDateTime now) {
-        return new UnreadCountResponse(notificationRepository.countVisibleUnread(
+        long visibleUnread = notificationRepository.countVisibleUnread(
                 userId,
                 NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
-                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE)));
+                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE));
+        // 위 개수에는 "이미 복용 체크한 시각"의 복용·놓침 알림도 들어 있으므로 빼 준다.
+        // (보이는 복용·놓침 알림은 최근 2시간 것뿐이라 몇 개 안 됨)
+        long doneIntakeUnread = findVisible(userId, INTAKE_TYPES, now).stream()
+                .filter(n -> !n.isRead() && isIntakeDone(userId, n))
+                .count();
+        return new UnreadCountResponse(visibleUnread - doneIntakeUnread);
+    }
+
+    private List<Notification> findVisible(Long userId, List<NotificationType> types, LocalDateTime now) {
+        return notificationRepository.findVisible(
+                userId, types,
+                NotificationType.INTAKE_REMINDER, NotificationType.INTAKE_MISSED,
+                now.minus(REMINDER_VISIBLE), now.minus(MISSED_VISIBLE),
+                PageRequest.of(0, LIST_SIZE));
+    }
+
+    /**
+     * 복용 알림·놓침 알림이 가리키는 시각(scheduled_at)의 일정을 모두 먹음·건너뜀 체크했는지.
+     * 알림은 같은 분(예: 12:30:00 ~ 12:30:59)의 일정을 묶어서 만들므로 같은 범위로 확인한다.
+     * 체크를 해제하면 다시 false가 되어 알림이 다시 보인다. (DB에서 지우지 않음)
+     */
+    private boolean isIntakeDone(Long userId, Notification n) {
+        if (!INTAKE_TYPES.contains(n.getNotificationType()) || n.getScheduledAt() == null) {
+            return false;
+        }
+        LocalTime from = n.getScheduledAt().toLocalTime().truncatedTo(ChronoUnit.MINUTES);
+        return intakeScheduleRepository.countUnchecked(
+                userId, n.getScheduledAt().toLocalDate(), from, from.plusSeconds(59)) == 0;
     }
 
     // 같은 dedupKey의 알림이 이미 있는지
