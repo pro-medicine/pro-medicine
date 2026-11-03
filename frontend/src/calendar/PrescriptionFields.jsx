@@ -7,6 +7,7 @@ export const makeEmptyPrescription = (startDate) => ({
   medicineId: null,
   startAt: startDate,
   endAt: startDate,
+  scheduledTime: "09:00",
   oneDay: false,
   openEnded: false,
   notes: "",
@@ -40,6 +41,7 @@ export const toPrescriptionPayload = (rx) => ({
   medicineId: rx.medicineId ?? null,
   startAt: rx.startAt,
   endAt: rx.oneDay ? rx.startAt : rx.openEnded ? null : rx.endAt,
+  scheduledTime: rx.scheduledTime ? `${rx.scheduledTime}:00` : "09:00:00",
   notes: rx.notes.trim() || null,
 });
 
@@ -170,6 +172,7 @@ export default function PrescriptionFields({ value, onChange }) {
             확인되지 않아요.
           </p>
         )}
+
       {value.medicineId && (
         <>
           {loadingPreview ? (
@@ -202,7 +205,14 @@ export default function PrescriptionFields({ value, onChange }) {
           />
         </label>
       </div>
-
+      <label>
+        복용 시각
+        <input
+          type="time"
+          value={value.scheduledTime || "09:00"}
+          onChange={(e) => set({ scheduledTime: e.target.value })}
+        />
+      </label>
       <label className="rx-check">
         <input
           type="checkbox"
