@@ -20,7 +20,7 @@ import { deletePrescription } from "../api/prescriptionApi";
 import { useModalFocus } from "../common/useModalFocus";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
-import IntakeCalendar from "../common/IntakeCalendar";
+import IntakeCalendar from "../calendar/IntakeCalendar";
 import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
 import MyStats from "./MyStats";
 import SupplementGroups from "./SupplementGroups";

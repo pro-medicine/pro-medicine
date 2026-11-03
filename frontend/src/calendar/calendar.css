@@ -525,3 +525,136 @@ button.calendar-day {
   color: var(--alert);
   opacity: 0.75;
 }
+
+.medicine-suggestions {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.medicine-suggestions button {
+  border: none;
+  background: white;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.medicine-suggestions button:hover {
+  background: #f2f4f7;
+}
+
+.interaction-list {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+}
+
+.interaction-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+}
+
+.interaction-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.interaction-item.avoid .interaction-badge {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.interaction-item.caution .interaction-badge {
+  background: #fff1db;
+  color: #b54708;
+}
+
+.interaction-item.timing .interaction-badge {
+  background: #e8f0fe;
+  color: #1d4ed8;
+}
+
+.interaction-item.info .interaction-badge {
+  background: #eef2f0;
+  color: #475467;
+}
+
+.interaction-empty {
+  font-size: 13px;
+  color: #667085;
+  margin: 6px 0 0;
+}
+
+.event-item {
+  flex-wrap: wrap;
+}
+.event-item .interaction-notice {
+  flex-basis: 100%;
+  order: 3;
+}
+
+.interaction-list {
+  margin: 8px 0;
+}
+.interaction-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+}
+.interaction-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.interaction-item.avoid .interaction-badge {
+  background: #fde8e8;
+  color: #b42318;
+}
+.interaction-item.caution .interaction-badge {
+  background: #fff1db;
+  color: #b54708;
+}
+.interaction-item.timing .interaction-badge {
+  background: #e8f0fe;
+  color: #1d4ed8;
+}
+.interaction-item.info .interaction-badge {
+  background: #eef2f0;
+  color: #475467;
+}
+.interaction-empty {
+  font-size: 13px;
+  color: #667085;
+  margin: 6px 0 0;
+}
+
+.medicine-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px;
+}
+.medicine-suggestions button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.medicine-suggestions button:hover {
+  background: #f2f4f7;
+}
