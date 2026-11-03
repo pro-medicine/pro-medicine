@@ -90,7 +90,10 @@ function DayModal({
     setForm(EMPTY_FORM);
     setError("");
     setMode("new");
-    setRx(makeEmptyPrescription(dateKey));
+    setRx({
+      ...makeEmptyPrescription(dateKey),
+      scheduledTime: EMPTY_FORM.time,
+    });
   };
 
   const openEdit = (event) => {
