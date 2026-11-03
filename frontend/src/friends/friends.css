@@ -135,6 +135,15 @@
   color: var(--alert);
 }
 
+/* 친구 상세: 챙겨주기(콕 찌르기) 버튼 */
+.nudge-button {
+  height: 42px;
+}
+
+.nudge-button.is-sent {
+  color: var(--muted);
+}
+
 .friend-delete {
   padding: 0 4px;
 }

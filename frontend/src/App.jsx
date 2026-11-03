@@ -15,6 +15,7 @@ import ChatLauncher from "./chat";
 import { BottomNav, TopNav } from "./common/AppChrome";
 import NotificationPanel from "./common/NotificationPanel";
 import { UnreadNotificationContext } from "./common/unreadNotificationContext";
+import { isExpired, msUntilNextExpiry } from "./common/notificationTypes";
 
 // 화면
 import DisposalMapPage from "./disposal/DisposalMapPage";
@@ -62,6 +63,9 @@ export default function App() {
   const [friendTarget, setFriendTarget] = useState(null); // 알림에서 바로 열 친구 상세 (친구 userId)
   const [notificationAnchor, setNotificationAnchor] = useState(null); // 패널을 띄울 위치 (종 버튼 아래)
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
+  // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
+  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
+  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
@@ -182,21 +186,56 @@ export default function App() {
   }, [userId]);
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
+  // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
+  //   (복용 알림은 1시간, 놓침 알림은 2시간이 지나면 서버 목록에서 빠지므로 새로고침 없이 빨간 점이 꺼지게)
   useEffect(() => {
-    if (userId == null) return;
+    if (userId == null) return undefined;
     let ignore = false;
-    getUnreadCount(userId)
-      .then((data) => {
-        if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
-      })
-      .catch((err) => console.error(err));
+    let expiryTimer = null;
+    const checkUnread = () => {
+      getUnreadCount(userId)
+        .then((data) => {
+          if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
+        })
+        .catch((err) => console.error(err));
+      // 안 읽은 복용·놓침 알림이 사라질 시각에 맞춰 한 번 더 확인 → 그 순간 빨간 점이 꺼진다
+      getNotifications(userId, "INTAKE")
+        .then((items) => {
+          if (ignore) return;
+          clearTimeout(expiryTimer);
+          const unread = (items ?? []).filter((item) => !item.read);
+          // 조회한 사이에 이미 만료된 알림이 섞여 왔으면 잠깐 뒤 다시 확인 (서버·브라우저 시계 차이로 반복되지 않게 1번만)
+          if (!retriedExpired && unread.some((item) => isExpired(item))) {
+            retriedExpired = true;
+            expiryTimer = setTimeout(checkUnread, 2000);
+            return;
+          }
+          retriedExpired = false;
+          const wait = msUntilNextExpiry(unread);
+          if (wait != null) expiryTimer = setTimeout(checkUnread, wait + 1000);
+        })
+        .catch((err) => console.error(err));
+    };
+    let retriedExpired = false;
+    checkUnread();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") checkUnread(); // 안 보는 탭에서는 요청하지 않음
+    }, 60000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkUnread();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       ignore = true;
+      clearInterval(timer);
+      clearTimeout(expiryTimer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [userId, homeRefreshKey]);
+  }, [userId, homeRefreshKey, notificationRefreshKey]);
 
   // 실시간 알림(SSE, 로그인한 사용자만): 새 알림 신호가 오면 빨간 점·홈·열려 있는 알림 패널을 다시 조회한다.
   // 진짜 새 알림 신호(재연결 제외)면 가장 최근 안 읽은 알림을 팝업으로 띄운다. (알림 패널이 열려 있으면 생략)
+  // "refresh" 신호(복용 체크 등)는 다시 조회만 하고 팝업은 띄우지 않는다.
   useEffect(() => {
     if (userId == null) return undefined;
     return subscribeNotifications(userId, (event) => {
@@ -377,7 +416,8 @@ export default function App() {
             userId={userId}
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
-            onSurvey={openSurvey}
+            onIntakeChanged={refreshNotifications}
+            onSurvey={() => setSurveyOpen(true)}
             onAddSupplement={() => {
               changeTab("my");
               setMyStartAdding(true);
@@ -512,7 +552,7 @@ export default function App() {
           <NotificationPanel
             userId={userId}
             anchor={notificationAnchor}
-            refreshKey={homeRefreshKey}
+            refreshKey={`${homeRefreshKey}-${notificationRefreshKey}`}
             onRead={() => setHomeRefreshKey((key) => key + 1)}
             onClose={closeNotifications}
             onNavigate={navigateFromNotification}

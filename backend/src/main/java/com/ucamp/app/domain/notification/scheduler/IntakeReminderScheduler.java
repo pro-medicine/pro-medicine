@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 /**
- * 매분 0초(한국 시간)에 복용 알림을 만든다.
+ * 매분 0초(한국 시간)에 복용 알림과 복용 놓침 알림을 만든다.
  * 서버 시간대와 상관없이 항상 한국 시간 기준으로 동작하도록 cron과 현재 시각 모두 Asia/Seoul을 쓴다.
  */
 @Slf4j
@@ -32,6 +32,12 @@ public class IntakeReminderScheduler {
         } catch (Exception e) {
             // 예외가 나도 다음 분에 다시 실행되며, 원인 확인을 위해 로그를 남긴다
             log.error("복용 알림 스케줄러 실행 실패", e);
+        }
+        // 복용 알림이 실패해도 놓침 알림은 따로 처리한다
+        try {
+            intakeReminderService.sendMissedReminders(LocalDateTime.now(ZoneId.of(KST)));
+        } catch (Exception e) {
+            log.error("복용 놓침 알림 스케줄러 실행 실패", e);
         }
     }
 }

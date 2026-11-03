@@ -42,6 +42,14 @@ export function markNotificationRead(userId, notificationId) {
     );
 }
 
+/**
+ * 친구 챙겨주기: 친구에게 "영양제 챙겨 드시래요" 알림을 보낸다. (같은 친구에게 하루 1번)
+ * 이미 보냈거나 친구가 다 먹었으면 서버가 오류 메시지를 보내므로 err.message를 그대로 보여주면 된다.
+ */
+export function nudgeFriend(targetUserId) {
+    return api.post("/api/v1/notifications/nudges", { targetUserId });
+}
+
 /** 모두 읽음 */
 export function markAllNotificationsRead(userId) {
     return api.patch("/api/v1/notifications/read-all", null, userHeader(userId));
@@ -141,6 +149,10 @@ export function subscribeNotifications(userId, onNotification) {
                     // 진짜 새 알림 신호는 { type: "notification" }으로 전달 (재연결 때는 인자 없음 → 새 알림 팝업 생략)
                     if (eventType === "notification" && !stopped) {
                         onNotification({ type: "notification" });
+                    }
+                    // 화면 갱신 신호 (예: 복용 체크 → 그 시각의 복용·놓침 알림이 사라짐). 새 알림 팝업은 띄우지 않는다.
+                    if (eventType === "refresh" && !stopped) {
+                        onNotification({ type: "refresh" });
                     }
                 }
             }

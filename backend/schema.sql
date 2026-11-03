@@ -207,10 +207,11 @@ CREATE TABLE `notifications` (
                                  `read_at`   DATETIME   NULL,
                                  `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                                  `dedup_key`   VARCHAR(150)   NOT NULL,
+                                 `reference_id`   BIGINT   NULL,
                                  PRIMARY KEY (`notification_id`),
                                  UNIQUE KEY `uq_notifications_dedup_key` (`dedup_key`),
                                  KEY `idx_notifications_inbox` (`user_id`, `read_at`, `created_at`),
-                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'GUARDIAN'))
+                                 CONSTRAINT `ck_notif_kind` CHECK (`notification_type` IN ('INTAKE_REMINDER','INTAKE_MISSED','FRIEND_GOAL_ACHIEVED','NEW_FOLLOWER', 'FOLLOW_ACCEPTED', 'FRIEND_NUDGE', 'GUARDIAN', 'GUARDIAN_REQUESTED', 'GUARDIAN_ACCEPTED'))
 );
 
 CREATE TABLE `guardian_settings` (
