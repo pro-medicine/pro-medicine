@@ -25,3 +25,24 @@ export function deleteCalendarEvent(eventId) {
 export function createPrescription(payload) {
   return api.post("/api/v1/prescriptions", payload);
 }
+
+const unwrap = (res) => res?.data?.data ?? res?.data ?? res;
+
+export function fetchInteractions(prescriptionId) {
+  return api
+    .get(`/api/v1/prescriptions/${prescriptionId}/interactions`)
+    .then(unwrap);
+}
+
+export function searchMedicines(q) {
+  return api.get(`/api/v1/medicines/search`, { params: { q } }).then(unwrap);
+}
+
+// startAt, endAt: "YYYY-MM-DD" (endAt이 없으면 생략)
+export function previewInteractions(medicineId, startAt, endAt) {
+  return api
+    .get(`/api/v1/medicines/${medicineId}/interactions`, {
+      params: { startAt, endAt },
+    })
+    .then(unwrap);
+}

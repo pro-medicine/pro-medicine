@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
-import { useModalFocus } from "./useModalFocus";
+import { useModalFocus } from "../common/useModalFocus";
 import "./calendar.css";
 import PrescriptionFields, {
   makeEmptyPrescription,
   validatePrescription,
   toPrescriptionPayload,
-} from "../prescription/PrescriptionFields";
+} from "./PrescriptionFields";
+import InteractionNotice from "./InteractionNotice";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -76,6 +77,7 @@ function DayModal({
   onSavePrescription,
   onDelete,
   onToggle,
+  fetchInteractions,
 }) {
   const dialogRef = useModalFocus(onClose, openerRef);
   const [mode, setMode] = useState(null); // null | "new" | 이벤트 객체(수정)
@@ -273,6 +275,12 @@ function DayModal({
                         <small>{event.scheduledAt.slice(11, 16)}</small>
                       )}
                     </span>
+                    {event.prescriptionId && fetchInteractions && (
+                      <InteractionNotice
+                        prescriptionId={event.prescriptionId}
+                        fetchInteractions={fetchInteractions}
+                      />
+                    )}
                     <span className="event-actions">
                       <button type="button" onClick={() => openEdit(event)}>
                         수정
@@ -390,6 +398,7 @@ export default function IntakeCalendar({
   deleteEvent,
   deletePrescription,
   createPrescription,
+  fetchInteractions,
   title = "복용 달력",
 }) {
   const now = new Date();
@@ -668,6 +677,7 @@ export default function IntakeCalendar({
           }
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
+          fetchInteractions={fetchInteractions}
         />
       )}
     </section>
