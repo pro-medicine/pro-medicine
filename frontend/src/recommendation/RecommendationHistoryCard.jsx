@@ -58,12 +58,12 @@ function Concern({ concern }) {
  * - onToggle: [제품 보기] / [접기]
  */
 export default function RecommendationHistoryCard({ item, nameOf, unitOf, detail, open, onToggle }) {
-  const [closedCards, setClosedCards] = useState(() => new Set()); // 제품 목록을 접은 성분
+  const [openCards, setOpenCards] = useState(() => new Set()); // 제품 목록을 펼친 성분 (처음엔 모두 접힘)
   const titleId = `recent-rec-item-${item.chatResultId != null ? `c${item.chatResultId}` : item.recommendationId}`;
   const meta = [formatDateTime(item.recommendedAt), SOURCE_LABEL[item.source]].filter(Boolean).join(" · ");
   const cards = [...(detail?.data?.ingredients ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const toggleCard = (code) =>
-    setClosedCards((cur) => {
+    setOpenCards((cur) => {
       const next = new Set(cur);
       if (next.has(code)) next.delete(code);
       else next.add(code);
@@ -135,19 +135,17 @@ export default function RecommendationHistoryCard({ item, nameOf, unitOf, detail
                         item={card}
                         name={nameOf(card.ingredient)}
                         unit={unitOf(card.ingredient)}
-                        showProducts
-                        productsOpen={!closedCards.has(card.ingredient)}
+                        showProducts={products.length > 0}
+                        productsOpen={openCards.has(card.ingredient)}
                         onToggleProducts={() => toggleCard(card.ingredient)}
                       >
-                        {products.length > 0 ? (
+                        {products.length > 0 && (
                           <ProductRecommendations
                             ingredient={card.ingredient}
                             nameOf={nameOf}
                             products={products}
                             notice={detail.data.notice}
                           />
-                        ) : (
-                          <p className="rec-prod-status">아직 추천할 제품이 없어요</p>
                         )}
                       </IngredientCard>
                     );
