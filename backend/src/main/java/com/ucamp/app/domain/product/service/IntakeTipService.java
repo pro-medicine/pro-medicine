@@ -53,18 +53,20 @@ public class IntakeTipService {
     public List<IntakeTipResponse> getTips(Long catalogProductId) {
         CatalogProduct product = catalogProductRepository.findById(catalogProductId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-        String name = nvl(product.getProductName()).replace(" ", "");
+
+        String name = normalize(product.getProductName());
         String summary = nvl(product.getIngredientSummary());
-        String haystack = name + " " + summary.replace(" ", "");
+        String haystack = name + " " + normalize(summary);
+
         List<String> parts = Arrays.stream(summary.split(","))
-                .map(part -> part.replace(" ", ""))
+                .map(this::normalize)
                 .toList();
 
         List<IntakeTipResponse> tips = new ArrayList<>();
         for (Rule rule : RULES) {
             boolean byKeyword = rule.keywords().stream().anyMatch(haystack::contains);
             boolean byPrefix = rule.summaryPrefixes().stream()
-                    .anyMatch(prefix -> parts.stream().anyMatch(part -> part.startsWith(prefix)));
+                    .anyMatch(prefix -> parts.stream().anyMatch(part -> startsWithIngredient(part, prefix)));
             if (byKeyword || byPrefix) {
                 tips.add(new IntakeTipResponse(rule.ingredient(), rule.message()));
             }
@@ -72,7 +74,18 @@ public class IntakeTipService {
         return tips;
     }
 
+    private String normalize(String value) {
+        return nvl(value).replace(" ", "").replace("-", "");
+    }
+
     private String nvl(String value) {
         return value == null ? "" : value;
+    }
+
+    private static boolean startsWithIngredient(String part, String prefix) {
+        if (!part.startsWith(prefix)) {
+            return false;
+        }
+        return part.length() == prefix.length() || !Character.isLetter(part.charAt(prefix.length()));
     }
 }
