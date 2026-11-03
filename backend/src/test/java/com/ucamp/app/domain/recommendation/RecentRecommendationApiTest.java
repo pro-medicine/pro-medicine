@@ -170,7 +170,7 @@ class RecentRecommendationApiTest {
         List<ChatCard> cards = List.of(
                 new ChatCard("MAGNESIUM", "비슷한 고민에 약사들이 추천한 성분이에요", 1, BigDecimal.valueOf(100), "mg",
                         null, "UNKNOWN", null, List.of(), List.of(new ReviewProductResponse.Product(9301, "스냅샷 제품",
-                        "NOW", null, List.of(), List.of(), List.of()))),
+                        "NOW", null, null, List.of(), List.of(), List.of()))),
                 new ChatCard("VITAMIN_D", "비슷한 고민에 약사들이 추천한 성분이에요", 2, BigDecimal.TEN, "mcg",
                         null, "UNKNOWN", null, List.of(), List.of()));
         AiChatSession chat = chatSession(user, null);
