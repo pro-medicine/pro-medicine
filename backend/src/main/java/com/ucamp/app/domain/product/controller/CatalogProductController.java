@@ -1,14 +1,13 @@
 package com.ucamp.app.domain.product.controller;
 
 import com.ucamp.app.domain.product.dto.CatalogProductSearchResponse;
+import com.ucamp.app.domain.product.dto.IntakeTipResponse;
 import com.ucamp.app.domain.product.service.CatalogProductService;
+import com.ucamp.app.domain.product.service.IntakeTipService;
 import com.ucamp.app.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,10 +17,17 @@ import java.util.List;
 @RequestMapping("/api/v1/catalog-products")
 public class CatalogProductController {
     private final CatalogProductService catalogProductService;
+    private final IntakeTipService intakeTipService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CatalogProductSearchResponse>>> search(
             @RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(ApiResponse.success(catalogProductService.search(keyword)));
+    }
+
+    @GetMapping("/{catalogProductId}/intake-tips")
+    public ResponseEntity<ApiResponse<List<IntakeTipResponse>>> intakeTips(
+            @PathVariable Long catalogProductId) {
+        return ResponseEntity.ok(ApiResponse.success(intakeTipService.getTips(catalogProductId)));
     }
 }
