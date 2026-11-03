@@ -12,6 +12,7 @@ import {
 } from "../api/guardianApi";
 import GuardianDaysModal from "../friends/GuardianModal";
 import ConfirmDialog from "./ConfirmDialog";
+import { nudgeFriend } from "../api/notificationApi";
 
 function toFriendDetail(data, fallback) {
   return {
@@ -49,6 +50,9 @@ export default function FriendDetailPage({
   const [guardianMsg, setGuardianMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [daysOpen, setDaysOpen] = useState(false);
+  // 챙겨주기(콕 찌르기) 알림: 보내는 중 / 오늘 이미 보냄
+  const [nudgeBusy, setNudgeBusy] = useState(false);
+  const [nudged, setNudged] = useState(false);
   // 확인 / 취소 화면: { title, message, confirmLabel, danger, onConfirm }
   const [confirm, setConfirm] = useState(null);
   const askConfirm = (options) => {
@@ -107,6 +111,7 @@ export default function FriendDetailPage({
     setGuardian(null);
     setIncoming(null);
     setGuardianMsg("");
+    setNudged(false);
     loadGuardian();
   }, [loadGuardian]);
 
@@ -254,6 +259,37 @@ export default function FriendDetailPage({
     setDaysOpen(true);
   };
 
+  // 챙겨주기: 친구에게 "영양제 챙겨 드시래요" 알림 (같은 친구에게 하루 1번, 서버가 확인)
+  const handleNudge = async () => {
+    if (nudgeBusy || nudged) return;
+    setNudgeBusy(true);
+    setGuardianMsg("");
+    try {
+      await nudgeFriend(friendUserId);
+      setNudged(true);
+      setGuardianMsg(`${friend?.name ?? "친구"}님에게 챙겨주기 알림을 보냈어요.`);
+    } catch (err) {
+      // 이미 보냄 / 친구가 다 먹음 / 팔로우 안 함 → 서버 메시지를 그대로 보여준다
+      setGuardianMsg(err.message || "챙겨주기 알림을 보내지 못했어요.");
+    } finally {
+      setNudgeBusy(false);
+    }
+  };
+
+  const nudgeButton = (
+    <button
+      type="button"
+      className={`btn btn-outline nudge-button${nudged ? " is-sent" : ""}`}
+      aria-label={nudged ? "오늘 챙겨주기 알림을 보냈어요" : "친구에게 영양제 챙겨 먹으라고 알림 보내기"}
+      title={nudged ? "오늘 챙겨주기 알림을 보냈어요" : "친구에게 영양제 챙겨 먹으라고 알림 보내기"}
+      disabled={nudgeBusy || nudged}
+      onClick={handleNudge}
+    >
+      <Icon name="bell" size={17} />
+      {nudged ? "챙겨줬어요" : "챙겨주기"}
+    </button>
+  );
+
   const deleteLabel = isMutual ? "친구 삭제" : "팔로우 취소";
 
   const handleDeleteFriend = () => {
@@ -380,6 +416,7 @@ export default function FriendDetailPage({
           <>
             {deleteButton}
             {rejectGuardianButton}
+            {nudgeButton}
             {guardianButton}
           </>
         }

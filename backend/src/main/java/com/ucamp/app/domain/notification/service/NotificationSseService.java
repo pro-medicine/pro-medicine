@@ -27,6 +27,7 @@ public class NotificationSseService {
 
     static final String EVENT_CONNECT = "connect";
     static final String EVENT_NOTIFICATION = "notification";
+    static final String EVENT_REFRESH = "refresh";
 
     // 여러 요청 스레드가 동시에 넣고 빼므로 동시성 안전한 컬렉션을 사용한다.
     private final Map<Long, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
@@ -45,6 +46,14 @@ public class NotificationSseService {
     /** 새 알림 신호. 연결이 없는 사용자면 아무것도 하지 않는다. */
     public void sendNotification(Long userId) {
         send(userId, () -> SseEmitter.event().name(EVENT_NOTIFICATION).data("new"));
+    }
+
+    /**
+     * 화면 갱신 신호. 새 알림은 아니지만 알림 목록·빨간 점이 바뀌었을 때 보낸다. (팝업은 띄우지 않음)
+     * 예: 복용 체크 → 그 시각의 복용·놓침 알림이 목록에서 사라짐
+     */
+    public void sendRefresh(Long userId) {
+        send(userId, () -> SseEmitter.event().name(EVENT_REFRESH).data("refresh"));
     }
 
     /** 모든 연결에 빈 주석(":heartbeat")을 보내 연결을 유지한다. 프론트에는 이벤트로 전달되지 않는다. */

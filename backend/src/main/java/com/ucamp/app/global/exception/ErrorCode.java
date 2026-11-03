@@ -67,6 +67,9 @@ public enum ErrorCode {
 
     // NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
+    NUDGE_NOT_FOLLOWING(HttpStatus.BAD_REQUEST, "N002", "팔로우 중인 친구에게만 챙겨주기를 보낼 수 있어요."),
+    NUDGE_ALREADY_SENT(HttpStatus.CONFLICT, "N003", "오늘은 이미 챙겨줬어요. 내일 다시 보낼 수 있어요."),
+    NUDGE_ALREADY_COMPLETED(HttpStatus.CONFLICT, "N004", "친구가 오늘 복용을 이미 모두 완료했어요."),
   
     // FRIEND
     INVALID_FOLLOW(HttpStatus.BAD_REQUEST, "F001", "본인에게는 팔로우 요청을 보낼 수 없습니다."),

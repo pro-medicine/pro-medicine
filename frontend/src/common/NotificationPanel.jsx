@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { viewOf } from "./notificationTypes";
+import { isExpired, msUntilNextExpiry, viewOf } from "./notificationTypes";
 import TypeIcon from "./NotificationTypeIcon";
 import {
   canCompleteIntake,
   canRespondFollow,
+  canRespondGuardian,
   completeIntakeFromNotification,
+  isIntakeAlert,
   respondFollowFromNotification,
+  respondGuardianFromNotification,
 } from "./notificationActions";
 import {
   getNotifications,
@@ -63,7 +66,15 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   const [unreadCount, setUnreadCount] = useState(0);
   const pendingIdsRef = useRef(new Set()); // 읽음 요청 중인 알림 id (같은 알림 중복 클릭 방지)
 
-  // 안 읽은 개수: 패널이 열릴 때와 refreshKey가 바뀔 때(새 알림, 읽음 처리 후) 서버에서 다시 조회한다.
+  // 패널을 열어 둔 채 시간이 지나도 지난 복용 알림이 사라지도록 1분마다
+  // 현재 시각을 바꾸고(화면에서 바로 숨김) 목록·안 읽은 개수를 서버에서 다시 받는다.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 안 읽은 개수: 패널이 열릴 때, refreshKey가 바뀔 때(새 알림, 읽음 처리 후), 1분마다 서버에서 다시 조회한다.
   // 이전 요청은 cleanup의 ignore로 버려서, 늦게 도착한 옛날 개수가 최신 값을 덮어쓰지 않는다.
   useEffect(() => {
     let ignore = false;
@@ -75,9 +86,10 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
     return () => {
       ignore = true;
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, now]);
 
-  // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때 목록을 불러온다.
+  // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때, 1분마다 목록을 불러온다.
+  // (1분마다 다시 받을 때는 "불러오는 중"을 띄우지 않고 결과만 바꾼다)
   useEffect(() => {
     let ignore = false;   // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
     const category = TABS.find((t) => t.id === tab).category;
@@ -96,11 +108,19 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
     return () => {
       ignore = true;
     };
-  }, [userId, tab, refreshKey]);
+  }, [userId, tab, refreshKey, now]);
+
+  // 복용 알림(1시간)·놓침 알림(2시간)이 사라질 시각에 맞춰 타이머를 건다 → 그 순간 바로 사라짐
+  useEffect(() => {
+    const wait = msUntilNextExpiry(result.items);
+    if (wait == null) return undefined;
+    const timer = setTimeout(() => setNow(new Date()), wait + 500);
+    return () => clearTimeout(timer);
+  }, [result.items, now]);
 
   const loading = result.tab !== tab;
   // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.
-  const hasUnreadItem = result.items.some((item) => !item.read);
+  const hasUnreadItem = result.items.some((item) => !item.read && !isExpired(item));
 
   // 화면에 있는 알림의 읽음 상태만 바꾼다. (ids가 없으면 전부)
   const markItemsRead = (ids) => {
@@ -164,6 +184,12 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       const count = await completeIntakeFromNotification(userId, item);
       return count > 0 ? `영양제 ${count}개를 복용 완료했어요` : "이미 모두 챙겼어요";
     });
+  const respondGuardian = (item, accept) =>
+    runAction(item, async () => {
+      const done = await respondGuardianFromNotification(userId, item, accept);
+      if (!done) return "이미 처리된 안부지킴이 신청이에요";
+      return accept ? "안부지킴이 신청을 수락했어요" : "안부지킴이 신청을 거절했어요";
+    });
   const respondFollow = (item, status) =>
     runAction(item, async () => {
       const done = await respondFollowFromNotification(userId, item, status);
@@ -173,11 +199,14 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
 
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
   // - 안부지킴이: 친구가 오래 접속하지 않음 → 빨간 카드
-  // - 오늘 복용 알림: 지금 먹을 영양제 → 민트 카드
-  const items = result.items;
+  // - 오늘 복용 알림 / 복용 놓침 알림: 지금 먹을 영양제 → 민트(놓침은 주황) 카드
+  // 만료 여부는 그릴 때의 현재 시각으로 계산한다. (목록이 만료 직후에 도착해도 바로 빠지게)
+  // now 상태는 1분마다·만료 시각에 다시 그리게 하는 신호로만 쓴다.
+  const items = result.items.filter((i) => !isExpired(i));
   const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
   const intakeAlert =
-    tab !== "FRIEND" ? items.find((i) => !i.read && i.type === "INTAKE_REMINDER" && isToday(i.createdAt)) : null;
+    tab !== "FRIEND" ? items.find((i) => !i.read && isIntakeAlert(i) && isToday(i.createdAt)) : null;
+  const intakeMissed = intakeAlert?.type === "INTAKE_MISSED";
   const pinnedIds = [guardianAlert, intakeAlert].filter(Boolean).map((i) => i.notificationId);
   const others = items.filter((i) => !pinnedIds.includes(i.notificationId));
 
@@ -282,13 +311,16 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
             </section>
           )}
           {!loading && !result.error && intakeAlert && (
-            <section className="noti-pin is-intake" aria-label="지금 먹을 영양제 알림">
+            <section
+              className={`noti-pin is-intake${intakeMissed ? " is-missed" : ""}`}
+              aria-label={intakeMissed ? "아직 안 먹은 영양제 알림" : "지금 먹을 영양제 알림"}
+            >
               <TypeIcon item={intakeAlert} solid />
               <div className="noti-pin-text">
                 <p>{intakeAlert.title}</p>
                 <span className="notification-meta">
                   {canCompleteIntake(intakeAlert)
-                    ? `${intakeAlert.scheduledAt.slice(11, 16)} 알림 · 여기서 바로 체크할 수 있어요`
+                    ? `${intakeAlert.scheduledAt.slice(11, 16)} ${intakeMissed ? "복용 시간이 지났어요" : "알림"} · 여기서 바로 체크할 수 있어요`
                     : `${hourMinute(intakeAlert.createdAt)} 알림 · 홈에서 체크해요`}
                 </span>
               </div>
@@ -338,6 +370,28 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
                   </button>
                   {unread && <i aria-hidden="true" />}
                   {/* 안 읽은 친구 신청: 알림에서 바로 수락 / 거절 (제목 버튼과 형제 요소) */}
+                  {/* 안 읽은 안부지킴이 신청: 알림에서 바로 수락 / 거절 */}
+                  {unread && canRespondGuardian(item) && (
+                    <span className="noti-follow-actions">
+                      <button
+                        type="button"
+                        className="is-accept"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 수락`}
+                        onClick={() => respondGuardian(item, true)}
+                      >
+                        수락
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === item.notificationId}
+                        aria-label={`${item.title} 거절`}
+                        onClick={() => respondGuardian(item, false)}
+                      >
+                        거절
+                      </button>
+                    </span>
+                  )}
                   {unread && canRespondFollow(item) && (
                     <span className="noti-follow-actions">
                       <button

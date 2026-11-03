@@ -1,7 +1,8 @@
-// 알림에서 바로 처리하는 동작 (#67): 복용 완료 / 친구 신청 수락·거절
+// 알림에서 바로 처리하는 동작 (#67): 복용 완료 / 친구 신청 수락·거절 / 안부지킴이 신청 수락·거절
 // 알림 패널과 새 알림 팝업에서 같이 사용
 import { api } from "../api/client";
 import { getFollowRequests, respondFollow } from "../api/followApi";
+import { acceptGuardian, getMyGuardians, removeGuardian } from "../api/guardianApi";
 import { updateIntake } from "../home/homeApi";
 
 /**
@@ -33,9 +34,38 @@ export async function respondFollowFromNotification(userId, item, status) {
   return true;
 }
 
+/**
+ * 안부지킴이 신청 알림의 "수락 / 거절": 이 알림이 가리키는 신청(referenceId = 신청 id)만 처리한다.
+ * 신청자가 취소 후 다시 신청해도, 예전 알림의 버튼이 새 신청을 처리하지 않는다.
+ * 거절은 신청을 지운다. (친구 상세 화면의 "신청 거절"과 같음)
+ * @param accept true면 수락, false면 거절
+ * @returns 처리했으면 true, 이미 처리됐거나 취소된 신청이면 false
+ */
+export async function respondGuardianFromNotification(userId, item, accept) {
+  if (item.referenceId == null) return false; // 신청 id가 없는 알림(예전 테스트 알림)은 처리하지 않음
+  const list = await getMyGuardians(userId);
+  const request = (list ?? []).find((g) => g.guardianSettingId === item.referenceId && !g.active);
+  if (!request) return false;
+  if (accept) {
+    await acceptGuardian(userId, request.guardianSettingId);
+  } else {
+    await removeGuardian(userId, request.guardianSettingId);
+  }
+  return true;
+}
+
+// 복용 알림·복용 놓침 알림 (내 복용 탭)
+export function isIntakeAlert(item) {
+  return item.type === "INTAKE_REMINDER" || item.type === "INTAKE_MISSED";
+}
+
 // 알림 종류별로 어떤 버튼을 보여줄지
 export function canCompleteIntake(item) {
-  return item.type === "INTAKE_REMINDER" && Boolean(item.scheduledAt);
+  return isIntakeAlert(item) && Boolean(item.scheduledAt);
+}
+
+export function canRespondGuardian(item) {
+  return item.type === "GUARDIAN_REQUESTED" && item.referenceId != null;
 }
 
 export function canRespondFollow(item) {

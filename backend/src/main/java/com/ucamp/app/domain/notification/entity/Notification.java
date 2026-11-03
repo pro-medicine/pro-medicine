@@ -77,9 +77,14 @@ public class Notification {
     @Column(name = "dedup_key", nullable = false, unique = true, length = 150)
     private String dedupKey;
 
+    // 알림이 가리키는 대상 id. 안부지킴이 신청·수락 알림 → guardian_setting_id (그 외 NULL)
+    @Column(name = "reference_id")
+    private Long referenceId;
+
     @Builder
     public Notification(User user, IntakeSchedule schedule, User actorUser, NotificationType notificationType,
-                        String title, LocalDateTime scheduledAt, LocalDateTime sentAt, String dedupKey) {
+                        String title, LocalDateTime scheduledAt, LocalDateTime sentAt, String dedupKey,
+                        Long referenceId) {
         this.user = user;
         this.schedule = schedule;
         this.actorUser = actorUser;
@@ -88,6 +93,7 @@ public class Notification {
         this.scheduledAt = scheduledAt;
         this.sentAt = sentAt;
         this.dedupKey = dedupKey;
+        this.referenceId = referenceId;
     }
 
     public boolean isRead() {
