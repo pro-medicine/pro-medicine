@@ -96,7 +96,13 @@ public final class RuleEngine {
         if (Rule.TYPE_INGREDIENT.equals(r.conditionType())) {
             return conditions.contains(r.conditionCode()) || recommended.contains(r.conditionCode());
         }
-        return conditions.contains(r.conditionCode());
+        if (conditions.contains(r.conditionCode())) {
+            return true;
+        }
+        return conditions.contains(ConditionCodeResolver.PREGNANCY_NOT_ASSESSED)
+                && Rule.EXCLUDE.equals(r.action())
+                && (ConditionCodeResolver.PREGNANCY_POSSIBLE.equals(r.conditionCode())
+                || ConditionCodeResolver.PREGNANT_OR_LACTATING.equals(r.conditionCode()));
     }
 
     /** 입력 조건만으로 걸리는 규칙 수 (대상 성분 추천 여부와 무관). V8 모델 라우팅의 복잡도 기준 */

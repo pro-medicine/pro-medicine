@@ -35,6 +35,17 @@ class ConditionCodeResolverTest {
     }
 
     @Test
+    void V2_성별_미공개면_임신상태를_단정하지_않고_예방_필터만_요청한다() {
+        var input = member().gender(null).pregnancy(null).sessionId(100L).build();
+        assertThat(resolver.resolve(input)).containsExactly(ConditionCodeResolver.PREGNANCY_NOT_ASSESSED);
+        assertThat(resolver.resolve(member().gender("M").sessionId(100L).build())).isEmpty();
+        assertThat(resolver.resolve(member().gender("F").sessionId(100L).build())).isEmpty();
+        assertThat(resolver.resolve(member().gender(null).build())).isEmpty();
+        assertThat(resolver.resolve(member().gender(null).sessionId(100L).pregnancy("PREGNANT").build()))
+                .containsExactly(ConditionCodeResolver.PREGNANT_OR_LACTATING);
+    }
+
+    @Test
     void 진단_질환은_질환_코드_그대로_모르는_값은_무시() {
         assertThat(resolver.resolve(member().conditions(List.of("KIDNEY", "HYPERTENSION", "DIABETES", "THYROID", "NONE"))
                 .build())).containsExactly("KIDNEY", "HYPERTENSION", "DIABETES", "THYROID");

@@ -1,6 +1,7 @@
 package com.ucamp.app.domain.recommendation;
 
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationItem;
+import com.ucamp.app.domain.recommendation.rule.ConditionCodeResolver;
 import com.ucamp.app.domain.recommendation.rule.Rule;
 import com.ucamp.app.domain.recommendation.rule.RuleEngine;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
@@ -169,6 +170,28 @@ class RuleEngineTest {
 
     static Stream<String> pregnancyExcluded() {
         return Stream.of("LUTEIN", "MILK_THISTLE", "CURCUMIN", "COLLAGEN", "GLUCOSAMINE", "COQ10", "NIACIN");
+    }
+
+    @Test
+    void V2_임신정보_미확인은_기존_임신_제외규칙만_예방적_적용한다() {
+        Set<String> conditions = Set.of(ConditionCodeResolver.PREGNANCY_NOT_ASSESSED);
+        assertThat(engine.preFilter(conditions, false)).extracting(RuleEngine.Banned::ingredient)
+                .contains("LUTEIN", "MILK_THISTLE", "CURCUMIN", "COLLAGEN", "GLUCOSAMINE", "COQ10", "NIACIN");
+
+        RuleEngine isolated = new RuleEngine(List.of(
+                new Rule("P-EX", "CONDITION", ConditionCodeResolver.PREGNANT_OR_LACTATING,
+                        "CURCUMIN", Rule.EXCLUDE, "예방적 제외", false, null),
+                new Rule("P-WARN", "CONDITION", ConditionCodeResolver.PREGNANCY_POSSIBLE,
+                        "OMEGA3", Rule.WARN, "실제 임신 상태 안내", false, null),
+                new Rule("P-ADJ", "CONDITION", ConditionCodeResolver.PREGNANT_OR_LACTATING,
+                        "IRON", Rule.ADJUST, "임신 기준 증량", false, null)));
+        assertThat(isolated.preFilter(conditions, false)).extracting(RuleEngine.Banned::ingredient)
+                .containsExactly("CURCUMIN");
+        RuleEngine.PostResult result = isolated.applyPost(
+                List.of(item("CURCUMIN"), item("OMEGA3"), item("IRON")), conditions, false);
+        assertThat(result.items().get(0).excluded()).isTrue();
+        assertThat(result.items().get(1).appliedRuleIdsOrEmpty()).isEmpty();
+        assertThat(result.items().get(2).appliedRuleIdsOrEmpty()).isEmpty();
     }
 
     @Test
