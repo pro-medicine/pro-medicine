@@ -2,8 +2,12 @@
 // 알림 패널과 새 알림 팝업에서 같이 사용
 import { api } from "../api/client";
 import { getFollowRequests, respondFollow } from "../api/followApi";
-import { acceptGuardian, getMyGuardians, removeGuardian } from "../api/guardianApi";
-import { updateIntake } from "../home/homeApi";
+import {
+  acceptGuardian,
+  getMyGuardians,
+  removeGuardian,
+} from "../api/guardianApi";
+import { updateIntake } from "../api/homeApi";
 
 /**
  * 복용 알림의 "복용 완료": 알림 시각(scheduledAt)과 같은 시각의 아직 안 먹은 일정을 모두 체크한다.
@@ -16,7 +20,7 @@ export async function completeIntakeFromNotification(userId, item) {
   const list = await api.get("/api/v1/intakes/today", { params: { date } });
   const targets = (list ?? []).filter((s) => s.remindAt === time && !s.taken);
   for (const target of targets) {
-    await updateIntake(userId, target.id, true, date);
+    await updateIntake(target.id, true, date);
   }
   return targets.length;
 }
@@ -46,7 +50,9 @@ export async function respondFollowFromNotification(item, status) {
 export async function respondGuardianFromNotification(userId, item, accept) {
   if (item.referenceId == null) return false; // 신청 id가 없는 알림(예전 테스트 알림)은 처리하지 않음
   const list = await getMyGuardians(userId);
-  const request = (list ?? []).find((g) => g.guardianSettingId === item.referenceId && !g.active);
+  const request = (list ?? []).find(
+    (g) => g.guardianSettingId === item.referenceId && !g.active,
+  );
   if (!request) return false;
   if (accept) {
     await acceptGuardian(userId, request.guardianSettingId);
