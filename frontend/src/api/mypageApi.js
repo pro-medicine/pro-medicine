@@ -42,8 +42,8 @@ export function fetchMySupplements() {
 
 // 영양제 등록: { supplementId, schedules: [{ mealSlot, mealRelation, remindAt }] }
 // (supplementId 대신 catalogProductId 또는 manualProductName도 가능)
-export function addMySupplement(userId, body) {
-  return api.post(`/api/v1/users/${userId}/products`, body);
+export function addMySupplement(body) {
+  return api.post(`/api/v1/users/products`, body);
 }
 
 // 영양제 삭제 (복용 중단 처리)

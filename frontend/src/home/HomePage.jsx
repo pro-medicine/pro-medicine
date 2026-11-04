@@ -4,6 +4,7 @@ import {
   getHome,
   getStreakDays,
   updateIntake,
+  getTodayNutrition,
 } from "../api/homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";

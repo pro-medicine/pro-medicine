@@ -77,8 +77,14 @@ export async function getHome() {
  * POST /api/v1/intakes
  */
 export async function updateIntake(scheduleId, taken, date) {
-  const res = await api.post(`/api/v1/intakes`, { scheduleId, taken, date });
-  return res.data;
+  await api.post(`/api/v1/intakes`, { scheduleId, taken, date });
+}
+
+export async function getTodayNutrition(date = currentHomeDate()) {
+  const res = await api.get(`/api/v1/users/nutrition/today`, {
+    params: { date },
+  });
+  return unwrapResponse(res);
 }
 
 /**
@@ -88,7 +94,7 @@ export async function updateIntake(scheduleId, taken, date) {
 export async function getRecommendation(answers) {
   try {
     const res = await api.post(`/api/home/recommend`, answers);
-    return res.data;
+    return unwrapResponse(res);
   } catch (e) {
     console.warn("[home] 추천 API 호출 실패 → 예시 추천 사용", e);
 

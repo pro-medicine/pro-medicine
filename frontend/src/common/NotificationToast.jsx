@@ -77,7 +77,7 @@ function actionsOf(item, userId) {
       {
         label: "수락",
         run: async () =>
-          (await respondFollowFromNotification(userId, item, "ACCEPTED"))
+          (await respondFollowFromNotification(item, "ACCEPTED"))
             ? "친구 신청을 수락했어요"
             : "이미 처리된 신청이에요",
       },
@@ -85,7 +85,7 @@ function actionsOf(item, userId) {
         label: "거절",
         ghost: true,
         run: async () =>
-          (await respondFollowFromNotification(userId, item, "REJECTED"))
+          (await respondFollowFromNotification(item, "REJECTED"))
             ? "친구 신청을 거절했어요"
             : "이미 처리된 신청이에요",
       },
