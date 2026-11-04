@@ -25,7 +25,10 @@ const TABS = [
 ];
 
 // "2026-10-30T12:30:00" → 오늘(KST) 알림인지, "12:30"
-const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+const todayKey = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(
+    new Date(),
+  );
 const isToday = (createdAt) => (createdAt ?? "").slice(0, 10) === todayKey();
 const hourMinute = (createdAt) => (createdAt ?? "").slice(11, 16);
 
@@ -44,7 +47,8 @@ function timeAgo(createdAt, now = new Date()) {
   }
 
   // 날짜(자정 기준)로 며칠 전인지 계산
-  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const startOfDay = (d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const days = Math.round((startOfDay(now) - startOfDay(created)) / 86400000);
   if (days === 1) return "어제";
   if (days < 7) return `${days}일 전`;
@@ -59,7 +63,15 @@ function timeAgo(createdAt, now = new Date()) {
  * - onRead: 읽음 처리가 성공하면 호출 (App이 빨간 점을 다시 확인)
  * - onClose: 바깥 영역 또는 닫기 버튼을 누르면 호출
  */
-export default function NotificationPanel({ userId, anchor, refreshKey, onRead, onClose, onNavigate, onChanged }) {
+export default function NotificationPanel({
+  userId,
+  anchor,
+  refreshKey,
+  onRead,
+  onClose,
+  onNavigate,
+  onChanged,
+}) {
   const [tab, setTab] = useState("ALL");
   // 어떤 탭의 결과인지 함께 저장해서, 탭과 결과가 다르면 "불러오는 중"으로 본다.
   const [result, setResult] = useState({ tab: null, items: [], error: "" });
@@ -91,7 +103,7 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   // 패널이 열릴 때, 탭이 바뀔 때, refreshKey가 바뀔 때, 1분마다 목록을 불러온다.
   // (1분마다 다시 받을 때는 "불러오는 중"을 띄우지 않고 결과만 바꾼다)
   useEffect(() => {
-    let ignore = false;   // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
+    let ignore = false; // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
     const category = TABS.find((t) => t.id === tab).category;
 
     getNotifications(userId, category)
@@ -120,14 +132,18 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
 
   const loading = result.tab !== tab;
   // 개수 조회가 실패해도 목록에 안 읽은 알림이 보이면 "모두 읽음"을 누를 수 있게 한다.
-  const hasUnreadItem = result.items.some((item) => !item.read && !isExpired(item));
+  const hasUnreadItem = result.items.some(
+    (item) => !item.read && !isExpired(item),
+  );
 
   // 화면에 있는 알림의 읽음 상태만 바꾼다. (ids가 없으면 전부)
   const markItemsRead = (ids) => {
     setResult((prev) => ({
       ...prev,
       items: prev.items.map((item) =>
-        !ids || ids.includes(item.notificationId) ? { ...item, read: true } : item,
+        !ids || ids.includes(item.notificationId)
+          ? { ...item, read: true }
+          : item,
       ),
     }));
   };
@@ -143,7 +159,7 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
       setUnreadCount((count) => Math.max(0, count - 1)); // 화면 먼저 반영, 정확한 값은 onRead → refreshKey로 다시 조회
       onRead?.();
     } catch (err) {
-      console.error(err);   // 실패하면 화면은 그대로 둔다 (다음에 다시 시도 가능)
+      console.error(err); // 실패하면 화면은 그대로 둔다 (다음에 다시 시도 가능)
     } finally {
       pendingIdsRef.current.delete(id);
     }
@@ -181,20 +197,26 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   };
   const completeIntake = (item) =>
     runAction(item, async () => {
-      const count = await completeIntakeFromNotification(userId, item);
-      return count > 0 ? `영양제 ${count}개를 복용 완료했어요` : "이미 모두 챙겼어요";
+      const count = await completeIntakeFromNotification(item);
+      return count > 0
+        ? `영양제 ${count}개를 복용 완료했어요`
+        : "이미 모두 챙겼어요";
     });
   const respondGuardian = (item, accept) =>
     runAction(item, async () => {
-      const done = await respondGuardianFromNotification(userId, item, accept);
+      const done = await respondGuardianFromNotification(item, accept);
       if (!done) return "이미 처리된 안부지킴이 신청이에요";
-      return accept ? "안부지킴이 신청을 수락했어요" : "안부지킴이 신청을 거절했어요";
+      return accept
+        ? "안부지킴이 신청을 수락했어요"
+        : "안부지킴이 신청을 거절했어요";
     });
   const respondFollow = (item, status) =>
     runAction(item, async () => {
-      const done = await respondFollowFromNotification(userId, item, status);
+      const done = await respondFollowFromNotification(item, status);
       if (!done) return "이미 처리된 친구 신청이에요";
-      return status === "ACCEPTED" ? "친구 신청을 수락했어요" : "친구 신청을 거절했어요";
+      return status === "ACCEPTED"
+        ? "친구 신청을 수락했어요"
+        : "친구 신청을 거절했어요";
     });
 
   // 상단에 고정할 중요 알림 (안 읽은 것 중 가장 최근 1개씩)
@@ -203,11 +225,18 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   // 만료 여부는 그릴 때의 현재 시각으로 계산한다. (목록이 만료 직후에 도착해도 바로 빠지게)
   // now 상태는 1분마다·만료 시각에 다시 그리게 하는 신호로만 쓴다.
   const items = result.items.filter((i) => !isExpired(i));
-  const guardianAlert = tab !== "INTAKE" ? items.find((i) => !i.read && i.type === "GUARDIAN") : null;
+  const guardianAlert =
+    tab !== "INTAKE"
+      ? items.find((i) => !i.read && i.type === "GUARDIAN")
+      : null;
   const intakeAlert =
-    tab !== "FRIEND" ? items.find((i) => !i.read && isIntakeAlert(i) && isToday(i.createdAt)) : null;
+    tab !== "FRIEND"
+      ? items.find((i) => !i.read && isIntakeAlert(i) && isToday(i.createdAt))
+      : null;
   const intakeMissed = intakeAlert?.type === "INTAKE_MISSED";
-  const pinnedIds = [guardianAlert, intakeAlert].filter(Boolean).map((i) => i.notificationId);
+  const pinnedIds = [guardianAlert, intakeAlert]
+    .filter(Boolean)
+    .map((i) => i.notificationId);
   const others = items.filter((i) => !pinnedIds.includes(i.notificationId));
 
   // Esc 키로 닫기 (패널 바깥을 눌러도 닫힘)
@@ -222,7 +251,7 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   // 모두 읽음
   const handleReadAll = async () => {
     try {
-      await markAllNotificationsRead(userId);
+      await markAllNotificationsRead();
       markItemsRead(null);
       setUnreadCount(0);
       onRead?.();
@@ -232,7 +261,11 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
   };
 
   return (
-    <div className="notification-layer" role="presentation" onMouseDown={onClose}>
+    <div
+      className="notification-layer"
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <aside
         className="notification-panel"
         style={anchor ? { top: anchor.top, right: anchor.right } : undefined}
@@ -242,7 +275,11 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
         <div className="notification-header">
           <h2>
             알림
-            {unreadCount > 0 && <em aria-label={`안 읽은 알림 ${unreadCount}개`}>{unreadCount}</em>}
+            {unreadCount > 0 && (
+              <em aria-label={`안 읽은 알림 ${unreadCount}개`}>
+                {unreadCount}
+              </em>
+            )}
           </h2>
           <button
             type="button"
@@ -270,12 +307,17 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
 
         <div className="notification-list">
           {notice && (
-            <p className={`noti-notice${notice.ok ? "" : " is-error"}`} role="status">
+            <p
+              className={`noti-notice${notice.ok ? "" : " is-error"}`}
+              role="status"
+            >
               {notice.ok && "✓ "}
               {notice.text}
             </p>
           )}
-          {loading && <p className="notification-state">알림을 불러오는 중...</p>}
+          {loading && (
+            <p className="notification-state">알림을 불러오는 중...</p>
+          )}
           {!loading && result.error && (
             <p className="notification-state">{result.error}</p>
           )}
@@ -285,13 +327,18 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
 
           {/* 중요 알림 상단 고정 */}
           {!loading && !result.error && guardianAlert && (
-            <section className="noti-pin is-guardian" aria-label="안부 확인이 필요한 알림">
+            <section
+              className="noti-pin is-guardian"
+              aria-label="안부 확인이 필요한 알림"
+            >
               <div className="noti-pin-body">
                 <TypeIcon item={guardianAlert} solid />
                 <div>
                   <span className="noti-pin-label">안부 확인이 필요해요</span>
                   <p>{guardianAlert.title}</p>
-                  <span className="notification-meta">{timeAgo(guardianAlert.createdAt)}</span>
+                  <span className="notification-meta">
+                    {timeAgo(guardianAlert.createdAt)}
+                  </span>
                 </div>
               </div>
               <div className="noti-pin-actions">
@@ -299,12 +346,20 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
                   <button
                     type="button"
                     className="is-primary"
-                    onClick={() => readAndGo(guardianAlert, { tab: "friends", friendUserId: guardianAlert.actorUserId })}
+                    onClick={() =>
+                      readAndGo(guardianAlert, {
+                        tab: "friends",
+                        friendUserId: guardianAlert.actorUserId,
+                      })
+                    }
                   >
                     친구 보기
                   </button>
                 )}
-                <button type="button" onClick={() => handleItemClick(guardianAlert)}>
+                <button
+                  type="button"
+                  onClick={() => handleItemClick(guardianAlert)}
+                >
                   나중에
                 </button>
               </div>
@@ -313,7 +368,11 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
           {!loading && !result.error && intakeAlert && (
             <section
               className={`noti-pin is-intake${intakeMissed ? " is-missed" : ""}`}
-              aria-label={intakeMissed ? "아직 안 먹은 영양제 알림" : "지금 먹을 영양제 알림"}
+              aria-label={
+                intakeMissed
+                  ? "아직 안 먹은 영양제 알림"
+                  : "지금 먹을 영양제 알림"
+              }
             >
               <TypeIcon item={intakeAlert} solid />
               <div className="noti-pin-text">
@@ -333,16 +392,22 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
                   복용 완료
                 </button>
               ) : (
-                <button type="button" onClick={() => readAndGo(intakeAlert, { tab: "home" })}>
+                <button
+                  type="button"
+                  onClick={() => readAndGo(intakeAlert, { tab: "home" })}
+                >
                   체크하기
                 </button>
               )}
             </section>
           )}
 
-          {!loading && !result.error && pinnedIds.length > 0 && others.length > 0 && (
-            <h3 className="noti-section-title">다른 소식</h3>
-          )}
+          {!loading &&
+            !result.error &&
+            pinnedIds.length > 0 &&
+            others.length > 0 && (
+              <h3 className="noti-section-title">다른 소식</h3>
+            )}
           {!loading &&
             !result.error &&
             others.map((item) => {
@@ -351,7 +416,9 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
               return (
                 // 항목 전체가 아닌 "제목 영역 버튼"만 누르는 대상 → 안의 수락·거절 버튼도 스크린 리더가 따로 읽을 수 있음
                 <article
-                  className={unread ? "notification-item unread" : "notification-item"}
+                  className={
+                    unread ? "notification-item unread" : "notification-item"
+                  }
                   key={item.notificationId}
                 >
                   <button
@@ -362,7 +429,9 @@ export default function NotificationPanel({ userId, anchor, refreshKey, onRead, 
                   >
                     <TypeIcon item={item} size={36} />
                     <span className="notification-item-text">
-                      <strong className="notification-item-title">{item.title}</strong>
+                      <strong className="notification-item-title">
+                        {item.title}
+                      </strong>
                       <span className="notification-meta">
                         {view.label} · {timeAgo(item.createdAt)}
                       </span>
