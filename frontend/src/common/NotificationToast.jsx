@@ -55,7 +55,7 @@ function actionsOf(item, userId) {
       {
         label: "수락",
         run: async () =>
-          (await respondGuardianFromNotification(userId, item, true))
+          (await respondGuardianFromNotification(item, true))
             ? "안부지킴이를 수락했어요"
             : "이미 처리된 신청이에요",
       },
@@ -63,7 +63,7 @@ function actionsOf(item, userId) {
         label: "거절",
         ghost: true,
         run: async () =>
-          (await respondGuardianFromNotification(userId, item, false))
+          (await respondGuardianFromNotification(item, false))
             ? "안부지킴이 신청을 거절했어요"
             : "이미 처리된 신청이에요",
       },
@@ -138,7 +138,7 @@ export default function NotificationToast({
 
   const runAction = async (action) => {
     if (action.target) {
-      markNotificationRead(userId, item.notificationId).catch(() => {});
+      markNotificationRead(item.notificationId).catch(() => {});
       onNavigate(action.target);
       return;
     }
@@ -146,7 +146,7 @@ export default function NotificationToast({
     try {
       const text = await action.run();
       setResult({ text, ok: true });
-      await markNotificationRead(userId, item.notificationId).catch(() => {});
+      await markNotificationRead(item.notificationId).catch(() => {});
       onChanged();
     } catch (err) {
       console.error(err);
