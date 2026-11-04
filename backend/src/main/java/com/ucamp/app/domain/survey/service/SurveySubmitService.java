@@ -103,6 +103,38 @@ public class SurveySubmitService {
         return new SubmitSurveyResponse(response.getResponseId(), guestToken);
     }
 
+    @Transactional
+    public void claimGuestResponse(Long responseId, String guestToken, User newMember) {
+        SurveyResponse response = surveyResponseRepository.findForGuestClaim(responseId)
+                .orElseThrow(SurveySubmitService::invalid);
+        String storedHash = response.getGuestTokenHash();
+        if (response.getUser() != null || response.getRespondentType() != RespondentType.GUEST
+                || response.getStatus() != ResponseStatus.SUBMITTED || Boolean.TRUE.equals(response.getIncludesSensitive())
+                || guestToken == null || !guestToken.matches("[0-9a-f]{64}")
+                || storedHash == null || !storedHash.matches("[0-9a-f]{64}")
+                || !MessageDigest.isEqual(
+                        sha256Hex(guestToken).getBytes(StandardCharsets.US_ASCII),
+                        storedHash.getBytes(StandardCharsets.US_ASCII))) {
+            throw invalid();
+        }
+
+        Map<Long, List<SurveyAnswer>> grouped = new LinkedHashMap<>();
+        for (SurveyAnswer answer : surveyAnswerRepository.findDetailByResponseId(responseId)) {
+            grouped.computeIfAbsent(answer.getQuestion().getQuestionId(), key -> new ArrayList<>()).add(answer);
+        }
+        if (grouped.isEmpty()) throw invalid();
+        List<ValidAnswer> restored = new ArrayList<>();
+        for (List<SurveyAnswer> rows : grouped.values()) {
+            SurveyAnswer first = rows.get(0);
+            if (first.getQuestion().getIsSensitive()) throw invalid();
+            restored.add(new ValidAnswer(first.getQuestion(),
+                    rows.stream().map(SurveyAnswer::getOption).filter(Objects::nonNull).toList(),
+                    first.getValueNumber(), first.getValueText()));
+        }
+        applyToProfile(newMember, restored);
+        response.claimForNewMember(newMember);
+    }
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private static String generateGuestToken() {
@@ -135,6 +167,9 @@ public class SurveySubmitService {
                 throw invalid();
             }
             SurveyQuestion q = qo.question();
+            if (user == null && SurveyCodes.SUPPLEMENTS.equals(q.getCode())) {
+                throw invalid();
+            }
             if (q.getIsSensitive()) {
                 if (user == null) {
                     throw new BusinessException(ErrorCode.SURVEY_SENSITIVE_GUEST);

@@ -102,7 +102,8 @@ public class SurveyQueryService {
     // 비회원: guest_visible이고 민감하지 않은 문항만. 회원: 민감 문항은 동의했을 때만
     static boolean visible(SurveyQuestion q, boolean member, boolean includeSensitive) {
         if (!member) {
-            return q.getGuestVisible() && !q.getIsSensitive();
+            return q.getGuestVisible() && !q.getIsSensitive()
+                    && !SurveyCodes.SUPPLEMENTS.equals(q.getCode());
         }
         return !q.getIsSensitive() || includeSensitive;
     }

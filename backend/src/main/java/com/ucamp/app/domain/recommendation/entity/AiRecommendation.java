@@ -3,13 +3,16 @@ package com.ucamp.app.domain.recommendation.entity;
 import com.ucamp.app.domain.chat.entity.AiChatSession;
 import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.survey.entity.SurveyResponse;
+import com.ucamp.app.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -27,7 +30,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "ai_recommendations")
+@Table(name = "ai_recommendations",
+        indexes = @Index(name = "idx_ai_recommendations_user", columnList = "user_id, finished_at"))
 @EntityListeners(AuditingEntityListener.class)
 public class AiRecommendation {
 
@@ -52,6 +56,13 @@ public class AiRecommendation {
     @JoinColumn(name = "chat_session_id")
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private AiChatSession chatSession;
+
+    // V7.1: 회원 추천의 회원 (비회원 NULL). 회차·대화 세션이 90일 뒤 지워져도 추천 기록을 회원으로 찾는다.
+    // 탈퇴 기능이 생기면 CASCADE 여부를 정한다 (지금은 SET NULL)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_ai_recommendations_user"))
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User user;
 
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
@@ -85,7 +96,7 @@ public class AiRecommendation {
 
     @Builder
     public AiRecommendation(SurveyResponse response, AiQuestionSession session, AiChatSession chatSession,
-                            String summary, String modelName, String status) {
+                            User user, String summary, String modelName, String status) {
         // 설문 응답(V1)·맞춤 질문 회차(V2)·대화 세션(V4) 중 하나는 있어야 한다. DB CHECK는 90일 삭제(SET NULL) 때문에 걸지 않는다
         if (response == null && session == null && chatSession == null) {
             throw new IllegalArgumentException("response, session, chatSession 중 하나가 필요합니다");
@@ -93,6 +104,7 @@ public class AiRecommendation {
         this.response = response;
         this.session = session;
         this.chatSession = chatSession;
+        this.user = user;
         this.summary = summary;
         this.modelName = modelName;
         this.status = status != null ? status : DONE;
@@ -104,6 +116,11 @@ public class AiRecommendation {
     /** V1 설문 응답 ID. V2 정밀 추천이면 null */
     public Long responseIdOrNull() {
         return response == null ? null : response.getResponseId();
+    }
+
+    /** 회원 id (비회원 NULL). 지연 로딩 없이 FK 값만 읽는다 */
+    public Long userIdOrNull() {
+        return user == null ? null : user.getId();
     }
 
     public void markDone(String summary, String modelName) {

@@ -11,15 +11,8 @@ import { useCallback, useState } from "react";
  * 회원이면 PersonalizedModal이 모드 API로 확인하고, 건강정보가 부족하면 onFallbackToV1으로 기본 설문(회원 모드)으로 바꾼다.
  * 기본 설문을 마친 회원이 맞춤 질문 조건을 갖추면 결과 화면에서 맞춤 질문으로 넘어갈 수 있다.
  */
-export default function RecommendationEntry({ userId, onClose }) {
-  const [mode, setMode] = useState(() => {
-    if (userId) {
-      // 회원 진입 시 이전 비회원 토큰 정리
-      sessionStorage.removeItem("guestToken");
-      return "V2";
-    }
-    return "V1";
-  });
+export default function RecommendationEntry({ userId, onClose, skipConsent = false }) {
+  const [mode, setMode] = useState(() => (userId && !skipConsent ? "V2" : "V1"));
 
   const [missing, setMissing] = useState(null); // V1 폴백 시 부족한 건강정보 키 목록
 
@@ -43,6 +36,7 @@ export default function RecommendationEntry({ userId, onClose }) {
     <RecommendationModal
       userId={userId}
       missing={missing}
+      skipConsent={skipConsent}
       onClose={onClose}
       onPersonalized={userId ? toV2 : undefined}
     />

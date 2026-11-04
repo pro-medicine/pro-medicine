@@ -9,6 +9,19 @@ let refreshPromise = null;
 let logoutPromise = null;
 let authGeneration = 0;
 
+export function getPendingGuestSurvey() {
+    if (USE_MOCK_AUTH) return null;
+    const responseId = Number(sessionStorage.getItem("guestSurveyResponseId"));
+    const guestToken = sessionStorage.getItem("guestToken");
+    if (!Number.isSafeInteger(responseId) || responseId <= 0 || !/^[0-9a-f]{64}$/.test(guestToken ?? "")) return null;
+    return { guestResponseId: responseId, guestToken };
+}
+
+function clearPendingGuestSurvey() {
+    sessionStorage.removeItem("guestSurveyResponseId");
+    sessionStorage.removeItem("guestToken");
+}
+
 async function request(path, { method = "GET", body, credentials = "omit", useAuth = true } = {}) {
     const headers = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -72,25 +85,36 @@ export async function refreshAccessToken() {
     return refreshPromise;
 }
 
-export async function signup(data) {
+export async function signup(data, guestV1 = null) {
     const generation = ++authGeneration;
-    if (USE_MOCK_AUTH) return mockAuth.signup(data, () => generation === authGeneration);
+    if (USE_MOCK_AUTH) {
+        const user = await mockAuth.signup(data, () => generation === authGeneration);
+        if (user) clearPendingGuestSurvey();
+        return user;
+    }
     const result = await request("/api/v1/auth/signup", {
-        method: "POST", body: data, credentials: "include", useAuth: false,
+        method: "POST", body: guestV1 ? { ...data, ...guestV1 } : data,
+        credentials: "include", useAuth: false,
     });
     if (generation !== authGeneration) return null;
     setAccessToken(result.accessToken);
+    clearPendingGuestSurvey();
     return result.user;
 }
 
 export async function login(data) {
     const generation = ++authGeneration;
-    if (USE_MOCK_AUTH) return mockAuth.login(data, () => generation === authGeneration);
+    if (USE_MOCK_AUTH) {
+        const user = await mockAuth.login(data, () => generation === authGeneration);
+        if (user) clearPendingGuestSurvey();
+        return user;
+    }
     const result = await request("/api/v1/auth/login", {
         method: "POST", body: data, credentials: "include", useAuth: false,
     });
     if (generation !== authGeneration) return null;
     setAccessToken(result.accessToken);
+    clearPendingGuestSurvey();
     return result.user;
 }
 

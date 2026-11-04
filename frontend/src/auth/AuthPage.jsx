@@ -2,7 +2,7 @@
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
 import { useEffect, useRef, useState } from "react";
-import { login, signup } from "./authApi";
+import { getPendingGuestSurvey, login, signup } from "./authApi";
 import "./auth.css";
 
 const GENDERS = ["여성", "남성", "선택 안 함"];
@@ -161,6 +161,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
     setError("");
     setBusy(true);
     const attemptId = onAttemptStart();
+    const guestV1 = isSignup ? getPendingGuestSurvey() : null;
     try {
       const user = isSignup
         ? await signup({
@@ -170,9 +171,9 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
             age: Number(age),
             gender,
             termsAgreed: agreed,
-          })
+          }, guestV1)
         : await login({ email: email.trim(), password, rememberMe });
-      if (user) onComplete(user, attemptId);
+      if (user) onComplete(user, attemptId, Boolean(isSignup && guestV1));
     } catch (cause) {
       if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
