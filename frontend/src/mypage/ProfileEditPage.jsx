@@ -109,7 +109,12 @@ function toForm(user, profile) {
   };
 }
 
-export default function ProfileEditPage({userId, onBack, onSaved, onNotifications }) {
+export default function ProfileEditPage({
+  userId,
+  onBack,
+  onSaved,
+  onNotifications,
+}) {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState(emptyForm);
   // 선택한 질환 이름 목록, 빈 배열이면 "없음"
@@ -258,9 +263,11 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
                   <input
                     type="number"
                     min={1900}
-                    max={2100}
+                    max={new Date().getFullYear()}
                     value={form.birthYear}
-                    onChange={(event) => change("birthYear", event.target.value)}
+                    onChange={(event) =>
+                      change("birthYear", event.target.value)
+                    }
                   />
                 </label>
                 <label className="profile-edit-field">
@@ -316,58 +323,58 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
           <section className="profile-edit-card">
             <h2>질환</h2>
             <div className="profile-edit-row">
-            <span className="profile-edit-label">
-              질환
-              <small>여러 개 등록할 수 있어요</small>
-            </span>
-            <div>
-            {conditions.length === 0 ? (
-              <p className="profile-edit-hint">등록된 질환이 없어요.</p>
-            ) : (
-              <ul className="profile-edit-conditions">
-                {conditions.map((name) => (
-                  <li key={name}>
-                    {conditionLabel(name)}
-                    <button
-                      type="button"
-                      aria-label={`${conditionLabel(name)} 삭제`}
-                      onClick={() => removeCondition(name)}
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+              <span className="profile-edit-label">
+                질환
+                <small>여러 개 등록할 수 있어요</small>
+              </span>
+              <div>
+                {conditions.length === 0 ? (
+                  <p className="profile-edit-hint">등록된 질환이 없어요.</p>
+                ) : (
+                  <ul className="profile-edit-conditions">
+                    {conditions.map((name) => (
+                      <li key={name}>
+                        {conditionLabel(name)}
+                        <button
+                          type="button"
+                          aria-label={`${conditionLabel(name)} 삭제`}
+                          onClick={() => removeCondition(name)}
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-            {addingCondition ? (
-              <select
-                className="profile-edit-condition-picker"
-                defaultValue=""
-                onChange={(event) => {
-                  if (event.target.value) addCondition(event.target.value);
-                }}
-              >
-                <option value="" disabled>
-                  추가할 질환을 골라 주세요
-                </option>
-                {remainingConditions.map(([value, text]) => (
-                  <option key={value} value={value}>
-                    {text}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <button
-                type="button"
-                className="profile-edit-condition-add"
-                disabled={remainingConditions.length === 0}
-                onClick={() => setAddingCondition(true)}
-              >
-                + 질환 추가
-              </button>
-            )}
-            </div>
+                {addingCondition ? (
+                  <select
+                    className="profile-edit-condition-picker"
+                    defaultValue=""
+                    onChange={(event) => {
+                      if (event.target.value) addCondition(event.target.value);
+                    }}
+                  >
+                    <option value="" disabled>
+                      추가할 질환을 골라 주세요
+                    </option>
+                    {remainingConditions.map(([value, text]) => (
+                      <option key={value} value={value}>
+                        {text}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <button
+                    type="button"
+                    className="profile-edit-condition-add"
+                    disabled={remainingConditions.length === 0}
+                    onClick={() => setAddingCondition(true)}
+                  >
+                    + 질환 추가
+                  </button>
+                )}
+              </div>
             </div>
           </section>
 
@@ -378,10 +385,18 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
           )}
 
           <div className="profile-edit-footer">
-            <button className="btn btn-outline btn-lg" type="button" onClick={onBack}>
+            <button
+              className="btn btn-outline btn-lg"
+              type="button"
+              onClick={onBack}
+            >
               취소
             </button>
-            <button className="btn btn-primary btn-lg" type="submit" disabled={saving}>
+            <button
+              className="btn btn-primary btn-lg"
+              type="submit"
+              disabled={saving}
+            >
               {saving ? "저장 중..." : "저장"}
             </button>
           </div>
@@ -393,8 +408,13 @@ export default function ProfileEditPage({userId, onBack, onSaved, onNotification
 
 // 선택지 칩 한 줄 (선택 안 함 포함). 예전에 다른 값으로 저장된 경우에도 칩으로 보이게 한다
 function ChoiceChips({ label, value, options, onChange }) {
-  const known = value === "" || options.some(([optionValue]) => optionValue === value);
-  const all = [["", "선택 안 함"], ...options, ...(known ? [] : [[value, value]])];
+  const known =
+    value === "" || options.some(([optionValue]) => optionValue === value);
+  const all = [
+    ["", "선택 안 함"],
+    ...options,
+    ...(known ? [] : [[value, value]]),
+  ];
   return (
     <div className="profile-edit-chips" role="radiogroup" aria-label={label}>
       {all.map(([optionValue, text]) => (
