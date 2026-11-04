@@ -109,6 +109,7 @@ export default function App() {
     if (view?.kind === "member" && view.tab === ownerTab && view.child?.type === "panel") {
       recordView({ kind: "member", tab: ownerTab }, { replace: true });
       setHistoryChild(null);
+      if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) window.history.back();
     }
   }, []);
 
@@ -549,7 +550,7 @@ export default function App() {
       case "disposal":
         return <DisposalMapPage onNotifications={openNotifications}
           restoreChild={historyChild?.type === "panel" ? historyChild.id : null}
-          onRegisterBack={registerChildBack} />;
+          onRegisterBack={registerChildBack} onDismissPanel={dismissPanel} />;
       default:
         return (
           <HomePage

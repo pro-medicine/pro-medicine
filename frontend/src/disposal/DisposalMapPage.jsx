@@ -116,7 +116,7 @@ function getLocationErrorMessage(error) {
   return "현재 위치를 가져오지 못했습니다. 지역명으로 약국을 검색할 수 있어요.";
 }
 
-export default function DisposalMapScreen({ onNotifications, onRegisterBack, restoreChild = null }) {
+export default function DisposalMapScreen({ onNotifications, onRegisterBack, onDismissPanel, restoreChild = null }) {
   const restoreSnapshot = useMemo(() => parsePharmacyHistory(restoreChild), [restoreChild]);
   const restorePendingRef = useRef(restoreSnapshot);
   const restoreEffectReadyRef = useRef(false);
@@ -363,8 +363,11 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
     event.preventDefault();
     const value = searchInput.trim();
     if (!value) return;
-    cancelWalkingRoute();
+    onDismissPanel?.("disposal");
     restorePendingRef.current = null;
+    setSelected(null);
+    setFocusPharmacy(null);
+    cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
     setLocationError("");
@@ -376,12 +379,18 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
   }
 
   function handleCandidateSelect(place) {
+    const changesSearch = mode !== "area" || searchCenter?.id !== place.id;
+    if (changesSearch) {
+      onDismissPanel?.("disposal");
+      setSelected(null);
+      setFocusPharmacy(null);
+    }
     restorePendingRef.current = null;
     cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
 
-    if (mode !== "area" || searchCenter?.id !== place.id) {
+    if (changesSearch) {
       setSearchCenter(place);
       setLastValidMap({ mode: "area", center: place });
       setMode("area");
@@ -391,7 +400,9 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
 
   const handleSearchThisArea = useCallback((center) => {
     if (!isValidCoordinate(center.latitude, center.longitude)) return;
+    onDismissPanel?.("disposal");
     restorePendingRef.current = null;
+    setSelected(null);
     cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
@@ -407,11 +418,10 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
     setSearchCenter(nextCenter);
     setLastValidMap({ mode: "area", center: nextCenter });
     setMode("area");
-  }, [cancelWalkingRoute]);
+  }, [cancelWalkingRoute, onDismissPanel]);
 
    function handleNearbySearch() {
     if (locating) return;
-    restorePendingRef.current = null;
     if (!navigator.geolocation || !window.isSecureContext) {
       setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행해주세요.");
       return;
@@ -431,6 +441,10 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
             setLocationError("유효한 위치 좌표를 가져오지 못했습니다. 지역명으로 검색해주세요.");
             return;
           }
+          onDismissPanel?.("disposal");
+          restorePendingRef.current = null;
+          setSelected(null);
+          setFocusPharmacy(null);
           const nextLocation = { latitude, longitude };
           setUserLocation(nextLocation);
           setLastValidMap({ mode: "nearby", center: nextLocation });
@@ -685,8 +699,11 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
                 value={radius}
                 onChange={(event) => {
                   const nextRadius = Number(event.target.value);
-                  if (!RADII.includes(nextRadius)) return;
+                  if (!RADII.includes(nextRadius) || nextRadius === radius) return;
+                  onDismissPanel?.("disposal");
                   restorePendingRef.current = null;
+                  setSelected(null);
+                  setFocusPharmacy(null);
                   if (mode === "keyword" && lastValidMap && !loading) {
                     if (lastValidMap.mode === "area") {
                       setSearchCenter(lastValidMap.center);
