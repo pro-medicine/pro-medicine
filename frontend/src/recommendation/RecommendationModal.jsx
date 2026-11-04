@@ -124,7 +124,7 @@ function toSubmitAnswers(questions, answers) {
  * - onClose: 모달 닫기
  * - onPersonalized: 회원 결과 화면에서 맞춤 질문(V2)으로 넘어가기 (없으면 안내를 띄우지 않음)
  */
-export default function RecommendationModal({ userId, missing, onClose, onPersonalized, skipConsent = false }) {
+export default function RecommendationModal({ userId, missing, onClose, onPersonalized, onSignup, skipConsent = false }) {
   const [step, setStep] = useState("loading"); // "consent" | "survey" | "loading" | "result" | "error"
   const [loadingText, setLoadingText] = useState(SURVEY_LOADING_TEXT); // 로딩 화면 문구
   const [survey, setSurvey] = useState(null); // GET /surveys/active 응답
@@ -302,7 +302,7 @@ export default function RecommendationModal({ userId, missing, onClose, onPerson
         <div className="rec-header">
           <div>
             <span className="rec-eyebrow">맞춤 영양 추천</span>
-            <h2>{STEP_TITLE[step] ?? "맞춤 영양 추천"}</h2>
+            <h2>{step === "result" && !userId ? "설문 결과가 나왔어요!" : (STEP_TITLE[step] ?? "맞춤 영양 추천")}</h2>
           </div>
           <button
             type="button"
@@ -350,6 +350,7 @@ export default function RecommendationModal({ userId, missing, onClose, onPerson
             ingredients={ingredients}
             onRestart={() => loadSurvey()}
             onClose={onClose}
+            onSignup={!userId ? onSignup : undefined}
             userId={userId}
           >
             {canPersonalize && (

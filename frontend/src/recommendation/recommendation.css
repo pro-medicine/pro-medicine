@@ -180,6 +180,23 @@
 /* 비회원 로그인 안내 */
 .rec-login-guide { margin-top: 16px; padding: 14px 18px; border-radius: 12px; background: var(--surface); font-size: 14px; line-height: 1.65; color: var(--muted); text-align: center; font-weight: 600; }
 
+
+.rec-signup-guide { margin-top: 18px; padding: 22px 20px; border: 1px solid var(--accent-line); border-radius: 16px; background: var(--accent-soft); }
+.rec-signup-guide h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.rec-signup-guide > p { margin-top: 10px !important; font-size: 14px; line-height: 1.7; color: var(--muted); }
+.rec-signup-benefits { display: grid; gap: 10px; margin: 16px 0 !important; }
+.rec-signup-benefits li { position: relative; padding-left: 24px; font-size: 13px; line-height: 1.6; }
+.rec-signup-benefits li::before { content: "✓"; position: absolute; left: 0; font-weight: 800; color: var(--accent); }
+.rec-signup-guide .rec-signup-cta { display: block; width: 100%; min-height: 48px; height: auto; padding: 12px 16px; white-space: normal; }
+.rec-signup-guide .rec-signup-note { margin-top: 10px !important; text-align: center; font-size: 12px; }
+.rec-followup-intro { padding: 18px 0 6px; text-align: center; }
+.rec-followup-check { display: inline-grid; place-items: center; width: 56px; height: 56px; margin-bottom: 16px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 28px; font-weight: 800; }
+.rec-followup-intro h3 { font-size: 20px; font-weight: 800; }
+.rec-followup-intro > p { margin-top: 12px !important; font-size: 14px; line-height: 1.7; color: var(--muted); }
+.rec-followup-intro .rec-signup-benefits { padding: 16px 20px !important; border-radius: 14px; background: var(--surface); text-align: left; }
+.rec-followup-intro .rec-actions { margin-top: 18px; }
+.rec-followup-intro .rec-actions .rec-button { height: auto; min-height: 48px; padding: 10px 14px; white-space: normal; }
+
 /* ===== 맞춤 질문 (V2) ===== */
 .rec-pq .rec-question { margin-top: 12px !important; }
 .rec-option:disabled { opacity: 0.45; cursor: not-allowed; }
