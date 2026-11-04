@@ -1,14 +1,19 @@
 // 홈 복용 알림 카드 (담당: 응진) — 다음 복용 알림 + 이번 주 제시간 복용률
 // API: GET /api/v1/notifications/intake-summary (알림 도메인)
 import { useEffect, useState } from "react";
-import { getIntakeSummary } from "./homeApi";
+import { getIntakeSummary } from "../api/homeApi";
 import "./intakeAlarm.css";
 
 const MEAL_LABEL = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
 
 // ⚠️ 예시 데이터 (실제 정보 아님): 홈이 예시 데이터로 표시될 때만 사용
 const SAMPLE_SUMMARY = {
-  nextReminder: { remindAt: "12:30:00", mealSlot: "LUNCH", count: 1, names: ["초임계 알티지 오메가3"] },
+  nextReminder: {
+    remindAt: "12:30:00",
+    mealSlot: "LUNCH",
+    count: 1,
+    names: ["초임계 알티지 오메가3"],
+  },
   onTime: { total: 10, onTime: 8, rate: 80 },
 };
 
@@ -19,7 +24,16 @@ const RETRY_MS = 60_000; // 알림 시각이 이미 지났을 때 다시 불러�
 // KST 오늘 날짜의 h:m:s 시각 (UTC 밀리초)
 function kstTodayAt(now, h, m = 0, s = 0) {
   const kst = new Date(now.getTime() + KST_OFFSET_MS); // getUTC*로 읽으면 KST 날짜·시각
-  return Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate(), h, m, s) - KST_OFFSET_MS;
+  return (
+    Date.UTC(
+      kst.getUTCFullYear(),
+      kst.getUTCMonth(),
+      kst.getUTCDate(),
+      h,
+      m,
+      s,
+    ) - KST_OFFSET_MS
+  );
 }
 
 // "12:30" 또는 "12:30:00" → KST 오늘 그 시각까지 남은 밀리초 (지났으면 0 이하)
@@ -27,7 +41,6 @@ function msUntil(remindAt, now = new Date()) {
   const [h, m, s = 0] = remindAt.split(":").map(Number);
   return kstTodayAt(now, h, m, s) - now.getTime();
 }
-
 
 // 남은 시간 문구: "35분 뒤", "2시간 뒤", "2시간 10분 뒤"
 function remainText(remindAt, now) {
@@ -52,7 +65,12 @@ function namesText(names = []) {
  * - isSample: 홈이 예시 데이터로 표시 중이면 API를 부르지 않고 예시 카드 표시
  * - showNext: false면 "다음 알림" 칸을 숨김 (홈 타임라인에 다음 알림이 이미 보일 때)
  */
-export default function IntakeAlarmCard({ userId, refreshKey, isSample, showNext = true }) {
+export default function IntakeAlarmCard({
+  userId,
+  refreshKey,
+  isSample,
+  showNext = true,
+}) {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => new Date()); // "N분 뒤" 문구를 1분마다 갱신
@@ -63,7 +81,7 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample, showNext
     if (isSample) return undefined;
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     let timer;
-    getIntakeSummary(userId)
+    getIntakeSummary()
       .then((data) => {
         if (ignore) return;
         setSummary(data);
@@ -73,7 +91,10 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample, showNext
         if (next) {
           // 서버는 분 단위로 내려주므로(12:30:30 → 12:30) 이미 지난 시각이면 잠시 뒤 다시 불러온다
           const wait = msUntil(next.remindAt) + 1000;
-          timer = setTimeout(() => setReloadKey((k) => k + 1), wait > 0 ? wait : RETRY_MS);
+          timer = setTimeout(
+            () => setReloadKey((k) => k + 1),
+            wait > 0 ? wait : RETRY_MS,
+          );
         }
       })
       .catch((e) => {
@@ -108,31 +129,42 @@ export default function IntakeAlarmCard({ userId, refreshKey, isSample, showNext
       </div>
 
       {errorText && <p className="home-alarm-message">{errorText}</p>}
-      {!errorText && !data && <p className="home-alarm-message">불러오는 중...</p>}
+      {!errorText && !data && (
+        <p className="home-alarm-message">불러오는 중...</p>
+      )}
 
       {!errorText && data && (
         <div className="home-alarm-card">
           {/* 다음 알림 */}
           {showNext && (
-          <div className="home-alarm-block">
-            <p className="home-alarm-label">다음 알림</p>
-            {next ? (
-              <>
-                <div className="home-alarm-time-row">
-                  <strong className="home-alarm-time">{next.remindAt.slice(0, 5)}</strong>
-                  <span className="home-alarm-chip">{remainText(next.remindAt, now)}</span>
-                </div>
-                <p className="home-alarm-sub">
-                  {MEAL_LABEL[next.mealSlot] ?? ""} 영양제 {next.count}개 · {namesText(next.names)}
-                </p>
-              </>
-            ) : (
-              <>
-                <strong className="home-alarm-empty">오늘 남은 알림이 없어요</strong>
-                <p className="home-alarm-sub">오늘 복용 알림을 모두 마쳤어요</p>
-              </>
-            )}
-          </div>
+            <div className="home-alarm-block">
+              <p className="home-alarm-label">다음 알림</p>
+              {next ? (
+                <>
+                  <div className="home-alarm-time-row">
+                    <strong className="home-alarm-time">
+                      {next.remindAt.slice(0, 5)}
+                    </strong>
+                    <span className="home-alarm-chip">
+                      {remainText(next.remindAt, now)}
+                    </span>
+                  </div>
+                  <p className="home-alarm-sub">
+                    {MEAL_LABEL[next.mealSlot] ?? ""} 영양제 {next.count}개 ·{" "}
+                    {namesText(next.names)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <strong className="home-alarm-empty">
+                    오늘 남은 알림이 없어요
+                  </strong>
+                  <p className="home-alarm-sub">
+                    오늘 복용 알림을 모두 마쳤어요
+                  </p>
+                </>
+              )}
+            </div>
           )}
 
           {/* 이번 주 제시간 복용률 */}
