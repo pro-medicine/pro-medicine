@@ -4,6 +4,7 @@ package com.ucamp.app.domain.friend.controller;
 import com.ucamp.app.domain.friend.dto.FollowCreateRequest;
 import com.ucamp.app.domain.friend.dto.FollowRespondRequest;
 import com.ucamp.app.domain.friend.dto.FollowResponse;
+import com.ucamp.app.domain.friend.dto.FollowerResponse;
 import com.ucamp.app.domain.friend.enums.FollowStatus;
 import com.ucamp.app.domain.friend.service.FollowService;
 import com.ucamp.app.global.auth.CurrentUserId;
@@ -60,6 +61,12 @@ public class FollowController {
                 followService.respond(userId, followId, request.status());
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/followers")
+    public ResponseEntity<ApiResponse<List<FollowerResponse>>> getFollowers(@CurrentUserId Long userId) {
+        List<FollowerResponse> responses = followService.getFollowers(userId);
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     // 팔로우 요청 취소 또는 관계 삭제

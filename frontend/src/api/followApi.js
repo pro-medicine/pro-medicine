@@ -1,7 +1,7 @@
 import { api } from "./client";
 
-export function requestFollow(userId, nickname) {
-  return api.post("/api/v1/follows", { nickname }, { params: { userId } });
+export function requestFollow(nickname) {
+  return api.post("/api/v1/follows", { nickname });
 }
 
 export function getFollowRequests(userId, direction = "received") {
@@ -20,4 +20,8 @@ export function respondFollow(userId, followId, status) {
 
 export function cancelFollow(userId, followId) {
   return api.delete(`/api/v1/follows/${followId}`, { params: { userId } });
+}
+
+export function getFollowers() {
+  return api.get(`/api/v1/follows/followers`);
 }
