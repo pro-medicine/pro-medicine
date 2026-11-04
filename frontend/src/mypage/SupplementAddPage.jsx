@@ -71,6 +71,7 @@ export default function SupplementAddPage({
   openerRef,
   onBack,
   onSaved,
+  panelInstanceId,
 }) {
   const isEdit = !!target;
   const [keyword, setKeyword] = useState("");
@@ -199,7 +200,7 @@ export default function SupplementAddPage({
               },
         );
       }
-      onSaved();
+      onSaved(panelInstanceId);
     } catch (e) {
       setMessage(e.message || "등록하지 못했어요.");
       setSaving(false);
@@ -209,7 +210,7 @@ export default function SupplementAddPage({
   return (
     <SupplementModal
       title={isEdit ? "복용 일정 수정" : "영양제 등록"}
-      onClose={onBack}
+      onClose={() => onBack(panelInstanceId)}
       openerRef={openerRef}
     >
       <div className="profile-edit">
@@ -425,7 +426,7 @@ export default function SupplementAddPage({
           <button
             type="button"
             className="btn btn-outline btn-lg"
-            onClick={onBack}
+            onClick={() => onBack(panelInstanceId)}
           >
             취소
           </button>

@@ -93,9 +93,9 @@ export default function App() {
   const childBackRef = useRef(null);
   const [childBackTab, setChildBackTab] = useState(null);
   const [historyChild, setHistoryChild] = useState(null);
-  const registerChildBack = useCallback((ownerTab, close, childId) => {
+  const registerChildBack = useCallback((ownerTab, close, childId, instanceId = null) => {
     if (close && childId) {
-      childBackRef.current = { tab: ownerTab, close, id: childId };
+      childBackRef.current = { tab: ownerTab, close, id: childId, instanceId };
       setChildBackTab(ownerTab);
       const view = window.history.state?.[NAV_STATE_KEY];
       if (view?.kind === "member" && view.tab === ownerTab &&
@@ -109,13 +109,21 @@ export default function App() {
     }
   }, []);
 
-  const dismissPanel = useCallback((ownerTab) => {
+  const dismissPanel = useCallback((ownerTab, expectedChildId = null, expectedInstanceId = null) => {
     const view = window.history.state?.[NAV_STATE_KEY];
+    if (expectedChildId != null) {
+      const active = childBackRef.current;
+      if (active?.tab !== ownerTab || active.id !== expectedChildId ||
+          active.instanceId !== expectedInstanceId || view?.child?.id !== expectedChildId) {
+        return false;
+      }
+    }
     if (view?.kind === "member" && view.tab === ownerTab && view.child?.type === "panel") {
       recordView({ kind: "member", tab: ownerTab }, { replace: true });
       setHistoryChild(null);
       if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) window.history.back();
     }
+    return true;
   }, []);
 
   const userId = user?.userId;

@@ -643,6 +643,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, onD
   const handlePharmacySelect = useCallback((pharmacy) => {
     restorePendingRef.current = null;
     cancelWalkingRoute();
+    setError("");
     setSelected(pharmacy);
     setFocusPharmacy({ latitude: pharmacy.latitude, longitude: pharmacy.longitude });
   }, [cancelWalkingRoute]);

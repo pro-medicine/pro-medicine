@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import {
   fetchIntakeStats,
@@ -31,6 +31,7 @@ import RecentRecommendationSection from "../recommendation/RecentRecommendationS
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
+let nextSupplementPanelInstanceId = 0;
 
 // 끼니 / 식전·식후 코드 → 화면 문구 (ANY = 식사와 상관없음 → 끼니만 표시)
 const mealSlotLabels = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
@@ -127,6 +128,15 @@ export default function ProfileScreen({
   const [adding, setAdding] = useState(startAdding);
   // 복용 일정을 수정할 내 영양제 (API 응답 1개), null 이면 수정 안 함
   const [scheduleTarget, setScheduleTarget] = useState(null);
+  const [supplementPanelInstanceId, setSupplementPanelInstanceId] = useState(
+    () => ++nextSupplementPanelInstanceId,
+  );
+  const supplementPanelInstanceRef = useRef(supplementPanelInstanceId);
+  const renewSupplementPanelInstance = useCallback(() => {
+    const next = ++nextSupplementPanelInstanceId;
+    supplementPanelInstanceRef.current = next;
+    setSupplementPanelInstanceId(next);
+  }, []);
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
   const [sharing, setSharing] = useState(false);
@@ -141,9 +151,11 @@ export default function ProfileScreen({
   useEffect(() => {
     if (!isMine || !restoreChild) return;
     if (restoreChild === "profile-edit") setEditing(true);
-    else if (restoreChild === "supplement-add") setAdding(true);
-    else if (restoreChild === "settings") setShowSettings(true);
-  }, [isMine, restoreChild]);
+    else if (restoreChild === "supplement-add") {
+      renewSupplementPanelInstance();
+      setAdding(true);
+    } else if (restoreChild === "settings") setShowSettings(true);
+  }, [isMine, restoreChild, renewSupplementPanelInstance]);
 
   const restoredScheduleRef = useRef(null);
   useEffect(() => {
@@ -156,9 +168,10 @@ export default function ProfileScreen({
     const target = mySupplementList.find((item) => String(item.id) === id)?.raw;
     if (target) {
       restoredScheduleRef.current = restoreChild;
+      renewSupplementPanelInstance();
       setScheduleTarget(target);
     }
-  }, [isMine, restoreChild, mySupplementList]);
+  }, [isMine, restoreChild, mySupplementList, renewSupplementPanelInstance]);
 
   useEffect(() => {
     if (!isMine || !onRegisterBack) return undefined;
@@ -169,13 +182,19 @@ export default function ProfileScreen({
     const childId = editing ? "profile-edit" : adding ? "supplement-add"
       : scheduleTarget ? `schedule:${scheduleTarget.userProductId}`
       : showSettings ? "settings" : null;
-    onRegisterBack("my", close, childId);
+    onRegisterBack("my", close, childId,
+      adding || scheduleTarget ? supplementPanelInstanceId : null);
     return () => onRegisterBack("my", null);
-  }, [isMine, editing, adding, scheduleTarget, showSettings, onRegisterBack]);
+  }, [isMine, editing, adding, scheduleTarget, showSettings, supplementPanelInstanceId, onRegisterBack]);
 
-  const dismissPanel = (close) => {
-    onDismissPanel?.("my");
+  const dismissPanel = (close, expectedChildId = null, expectedInstanceId = null) => {
+    if (expectedInstanceId != null && supplementPanelInstanceRef.current !== expectedInstanceId) {
+      return false;
+    }
+    if (onDismissPanel?.("my", expectedChildId, expectedInstanceId) === false) return false;
+    if (expectedInstanceId != null) supplementPanelInstanceRef.current = null;
     close();
+    return true;
   };
 
   const openSettings = () => {
@@ -281,6 +300,7 @@ export default function ProfileScreen({
 
   const openAdd = () => {
     supplementOpenerRef.current = document.activeElement;
+    renewSupplementPanelInstance();
     setAdding(true);
   };
 
@@ -401,9 +421,10 @@ export default function ProfileScreen({
         <SupplementAddPage
           userId={userId}
           openerRef={supplementOpenerRef}
-          onBack={() => dismissPanel(() => setAdding(false))}
-          onSaved={() => {
-            dismissPanel(() => setAdding(false));
+          panelInstanceId={supplementPanelInstanceId}
+          onBack={(instanceId) => dismissPanel(() => setAdding(false), "supplement-add", instanceId)}
+          onSaved={(instanceId) => {
+            dismissPanel(() => setAdding(false), "supplement-add", instanceId);
             reload();
           }}
         />
@@ -414,9 +435,12 @@ export default function ProfileScreen({
           userId={userId}
           target={scheduleTarget}
           openerRef={supplementOpenerRef}
-          onBack={() => dismissPanel(() => setScheduleTarget(null))}
-          onSaved={() => {
-            dismissPanel(() => setScheduleTarget(null));
+          panelInstanceId={supplementPanelInstanceId}
+          onBack={(instanceId) => dismissPanel(() => setScheduleTarget(null),
+            `schedule:${scheduleTarget.userProductId}`, instanceId)}
+          onSaved={(instanceId) => {
+            dismissPanel(() => setScheduleTarget(null),
+              `schedule:${scheduleTarget.userProductId}`, instanceId);
             reload();
           }}
         />
@@ -512,6 +536,7 @@ export default function ProfileScreen({
             removingId={removingId}
             onEdit={(supplement) => {
               supplementOpenerRef.current = document.activeElement;
+              renewSupplementPanelInstance();
               setScheduleTarget(supplement.raw);
             }}
             onRemove={removeSupplement}
