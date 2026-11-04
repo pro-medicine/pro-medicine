@@ -96,7 +96,7 @@ public class ChatSessionStore {
                                  String excluded, LocalDateTime dataVersion, int latencyMs) {
         AiChatSession s = sessionRepository.findForUpdate(chatSessionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_SESSION_NOT_FOUND));
-        resultRepository.save(AiChatResult.builder().chatSession(s).track(AiChatResult.REVIEW).cards(cards)
+        resultRepository.save(AiChatResult.builder().chatSession(s).user(s.getUser()).track(AiChatResult.REVIEW).cards(cards)
                 .hitMentionIds(hitMentionIds).topSimilarity(topSimilarity).excluded(excluded).dataVersion(dataVersion)
                 .latencyMs(latencyMs).build());
         s.markDone();
@@ -111,7 +111,7 @@ public class ChatSessionStore {
         AiChatSession s = sessionRepository.findForUpdate(chatSessionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_SESSION_NOT_FOUND));
         RecommendationResponse pending = recommendationStore.createPendingForChat(s);
-        resultRepository.save(AiChatResult.builder().chatSession(s).track(AiChatResult.RULE_BASED)
+        resultRepository.save(AiChatResult.builder().chatSession(s).user(s.getUser()).track(AiChatResult.RULE_BASED)
                 .recommendationId(pending.recommendationId()).hitMentionIds(hitMentionIds).topSimilarity(topSimilarity)
                 .excluded(excluded).dataVersion(dataVersion).latencyMs(latencyMs).build());
         s.markFallbackPending();

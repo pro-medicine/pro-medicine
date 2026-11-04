@@ -170,7 +170,7 @@ class RecentRecommendationApiTest {
         List<ChatCard> cards = List.of(
                 new ChatCard("MAGNESIUM", "비슷한 고민에 약사들이 추천한 성분이에요", 1, BigDecimal.valueOf(100), "mg",
                         null, "UNKNOWN", null, List.of(), List.of(new ReviewProductResponse.Product(9301, "스냅샷 제품",
-                        "NOW", null, List.of(), List.of(), List.of()))),
+                        "NOW", null, null, List.of(), List.of(), List.of()))),
                 new ChatCard("VITAMIN_D", "비슷한 고민에 약사들이 추천한 성분이에요", 2, BigDecimal.TEN, "mcg",
                         null, "UNKNOWN", null, List.of(), List.of()));
         AiChatSession chat = chatSession(user, null);
@@ -282,7 +282,8 @@ class RecentRecommendationApiTest {
         cleanupScheduler.purge(LocalDateTime.now());
         entityManager.clear();
 
-        // V2·트랙 2 추천 행은 남지만 회원을 찾을 FK가 비어 빠지고, 트랙 1 결과는 세션과 함께 지워진다 (후속 개선 항목)
+        // V2·트랙 2 추천 행은 남지만 회원을 찾을 FK가 비어 빠지고, 트랙 1 결과 행(V7.1부터 남음, chat_session_id NULL)도
+        // /recent는 세션으로 회원을 찾아 빠진다 (D13: /recent 동작은 그대로. 90일 뒤 기록은 V7.1 /history에서 보인다)
         assertThat(recommendationRepository.findById(v2)).isPresent();
         assertThat(recommendationRepository.findById(track2)).isPresent();
         JsonNode data = recent(user);
