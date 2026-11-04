@@ -81,9 +81,8 @@ export default function TodaySupplements({
           {supplements.map((s, index) => {
             const slot =
               SLOT_LABEL[s.mealSlot] ?? s.timing?.split(" ")[0] ?? "";
-            const how = s.timing?.startsWith(slot)
-              ? s.timing.slice(slot.length).trim()
-              : s.timing;
+            const relation = s.timing?.split(" ").slice(1).join(" ") ?? "";
+            const how = relation === "ANY" ? "" : relation;
             const status = s.taken
               ? "done"
               : s.id === nextId
