@@ -26,16 +26,26 @@ export default function SignupHealthFollowup({ onClose, onReady, onSkip }) {
     setError("");
     try {
       await agreeSensitiveConsent();
-      const [data, ingredientList] = await Promise.all([
+      const [data, ingredientList, mode] = await Promise.all([
         getActiveSurvey(),
         getIngredients().catch(() => []),
+        getRecommendationMode(),
       ]);
-      const questions = data.questions.filter((question) => FOLLOWUP_CODES.has(question.code));
+      const questions = data.questions.filter((question) =>
+        FOLLOWUP_CODES.has(question.code) &&
+        (question.code !== "Q-GENDER" || mode.missing?.includes("GENDER")));
+      const initialAnswers = {};
+      questions.forEach((question) => {
+        if (question.prefill?.optionIds?.length) {
+          initialAnswers[question.questionId] = { optionIds: question.prefill.optionIds };
+        }
+      });
       if (!questions.some((q) => q.code === "Q-CONDITIONS") ||
           !questions.some((q) => q.code === "Q-MEDICATIONS")) {
         throw new Error("추가 건강정보 문항을 불러오지 못했어요.");
       }
       setSurvey({ ...data, questions });
+      setAnswers(initialAnswers);
       setIngredients(Object.fromEntries(ingredientList.map((item) => [item.code, item])));
       setStep("survey");
     } catch (cause) {

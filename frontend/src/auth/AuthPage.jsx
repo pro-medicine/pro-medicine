@@ -2,7 +2,7 @@
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
 import { useEffect, useRef, useState } from "react";
-import { getPendingGuestSurvey, login, signup } from "./authApi";
+import { getPendingGuestDemographics, getPendingGuestSurvey, login, signup } from "./authApi";
 import "./auth.css";
 
 const GENDERS = ["여성", "남성", "선택 안 함"];
@@ -112,6 +112,8 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
   const [confirmPassword, setConfirmPassword] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  const [guestPrefill, setGuestPrefill] = useState(null);
+  const appliedGuestResponseRef = useRef(null);
   const [agreed, setAgreed] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -126,6 +128,21 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSignup) return;
+    const prefill = getPendingGuestDemographics();
+    if (!prefill || appliedGuestResponseRef.current === prefill.responseId) return;
+    appliedGuestResponseRef.current = prefill.responseId;
+    setGuestPrefill(prefill);
+    if (prefill.birthYear != null) {
+      const estimatedAge = new Date().getFullYear() - prefill.birthYear;
+      if (estimatedAge >= 1 && estimatedAge <= 120) {
+        setAge((current) => current || String(estimatedAge));
+      }
+    }
+    if (prefill.gender) setGender((current) => current || prefill.gender);
+  }, [isSignup]);
 
   // 로그인 / 회원가입 모드 전환 시 오류 메시지 초기화
   const changeMode = (nextMode) => {
@@ -334,7 +351,12 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                   {confirmMismatch && <small className="auth-hint is-error">비밀번호가 일치하지 않아요</small>}
                 </div>
 
-                <div className="auth-profile-fields">
+                {guestPrefill && (
+                  <p className="auth-prefill-intro" role="status">
+                    기본 설문에서 입력한 정보를 미리 채웠어요. 확인 후 변경할 수 있어요.
+                  </p>
+                )}
+                <div className={`auth-profile-fields${guestPrefill ? " has-prefill" : ""}`}>
                   <label className="auth-field">
                     <span>만 나이</span>
                     <input
@@ -348,6 +370,12 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                       value={age}
                       onChange={(event) => setAge(event.target.value)}
                     />
+                    {guestPrefill?.birthYear != null && (
+                      <small className="auth-hint auth-prefill-hint">
+                        <span aria-hidden="true">ⓘ</span>
+                        {` ${guestPrefill.birthYear}년생 기준으로 예상한 나이예요. 생일이 지나지 않았다면 한 살 줄여주세요.`}
+                      </small>
+                    )}
                   </label>
                   {/* 성별: 실제 라디오 버튼 (방향키로 이동·선택 가능), 알약 모양으로 보이게만 꾸밈 */}
                   <fieldset className="auth-field auth-fieldset">
@@ -367,8 +395,14 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                         </label>
                       ))}
                     </div>
+                    {guestPrefill?.gender && (
+                      <small className="auth-hint auth-prefill-hint">기본 설문에서 선택한 성별이에요. 변경할 수 있어요.</small>
+                    )}
                   </fieldset>
                 </div>
+                {guestPrefill && (
+                  <p className="auth-prefill-footer">입력한 나이와 성별은 이후 맞춤 추천에 활용돼요.</p>
+                )}
 
                 <label className="auth-check">
                   <input

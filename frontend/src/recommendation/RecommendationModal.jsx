@@ -8,6 +8,7 @@ import {
   getRecommendationMode,
   submitSurvey,
 } from "../api/recommendationApi";
+import { saveGuestSurveyDemographics } from "../auth/authApi";
 import ConsentStep from "./ConsentStep";
 import SurveyStep from "./SurveyStep";
 import ResultStep from "./ResultStep";
@@ -92,6 +93,20 @@ function toSubmitList(code, list) {
       }));
   }
   return list;
+}
+
+function captureGuestSignupDemographics(responseId, questions, surveyAnswers) {
+  const genderQuestion = questions.find((q) => q.code === "Q-GENDER");
+  const birthQuestion = questions.find((q) => q.code === "Q-BIRTH");
+  const selectedId = genderQuestion && surveyAnswers[genderQuestion.questionId]?.optionIds?.[0];
+  const genderOption = genderQuestion?.options?.find((option) => option.optionId === selectedId);
+  const genderCode = String(genderOption?.valueCode ?? "").toUpperCase();
+  const gender = genderCode === "M" ? "남성"
+    : genderCode === "F" ? "여성"
+    : genderOption?.label === "선택 안 함" ? "선택 안 함" : null;
+  const rawBirthYear = birthQuestion && surveyAnswers[birthQuestion.questionId]?.valueNumber;
+  const birthYear = rawBirthYear == null || rawBirthYear === "" ? null : Number(rawBirthYear);
+  saveGuestSurveyDemographics(responseId, { gender, birthYear });
 }
 
 // 화면 답변 → 제출 형식. 답하지 않은 문항은 뺀다
@@ -263,6 +278,7 @@ export default function RecommendationModal({ userId, missing, onClose, onPerson
       const { responseId, guestToken } = submitResult;
       if (guestToken) {
         sessionStorage.setItem("guestToken", guestToken);
+        if (!userId) captureGuestSignupDemographics(responseId, survey.questions, submitAnswers);
       }
       const data = await createRecommendation(responseId);
       handleRecommendation(data, 0);

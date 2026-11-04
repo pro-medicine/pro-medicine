@@ -398,6 +398,37 @@
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
 }
 
+.auth-prefill-intro {
+  background: var(--primary-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+}
+
+.auth-prefill-hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.55;
+  margin-top: 6px;
+  word-break: keep-all;
+}
+
+.auth-prefill-footer {
+  background: var(--surface);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+}
+
+.auth-profile-fields.has-prefill { grid-template-columns: minmax(0, 1fr); }
+
 /* 성별: 알약 모양 선택 */
 .auth-segment {
   background: var(--surface);

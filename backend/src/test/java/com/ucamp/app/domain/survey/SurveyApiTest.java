@@ -301,6 +301,38 @@ class SurveyApiTest {
     }
 
     @Test
+    void 회원가입에서_수정한_성별이_게스트_V1_프로필보다_우선한다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "override-gender", "남성")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isEqualTo("M");
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 회원가입에서_성별_선택안함으로_변경하면_게스트_성별이_남지_않는다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "unspecified-gender", "선택 안 함")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isNull();
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
     void 잘못된_게스트_토큰으로_회원가입하면_연결되지_않는다() throws Exception {
         JsonNode guest = submitGuestForSignup();
         long responseId = guest.get("responseId").asLong();
@@ -466,6 +498,10 @@ class SurveyApiTest {
     }
 
     private ResultActions signupWithGuest(long responseId, String guestToken, String suffix) throws Exception {
+        return signupWithGuest(responseId, guestToken, suffix, "여성");
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix, String gender) throws Exception {
         when(refreshTokens.issue(anyLong(), eq(false)))
                 .thenReturn(new RefreshTokenService.Issued("test-refresh", 604800));
         return mockMvc.perform(post("/api/v1/auth/signup")
@@ -475,7 +511,7 @@ class SurveyApiTest {
                         "password", "Password123!",
                         "name", "guest-claim-" + suffix,
                         "age", 26,
-                        "gender", "여성",
+                        "gender", gender,
                         "termsAgreed", true,
                         "guestResponseId", responseId,
                         "guestToken", guestToken))));
