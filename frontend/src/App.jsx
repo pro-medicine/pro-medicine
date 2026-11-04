@@ -34,7 +34,11 @@ const VALID_TABS = new Set(["home", "friends", "disposal", "my"]);
 function recordView(view, { replace = false, reset = false } = {}) {
   const previous = window.history.state;
   const state = previous && typeof previous === "object" ? previous : {};
-  const depth = reset ? 0 : replace ? (state[NAV_DEPTH_KEY] ?? 0) : (state[NAV_DEPTH_KEY] ?? 0) + 1;
+  const depth = reset
+    ? 0
+    : replace
+      ? (state[NAV_DEPTH_KEY] ?? 0)
+      : (state[NAV_DEPTH_KEY] ?? 0) + 1;
   window.history[replace ? "replaceState" : "pushState"](
     { ...state, [NAV_STATE_KEY]: view, [NAV_DEPTH_KEY]: depth },
     "",
@@ -78,7 +82,8 @@ export default function App() {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // 상단 종 아이콘 빨간 점
   // 홈 타임라인에서 복용 체크·해제한 뒤: 빨간 점·알림 목록만 다시 조회 (홈은 이미 화면에 반영돼 있어 다시 부르지 않음)
   const [notificationRefreshKey, setNotificationRefreshKey] = useState(0);
-  const refreshNotifications = () => setNotificationRefreshKey((key) => key + 1);
+  const refreshNotifications = () =>
+    setNotificationRefreshKey((key) => key + 1);
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
@@ -87,9 +92,10 @@ export default function App() {
   const signupFollowupOwnerRef = useRef(null);
 
   useEffect(() => {
-    signupFollowupOwnerRef.current = postSignupHealth && userId != null
-      ? { userId, authAttempt: authAttemptRef.current }
-      : null;
+    signupFollowupOwnerRef.current =
+      postSignupHealth && userId != null
+        ? { userId, authAttempt: authAttemptRef.current }
+        : null;
     return () => {
       signupFollowupOwnerRef.current = null;
     };
@@ -118,11 +124,15 @@ export default function App() {
       resetScreens();
       setAuthMode("login");
       setPendingTab("home");
-      recordView({ kind: "auth", mode: "login", tab: "home" }, { replace: true, reset: true });
+      recordView(
+        { kind: "auth", mode: "login", tab: "home" },
+        { replace: true, reset: true },
+      );
       setAuthNotice("로그인 세션이 만료되었어요. 다시 로그인해 주세요.");
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () =>
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
   }, []);
 
   // 최초 인증 확인: 401(로그인 필요)과 전송 오류(확인 불가)를 구분한다.
@@ -153,9 +163,15 @@ export default function App() {
         setTab(VALID_TABS.has(view.tab) ? view.tab : "home");
         setSurveyOpen(view.kind === "memberSurvey");
       } else {
-        recordView({ kind: "member", tab: "home" }, { replace: true, reset: true });
+        recordView(
+          { kind: "member", tab: "home" },
+          { replace: true, reset: true },
+        );
       }
-    } else if (view?.kind === "auth" && (view.mode === "login" || view.mode === "signup")) {
+    } else if (
+      view?.kind === "auth" &&
+      (view.mode === "login" || view.mode === "signup")
+    ) {
       setAuthMode(view.mode);
       setPendingTab(VALID_TABS.has(view.tab) ? view.tab : "home");
       setSurveyOpen(false);
@@ -186,13 +202,17 @@ export default function App() {
         setTab(completion.tab);
         setSurveyOpen(false);
         setPostSignupHealth(completion.fromGuestV1);
-        recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
+        recordView(
+          { kind: "member", tab: completion.tab },
+          { replace: true, reset: true },
+        );
         setPendingTab("home");
         window.scrollTo({ top: 0 });
         return;
       }
       if (userId != null) {
-        const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        const isMember =
+          view?.kind === "member" || view?.kind === "memberSurvey";
         setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
         setSurveyOpen(isMember && view.kind === "memberSurvey");
         setFriendTarget(null);
@@ -201,8 +221,14 @@ export default function App() {
         notificationsOpenRef.current = false;
         setToast(null);
       } else {
-        setAuthMode(view?.kind === "auth" && ["login", "signup"].includes(view.mode) ? view.mode : null);
-        setPendingTab(view?.kind === "auth" && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setAuthMode(
+          view?.kind === "auth" && ["login", "signup"].includes(view.mode)
+            ? view.mode
+            : null,
+        );
+        setPendingTab(
+          view?.kind === "auth" && VALID_TABS.has(view.tab) ? view.tab : "home",
+        );
         setSurveyOpen(view?.kind === "guestSurvey");
         setAuthNotice("");
       }
@@ -220,13 +246,13 @@ export default function App() {
     let ignore = false;
     let expiryTimer = null;
     const checkUnread = () => {
-      getUnreadCount(userId)
+      getUnreadCount()
         .then((data) => {
           if (!ignore) setHasUnreadNotifications((data?.unreadCount ?? 0) > 0);
         })
         .catch((err) => console.error(err));
       // 안 읽은 복용·놓침 알림이 사라질 시각에 맞춰 한 번 더 확인 → 그 순간 빨간 점이 꺼진다
-      getNotifications(userId, "INTAKE")
+      getNotifications("INTAKE")
         .then((items) => {
           if (ignore) return;
           clearTimeout(expiryTimer);
@@ -265,13 +291,15 @@ export default function App() {
   // "refresh" 신호(복용 체크 등)는 다시 조회만 하고 팝업은 띄우지 않는다.
   useEffect(() => {
     if (userId == null) return undefined;
-    return subscribeNotifications(userId, (event) => {
+    return subscribeNotifications((event) => {
       setHomeRefreshKey((key) => key + 1);
-      if (event?.type !== "notification" || notificationsOpenRef.current) return;
-      getNotifications(userId, null)
+      if (event?.type !== "notification" || notificationsOpenRef.current)
+        return;
+      getNotifications(null)
         .then((items) => {
           const latest = (items ?? []).find((item) => !item.read);
-          if (!latest || latest.notificationId === lastToastIdRef.current) return;
+          if (!latest || latest.notificationId === lastToastIdRef.current)
+            return;
           lastToastIdRef.current = latest.notificationId;
           setToast(latest);
         })
@@ -287,11 +315,16 @@ export default function App() {
     let timer;
     const scheduleNextMidnight = () => {
       const now = Date.now();
-      const nextMidnight = (Math.floor((now + KST_OFFSET_MS) / DAY_MS) + 1) * DAY_MS - KST_OFFSET_MS;
-      timer = setTimeout(() => {
-        setHomeRefreshKey((key) => key + 1);
-        scheduleNextMidnight(); // 다음 날 자정도 이어서 예약
-      }, nextMidnight - now + 1000);
+      const nextMidnight =
+        (Math.floor((now + KST_OFFSET_MS) / DAY_MS) + 1) * DAY_MS -
+        KST_OFFSET_MS;
+      timer = setTimeout(
+        () => {
+          setHomeRefreshKey((key) => key + 1);
+          scheduleNextMidnight(); // 다음 날 자정도 이어서 예약
+        },
+        nextMidnight - now + 1000,
+      );
     };
     scheduleNextMidnight();
     return () => clearTimeout(timer);
@@ -301,8 +334,10 @@ export default function App() {
   const handleAuthComplete = (account, attemptId, fromGuestV1 = false) => {
     if (attemptId !== authAttemptRef.current) return;
     signupFollowupOwnerRef.current = null;
-    if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
-        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+    if (
+      window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
+      (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0
+    ) {
       authCompletionRef.current = { account, tab: pendingTab, fromGuestV1 };
       window.history.back();
       return;
@@ -315,7 +350,10 @@ export default function App() {
     setTab(pendingTab);
     setSurveyOpen(false);
     setPostSignupHealth(fromGuestV1);
-    recordView({ kind: "member", tab: pendingTab }, { replace: true, reset: true });
+    recordView(
+      { kind: "member", tab: pendingTab },
+      { replace: true, reset: true },
+    );
     setPendingTab("home");
     window.scrollTo({ top: 0 });
   };
@@ -334,9 +372,13 @@ export default function App() {
       setAuthMode(null);
       recordView({ kind: "landing" }, { replace: true, reset: true });
     } catch (err) {
-      if (followupOwner && signupFollowupOwnerRef.current === followupOwner &&
-          postSignupHealth && userId === followupOwner.userId &&
-          followupOwner.authAttempt === authAttemptRef.current) {
+      if (
+        followupOwner &&
+        signupFollowupOwnerRef.current === followupOwner &&
+        postSignupHealth &&
+        userId === followupOwner.userId &&
+        followupOwner.authAttempt === authAttemptRef.current
+      ) {
         followupOwner.logoutPending = false;
       }
       window.alert(err.message || "로그아웃에 실패했어요.");
@@ -350,7 +392,10 @@ export default function App() {
     const rect = event?.currentTarget?.getBoundingClientRect?.();
     setNotificationAnchor(
       rect
-        ? { top: rect.bottom + 8, right: Math.max(16, window.innerWidth - rect.right) }
+        ? {
+            top: rect.bottom + 8,
+            right: Math.max(16, window.innerWidth - rect.right),
+          }
         : null,
     );
     setNotificationsOpen(true);
@@ -366,7 +411,8 @@ export default function App() {
   const changeTab = (nextTab, { replace = false } = {}) => {
     if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
-    if (nextTab !== tab) recordView({ kind: "member", tab: nextTab }, { replace });
+    if (nextTab !== tab)
+      recordView({ kind: "member", tab: nextTab }, { replace });
     setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
@@ -383,8 +429,14 @@ export default function App() {
 
   const finishSignupFollowup = (skipConsent = false) => {
     const owner = signupFollowupOwnerRef.current;
-    if (!owner || owner.logoutPending || owner.userId !== userId ||
-        owner.authAttempt !== authAttemptRef.current || loggingOut) return;
+    if (
+      !owner ||
+      owner.logoutPending ||
+      owner.userId !== userId ||
+      owner.authAttempt !== authAttemptRef.current ||
+      loggingOut
+    )
+      return;
     signupFollowupOwnerRef.current = null;
     setPostSignupHealth(false);
     setSkipConsentAfterSignup(skipConsent);
@@ -399,7 +451,10 @@ export default function App() {
     setPendingTab("home");
     setAuthNotice("");
     setAuthMode("signup");
-    recordView({ kind: "auth", mode: "signup", tab: "home" }, { replace: true });
+    recordView(
+      { kind: "auth", mode: "signup", tab: "home" },
+      { replace: true },
+    );
     window.scrollTo({ top: 0 });
   };
 
@@ -407,18 +462,25 @@ export default function App() {
     surveyTriggerRef.current = event?.currentTarget ?? null;
     setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
-    recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
+    recordView(
+      userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab },
+    );
   };
 
   const closeSurvey = () => {
     setSkipConsentAfterSignup(false);
     const kind = window.history.state?.[NAV_STATE_KEY]?.kind;
-    if ((kind === "guestSurvey" || kind === "memberSurvey") &&
-        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+    if (
+      (kind === "guestSurvey" || kind === "memberSurvey") &&
+      (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0
+    ) {
       window.history.back();
     } else {
       setSurveyOpen(false);
-      recordView(userId == null ? { kind: "landing" } : { kind: "member", tab }, { replace: true });
+      recordView(
+        userId == null ? { kind: "landing" } : { kind: "member", tab },
+        { replace: true },
+      );
     }
   };
 
@@ -462,7 +524,9 @@ export default function App() {
             account={user}
             startAdding={myStartAdding}
             onUserUpdated={(updatedUser) =>
-              setUser((prev) => (prev?.userId === userId ? { ...prev, ...updatedUser } : prev))
+              setUser((prev) =>
+                prev?.userId === userId ? { ...prev, ...updatedUser } : prev,
+              )
             }
             onLogout={handleLogout}
             loggingOut={loggingOut}
@@ -535,7 +599,13 @@ export default function App() {
               window.scrollTo({ top: 0 });
             }}
           />
-          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} onSignup={startSignupFromGuestSurvey} />}
+          {surveyOpen && (
+            <RecommendationModal
+              userId={null}
+              onClose={closeSurvey}
+              onSignup={startSignupFromGuestSurvey}
+            />
+          )}
         </>
       );
     }
@@ -545,7 +615,10 @@ export default function App() {
         notice={authNotice}
         onModeChange={(mode) => {
           setAuthMode(mode);
-          recordView({ kind: "auth", mode, tab: pendingTab }, { replace: true });
+          recordView(
+            { kind: "auth", mode, tab: pendingTab },
+            { replace: true },
+          );
         }}
         onAttemptStart={() => {
           authAttemptRef.current += 1;
@@ -575,12 +648,22 @@ export default function App() {
           ringing={toast !== null}
           onNotifications={openNotifications}
           onBack={handleBack}
-          canGoBack={tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0}
+          canGoBack={
+            tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0
+          }
           onLogout={handleLogout}
           loggingOut={loggingOut}
         />
         <div className="mobile-session-bar">
-          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={tab === "home" && (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0}>
+          <button
+            type="button"
+            className="mobile-session-back"
+            onClick={handleBack}
+            disabled={
+              tab === "home" &&
+              (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0
+            }
+          >
             <span aria-hidden="true">←</span> 이전
           </button>
           <button type="button" onClick={handleLogout} disabled={loggingOut}>
@@ -602,7 +685,13 @@ export default function App() {
             onSkip={() => finishSignupFollowup(true)}
           />
         )}
-        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} skipConsent={skipConsentAfterSignup} />}
+        {surveyOpen && (
+          <RecommendationModal
+            userId={userId}
+            onClose={closeSurvey}
+            skipConsent={skipConsentAfterSignup}
+          />
+        )}
 
         {toast && (
           <NotificationToast
@@ -611,7 +700,9 @@ export default function App() {
             onClose={() => setToast(null)}
             onOpen={() => {
               const bell = document.querySelector(".top-nav-bell");
-              openNotifications(bell?.offsetParent ? { currentTarget: bell } : null);
+              openNotifications(
+                bell?.offsetParent ? { currentTarget: bell } : null,
+              );
             }}
             userId={userId}
             onNavigate={navigateFromNotification}

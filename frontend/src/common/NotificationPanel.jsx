@@ -90,7 +90,7 @@ export default function NotificationPanel({
   // 이전 요청은 cleanup의 ignore로 버려서, 늦게 도착한 옛날 개수가 최신 값을 덮어쓰지 않는다.
   useEffect(() => {
     let ignore = false;
-    getUnreadCount(userId)
+    getUnreadCount()
       .then((data) => {
         if (!ignore) setUnreadCount(data?.unreadCount ?? 0);
       })
@@ -106,7 +106,7 @@ export default function NotificationPanel({
     let ignore = false; // 패널이 닫히거나 탭이 바뀐 뒤 늦게 온 응답은 버린다.
     const category = TABS.find((t) => t.id === tab).category;
 
-    getNotifications(userId, category)
+    getNotifications(category)
       .then((items) => {
         if (!ignore) setResult({ tab, items: items ?? [], error: "" });
       })
@@ -154,7 +154,7 @@ export default function NotificationPanel({
     if (item.read || pendingIdsRef.current.has(id)) return; // 이미 읽음 또는 요청 중
     pendingIdsRef.current.add(id);
     try {
-      await markNotificationRead(userId, id);
+      await markNotificationRead(id);
       markItemsRead([id]);
       setUnreadCount((count) => Math.max(0, count - 1)); // 화면 먼저 반영, 정확한 값은 onRead → refreshKey로 다시 조회
       onRead?.();
