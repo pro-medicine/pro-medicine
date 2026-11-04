@@ -8,6 +8,7 @@ import PrescriptionFields, {
   toPrescriptionPayload,
 } from "./PrescriptionFields";
 import InteractionWarningList from "./InteractionWarningList";
+import ConfirmDialog from "../friends/ConfirmDialog";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -170,12 +171,23 @@ function DayModal({
   fetchInteractions,
   interactionRefreshKey,
 }) {
-  const dialogRef = useModalFocus(onClose, openerRef);
+  // 삭제 확인 창이 열려 있으면 Esc를 눌러도 날짜 창은 닫지 않음 (확인 창만 닫힘)
+  const confirmOpenRef = useRef(false);
+  const closeDay = () => {
+    if (confirmOpenRef.current) return;
+    onClose();
+  };
+  const dialogRef = useModalFocus(closeDay, openerRef);
   const [mode, setMode] = useState(null); // null | "new" | event 객체(수정)
   const [viewEvent, setViewEvent] = useState(null); // 상세로 보고 있는 일정
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // 삭제 확인 창에 띄운 일정 { event, scope }, null 이면 창 닫힘
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removing, setRemoving] = useState(false);
+  // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
+  const removeOpenerRef = useRef(null);
   const [rx, setRx] = useState(() => makeEmptyPrescription(dateKey));
 
   // prescriptionId → { status: "loading" | "done" | "error", data }
@@ -313,18 +325,40 @@ function DayModal({
     }
   };
 
-  const remove = async (event, scope = "one") => {
-    const message =
-      scope === "all"
-        ? `'${event.title}'의 모든 날짜 일정을 삭제할까요?`
-        : event.prescriptionId
-          ? `${Number(dateKey.slice(5, 7))}월 ${Number(dateKey.slice(8))}일의 '${event.title}' 일정만 삭제할까요?`
-          : `'${event.title}' 일정을 삭제할까요?`;
-    if (!window.confirm(message)) return;
+  // 삭제 확인 문구 (전체 삭제 / 처방 일정 하루만 / 일반 일정)
+  const removeMessage = (event, scope) =>
+    scope === "all"
+      ? `'${event.title}'의 모든 날짜 일정을 삭제할까요?`
+      : event.prescriptionId
+        ? `${Number(dateKey.slice(5, 7))}월 ${Number(dateKey.slice(8))}일의 '${event.title}' 일정만 삭제할까요?`
+        : `'${event.title}' 일정을 삭제할까요?`;
+
+  // 삭제 버튼: 바로 지우지 않고 확인 창을 엶
+  const remove = (event, scope = "one") => {
+    removeOpenerRef.current = document.activeElement;
+    confirmOpenRef.current = true;
+    setError("");
+    setRemoveTarget({ event, scope });
+  };
+
+  // 확인 창 닫기 (삭제 처리 중에는 닫지 않음)
+  const closeRemove = () => {
+    if (removing) return;
+    confirmOpenRef.current = false;
+    setRemoveTarget(null);
+  };
+
+  // 확인 창의 [삭제]
+  const confirmRemove = async () => {
+    setRemoving(true);
     try {
-      await onDelete(event, scope);
+      await onDelete(removeTarget.event, removeTarget.scope);
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
+    } finally {
+      setRemoving(false);
+      confirmOpenRef.current = false;
+      setRemoveTarget(null);
     }
   };
 
@@ -594,6 +628,19 @@ function DayModal({
             {error && <p className="calendar-error">{error}</p>}
           </div>
         )}
+        {/* 일정 삭제 확인 창 (브라우저 confirm 대신 화면 디자인에 맞춘 모달) */}
+        {removeTarget && (
+          <ConfirmDialog
+            title="일정 삭제"
+            message={removeMessage(removeTarget.event, removeTarget.scope)}
+            confirmLabel="삭제"
+            danger
+            busy={removing}
+            openerRef={removeOpenerRef}
+            onConfirm={confirmRemove}
+            onCancel={closeRemove}
+          />
+        )}
       </div>
     </div>
   );
@@ -649,8 +696,7 @@ export default function IntakeCalendar({
 
   useEffect(() => {
     let ignore = false;
-    setError("");
-    setDates([]);
+
     (fetchProgress ?? fetchDates)(
       `${monthKey}-01`,
       `${monthKey}-${pad(daysInMonth)}`,
@@ -684,8 +730,6 @@ export default function IntakeCalendar({
   useEffect(() => {
     if (!selected || !fetchDay || selected > todayKey) return;
     let ignore = false;
-    setDayItems(null);
-    setDayError("");
     fetchDay(selected)
       .then((list) => {
         if (!ignore) setDayItems(list ?? []);
@@ -703,6 +747,8 @@ export default function IntakeCalendar({
 
   const move = (delta) => {
     setSelected(null);
+    setError("");
+    setDates([]);
     setYm(({ year, month }) => {
       const d = new Date(year, month - 1 + delta, 1);
       return { year: d.getFullYear(), month: d.getMonth() + 1 };
@@ -820,6 +866,9 @@ export default function IntakeCalendar({
               }
               onClick={(e) => {
                 openerRef.current = e.currentTarget;
+                // 다른 날짜를 누르면 그날 기록을 불러오기 전에 먼저 비움 ("불러오는 중..." 표시)
+                setDayItems(null);
+                setDayError("");
                 setSelected(key);
               }}
             >

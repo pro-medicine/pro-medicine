@@ -29,6 +29,9 @@ import MyStats from "./MyStats";
 import SupplementGroups from "./SupplementGroups";
 import { getFriendCalendar, getFriendDayIntakes } from "../api/friendApi";
 import RecentRecommendationSection from "../recommendation/RecentRecommendationSection";
+import ConfirmDialog from "../friends/ConfirmDialog";
+import { HomeToast } from "../home/HomeStates";
+import "../home/home.css";
 
 // 카드 병 색상: shared/ui 예시 데이터에서 쓰는 색상 이름을 순서대로 돌려 씀
 const cardColors = ["sun", "ocean", "lilac"];
@@ -142,8 +145,17 @@ export default function ProfileScreen({
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
   const [sharing, setSharing] = useState(false);
+  // 삭제 확인 창을 띄운 영양제 카드, null 이면 창 닫힘
+  const [removeTarget, setRemoveTarget] = useState(null);
+  // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
+  const removeOpenerRef = useRef(null);
+  // 브라우저 alert 대신 화면에 보여주는 실패 안내
+  const [removeError, setRemoveError] = useState(null);
+  const [shareError, setShareError] = useState(null);
   const shared = user?.shareIntakeStatus ?? false;
   const settingsOpenerRef = useRef(null);
+  // 등록·수정 완료 토스트 { type, text }, null 이면 안 보임
+  const [toast, setToast] = useState(null);
 
   // 영양제 등록·일정 수정 모달을 연 버튼 (닫으면 포커스 복원)
   const supplementOpenerRef = useRef(null);
@@ -165,7 +177,12 @@ export default function ProfileScreen({
       restoredScheduleRef.current = null;
       return;
     }
-    if (!isMine || !mySupplementList || restoredScheduleRef.current === restoreChild) return;
+    if (
+      !isMine ||
+      !mySupplementList ||
+      restoredScheduleRef.current === restoreChild
+    )
+      return;
     const id = restoreChild.slice("schedule:".length);
     const target = mySupplementList.find((item) => String(item.id) === id)?.raw;
     if (target) {
@@ -177,23 +194,54 @@ export default function ProfileScreen({
 
   useEffect(() => {
     if (!isMine || !onRegisterBack) return undefined;
-    const close = editing ? () => setEditing(false)
-      : adding ? () => setAdding(false)
-      : scheduleTarget ? () => setScheduleTarget(null)
-      : showSettings ? () => setShowSettings(false) : null;
-    const childId = editing ? "profile-edit" : adding ? "supplement-add"
-      : scheduleTarget ? `schedule:${scheduleTarget.userProductId}`
-      : showSettings ? "settings" : null;
-    onRegisterBack("my", close, childId,
-      adding || scheduleTarget ? supplementPanelInstanceId : null);
+    const close = editing
+      ? () => setEditing(false)
+      : adding
+        ? () => setAdding(false)
+        : scheduleTarget
+          ? () => setScheduleTarget(null)
+          : showSettings
+            ? () => setShowSettings(false)
+            : null;
+    const childId = editing
+      ? "profile-edit"
+      : adding
+        ? "supplement-add"
+        : scheduleTarget
+          ? `schedule:${scheduleTarget.userProductId}`
+          : showSettings
+            ? "settings"
+            : null;
+    onRegisterBack(
+      "my",
+      close,
+      childId,
+      adding || scheduleTarget ? supplementPanelInstanceId : null,
+    );
     return () => onRegisterBack("my", null);
-  }, [isMine, editing, adding, scheduleTarget, showSettings, supplementPanelInstanceId, onRegisterBack]);
+  }, [
+    isMine,
+    editing,
+    adding,
+    scheduleTarget,
+    showSettings,
+    supplementPanelInstanceId,
+    onRegisterBack,
+  ]);
 
-  const dismissPanel = (close, expectedChildId = null, expectedInstanceId = null) => {
-    if (expectedInstanceId != null && supplementPanelInstanceRef.current !== expectedInstanceId) {
+  const dismissPanel = (
+    close,
+    expectedChildId = null,
+    expectedInstanceId = null,
+  ) => {
+    if (
+      expectedInstanceId != null &&
+      supplementPanelInstanceRef.current !== expectedInstanceId
+    ) {
       return false;
     }
-    if (onDismissPanel?.("my", expectedChildId, expectedInstanceId) === false) return false;
+    if (onDismissPanel?.("my", expectedChildId, expectedInstanceId) === false)
+      return false;
     if (expectedInstanceId != null) supplementPanelInstanceRef.current = null;
     close();
     return true;
@@ -214,7 +262,7 @@ export default function ProfileScreen({
         shareIntakeStatus: updated.shareIntakeStatus,
       }));
     } catch (e) {
-      window.alert(e.message || "공개 설정을 바꾸지 못했어요.");
+      setShareError(e.message || "공개 설정을 바꾸지 못했어요.");
     } finally {
       setSharing(false);
     }
@@ -268,6 +316,13 @@ export default function ProfileScreen({
     }
   }, []);
 
+  // 토스트는 4초 뒤 자동으로 닫음 (홈 토스트와 같은 시간)
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const reload = () => setRefreshKey((prev) => prev + 1);
 
   // 내 영양제는 로그인 사용자 데이터 사용
@@ -306,10 +361,16 @@ export default function ProfileScreen({
     setAdding(true);
   };
 
-  // 삭제: 확인 → 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
-  const removeSupplement = async (supplement) => {
-    if (!window.confirm(`'${supplement.name}'을(를) 내 영양제에서 삭제할까요?`))
-      return;
+  // 삭제 버튼: 바로 지우지 않고 확인 창을 엶
+  const askRemoveSupplement = (supplement) => {
+    removeOpenerRef.current = document.activeElement;
+    setRemoveError(null);
+    setRemoveTarget(supplement);
+  };
+
+  // 확인 창의 [삭제]: 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
+  const removeSupplement = async () => {
+    const supplement = removeTarget;
     setRemovingId(supplement.id);
     try {
       await removeMySupplement(supplement.id);
@@ -321,9 +382,11 @@ export default function ProfileScreen({
         }
         return next;
       });
+      setRemoveTarget(null);
       reload();
     } catch (e) {
-      window.alert(e.message || "삭제하지 못했어요.");
+      setRemoveTarget(null);
+      setRemoveError(e.message || "삭제하지 못했어요.");
     } finally {
       setRemovingId(null);
     }
@@ -385,6 +448,11 @@ export default function ProfileScreen({
                   ? "나를 팔로우한 친구가 내 연속 복용, 영양제, 달력을 볼 수 있어요."
                   : "비공개예요. 친구는 내 복용 현황을 볼 수 없어요."}
               </small>
+              {shareError && (
+                <small className="share-error" role="alert">
+                  {shareError}
+                </small>
+              )}
             </div>
             <button
               type="button"
@@ -426,10 +494,13 @@ export default function ProfileScreen({
         <SupplementAddPage
           userId={userId}
           openerRef={supplementOpenerRef}
-          panelInstanceId={supplementPanelInstanceId}
-          onBack={(instanceId) => dismissPanel(() => setAdding(false), "supplement-add", instanceId)}
-          onSaved={(instanceId) => {
-            dismissPanel(() => setAdding(false), "supplement-add", instanceId);
+          onBack={() => setAdding(false)}
+          onSaved={(name) => {
+            setAdding(false);
+            setToast({
+              type: "success",
+              text: `${name}을(를) 내 영양제에 등록했어요`,
+            });
             reload();
           }}
         />
@@ -440,13 +511,31 @@ export default function ProfileScreen({
           userId={userId}
           target={scheduleTarget}
           openerRef={supplementOpenerRef}
-          panelInstanceId={supplementPanelInstanceId}
-          onBack={(instanceId) => dismissPanel(() => setScheduleTarget(null),
-            `schedule:${scheduleTarget.userProductId}`, instanceId)}
-          onSaved={(instanceId) => {
-            dismissPanel(() => setScheduleTarget(null),
-              `schedule:${scheduleTarget.userProductId}`, instanceId);
+          onBack={() => setScheduleTarget(null)}
+          onSaved={(name) => {
+            setScheduleTarget(null);
+            setToast({
+              type: "success",
+              text: `${name} 복용 일정을 수정했어요`,
+            });
             reload();
+          }}
+        />
+      )}
+
+      {/* 영양제 삭제 확인 창 (브라우저 confirm 대신 화면 디자인에 맞춘 모달) */}
+      {isMine && removeTarget && (
+        <ConfirmDialog
+          title="영양제 삭제"
+          message={`'${removeTarget.name}'을(를) 내 영양제에서 삭제할까요?`}
+          confirmLabel="삭제"
+          danger
+          busy={removingId === removeTarget.id}
+          openerRef={removeOpenerRef}
+          onConfirm={removeSupplement}
+          onCancel={() => {
+            // 삭제 처리 중에는 바깥을 눌러도 닫지 않음
+            if (removingId === null) setRemoveTarget(null);
           }}
         />
       )}
@@ -518,6 +607,14 @@ export default function ProfileScreen({
               </button>
             )}
           </div>
+          {isMine && removeError && (
+            <p
+              className="section-description supplement-action-error"
+              role="alert"
+            >
+              {removeError}
+            </p>
+          )}
           {isMine && supplementError && (
             <p className="section-description">
               영양제 정보를 불러오지 못했어요.
@@ -544,13 +641,16 @@ export default function ProfileScreen({
               renewSupplementPanelInstance();
               setScheduleTarget(supplement.raw);
             }}
-            onRemove={removeSupplement}
+            onRemove={askRemoveSupplement}
           />
         </section>
       </div>
 
       {/* 최근 추천 제품 보기 (V7, 담당: 영준). 내 화면에서만 */}
       {isMine && <RecentRecommendationSection />}
+
+      {/* 등록·수정 완료 안내 (홈 복용 체크 토스트와 같은 모양) */}
+      <HomeToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
