@@ -26,15 +26,17 @@ public interface SupplementScheduleRepository extends JpaRepository<IntakeSchedu
     // 제품 하나의 켜진 일정을 모두 끈다 (복용 일정 수정할 때 기존 일정 정리)
     // 복용 기록이 일정을 가리키고 있어서 지우지 않고 is_enabled만 false로 바꾼다
     // @Modifying: 조회가 아니라 값을 바꾸는 쿼리라는 표시
-    @Modifying
-    @Query("""
-            UPDATE IntakeSchedule s
-            SET s.isEnabled = false
-            WHERE s.userProduct.userProductId = :userProductId
-              AND s.isEnabled = true
-            """)
-    void disableAllByUserProductId(@Param("userProductId") Long userProductId);
+//    @Modifying
+//    @Query("""
+//            UPDATE IntakeSchedule s
+//            SET s.isEnabled = false
+//            WHERE s.userProduct.userProductId = :userProductId
+//              AND s.isEnabled = true
+//            """)
+//    void disableAllByUserProductId(@Param("userProductId") Long userProductId);
 
+    // 제품 하나의 켜진 일정을 모두 끈다 (복용 일정 수정할 때 기존 일정 정리)
+// 복용 기록이 일정을 가리키고 있어서 지우지 않고 is_enabled=false + 끈 날짜(disabled_at)를 기록한다
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE IntakeSchedule s

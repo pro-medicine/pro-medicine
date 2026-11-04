@@ -1185,15 +1185,19 @@ ON DUPLICATE KEY UPDATE
                      `source_id` = new_row.`source_id`,
                      `active` = new_row.`active`;
 
-ALTER TABLE intake_schedules ADD COLUMN disabled_at DATE NULL;
+ALTER TABLE intake_schedules
+    ADD COLUMN IF NOT EXISTS disabled_at DATE NULL;
 
--- 기존에 이미 꺼진 일정/삭제된 영양제의 일정 보정
--- 마지막 복용 기록 다음날, 기록이 없으면 일정 생성일
 UPDATE intake_schedules s
-    JOIN user_products up ON up.user_product_id = s.user_product_id
+    JOIN user_products up
+ON up.user_product_id = s.user_product_id
     SET s.disabled_at = COALESCE(
-        (SELECT DATE_ADD(MAX(r.intake_date), INTERVAL 1 DAY)
-        FROM intake_records r WHERE r.schedule_id = s.schedule_id),
-        DATE(s.created_at))
+        (
+        SELECT DATE_ADD(MAX(r.intake_date), INTERVAL 1 DAY)
+        FROM intake_records r
+        WHERE r.schedule_id = s.schedule_id
+        ),
+        DATE(s.created_at)
+        )
 WHERE s.disabled_at IS NULL
   AND (s.is_enabled = 0 OR up.is_active = 0);

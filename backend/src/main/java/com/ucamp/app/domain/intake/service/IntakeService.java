@@ -342,7 +342,7 @@ public class IntakeService {
         // 1. 사용자별 일정, 일정 id → 사용자 id
         Map<Long, List<IntakeSchedule>> schedulesByUser = new HashMap<>();
         Map<Long, Long> ownerBySchedule = new HashMap<>();
-        for (IntakeSchedule schedule : intakeScheduleRepository.findActiveSchedulesByUserIds(userIds)) {
+        for (IntakeSchedule schedule : intakeScheduleRepository.findScheduleHistoryByUserIds(userIds, from)) {
             Long ownerId = schedule.getUserProduct().getUser().getId();
             schedulesByUser.computeIfAbsent(ownerId, id -> new ArrayList<>()).add(schedule);
             ownerBySchedule.put(schedule.getScheduleId(), ownerId);

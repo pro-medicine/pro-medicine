@@ -205,7 +205,7 @@ public class MySupplementService {
         validateSchedules(request.schedules());
 
         // 2. 기존 일정은 지우지 않고 끈다 (복용 기록이 기존 일정을 가리키고 있어서)
-        supplementScheduleRepository.disableAllByUserProductId(userProductId);
+        supplementScheduleRepository.disableAllByUserProductId(userProductId, LocalDate.now(KST));
         // 3. 새 일정 저장
         List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(userProduct, request.schedules());
         return MySupplementResponse.of(userProduct, schedules);
