@@ -65,3 +65,8 @@ export function searchCatalogProducts(keyword) {
 export function updateShareIntake(shared) {
   return api.patch(`/api/v1/users/me/share-intake`, { shared });
 }
+
+// 제품을 골랐을 때 보여줄 복용 시점 안내: [{ ingredient, message }]
+export function fetchIntakeTips(catalogProductId) {
+  return api.get(`/api/v1/catalog-products/${catalogProductId}/intake-tips`);
+}
