@@ -13,7 +13,7 @@ import "./recommendation.css";
 const FOLLOWUP_CODES = new Set(["Q-GENDER", "Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS"]);
 
 export default function SignupHealthFollowup({ onClose, onReady, onSkip }) {
-  const [step, setStep] = useState("consent");
+  const [step, setStep] = useState("intro");
   const [survey, setSurvey] = useState(null);
   const [answers, setAnswers] = useState({});
   const [ingredients, setIngredients] = useState({});
@@ -95,10 +95,26 @@ export default function SignupHealthFollowup({ onClose, onReady, onSkip }) {
         <div className="rec-header">
           <div>
             <span className="rec-eyebrow">회원가입 완료</span>
-            <h2>맞춤 추천을 위한 추가 정보</h2>
+            <h2>{step === "intro" ? "맞춤 설문 이어하기" : "맞춤 추천을 위한 추가 정보"}</h2>
           </div>
           <button type="button" className="rec-close" onClick={onClose} aria-label="나중에 하기">×</button>
         </div>
+        {step === "intro" && (
+          <div className="rec-followup-intro">
+            <span className="rec-followup-check" aria-hidden="true">✓</span>
+            <h3>회원가입이 완료되었어요!</h3>
+            <p>앞서 진행한 기본 설문을 계정에 연결했어요. 이제 추가 건강정보를 확인하고 맞춤 설문을 이어서 진행할게요.</p>
+            <ul className="rec-signup-benefits">
+              <li>기존 V1 설문 답변 유지</li>
+              <li>추가 건강정보를 바탕으로 맞춤 질문 진행</li>
+              <li>민감정보 수집 동의는 직접 선택</li>
+            </ul>
+            <div className="rec-actions">
+              <button type="button" className="rec-button primary" onClick={() => setStep("consent")}>맞춤 설문 이어하기</button>
+              <button type="button" className="rec-button" onClick={onClose}>나중에 하기</button>
+            </div>
+          </div>
+        )}
         {step === "consent" && (
           <ConsentStep sending={sending} onAgree={agree} onSkip={onSkip} />
         )}

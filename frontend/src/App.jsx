@@ -25,6 +25,7 @@ import SignupHealthFollowup from "./recommendation/SignupHealthFollowup";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
+import { restoreSurveyFocus } from "./recommendation/surveyFocus";
 
 const NAV_STATE_KEY = "yakssokView";
 const NAV_DEPTH_KEY = "yakssokDepth";
@@ -59,8 +60,15 @@ export default function App() {
   const [surveyOpen, setSurveyOpen] = useState(false);
   // 설문이 열려 있었는지 (뒤로 가기로 설문을 닫을 때 홈을 다시 조회하려고 popstate에서 읽음)
   const surveyOpenRef = useRef(false);
+  const surveyTriggerRef = useRef(null);
+
   useEffect(() => {
     surveyOpenRef.current = surveyOpen;
+    if (surveyOpen) return;
+    const trigger = surveyTriggerRef.current;
+    // Keep connected triggers for surveys reopened through browser history.
+    if (trigger && !trigger.isConnected) surveyTriggerRef.current = null;
+    return restoreSurveyFocus(trigger);
   }, [surveyOpen]);
   const [postSignupHealth, setPostSignupHealth] = useState(false);
   const [skipConsentAfterSignup, setSkipConsentAfterSignup] = useState(false);
@@ -390,7 +398,19 @@ export default function App() {
     recordView({ kind: "memberSurvey", tab });
   };
 
-  const openSurvey = () => {
+  const startSignupFromGuestSurvey = () => {
+    if (userId != null || !surveyOpen) return;
+    surveyTriggerRef.current = null;
+    setSurveyOpen(false);
+    setPendingTab("home");
+    setAuthNotice("");
+    setAuthMode("signup");
+    recordView({ kind: "auth", mode: "signup", tab: "home" }, { replace: true });
+    window.scrollTo({ top: 0 });
+  };
+
+  const openSurvey = (event) => {
+    surveyTriggerRef.current = event?.currentTarget ?? null;
     setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
     recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
@@ -522,7 +542,7 @@ export default function App() {
               window.scrollTo({ top: 0 });
             }}
           />
-          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} />}
+          {surveyOpen && <RecommendationModal userId={null} onClose={closeSurvey} onSignup={startSignupFromGuestSurvey} />}
         </>
       );
     }

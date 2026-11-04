@@ -23,6 +23,7 @@ export default function ResultStep({
   ingredients,
   onRestart,
   onClose,
+  onSignup,
   userId,
   basisText = "설문과 건강 프로필에 입력한 약을 기준으로 확인했어요.",
   restartLabel = "다시 설문하기",
@@ -119,13 +120,29 @@ export default function ResultStep({
 
       {children}
 
+      {isGuest && onSignup && (
+        <section className="rec-signup-guide" aria-label="맞춤 추천 이어하기">
+          <h3>더 나에게 맞는 추천을 받아볼까요?</h3>
+          <p>회원가입 후 복용 중인 약, 기저질환, 영양제 정보를 추가하면 성분 중복과 주의사항을 고려한 맞춤 추천을 받을 수 있어요.</p>
+          <ul className="rec-signup-benefits">
+            <li>지금까지 입력한 설문 답변 유지</li>
+            <li>추가 건강정보 입력 후 V2 맞춤 설문 연결</li>
+            <li>민감정보 제공 여부는 직접 선택</li>
+          </ul>
+          <button type="button" className="rec-button primary rec-signup-cta" onClick={onSignup}>
+            회원가입하고 맞춤 추천 이어하기
+          </button>
+          <p className="rec-signup-note">회원가입 없이도 기본 추천 결과를 확인할 수 있어요.</p>
+        </section>
+      )}
+
       <div className="rec-actions">
         <button type="button" className="rec-button" onClick={onRestart}>
           {restartLabel}
         </button>
         <button
           type="button"
-          className="rec-button primary"
+          className={`rec-button${isGuest && onSignup ? "" : " primary"}`}
           onClick={onClose}
         >
           닫기
