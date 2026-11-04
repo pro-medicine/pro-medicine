@@ -87,7 +87,7 @@ export default function FriendsPage({
       })
       .catch(() => {});
 
-    getFollowRequests(userId, "received")
+    getFollowRequests("received")
       .then((data) => {
         if (!ignore) setRequests(data ?? []);
       })

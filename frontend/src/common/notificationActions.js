@@ -14,7 +14,7 @@ import { updateIntake } from "../api/homeApi";
  * (복용 알림은 같은 시각의 일정을 한 알림으로 묶어서 보냄)
  * @returns 체크한 일정 수 (0이면 이미 모두 먹음)
  */
-export async function completeIntakeFromNotification(userId, item) {
+export async function completeIntakeFromNotification(item) {
   const date = item.scheduledAt.slice(0, 10); // "2026-10-30"
   const time = item.scheduledAt.slice(11, 16); // "12:30"
   const list = await api.get("/api/v1/intakes/today", { params: { date } });
@@ -55,9 +55,9 @@ export async function respondGuardianFromNotification(userId, item, accept) {
   );
   if (!request) return false;
   if (accept) {
-    await acceptGuardian(userId, request.guardianSettingId);
+    await acceptGuardian(request.guardianSettingId);
   } else {
-    await removeGuardian(userId, request.guardianSettingId);
+    await removeGuardian(request.guardianSettingId);
   }
   return true;
 }
