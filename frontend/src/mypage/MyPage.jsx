@@ -106,6 +106,7 @@ export default function ProfileScreen({
   topBarActions,
   startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
   onRegisterBack,
+  onDismissPanel,
   restoreChild = null,
   account = null, // 로그인 계정 { email, nickname } (설정의 계정 정보)
   onLogout, // 설정의 "로그아웃"
@@ -171,6 +172,11 @@ export default function ProfileScreen({
     onRegisterBack("my", close, childId);
     return () => onRegisterBack("my", null);
   }, [isMine, editing, adding, scheduleTarget, showSettings, onRegisterBack]);
+
+  const dismissPanel = (close) => {
+    onDismissPanel?.("my");
+    close();
+  };
 
   const openSettings = () => {
     settingsOpenerRef.current = document.activeElement;
@@ -258,7 +264,7 @@ export default function ProfileScreen({
     return (
       <ProfileEditPage
         userId={userId}
-        onBack={() => setEditing(false)}
+        onBack={() => dismissPanel(() => setEditing(false))}
         onSaved={(updatedUser) => {
           setUser(updatedUser);
           onUserUpdated?.(updatedUser);
@@ -346,7 +352,7 @@ export default function ProfileScreen({
 
       {showSettings && (
         <SettingsModal
-          onClose={() => setShowSettings(false)}
+          onClose={() => dismissPanel(() => setShowSettings(false))}
           openerRef={settingsOpenerRef}
         >
           <section className="share-setting">
@@ -395,9 +401,9 @@ export default function ProfileScreen({
         <SupplementAddPage
           userId={userId}
           openerRef={supplementOpenerRef}
-          onBack={() => setAdding(false)}
+          onBack={() => dismissPanel(() => setAdding(false))}
           onSaved={() => {
-            setAdding(false);
+            dismissPanel(() => setAdding(false));
             reload();
           }}
         />
@@ -408,9 +414,9 @@ export default function ProfileScreen({
           userId={userId}
           target={scheduleTarget}
           openerRef={supplementOpenerRef}
-          onBack={() => setScheduleTarget(null)}
+          onBack={() => dismissPanel(() => setScheduleTarget(null))}
           onSaved={() => {
-            setScheduleTarget(null);
+            dismissPanel(() => setScheduleTarget(null));
             reload();
           }}
         />

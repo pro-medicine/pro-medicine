@@ -104,6 +104,14 @@ export default function App() {
     }
   }, []);
 
+  const dismissPanel = useCallback((ownerTab) => {
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (view?.kind === "member" && view.tab === ownerTab && view.child?.type === "panel") {
+      recordView({ kind: "member", tab: ownerTab }, { replace: true });
+      setHistoryChild(null);
+    }
+  }, []);
+
   const userId = user?.userId;
   const signupFollowupOwnerRef = useRef(null);
 
@@ -516,6 +524,7 @@ export default function App() {
             onCloseFriend={handleBack}
             restoreChild={tab === "friends" && historyChild?.type === "panel" ? historyChild.id : null}
             onRegisterBack={registerChildBack}
+            onDismissPanel={dismissPanel}
             onNotifications={openNotifications}
           />
         );
@@ -528,6 +537,7 @@ export default function App() {
             startAdding={myStartAdding}
             restoreChild={tab === "my" && historyChild?.type === "panel" ? historyChild.id : null}
             onRegisterBack={registerChildBack}
+            onDismissPanel={dismissPanel}
             onUserUpdated={(updatedUser) =>
               setUser((prev) => (prev?.userId === userId ? { ...prev, ...updatedUser } : prev))
             }

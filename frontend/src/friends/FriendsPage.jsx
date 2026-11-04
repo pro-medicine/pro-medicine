@@ -41,6 +41,7 @@ export default function FriendsPage({
   onSelectFriend,
   onCloseFriend,
   onRegisterBack,
+  onDismissPanel,
   restoreChild = null,
 }) {
   const [friends, setFriends] = useState([]);
@@ -82,6 +83,11 @@ export default function FriendsPage({
     onRegisterBack("friends", close, childId);
     return () => onRegisterBack("friends", null);
   }, [requestsOpen, requestTab, addOpen, onRegisterBack]);
+
+  const dismissPanel = (close) => {
+    onDismissPanel?.("friends");
+    close();
+  };
 
   const openModal = (setter) => (e) => {
     openerRef.current = e.currentTarget;
@@ -274,10 +280,11 @@ export default function FriendsPage({
         <FollowRequestModal
           userId={userId}
           initialTab={requestTab}
-          onClose={() => {
+          onTabChange={setRequestTab}
+          onClose={() => dismissPanel(() => {
             setRequestsOpen(false);
             setReloadKey((k) => k + 1); // 모달에서 수락·취소한 내용을 카드에도 반영
-          }}
+          })}
           onAccepted={() => setReloadKey((k) => k + 1)}
           openerRef={openerRef}
         />
@@ -285,7 +292,7 @@ export default function FriendsPage({
       {addOpen && (
         <AddFriendModal
           userId={userId}
-          onClose={() => setAddOpen(false)}
+          onClose={() => dismissPanel(() => setAddOpen(false))}
           openerRef={openerRef}
         />
       )}
