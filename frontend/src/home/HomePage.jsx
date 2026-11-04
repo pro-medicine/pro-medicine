@@ -109,7 +109,7 @@ export default function HomePage({
   useEffect(() => {
     if (!homeDate) return undefined;
     let ignore = false;
-    getTodayNutrition(userId, homeDate, isSample).then((data) => {
+    getTodayNutrition(homeDate).then((data) => {
       if (!ignore) setNutrition({ forDate: homeDate, data });
     });
     return () => {
