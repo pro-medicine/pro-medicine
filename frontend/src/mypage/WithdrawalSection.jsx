@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./withdrawal.css";
 
 export default function WithdrawalSection({ onWithdraw, busy }) {
@@ -6,6 +6,11 @@ export default function WithdrawalSection({ onWithdraw, busy }) {
   const [password, setPassword] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
+  const passwordInputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) passwordInputRef.current?.focus();
+  }, [open]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -30,8 +35,8 @@ export default function WithdrawalSection({ onWithdraw, busy }) {
           <strong>회원 탈퇴</strong>
           <p>계정과 복용 기록, 건강 정보, 친구 관계, 설문 및 추천 기록이 삭제되며 복구할 수 없습니다.</p>
           <label htmlFor="withdrawal-password">현재 비밀번호 확인</label>
-          <input id="withdrawal-password" type="password" autoComplete="current-password"
-            value={password} onChange={(event) => setPassword(event.target.value)} required />
+          <input ref={passwordInputRef} id="withdrawal-password" type="password" autoComplete="current-password"
+            value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} required />
           <label className="withdrawal-check">
             <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
             위 내용을 확인했으며 회원 탈퇴에 동의합니다.
