@@ -225,7 +225,7 @@ export default function LandingPage({ onStart, onSurvey }) {
             무료로 시작하기
           </button>
         </section>
-        <GuestSurveySection />
+        <GuestSurveySection onSurvey={onSurvey} />
       </main>
 
       <footer className="landing-footer">
