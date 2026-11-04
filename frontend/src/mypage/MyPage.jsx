@@ -106,6 +106,7 @@ export default function ProfileScreen({
   topBarActions,
   startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
   onRegisterBack,
+  restoreChild = null,
   account = null, // 로그인 계정 { email, nickname } (설정의 계정 정보)
   onLogout, // 설정의 "로그아웃"
   loggingOut = false,
@@ -137,12 +138,37 @@ export default function ProfileScreen({
   const addButtonRef = useRef(null);
 
   useEffect(() => {
+    if (!isMine || !restoreChild) return;
+    if (restoreChild === "profile-edit") setEditing(true);
+    else if (restoreChild === "supplement-add") setAdding(true);
+    else if (restoreChild === "settings") setShowSettings(true);
+  }, [isMine, restoreChild]);
+
+  const restoredScheduleRef = useRef(null);
+  useEffect(() => {
+    if (!restoreChild?.startsWith("schedule:")) {
+      restoredScheduleRef.current = null;
+      return;
+    }
+    if (!isMine || !mySupplementList || restoredScheduleRef.current === restoreChild) return;
+    const id = restoreChild.slice("schedule:".length);
+    const target = mySupplementList.find((item) => String(item.id) === id)?.raw;
+    if (target) {
+      restoredScheduleRef.current = restoreChild;
+      setScheduleTarget(target);
+    }
+  }, [isMine, restoreChild, mySupplementList]);
+
+  useEffect(() => {
     if (!isMine || !onRegisterBack) return undefined;
     const close = editing ? () => setEditing(false)
       : adding ? () => setAdding(false)
       : scheduleTarget ? () => setScheduleTarget(null)
       : showSettings ? () => setShowSettings(false) : null;
-    onRegisterBack("my", close);
+    const childId = editing ? "profile-edit" : adding ? "supplement-add"
+      : scheduleTarget ? `schedule:${scheduleTarget.userProductId}`
+      : showSettings ? "settings" : null;
+    onRegisterBack("my", close, childId);
     return () => onRegisterBack("my", null);
   }, [isMine, editing, adding, scheduleTarget, showSettings, onRegisterBack]);
 

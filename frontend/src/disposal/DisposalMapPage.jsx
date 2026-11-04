@@ -78,7 +78,7 @@ function getLocationErrorMessage(error) {
   return "현재 위치를 가져오지 못했습니다. 지역명으로 약국을 검색할 수 있어요.";
 }
 
-export default function DisposalMapScreen({ onNotifications, onRegisterBack }) {
+export default function DisposalMapScreen({ onNotifications, onRegisterBack, restoreChild = null }) {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [searchCount, setSearchCount] = useState(0);
@@ -122,6 +122,16 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack }) {
   }, []);
 
   useEffect(() => {
+    if (!restoreChild?.startsWith("pharmacy:")) return;
+    const id = restoreChild.slice("pharmacy:".length);
+    const pharmacy = pharmacies.find((item) => String(item.id) === id);
+    if (pharmacy) {
+      setSelected((current) => current?.id === pharmacy.id ? current : pharmacy);
+      setFocusPharmacy({ latitude: pharmacy.latitude, longitude: pharmacy.longitude });
+    }
+  }, [restoreChild, pharmacies]);
+
+  useEffect(() => {
     if (!onRegisterBack) return undefined;
     const close = selected || isNavigating || walkingRoute
       ? () => {
@@ -130,7 +140,8 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack }) {
           setFocusPharmacy(null);
         }
       : null;
-    onRegisterBack("disposal", close);
+    const childId = selected ? `pharmacy:${selected.id}` : null;
+    onRegisterBack("disposal", close, childId);
     return () => onRegisterBack("disposal", null);
   }, [selected, isNavigating, walkingRoute, cancelWalkingRoute, onRegisterBack]);
 

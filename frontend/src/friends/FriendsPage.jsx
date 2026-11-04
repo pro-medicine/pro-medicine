@@ -41,6 +41,7 @@ export default function FriendsPage({
   onSelectFriend,
   onCloseFriend,
   onRegisterBack,
+  restoreChild = null,
 }) {
   const [friends, setFriends] = useState([]);
   const [followers, setFollowers] = useState([]); // 나를 팔로우하는 사람 (맞팔로우 대상)
@@ -62,6 +63,14 @@ export default function FriendsPage({
   const openerRef = useRef(null);
 
   useEffect(() => {
+    if (restoreChild === "add") setAddOpen(true);
+    else if (restoreChild?.startsWith("requests:")) {
+      setRequestTab(restoreChild.slice("requests:".length));
+      setRequestsOpen(true);
+    }
+  }, [restoreChild]);
+
+  useEffect(() => {
     if (!onRegisterBack) return undefined;
     const close = requestsOpen
       ? () => {
@@ -69,9 +78,10 @@ export default function FriendsPage({
           setReloadKey((k) => k + 1);
         }
       : addOpen ? () => setAddOpen(false) : null;
-    onRegisterBack("friends", close);
+    const childId = requestsOpen ? `requests:${requestTab}` : addOpen ? "add" : null;
+    onRegisterBack("friends", close, childId);
     return () => onRegisterBack("friends", null);
-  }, [requestsOpen, addOpen, onRegisterBack]);
+  }, [requestsOpen, requestTab, addOpen, onRegisterBack]);
 
   const openModal = (setter) => (e) => {
     openerRef.current = e.currentTarget;

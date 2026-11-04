@@ -87,10 +87,17 @@ export default function App() {
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
   const childBackRef = useRef(null);
   const [childBackTab, setChildBackTab] = useState(null);
-  const registerChildBack = useCallback((ownerTab, close) => {
-    if (close) {
-      childBackRef.current = { tab: ownerTab, close };
+  const [historyChild, setHistoryChild] = useState(null);
+  const registerChildBack = useCallback((ownerTab, close, childId) => {
+    if (close && childId) {
+      childBackRef.current = { tab: ownerTab, close, id: childId };
       setChildBackTab(ownerTab);
+      const view = window.history.state?.[NAV_STATE_KEY];
+      if (view?.kind === "member" && view.tab === ownerTab &&
+          (view.child?.type !== "panel" || view.child.id !== childId)) {
+        recordView({ kind: "member", tab: ownerTab, child: { type: "panel", id: childId } },
+          { replace: view.child?.type === "panel" });
+      }
     } else if (childBackRef.current?.tab === ownerTab) {
       childBackRef.current = null;
       setChildBackTab(null);
@@ -123,6 +130,7 @@ export default function App() {
     setMyStartAdding(false);
     childBackRef.current = null;
     setChildBackTab(null);
+    setHistoryChild(null);
     setHasUnreadNotifications(false);
     setHomeRefreshKey(0);
   };
@@ -166,7 +174,11 @@ export default function App() {
     const view = window.history.state?.[NAV_STATE_KEY];
     if (user) {
       if (view?.kind === "member" || view?.kind === "memberSurvey") {
-        setTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+        const nextTab = VALID_TABS.has(view.tab) ? view.tab : "home";
+        const nextChild = view.kind === "member" ? view.child ?? null : null;
+        setTab(nextTab);
+        setHistoryChild(nextChild);
+        setFriendTarget(nextTab === "friends" && nextChild?.type === "friend" ? nextChild.id : null);
         setSurveyOpen(view.kind === "memberSurvey");
       } else {
         recordView({ kind: "member", tab: "home" }, { replace: true, reset: true });
@@ -208,22 +220,21 @@ export default function App() {
         return;
       }
       if (userId != null) {
-        const childBack = childBackRef.current;
-        if (!surveyOpenRef.current && ((tab === "friends" && friendTarget != null)
-            || childBack?.tab === tab)) {
-          if (tab === "friends" && friendTarget != null) setFriendTarget(null);
-          else childBack.close();
-          recordView({ kind: "member", tab });
-          window.scrollTo({ top: 0 });
-          return;
-        }
         const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        const nextTab = isMember && VALID_TABS.has(view.tab) ? view.tab : "home";
+        const nextChild = isMember && view.kind === "member" ? view.child ?? null : null;
         const nextSurveyOpen = isMember && view.kind === "memberSurvey";
-        // 설문을 닫았으면 홈 다시 조회 (임신 여부 등 설문 답이 오늘 영양소 권장량·주의 문구에 쓰임)
+        const childBack = childBackRef.current;
+        if (childBack && (childBack.tab !== nextTab || nextChild?.type !== "panel" ||
+            nextChild.id !== childBack.id)) {
+          childBack.close();
+        }
+        // popstate는 기존 기록의 목적 화면만 복원한다. 앞으로 가기에서 새 기록을 추가하지 않는다.
         if (surveyOpenRef.current && !nextSurveyOpen) setHomeRefreshKey((key) => key + 1);
-        setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
+        setTab(nextTab);
+        setHistoryChild(nextChild);
         setSurveyOpen(nextSurveyOpen);
-        setFriendTarget(null);
+        setFriendTarget(nextTab === "friends" && nextChild?.type === "friend" ? nextChild.id : null);
         setMyStartAdding(false);
         setNotificationsOpen(false);
         notificationsOpenRef.current = false;
@@ -238,7 +249,7 @@ export default function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [userId, tab, friendTarget]);
+  }, [userId]);
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
   // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
@@ -395,6 +406,11 @@ export default function App() {
     if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
     if (nextTab !== tab) recordView({ kind: "member", tab: nextTab }, { replace });
+    else if (window.history.state?.[NAV_STATE_KEY]?.child) {
+      recordView({ kind: "member", tab: nextTab }, { replace: true });
+    }
+    if (childBackRef.current?.tab === tab) childBackRef.current.close();
+    setHistoryChild(null);
     setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
@@ -404,12 +420,18 @@ export default function App() {
   const handleBack = () => {
     if (surveyOpen) {
       closeSurvey();
+      return;
+    }
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (view?.kind === "member" && view.tab === tab && view.child &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+      window.history.back();
     } else if (tab === "friends" && friendTarget != null) {
       setFriendTarget(null);
-      window.scrollTo({ top: 0 });
+      recordView({ kind: "member", tab }, { replace: true });
     } else if (childBackRef.current?.tab === tab) {
       childBackRef.current.close();
-      window.scrollTo({ top: 0 });
+      recordView({ kind: "member", tab }, { replace: true });
     }
   };
 
@@ -470,7 +492,8 @@ export default function App() {
     notificationsOpenRef.current = false;
     setToast(null);
     changeTab(nextTab);
-    if (friendUserId) {
+    if (nextTab === "friends" && friendUserId != null) {
+      recordView({ kind: "member", tab: "friends", child: { type: "friend", id: friendUserId } });
       setFriendTarget(friendUserId);
       setFriendsKey((k) => k + 1); // 친구 화면을 새로 열어서 바로 상세로
     }
@@ -486,13 +509,12 @@ export default function App() {
             openFriendUserId={friendTarget}
             onSelectFriend={(friend) => {
               if (friend?.userId == null) return;
+              recordView({ kind: "member", tab: "friends", child: { type: "friend", id: friend.userId } });
               setFriendTarget(friend.userId);
               window.scrollTo({ top: 0 });
             }}
-            onCloseFriend={() => {
-              setFriendTarget(null);
-              window.scrollTo({ top: 0 });
-            }}
+            onCloseFriend={handleBack}
+            restoreChild={tab === "friends" && historyChild?.type === "panel" ? historyChild.id : null}
             onRegisterBack={registerChildBack}
             onNotifications={openNotifications}
           />
@@ -504,6 +526,7 @@ export default function App() {
             userId={userId}
             account={user}
             startAdding={myStartAdding}
+            restoreChild={tab === "my" && historyChild?.type === "panel" ? historyChild.id : null}
             onRegisterBack={registerChildBack}
             onUserUpdated={(updatedUser) =>
               setUser((prev) => (prev?.userId === userId ? { ...prev, ...updatedUser } : prev))
@@ -514,7 +537,9 @@ export default function App() {
           />
         );
       case "disposal":
-        return <DisposalMapPage onNotifications={openNotifications} onRegisterBack={registerChildBack} />;
+        return <DisposalMapPage onNotifications={openNotifications}
+          restoreChild={historyChild?.type === "panel" ? historyChild.id : null}
+          onRegisterBack={registerChildBack} />;
       default:
         return (
           <HomePage
