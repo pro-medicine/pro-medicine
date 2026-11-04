@@ -33,7 +33,6 @@ public class ConditionCodeResolver {
     public static final String SUN_LOW = "SUN_LOW";
     public static final String PREGNANCY_POSSIBLE = "PREGNANCY_POSSIBLE";
     public static final String PREGNANT_OR_LACTATING = "PREGNANT_OR_LACTATING";
-    public static final String PREGNANCY_NOT_ASSESSED = "PREGNANCY_NOT_ASSESSED";
     public static final String ADULT_MALE_TAKING_IRON = "ADULT_MALE_TAKING_IRON";
     public static final String GUEST = "GUEST";
     // 규칙(condition_type = DISEASE)에 쓰는 진단 질환 코드. user_conditions.condition_name 값과 같다
@@ -62,9 +61,6 @@ public class ConditionCodeResolver {
         }
         if ("PREGNANT".equals(input.pregnancy()) || "LACTATING".equals(input.pregnancy())) {
             codes.add(PREGNANT_OR_LACTATING);
-        }
-        if (input.isPersonalized() && input.gender() == null && input.pregnancy() == null) {
-            codes.add(PREGNANCY_NOT_ASSESSED);
         }
         for (String condition : input.conditionsOrEmpty()) {
             if (DISEASES.contains(condition)) {
