@@ -9,6 +9,44 @@ let refreshPromise = null;
 let logoutPromise = null;
 let authGeneration = 0;
 
+const GUEST_DEMOGRAPHICS_KEY = "yakssok:guest-survey-demographics";
+
+export function saveGuestSurveyDemographics(responseId, { birthYear, gender }) {
+    if (!Number.isSafeInteger(responseId) || responseId <= 0) return;
+    const currentYear = new Date().getFullYear();
+    const year = Number.isInteger(birthYear) && birthYear >= 1900 && birthYear <= currentYear
+        ? birthYear : null;
+    const selectedGender = ["남성", "여성", "선택 안 함"].includes(gender) ? gender : null;
+    try {
+        sessionStorage.removeItem(GUEST_DEMOGRAPHICS_KEY);
+        if (year != null || selectedGender != null) {
+            sessionStorage.setItem(GUEST_DEMOGRAPHICS_KEY, JSON.stringify({
+                responseId, birthYear: year, gender: selectedGender,
+            }));
+        }
+    } catch {
+    }
+}
+
+export function getPendingGuestDemographics() {
+    const pending = getPendingGuestSurvey();
+    if (!pending) return null;
+    try {
+        const saved = JSON.parse(sessionStorage.getItem(GUEST_DEMOGRAPHICS_KEY) || "null");
+        if (!saved || saved.responseId !== pending.guestResponseId) return null;
+        const year = Number(saved.birthYear);
+        const currentYear = new Date().getFullYear();
+        const birthYear = Number.isInteger(year) && year >= 1900 && year <= currentYear
+            ? year : null;
+        const gender = ["남성", "여성", "선택 안 함"].includes(saved.gender)
+            ? saved.gender : null;
+        return birthYear != null || gender != null
+            ? { responseId: pending.guestResponseId, birthYear, gender } : null;
+    } catch {
+        return null;
+    }
+}
+
 export function getPendingGuestSurvey() {
     if (USE_MOCK_AUTH) return null;
     const responseId = Number(sessionStorage.getItem("guestSurveyResponseId"));
@@ -20,6 +58,7 @@ export function getPendingGuestSurvey() {
 function clearPendingGuestSurvey() {
     sessionStorage.removeItem("guestSurveyResponseId");
     sessionStorage.removeItem("guestToken");
+    sessionStorage.removeItem(GUEST_DEMOGRAPHICS_KEY);
 }
 
 async function request(path, { method = "GET", body, credentials = "omit", useAuth = true } = {}) {

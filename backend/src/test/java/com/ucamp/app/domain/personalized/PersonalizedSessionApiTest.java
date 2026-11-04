@@ -2,7 +2,9 @@ package com.ucamp.app.domain.personalized;
 
 import com.ucamp.app.domain.personalized.entity.AiQuestionSession;
 import com.ucamp.app.domain.personalized.repository.AiQuestionSessionRepository;
+import com.ucamp.app.domain.user.entity.AuthDemographic;
 import com.ucamp.app.domain.user.entity.User;
+import com.ucamp.app.domain.user.repository.AuthDemographicRepository;
 import com.ucamp.app.infra.llm.FakeLlmClient;
 import com.ucamp.app.infra.llm.LlmCallException;
 import com.ucamp.app.support.TestMembers;
@@ -50,6 +52,8 @@ class PersonalizedSessionApiTest {
     @Autowired
     AiQuestionSessionRepository sessionRepository;
     @Autowired
+    AuthDemographicRepository authDemographicRepository;
+    @Autowired
     JdbcTemplate jdbcTemplate;
 
     @AfterEach
@@ -74,6 +78,16 @@ class PersonalizedSessionApiTest {
                 .andExpect(jsonPath("$.data.progress.asked").value(1))
                 .andExpect(jsonPath("$.data.progress.base").value(5))
                 .andExpect(jsonPath("$.data.progress.max").value(7));
+    }
+
+    @Test
+    void 성별_선택안함_회원은_임신_질문없이_V2_맞춤질문을_진행한다() throws Exception {
+        User user = members.create(true, Map.of(), List.of("HYPERTENSION"), List.of("D-001"));
+        authDemographicRepository.saveAndFlush(new AuthDemographic(user, 30, "선택 안 함"));
+
+        start(user).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.question.fixed").value(false))
+                .andExpect(jsonPath("$.data.question.topic").value("CONCERN_OPEN"));
     }
 
     @Test

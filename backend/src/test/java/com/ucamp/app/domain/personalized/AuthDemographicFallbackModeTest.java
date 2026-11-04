@@ -51,14 +51,13 @@ class AuthDemographicFallbackModeTest {
     }
 
     @Test
-    void 선택_안_함이면_성별은_여전히_missing이고_출생연도는_빠진다() throws Exception {
+    void 선택_안_함도_응답_완료로_인정되어_V2에_진입한다() throws Exception {
         User user = members.create(true, Map.of(), List.of("HYPERTENSION"), List.of("D-001"));
         authDemographicRepository.saveAndFlush(new AuthDemographic(user, 25, "선택 안 함"));
 
         mode(user)
-                .andExpect(jsonPath("$.data.mode").value("V1"))
-                .andExpect(jsonPath("$.data.missing", hasItem("GENDER")))
-                .andExpect(jsonPath("$.data.missing", not(hasItem("BIRTH_YEAR"))));
+                .andExpect(jsonPath("$.data.mode").value("V2"))
+                .andExpect(jsonPath("$.data.missing.length()").value(0));
     }
 
     @Test

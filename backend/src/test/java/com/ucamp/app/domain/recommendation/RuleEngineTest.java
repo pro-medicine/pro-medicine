@@ -1,6 +1,7 @@
 package com.ucamp.app.domain.recommendation;
 
 import com.ucamp.app.domain.recommendation.pipeline.RecommendationItem;
+import com.ucamp.app.domain.recommendation.rule.ConditionCodeResolver;
 import com.ucamp.app.domain.recommendation.rule.Rule;
 import com.ucamp.app.domain.recommendation.rule.RuleEngine;
 import com.ucamp.app.domain.recommendation.rule.RuleService;
@@ -169,6 +170,32 @@ class RuleEngineTest {
 
     static Stream<String> pregnancyExcluded() {
         return Stream.of("LUTEIN", "MILK_THISTLE", "CURCUMIN", "COLLAGEN", "GLUCOSAMINE", "COQ10", "NIACIN");
+    }
+
+    @Test
+    void V2_임신정보_미확인만으로_임신관련_성분을_제외하지_않는다() {
+        Set<String> conditions = Set.of();
+        assertThat(engine.preFilter(conditions, false)).isEmpty();
+
+        RuleEngine isolated = new RuleEngine(List.of(
+                new Rule("P-EX", "CONDITION", ConditionCodeResolver.PREGNANT_OR_LACTATING,
+                        "CURCUMIN", Rule.EXCLUDE, "임신 중 제외", false, null),
+                new Rule("P-WARN", "CONDITION", ConditionCodeResolver.PREGNANCY_POSSIBLE,
+                        "OMEGA3", Rule.WARN, "실제 임신 상태 안내", false, null),
+                new Rule("P-ADJ", "CONDITION", ConditionCodeResolver.PREGNANT_OR_LACTATING,
+                        "IRON", Rule.ADJUST, "임신 기준 증량", false, null)));
+        assertThat(isolated.preFilter(conditions, false)).isEmpty();
+        RuleEngine.PostResult unknown = isolated.applyPost(
+                List.of(item("CURCUMIN"), item("OMEGA3"), item("IRON")), conditions, false);
+        assertThat(unknown.items()).allSatisfy(item -> {
+            assertThat(item.excluded()).isFalse();
+            assertThat(item.appliedRuleIdsOrEmpty()).isEmpty();
+        });
+        assertThat(isolated.preFilter(Set.of(ConditionCodeResolver.PREGNANT_OR_LACTATING), false))
+                .extracting(RuleEngine.Banned::ingredient).containsExactly("CURCUMIN");
+        RuleEngine.PostResult pregnant = isolated.applyPost(
+                List.of(item("CURCUMIN")), Set.of(ConditionCodeResolver.PREGNANT_OR_LACTATING), false);
+        assertThat(pregnant.items().get(0).excluded()).isTrue();
     }
 
     @Test

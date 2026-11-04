@@ -67,7 +67,7 @@ public class AuthService {
             throw ex;
         }
         if (request.guestResponseId() != null) {
-            surveySubmitService.claimGuestResponse(request.guestResponseId(), request.guestToken(), user);
+            surveySubmitService.claimGuestResponse(request.guestResponseId(), request.guestToken(), user, request.gender(), age);
         }
         return UserResponse.from(user);
     }

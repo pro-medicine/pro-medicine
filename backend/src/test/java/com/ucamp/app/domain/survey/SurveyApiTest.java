@@ -7,6 +7,7 @@ import com.ucamp.app.domain.health.entity.UserCondition;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.health.repository.UserConditionRepository;
 import com.ucamp.app.domain.health.repository.UserMedicationRepository;
+import com.ucamp.app.domain.personalized.service.RecommendationModeService;
 import com.ucamp.app.domain.recommendation.service.RecommendationInputAssembler;
 import com.ucamp.app.domain.survey.entity.RespondentType;
 import com.ucamp.app.domain.survey.entity.ResponseStatus;
@@ -31,6 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +80,8 @@ class SurveyApiTest {
     SurveyResponseRepository surveyResponseRepository;
     @Autowired
     RecommendationInputAssembler recommendationInputAssembler;
+    @Autowired
+    RecommendationModeService recommendationModeService;
     @Autowired
     SurveyAnswerRepository surveyAnswerRepository;
     @Autowired
@@ -301,6 +305,99 @@ class SurveyApiTest {
     }
 
     @Test
+    void 회원가입에서_수정한_성별이_게스트_V1_프로필보다_우선한다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "override-gender", "남성")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isEqualTo("M");
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 회원가입에서_성별_선택안함으로_변경하면_게스트_성별이_남지_않는다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "unspecified-gender", "선택 안 함")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isNull();
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 가입_성별_선택안함은_중복_질문없이_V2에_진입한다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "no-gender-v2", "선택 안 함")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(healthProfileRepository.findById(userId).orElseThrow().getGender()).isNull();
+        assertThat(recommendationModeService.mode(userId).missing()).doesNotContain("GENDER");
+
+        mockMvc.perform(post("/api/v1/users/me/sensitive-consent")
+                        .header("Authorization", bearer(userId)))
+                .andExpect(status().isOk());
+        submitOk(userId, List.of(choice(Q_CONDITIONS, CONDITION_NONE), text(Q_MEDICATIONS, "[]")));
+
+        assertThat(recommendationModeService.mode(userId).mode()).isEqualTo("V2");
+        assertThat(recommendationInputAssembler.assembleForMember(userId, null).gender()).isNull();
+    }
+
+    @Test
+    void 성별_선택_이력이_전혀_없으면_성별_문항이_필요하다() {
+        User user = TestUsers.create(userRepository, false);
+        assertThat(recommendationModeService.mode(user.getId()).missing()).contains("GENDER");
+    }
+
+    @Test
+    void 회원가입에서_수정한_나이가_V2에_우선_반영되고_원본_V1_출생연도는_보존된다() throws Exception {
+        int originalBirthYear = Year.now().getValue() - 31;
+        int signupAge = 28;
+        String guestBody = submit(null, List.of(
+                choice(Q_GENDER, GENDER_F),
+                number(Q_BIRTH, originalBirthYear),
+                choice(Q_SMOKING, SMOKING_NONE)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode guest = objectMapper.readTree(guestBody).get("data");
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "override-age", "여성", signupAge)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(healthProfileRepository.findById(userId).orElseThrow().getBirthYear())
+                .isEqualTo(Year.now().getValue() - signupAge);
+        assertThat(recommendationInputAssembler.assembleForMember(userId, null).age()).isEqualTo(signupAge);
+        assertThat(surveyAnswerRepository.findDetailByResponseId(responseId).stream()
+                .filter(answer -> "Q-BIRTH".equals(answer.getQuestion().getCode()))
+                .findFirst().orElseThrow().getValueNumber().intValue())
+                .isEqualTo(originalBirthYear);
+    }
+
+    @Test
     void 잘못된_게스트_토큰으로_회원가입하면_연결되지_않는다() throws Exception {
         JsonNode guest = submitGuestForSignup();
         long responseId = guest.get("responseId").asLong();
@@ -466,6 +563,15 @@ class SurveyApiTest {
     }
 
     private ResultActions signupWithGuest(long responseId, String guestToken, String suffix) throws Exception {
+        return signupWithGuest(responseId, guestToken, suffix, "여성");
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix, String gender) throws Exception {
+        return signupWithGuest(responseId, guestToken, suffix, gender, 26);
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix,
+                                          String gender, int age) throws Exception {
         when(refreshTokens.issue(anyLong(), eq(false)))
                 .thenReturn(new RefreshTokenService.Issued("test-refresh", 604800));
         return mockMvc.perform(post("/api/v1/auth/signup")
@@ -474,8 +580,8 @@ class SurveyApiTest {
                         "email", "guest-claim-" + suffix + "@example.com",
                         "password", "Password123!",
                         "name", "guest-claim-" + suffix,
-                        "age", 26,
-                        "gender", "여성",
+                        "age", age,
+                        "gender", gender,
                         "termsAgreed", true,
                         "guestResponseId", responseId,
                         "guestToken", guestToken))));

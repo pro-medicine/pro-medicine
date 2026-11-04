@@ -23,6 +23,15 @@ public class MemberDemographicsFallback {
                 .orElse(null);
     }
 
+    /** 가입 시 성별 선택을 마쳤는지 확인한다. "선택 안 함"도 완료로 본다. */
+    public boolean hasCompletedGenderSelection(Long userId) {
+        return authDemographicRepository.findById(userId)
+                .map(AuthDemographic::getGender)
+                .filter(gender -> "남성".equals(gender) || "여성".equals(gender)
+                        || "선택 안 함".equals(gender))
+                .isPresent();
+    }
+
     /** 가입 나이 + 동의 시각으로 출생 연도 추정. 행 없음이나 나이 null이면 null */
     public Integer resolveBirthYear(Long userId) {
         return authDemographicRepository.findById(userId)
