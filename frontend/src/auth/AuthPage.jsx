@@ -2,14 +2,29 @@
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
 import { useEffect, useRef, useState } from "react";
-import { getPendingGuestDemographics, getPendingGuestSurvey, login, signup } from "./authApi";
+import {
+  getPendingGuestDemographics,
+  getPendingGuestSurvey,
+  login,
+  signup,
+} from "./authApi";
 import "./auth.css";
 
 const GENDERS = ["여성", "남성", "선택 안 함"];
 
 function EyeIcon({ open }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
       <circle cx="12" cy="12" r="3" />
       {!open && <path d="M3 3l18 18" />}
@@ -19,7 +34,17 @@ function EyeIcon({ open }) {
 
 function CheckIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M5 12.5 10 17 19 7" />
     </svg>
   );
@@ -29,7 +54,13 @@ function CheckIcon() {
 function PasswordInput({ id, value, onChange, show, onToggle, ...rest }) {
   return (
     <span className="auth-input-wrap">
-      <input id={id} type={show ? "text" : "password"} value={value} onChange={onChange} {...rest} />
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        {...rest}
+      />
       <button
         type="button"
         className="auth-eye"
@@ -47,7 +78,9 @@ function PasswordInput({ id, value, onChange, show, onToggle, ...rest }) {
 function BrandPanel({ isSignup }) {
   return (
     <section className="auth-brand-panel" aria-hidden="true">
-      <p className="auth-eyebrow">{isSignup ? "JOIN YAKSSOK" : "WELCOME BACK"}</p>
+      <p className="auth-eyebrow">
+        {isSignup ? "JOIN YAKSSOK" : "WELCOME BACK"}
+      </p>
       <h2>
         {isSignup ? (
           <>
@@ -63,7 +96,9 @@ function BrandPanel({ isSignup }) {
           </>
         )}
       </h2>
-      <p className="auth-brand-sub">알림을 받고, 체크하고, 친구와 함께 꾸준히.</p>
+      <p className="auth-brand-sub">
+        알림을 받고, 체크하고, 친구와 함께 꾸준히.
+      </p>
 
       <div className="auth-preview">
         <div className="auth-preview-head">
@@ -74,14 +109,18 @@ function BrandPanel({ isSignup }) {
         </div>
         <ul>
           <li className="is-done">
-            <span className="auth-preview-check"><CheckIcon /></span>
+            <span className="auth-preview-check">
+              <CheckIcon />
+            </span>
             <span>
               <b>비타민 D</b>
               <small>아침 식후 · 08:30</small>
             </span>
           </li>
           <li className="is-done">
-            <span className="auth-preview-check"><CheckIcon /></span>
+            <span className="auth-preview-check">
+              <CheckIcon />
+            </span>
             <span>
               <b>오메가3</b>
               <small>점심 식후 · 12:30</small>
@@ -99,13 +138,22 @@ function BrandPanel({ isSignup }) {
         <div className="auth-preview-bar">
           <span style={{ width: "67%" }} />
         </div>
-        <p className="auth-preview-foot">2 / 3 완료 · 오늘 약속까지 1개 남았어요</p>
+        <p className="auth-preview-foot">
+          2 / 3 완료 · 오늘 약속까지 1개 남았어요
+        </p>
       </div>
     </section>
   );
 }
 
-export default function AuthPage({ mode, notice = "", onModeChange, onAttemptStart, onComplete, onClose }) {
+export default function AuthPage({
+  mode,
+  notice = "",
+  onModeChange,
+  onAttemptStart,
+  onComplete,
+  onClose,
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -117,6 +165,7 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
   const [agreed, setAgreed] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const mountedRef = useRef(true);
@@ -132,7 +181,8 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
   useEffect(() => {
     if (!isSignup) return;
     const prefill = getPendingGuestDemographics();
-    if (!prefill || appliedGuestResponseRef.current === prefill.responseId) return;
+    if (!prefill || appliedGuestResponseRef.current === prefill.responseId)
+      return;
     appliedGuestResponseRef.current = prefill.responseId;
     setGuestPrefill(prefill);
     if (prefill.birthYear != null) {
@@ -149,12 +199,14 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
     if (busy) return;
     setError("");
     setShowPassword(false);
+    setShowConfirmPassword(false);
     onModeChange(nextMode);
   };
 
   // 입력 중 안내 (회원가입)
   const passwordOk = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(password);
-  const confirmMismatch = isSignup && confirmPassword.length > 0 && password !== confirmPassword;
+  const confirmMismatch =
+    isSignup && confirmPassword.length > 0 && password !== confirmPassword;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -167,7 +219,10 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
       setError("비밀번호는 영문과 숫자를 포함해 8~72자로 입력해주세요.");
       return;
     }
-    if (isSignup && (!Number.isInteger(Number(age)) || Number(age) < 1 || Number(age) > 120)) {
+    if (
+      isSignup &&
+      (!Number.isInteger(Number(age)) || Number(age) < 1 || Number(age) > 120)
+    ) {
       setError("만 나이는 1~120 사이의 정수로 입력해주세요.");
       return;
     }
@@ -181,18 +236,22 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
     const guestV1 = isSignup ? getPendingGuestSurvey() : null;
     try {
       const user = isSignup
-        ? await signup({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            age: Number(age),
-            gender,
-            termsAgreed: agreed,
-          }, guestV1)
+        ? await signup(
+            {
+              name: name.trim(),
+              email: email.trim(),
+              password,
+              age: Number(age),
+              gender,
+              termsAgreed: agreed,
+            },
+            guestV1,
+          )
         : await login({ email: email.trim(), password, rememberMe });
       if (user) onComplete(user, attemptId, Boolean(isSignup && guestV1));
     } catch (cause) {
-      if (mountedRef.current) setError(cause.message || "요청을 완료하지 못했습니다.");
+      if (mountedRef.current)
+        setError(cause.message || "요청을 완료하지 못했습니다.");
     } finally {
       if (mountedRef.current) setBusy(false);
     }
@@ -213,7 +272,17 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
               }}
               aria-label="이전 화면으로"
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="m15 18-6-6 6-6" />
               </svg>
               <span>이전</span>
@@ -234,7 +303,11 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
           </div>
           <p className="auth-header-switch">
             <span>{isSignup ? "이미 회원이신가요?" : "처음이신가요?"}</span>
-            <button type="button" disabled={busy} onClick={() => changeMode(isSignup ? "login" : "signup")}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => changeMode(isSignup ? "login" : "signup")}
+            >
               {isSignup ? "로그인" : "회원가입"}
             </button>
           </p>
@@ -245,7 +318,11 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
         <BrandPanel isSignup={isSignup} />
 
         <section className="auth-card" aria-labelledby="auth-title">
-          <div className="auth-tabs" role="tablist" aria-label="로그인 또는 회원가입">
+          <div
+            className="auth-tabs"
+            role="tablist"
+            aria-label="로그인 또는 회원가입"
+          >
             <button
               type="button"
               role="tab"
@@ -269,7 +346,9 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
           </div>
 
           <div className="auth-card-head">
-            <h1 id="auth-title">{isSignup ? "약쏙해줘 시작하기" : "다시 만나서 반가워요"}</h1>
+            <h1 id="auth-title">
+              {isSignup ? "약쏙해줘 시작하기" : "다시 만나서 반가워요"}
+            </h1>
             <p>
               {isSignup
                 ? "가입하고 나에게 맞는 영양제와 복용 습관을 한 곳에서 관리하세요."
@@ -319,7 +398,11 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                 minLength={isSignup ? 8 : undefined}
                 maxLength={isSignup ? 72 : undefined}
                 autoComplete={isSignup ? "new-password" : "current-password"}
-                placeholder={isSignup ? "영문, 숫자 포함 8자 이상" : "비밀번호를 입력해주세요"}
+                placeholder={
+                  isSignup
+                    ? "영문, 숫자 포함 8자 이상"
+                    : "비밀번호를 입력해주세요"
+                }
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 show={showPassword}
@@ -327,7 +410,9 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
               />
               {isSignup && password.length > 0 && (
                 <small className={`auth-hint${passwordOk ? " is-ok" : ""}`}>
-                  {passwordOk ? "✓ 사용할 수 있는 비밀번호예요" : "영문과 숫자를 포함해 8자 이상 입력해주세요"}
+                  {passwordOk
+                    ? "✓ 사용할 수 있는 비밀번호예요"
+                    : "영문과 숫자를 포함해 8자 이상 입력해주세요"}
                 </small>
               )}
             </div>
@@ -344,19 +429,26 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                     placeholder="비밀번호를 한 번 더 입력해주세요"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
-                    show={showPassword}
-                    onToggle={() => setShowPassword((v) => !v)}
+                    show={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((v) => !v)}
                     aria-invalid={confirmMismatch || undefined}
                   />
-                  {confirmMismatch && <small className="auth-hint is-error">비밀번호가 일치하지 않아요</small>}
+                  {confirmMismatch && (
+                    <small className="auth-hint is-error">
+                      비밀번호가 일치하지 않아요
+                    </small>
+                  )}
                 </div>
 
                 {guestPrefill && (
                   <p className="auth-prefill-intro" role="status">
-                    기본 설문에서 입력한 정보를 미리 채웠어요. 확인 후 변경할 수 있어요.
+                    기본 설문에서 입력한 정보를 미리 채웠어요. 확인 후 변경할 수
+                    있어요.
                   </p>
                 )}
-                <div className={`auth-profile-fields${guestPrefill ? " has-prefill" : ""}`}>
+                <div
+                  className={`auth-profile-fields${guestPrefill ? " has-prefill" : ""}`}
+                >
                   <label className="auth-field">
                     <span>만 나이</span>
                     <input
@@ -382,7 +474,10 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                     <legend>성별</legend>
                     <div className="auth-segment">
                       {GENDERS.map((option) => (
-                        <label key={option} className={gender === option ? "active" : ""}>
+                        <label
+                          key={option}
+                          className={gender === option ? "active" : ""}
+                        >
                           <input
                             type="radio"
                             name="auth-gender"
@@ -396,12 +491,16 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                       ))}
                     </div>
                     {guestPrefill?.gender && (
-                      <small className="auth-hint auth-prefill-hint">기본 설문에서 선택한 성별이에요. 변경할 수 있어요.</small>
+                      <small className="auth-hint auth-prefill-hint">
+                        기본 설문에서 선택한 성별이에요. 변경할 수 있어요.
+                      </small>
                     )}
                   </fieldset>
                 </div>
                 {guestPrefill && (
-                  <p className="auth-prefill-footer">입력한 나이와 성별은 이후 맞춤 추천에 활용돼요.</p>
+                  <p className="auth-prefill-footer">
+                    입력한 나이와 성별은 이후 맞춤 추천에 활용돼요.
+                  </p>
                 )}
 
                 <label className="auth-check">
@@ -432,7 +531,12 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
                   </span>
                   <span>로그인 유지</span>
                 </label>
-                <button type="button" onClick={() => setError("비밀번호 재설정 기능은 아직 준비 중입니다.")}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setError("비밀번호 재설정 기능은 아직 준비 중입니다.")
+                  }
+                >
                   비밀번호 찾기
                 </button>
               </div>
@@ -449,13 +553,21 @@ export default function AuthPage({ mode, notice = "", onModeChange, onAttemptSta
               disabled={busy || (isSignup && (!agreed || !age || !gender))}
               type="submit"
             >
-              {busy ? "처리 중..." : isSignup ? "회원가입하고 시작하기" : "로그인"}
+              {busy
+                ? "처리 중..."
+                : isSignup
+                  ? "회원가입하고 시작하기"
+                  : "로그인"}
             </button>
           </form>
 
           <p className="auth-switch">
             {isSignup ? "이미 회원이신가요?" : "아직 회원이 아니신가요?"}
-            <button type="button" disabled={busy} onClick={() => changeMode(isSignup ? "login" : "signup")}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => changeMode(isSignup ? "login" : "signup")}
+            >
               {isSignup ? "로그인" : "회원가입"}
             </button>
           </p>
