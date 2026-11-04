@@ -1,7 +1,7 @@
 // 오늘의 복용 타임라인 (#67 홈 시안 A, 색은 초록 3 시안) — 아침 → 점심 → 저녁을 시간 순서대로 보여주고 복용 체크
 // 각 줄(카드)을 누르면 복용 체크 / 해제. "지금" 선은 홈이 오늘 날짜를 보여줄 때만 표시한다.
 import { useEffect, useState } from "react";
-import { kstToday } from "./homeApi";
+import { kstToday } from "../api/homeApi";
 
 const SLOT_LABEL = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
 
@@ -24,13 +24,23 @@ function toMinutes(hm) {
 function relativeText(remindAt, nowHm) {
   const diff = toMinutes(remindAt) - toMinutes(nowHm);
   const abs = Math.abs(diff);
-  const text = abs < 60 ? `${abs}분` : `${Math.floor(abs / 60)}시간${abs % 60 ? ` ${abs % 60}분` : ""}`;
+  const text =
+    abs < 60
+      ? `${abs}분`
+      : `${Math.floor(abs / 60)}시간${abs % 60 ? ` ${abs % 60}분` : ""}`;
   if (diff > 0) return `${text} 뒤`;
   if (diff === 0) return "지금";
   return `${text} 지남`;
 }
 
-export default function TodaySupplements({ supplements, done, total, pendingIds = [], onToggle, today }) {
+export default function TodaySupplements({
+  supplements,
+  done,
+  total,
+  pendingIds = [],
+  onToggle,
+  today,
+}) {
   const [now, setNow] = useState(() => new Date()); // "지금" 선과 남은 시간을 1분마다 갱신
 
   useEffect(() => {
@@ -55,7 +65,11 @@ export default function TodaySupplements({ supplements, done, total, pendingIds 
     <section className="home-today">
       <div className="home-card-head">
         <h3 className="home-card-title">오늘의 복용 타임라인</h3>
-        {total > 0 && <span className="home-tl-chip">{done}/{total} 완료</span>}
+        {total > 0 && (
+          <span className="home-tl-chip">
+            {done}/{total} 완료
+          </span>
+        )}
       </div>
 
       {total === 0 ? (
@@ -65,15 +79,34 @@ export default function TodaySupplements({ supplements, done, total, pendingIds 
       ) : (
         <ol className="home-tl">
           {supplements.map((s, index) => {
-            const slot = SLOT_LABEL[s.mealSlot] ?? s.timing?.split(" ")[0] ?? "";
-            const how = s.timing?.startsWith(slot) ? s.timing.slice(slot.length).trim() : s.timing;
-            const status = s.taken ? "done" : s.id === nextId ? "next" : "later";
+            const slot =
+              SLOT_LABEL[s.mealSlot] ?? s.timing?.split(" ")[0] ?? "";
+            const how = s.timing?.startsWith(slot)
+              ? s.timing.slice(slot.length).trim()
+              : s.timing;
+            const status = s.taken
+              ? "done"
+              : s.id === nextId
+                ? "next"
+                : "later";
             const isLast = index === supplements.length - 1;
             const row = (
-              <li key={s.id} className={`home-tl-row is-${status}${isLast ? " is-last" : ""}`}>
+              <li
+                key={s.id}
+                className={`home-tl-row is-${status}${isLast ? " is-last" : ""}`}
+              >
                 <span className="home-tl-dot" aria-hidden="true">
                   {s.taken && (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="m5 12 4 4L19 6" />
                     </svg>
                   )}
@@ -101,10 +134,14 @@ export default function TodaySupplements({ supplements, done, total, pendingIds 
                   </span>
                   {status === "done" && (
                     <span className="home-tl-note">
-                      {s.completedAt ? `${s.completedAt}에 체크했어요` : "체크했어요"}
+                      {s.completedAt
+                        ? `${s.completedAt}에 체크했어요`
+                        : "체크했어요"}
                     </span>
                   )}
-                  {status === "next" && <span className="home-tl-action">먹었어요</span>}
+                  {status === "next" && (
+                    <span className="home-tl-action">먹었어요</span>
+                  )}
                 </button>
               </li>
             );
