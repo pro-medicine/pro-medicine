@@ -411,6 +411,7 @@ export default function App() {
     setHomeRefreshKey((key) => key + 1);
   };
 
+
   const changeTab = (nextTab, { replace = false } = {}) => {
     if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
