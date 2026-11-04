@@ -1595,9 +1595,9 @@ button.nutrition-name:focus-visible {
   margin-top: 8px;
 }
 
-/* 브라우저 alert 대신 보여주는 실패 안내 */
-.share-error,
-.supplement-action-error {
+/* 브라우저 alert 대신 보여주는 실패 안내 (기존 설명 문구 스타일보다 우선) */
+.share-setting .share-error,
+.profile-screen .supplement-action-error {
   color: var(--alert);
   font-weight: 600;
 }
