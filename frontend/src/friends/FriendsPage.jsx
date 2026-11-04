@@ -6,7 +6,11 @@ import AddFriendModal from "./AddFriendModal";
 import FollowRequestModal from "./FollowRequestModal";
 import FriendDetailPage from "./FriendDetailPage";
 import { getWatching } from "../api/guardianApi";
-import { getFollowRequests } from "../api/followApi";
+import {
+  getFollowRequests,
+  getFollowers,
+  requestFollow,
+} from "../api/followApi";
 import { fetchIntakeStats, fetchUser } from "../api/mypageApi";
 import FriendRanking from "./FriendRanking";
 import { RequestCard, GuardianCard, FriendTipCard } from "./FriendSideCards";
@@ -24,7 +28,7 @@ function toFriend(item, index) {
     name: item.nickname ?? "",
     initial: item.nickname?.charAt(0) ?? "?",
     color: item.color ?? COLORS[index % COLORS.length],
-    relation: item.mutual ? "친구" : "팔로우",
+    relation: item.mutual ? "친구" : "팔로잉",
     streak: item.streakDays ?? 0,
   };
 }
@@ -36,6 +40,9 @@ export default function FriendsPage({
   openFriendUserId = null,
 }) {
   const [friends, setFriends] = useState([]);
+  const [followers, setFollowers] = useState([]); // 나를 팔로우하는 사람 (맞팔로우 대상)
+  const [busyId, setBusyId] = useState(null); // 맞팔로우 신청 중인 userId
+  const [toast, setToast] = useState(""); // 맞팔로우 결과 메시지
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,7 +56,7 @@ export default function FriendsPage({
   const [watching, setWatching] = useState([]); // 내가 지키는 친구 (안부지킴이 카드)
   const [requests, setRequests] = useState(null); // 받은 친구 신청, null 이면 불러오는 중
   const [me, setMe] = useState(null); // 랭킹에 넣을 "나"
-  const [tab, setTab] = useState("all"); // 전체 / 친구 / 팔로우
+  const [tab, setTab] = useState("all"); // 전체 / 친구 / 팔로잉 / 팔로워
   const [requestTab, setRequestTab] = useState("received");
   const openerRef = useRef(null);
 
@@ -79,6 +86,7 @@ export default function FriendsPage({
         );
       })
       .catch(() => {});
+
     getFollowRequests(userId, "received")
       .then((data) => {
         if (!ignore) setRequests(data ?? []);
@@ -86,6 +94,14 @@ export default function FriendsPage({
       .catch(() => {
         if (!ignore) setRequests([]);
       });
+
+    // 나를 팔로우하는 사람 (내가 아직 수락된 팔로우가 없는 사람)
+    getFollowers(userId)
+      .then((data) => {
+        if (!ignore) setFollowers(data ?? []);
+      })
+      .catch(() => {});
+
     // 랭킹의 "나": 내 연속 복용일 + 닉네임 (못 불러오면 나를 빼고 친구끼리만 보여줌)
     Promise.all([fetchIntakeStats(), fetchUser().catch(() => null)])
       .then(([stats, user]) => {
@@ -122,6 +138,29 @@ export default function FriendsPage({
       ignore = true;
     };
   }, [userId, reloadKey]);
+
+  // 토스트는 3초 뒤 사라짐
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // 맞팔로우: 기존 팔로우 신청(POST /follows)을 닉네임으로 재사용
+  const handleFollowBack = async (f) => {
+    if (busyId) return;
+    setBusyId(f.userId);
+    try {
+      await requestFollow(f.nickname);
+      setToast(`${f.nickname}님에게 맞팔로우를 신청했어요.`);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      console.error(err);
+      setToast(err.message || "맞팔로우를 신청하지 못했어요.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const friendsById = new Map(friends.map((f) => [f.userId, f]));
   if (selectedFriend) {
@@ -178,6 +217,9 @@ export default function FriendsPage({
       <div className="fr-layout">
         <FriendRanking
           friends={friends}
+          followers={followers}
+          onFollowBack={handleFollowBack}
+          busyId={busyId}
           me={me}
           watchingIds={watchingIds}
           query={query}
@@ -202,6 +244,8 @@ export default function FriendsPage({
           <FriendTipCard />
         </aside>
       </div>
+
+      {toast && <p className="guardian-toast">{toast}</p>}
 
       {requestsOpen && (
         <FollowRequestModal

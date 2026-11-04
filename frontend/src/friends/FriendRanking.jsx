@@ -1,16 +1,28 @@
 // 연속 복용 랭킹 카드 (#67 친구 시안 C+)
 // 위: 1·2·3위 시상대 / 아래: 전체 순위 (나 포함, 1위 대비 주황 막대)
+// 탭: 전체 / 친구(서로 팔로우) / 팔로잉(나만 팔로우) / 팔로워(나를 팔로우, 맞팔로우 버튼)
 import { Icon } from "../shared/ui";
 
 const TABS = [
   { id: "all", label: "전체" },
   { id: "friend", label: "친구" },
-  { id: "follow", label: "팔로우" },
+  { id: "follow", label: "팔로잉" },
+  { id: "follower", label: "팔로워" },
 ];
 
 function Flame({ size = 14 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5Z" />
     </svg>
   );
@@ -18,7 +30,10 @@ function Flame({ size = 14 }) {
 
 export function FriendAvatar({ person, size = "md" }) {
   return (
-    <span className={`fr-avatar is-${size} ${person.isMe ? "is-me" : `is-${person.color}`}`} aria-hidden="true">
+    <span
+      className={`fr-avatar is-${size} ${person.isMe ? "is-me" : `is-${person.color}`}`}
+      aria-hidden="true"
+    >
       {person.isMe ? person.name.charAt(0) : person.initial}
     </span>
   );
@@ -41,7 +56,10 @@ function EmptySeat({ place }) {
   return (
     <div className={`fr-podium-item is-place-${place} is-empty`}>
       <span className="fr-podium-face">
-        <span className={`fr-avatar is-${place === 1 ? "xl" : "lg"} is-empty`} aria-hidden="true">
+        <span
+          className={`fr-avatar is-${place === 1 ? "xl" : "lg"} is-empty`}
+          aria-hidden="true"
+        >
           {place}
         </span>
       </span>
@@ -66,7 +84,13 @@ function Podium({ top3 }) {
           <div key={p.key} className={`fr-podium-item is-place-${place}`}>
             <span className="fr-podium-face">
               {place === 1 && (
-                <svg className="fr-crown" width="26" height="18" viewBox="0 0 26 18" aria-hidden="true">
+                <svg
+                  className="fr-crown"
+                  width="26"
+                  height="18"
+                  viewBox="0 0 26 18"
+                  aria-hidden="true"
+                >
                   <path d="M2 16 4 4l5.5 5L13 1l3.5 8L22 4l2 12Z" />
                 </svg>
               )}
@@ -85,13 +109,57 @@ function Podium({ top3 }) {
           </div>
         );
       })}
-      {empty && <p className="fr-podium-hint">오늘 약속을 모두 지키면 내일 첫 1위가 될 수 있어요</p>}
+      {empty && (
+        <p className="fr-podium-hint">
+          오늘 약속을 모두 지키면 내일 첫 1위가 될 수 있어요
+        </p>
+      )}
     </div>
   );
 }
 
+// 팔로워 탭: 나를 팔로우하는 사람 + 맞팔로우 버튼
+// followBackStatus: null(아직 신청 안 함) / PENDING(신청 중) / REJECTED(거절됨)
+// 상세 조회는 내가 그 사람을 팔로우해야 가능하므로 행을 클릭할 수 없게 <div>로 둠
+function FollowerList({ followers, onFollowBack, busyId, emptyMessage }) {
+  if (followers.length === 0) {
+    return <p className="fr-state">{emptyMessage}</p>;
+  }
+  return followers.map((f) => {
+    const status = f.followBackStatus ?? null;
+    const label =
+      status === "PENDING"
+        ? "신청 중"
+        : status === "REJECTED"
+          ? "거절됨"
+          : "맞팔로우";
+    return (
+      <div key={f.followId} className="fr-rank-row">
+        <FriendAvatar
+          person={{ initial: f.nickname?.charAt(0) ?? "?", color: "mint" }}
+        />
+        <span className="fr-rank-name">
+          <strong>{f.nickname}</strong>
+          <span className="fr-chip is-follow">팔로워</span>
+        </span>
+        <button
+          type="button"
+          className="btn btn-outline"
+          disabled={busyId === f.userId || status !== null}
+          onClick={() => onFollowBack(f)}
+        >
+          {busyId === f.userId ? "신청 중..." : label}
+        </button>
+      </div>
+    );
+  });
+}
+
 export default function FriendRanking({
   friends,
+  followers = [],
+  onFollowBack,
+  busyId = null,
   me,
   watchingIds,
   query,
@@ -101,10 +169,12 @@ export default function FriendRanking({
   error,
   onSelect,
 }) {
-  // 나 + 친구 전체를 연속 일수 순으로
+  // 나 + 친구(내가 팔로우하는 사람) 전체를 연속 일수 순으로
   const everyone = withRanks(
     [...(me ? [me] : []), ...friends].sort(
-      (a, b) => b.streak - a.streak || Number(b.isMe ?? false) - Number(a.isMe ?? false),
+      (a, b) =>
+        b.streak - a.streak ||
+        Number(b.isMe ?? false) - Number(a.isMe ?? false),
     ),
   );
   const topDays = everyone[0]?.streak ?? 0;
@@ -113,9 +183,12 @@ export default function FriendRanking({
     all: friends.length,
     friend: friends.filter((f) => f.mutual).length,
     follow: friends.filter((f) => !f.mutual).length,
+    follower: followers.length,
   };
 
-  // 목록: 탭·검색 적용 (나는 "전체" 탭에서 검색어가 없을 때만)
+  const isFollowerTab = tab === "follower";
+
+  // 랭킹 목록: 탭·검색 적용 (나는 "전체" 탭에서 검색어가 없을 때만)
   const visible = everyone.filter((p) => {
     if (p.isMe) return tab === "all" && !query;
     if (tab === "friend" && !p.mutual) return false;
@@ -123,28 +196,37 @@ export default function FriendRanking({
     return p.name.includes(query);
   });
 
+  // 팔로워 목록: 검색 적용
+  const visibleFollowers = followers.filter((f) =>
+    (f.nickname ?? "").includes(query),
+  );
+
   let summary = "친구와 함께 연속 복용 기록을 비교해 보세요";
-  if (friends.length > 0 && myEntry) {
+  if (isFollowerTab) {
+    summary = "나를 팔로우하는 사람이에요 · 맞팔로우하면 서로 볼 수 있어요";
+  } else if (friends.length > 0 && myEntry) {
     summary =
-      myEntry.rank === 1
-        ? myEntry.streak > 0
-          ? "지금 내가 1위예요! 이대로 이어가 볼까요?"
-          : "아직 연속 기록이 있는 사람이 없어요 · 오늘 먼저 시작해 보세요"
-        : myEntry.streak === 0
-          ? (
-              <>
-                {everyone[0].name}님이 <b className="is-streak">{topDays}일</b>째 1위예요 · 오늘부터 나도 시작해 보세요
-              </>
-            )
-          : (
-            <>
-              나는 친구들 중 <b>{myEntry.rank}위</b>예요 · 1위까지{" "}
-              <b className="is-streak">{topDays - myEntry.streak}일</b>
-            </>
-          );
+      myEntry.rank === 1 ? (
+        myEntry.streak > 0 ? (
+          "지금 내가 1위예요! 이대로 이어가 볼까요?"
+        ) : (
+          "아직 연속 기록이 있는 사람이 없어요 · 오늘 먼저 시작해 보세요"
+        )
+      ) : myEntry.streak === 0 ? (
+        <>
+          {everyone[0].name}님이 <b className="is-streak">{topDays}일</b>째
+          1위예요 · 오늘부터 나도 시작해 보세요
+        </>
+      ) : (
+        <>
+          나는 친구들 중 <b>{myEntry.rank}위</b>예요 · 1위까지{" "}
+          <b className="is-streak">{topDays - myEntry.streak}일</b>
+        </>
+      );
   }
 
-  const showPodium = !loading && !error && friends.length > 0;
+  // 팔로워 탭에서는 시상대를 숨김
+  const showPodium = !loading && !error && friends.length > 0 && !isFollowerTab;
 
   return (
     <section className="fr-card fr-rank" aria-label="연속 복용 랭킹">
@@ -174,70 +256,105 @@ export default function FriendRanking({
       <div className={`fr-rank-list${showPodium ? " has-podium" : ""}`}>
         {loading && <p className="fr-state">친구 목록을 불러오는 중...</p>}
         {!loading && error && <p className="fr-state">{error}</p>}
-        {!loading && !error && friends.length === 0 && (
-          <p className="fr-state">아직 친구가 없어요. 친구를 추가하고 함께 기록을 이어가 보세요.</p>
+
+        {/* 팔로워 탭: 친구가 0명이어도 볼 수 있어야 하므로 friends.length와 무관하게 표시 */}
+        {!loading && !error && isFollowerTab && (
+          <FollowerList
+            followers={visibleFollowers}
+            onFollowBack={onFollowBack}
+            busyId={busyId}
+            emptyMessage={
+              query
+                ? "검색 결과가 없어요."
+                : "나를 팔로우하는 사람이 아직 없어요."
+            }
+          />
         )}
-        {!loading && !error && friends.length > 0 && visible.filter((p) => !p.isMe).length === 0 && (
-          <p className="fr-state">{query ? "검색 결과가 없어요." : "해당하는 친구가 없어요."}</p>
-        )}
-        {!loading &&
-          !error &&
-          friends.length > 0 &&
-          visible.map((p) => {
-            const percent = topDays ? Math.round((p.streak / topDays) * 100) : 0;
-            const content = (
-              <>
-                {/* 연속 기록이 없으면 순위 대신 "–" (모두 0일이면 전부 1위로 보이는 문제 방지) */}
-                <span className={`fr-rank-no${p.streak > 0 && p.rank <= 3 ? " is-top" : ""}`}>
-                  {p.streak > 0 ? p.rank : "–"}
-                </span>
-                <FriendAvatar person={p} />
-                <span className="fr-rank-name">
-                  <strong>{p.name}</strong>
-                  {p.isMe ? (
-                    <span className="fr-me-tag">(나)</span>
-                  ) : (
-                    <span className={`fr-chip ${p.mutual ? "is-friend" : "is-follow"}`}>
-                      {p.mutual ? "친구" : "팔로우"}
+
+        {/* 그 외 탭: 기존 랭킹 목록 */}
+        {!loading && !error && !isFollowerTab && (
+          <>
+            {friends.length === 0 && (
+              <p className="fr-state">
+                아직 친구가 없어요. 친구를 추가하고 함께 기록을 이어가 보세요.
+              </p>
+            )}
+            {friends.length > 0 &&
+              visible.filter((p) => !p.isMe).length === 0 && (
+                <p className="fr-state">
+                  {query ? "검색 결과가 없어요." : "해당하는 친구가 없어요."}
+                </p>
+              )}
+            {friends.length > 0 &&
+              visible.map((p) => {
+                const percent = topDays
+                  ? Math.round((p.streak / topDays) * 100)
+                  : 0;
+                const content = (
+                  <>
+                    {/* 연속 기록이 없으면 순위 대신 "–" (모두 0일이면 전부 1위로 보이는 문제 방지) */}
+                    <span
+                      className={`fr-rank-no${p.streak > 0 && p.rank <= 3 ? " is-top" : ""}`}
+                    >
+                      {p.streak > 0 ? p.rank : "–"}
                     </span>
-                  )}
-                  {watchingIds.has(p.userId) && (
-                    <span className="fr-guard-icon" title="안부지킴이" aria-label="안부지킴이">
-                      <Icon name="shield" size={15} />
+                    <FriendAvatar person={p} />
+                    <span className="fr-rank-name">
+                      <strong>{p.name}</strong>
+                      {p.isMe ? (
+                        <span className="fr-me-tag">(나)</span>
+                      ) : (
+                        <span
+                          className={`fr-chip ${p.mutual ? "is-friend" : "is-follow"}`}
+                        >
+                          {p.mutual ? "친구" : "팔로잉"}
+                        </span>
+                      )}
+                      {watchingIds.has(p.userId) && (
+                        <span
+                          className="fr-guard-icon"
+                          title="안부지킴이"
+                          aria-label="안부지킴이"
+                        >
+                          <Icon name="shield" size={15} />
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-                {p.streak > 0 ? (
-                  <span className="fr-rank-bar">
-                    <span className="fr-bar-track" aria-hidden="true">
-                      <span style={{ width: `${percent}%` }} />
+                    {p.streak > 0 ? (
+                      <span className="fr-rank-bar">
+                        <span className="fr-bar-track" aria-hidden="true">
+                          <span style={{ width: `${percent}%` }} />
+                        </span>
+                        <b>{p.streak}일</b>
+                      </span>
+                    ) : (
+                      <span className="fr-rank-bar is-empty">
+                        새로 시작하는 중
+                      </span>
+                    )}
+                    <span className="fr-rank-chevron" aria-hidden="true">
+                      {!p.isMe && <Icon name="chevron" size={18} />}
                     </span>
-                    <b>{p.streak}일</b>
-                  </span>
+                  </>
+                );
+                return p.isMe ? (
+                  <div key={p.key} className="fr-rank-row is-me">
+                    {content}
+                  </div>
                 ) : (
-                  <span className="fr-rank-bar is-empty">새로 시작하는 중</span>
-                )}
-                <span className="fr-rank-chevron" aria-hidden="true">
-                  {!p.isMe && <Icon name="chevron" size={18} />}
-                </span>
-              </>
-            );
-            return p.isMe ? (
-              <div key={p.key} className="fr-rank-row is-me">
-                {content}
-              </div>
-            ) : (
-              <button
-                key={p.key}
-                type="button"
-                className="fr-rank-row"
-                onClick={() => onSelect(p)}
-                aria-label={`${p.rank}위 ${p.name}, ${p.streak}일 연속 복용, 상세 보기`}
-              >
-                {content}
-              </button>
-            );
-          })}
+                  <button
+                    key={p.key}
+                    type="button"
+                    className="fr-rank-row"
+                    onClick={() => onSelect(p)}
+                    aria-label={`${p.rank}위 ${p.name}, ${p.streak}일 연속 복용, 상세 보기`}
+                  >
+                    {content}
+                  </button>
+                );
+              })}
+          </>
+        )}
       </div>
     </section>
   );
