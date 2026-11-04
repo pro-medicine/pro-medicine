@@ -2,7 +2,9 @@ package com.ucamp.app.domain.product.service;
 
 import com.ucamp.app.domain.product.dto.IntakeTipResponse;
 import com.ucamp.app.domain.product.entity.CatalogProduct;
+import com.ucamp.app.domain.product.entity.Supplement;
 import com.ucamp.app.domain.product.repository.CatalogProductRepository;
+import com.ucamp.app.domain.product.repository.SupplementRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -49,13 +51,59 @@ public class IntakeTipService {
     );
 
     private final CatalogProductRepository catalogProductRepository;
+    private final SupplementRepository supplementRepository;
 
     public List<IntakeTipResponse> getTips(Long catalogProductId) {
         CatalogProduct product = catalogProductRepository.findById(catalogProductId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        return buildTips(product.getProductName(), product.getIngredientSummary());
+    }
 
-        String name = normalize(product.getProductName());
-        String summary = nvl(product.getIngredientSummary());
+    public List<IntakeTipResponse> getSupplementTips(Long supplementId) {
+        Supplement s = supplementRepository.findById(supplementId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        return buildCategoryTip(s.getCategory());
+    }
+
+    private List<IntakeTipResponse> buildCategoryTip(String category) {
+        String normalizedCategory = normalize(category);
+
+        if (normalizedCategory.isBlank()) {
+            return List.of();
+        }
+
+        return RULES.stream()
+                .filter(rule -> {
+                    String ingredient = normalize(rule.ingredient());
+                    if (ingredient.equals(normalizedCategory)) {
+                        return true;
+                    }
+                    boolean keywordMatch = rule.keywords().stream()
+                            .map(this::normalize)
+                            .anyMatch(normalizedCategory::equals);
+                    if (keywordMatch) {
+                        return true;
+                    }
+                    boolean prefixMatch = rule.summaryPrefixes().stream()
+                            .map(this::normalize)
+                            .anyMatch(normalizedCategory::equals);
+                    if (prefixMatch) {
+                        return true;
+                    }
+                    return ingredient.equals("오메가3")
+                            && normalizedCategory.contains("EPA")
+                            && normalizedCategory.contains("DHA");
+                })
+                .findFirst()
+                .map(rule -> List.of(
+                        new IntakeTipResponse(rule.ingredient(), rule.message())
+                ))
+                .orElseGet(List::of);
+    }
+
+    private List<IntakeTipResponse> buildTips(String productName, String ingredientSummary) {
+        String name = normalize(productName);
+        String summary = nvl(ingredientSummary);
         String haystack = name + " " + normalize(summary);
 
         List<String> parts = Arrays.stream(summary.split(","))
