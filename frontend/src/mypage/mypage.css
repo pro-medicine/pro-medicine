@@ -1594,3 +1594,10 @@ button.nutrition-name:focus-visible {
   font-size: 12px;
   margin-top: 8px;
 }
+
+/* 브라우저 alert 대신 보여주는 실패 안내 */
+.share-error,
+.supplement-action-error {
+  color: var(--alert);
+  font-weight: 600;
+}

@@ -6,6 +6,7 @@ import {
   fetchIntakeTips,
 } from "../api/mypageApi";
 import { useModalFocus } from "../common/useModalFocus";
+import "../home/home.css";
 
 // 끼니별 기본 알림 시각
 const mealSlotOptions = [
@@ -118,7 +119,16 @@ export default function SupplementAddPage({
     : selected?.catalogProductId;
 
   useEffect(() => {
-    if (isEdit && target?.catalogProductId) loadTips(target.catalogProductId);
+    if (!isEdit || !target?.catalogProductId) return;
+    // 처음 열 때는 팁이 이미 비어 있어서 비우지 않고, 응답이 오면 그때만 상태를 바꿈
+    const seq = ++tipSeq.current;
+    fetchIntakeTips(target.catalogProductId)
+      .then((list) => {
+        if (seq === tipSeq.current) setTips(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (seq === tipSeq.current) setTipError(true);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -200,7 +210,11 @@ export default function SupplementAddPage({
               },
         );
       }
-      onSaved();
+      // 저장한 영양제 이름 (마이페이지 토스트 문구용)
+      let savedName = trimmedName;
+      if (isEdit) savedName = target.productName;
+      else if (!manualMode) savedName = selected.productName;
+      onSaved(savedName);
     } catch (e) {
       setMessage(e.message || "등록하지 못했어요.");
       setSaving(false);
