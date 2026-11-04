@@ -259,7 +259,7 @@ export default function ProfileEditPage({
                   <input
                     type="number"
                     min={1900}
-                    max={2100}
+                    max={new Date().getFullYear()}
                     value={form.birthYear}
                     onChange={(event) =>
                       change("birthYear", event.target.value)
