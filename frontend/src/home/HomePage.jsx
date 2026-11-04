@@ -42,7 +42,8 @@ export default function HomePage({
   const [staleDate, setStaleDate] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
-  const [nutrition, setNutrition] = useState(null); // 오늘 먹은 영양소 (일정별 함량 + 권장량)
+  // 오늘 먹은 영양소 (일정별 함량 + 권장량). 어느 날짜 응답인지 같이 저장해서, 날짜가 바뀌면 이전 날짜 응답을 쓰지 않게 함
+  const [nutrition, setNutrition] = useState(null); // { forDate, data }
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
@@ -98,12 +99,14 @@ export default function HomePage({
     if (!homeDate) return undefined;
     let ignore = false;
     getTodayNutrition(userId, homeDate, isSample).then((data) => {
-      if (!ignore) setNutrition(data);
+      if (!ignore) setNutrition({ forDate: homeDate, data });
     });
     return () => {
       ignore = true;
     };
   }, [userId, refreshKey, homeDate, isSample]);
+  // 지금 홈 날짜의 응답만 사용 (새 날짜 응답이 오기 전에는 카드가 잠깐 비어 있음)
+  const todayNutrition = nutrition?.forDate === homeDate ? nutrition.data : null;
 
   // 토스트는 4초 뒤 자동으로 닫힘
   useEffect(() => {
@@ -208,7 +211,7 @@ export default function HomePage({
                 today={home.today}
               />
             )}
-            {total > 0 && <TodayNutrients nutrition={nutrition} supplements={supplements} />}
+            {total > 0 && <TodayNutrients nutrition={todayNutrition} supplements={supplements} />}
             {/* TODO: 추천 설문 모달 만들면 연결 */}
             <RecommendBanner onClick={onSurvey} />
           </div>

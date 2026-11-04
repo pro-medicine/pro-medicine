@@ -24,8 +24,12 @@ function strongestByNutrient(warnings) {
   return result;
 }
 
-// 4.25 → "4.3", 100 → "100", 0.333 → "0.3"
-const fmt = (n) => (n >= 10 ? Math.round(n).toLocaleString("ko-KR") : String(Math.round(n * 10) / 10));
+// 4.25 → "4.3", 100 → "100", 0.333 → "0.3", 0.04 → "0.04" (0보다 큰 아주 작은 양이 "0"으로 보이지 않게)
+const fmt = (n) => {
+  if (n >= 10) return Math.round(n).toLocaleString("ko-KR");
+  if (n > 0 && n < 0.05) return n < 0.01 ? "<0.01" : String(Math.round(n * 100) / 100);
+  return String(Math.round(n * 10) / 10);
+};
 
 // 숫자가 바뀌면 이전 값에서 새 값까지 부드럽게 올라가는 값 (처음에는 0부터)
 function useCountUp(target, duration = 700) {
