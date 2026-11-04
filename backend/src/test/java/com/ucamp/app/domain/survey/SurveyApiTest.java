@@ -7,6 +7,7 @@ import com.ucamp.app.domain.health.entity.UserCondition;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.health.repository.UserConditionRepository;
 import com.ucamp.app.domain.health.repository.UserMedicationRepository;
+import com.ucamp.app.domain.personalized.service.RecommendationModeService;
 import com.ucamp.app.domain.recommendation.service.RecommendationInputAssembler;
 import com.ucamp.app.domain.survey.entity.RespondentType;
 import com.ucamp.app.domain.survey.entity.ResponseStatus;
@@ -78,6 +79,8 @@ class SurveyApiTest {
     SurveyResponseRepository surveyResponseRepository;
     @Autowired
     RecommendationInputAssembler recommendationInputAssembler;
+    @Autowired
+    RecommendationModeService recommendationModeService;
     @Autowired
     SurveyAnswerRepository surveyAnswerRepository;
     @Autowired
@@ -330,6 +333,36 @@ class SurveyApiTest {
         HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
         assertThat(profile.getGender()).isNull();
         assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 가입_성별_선택안함은_중복_질문없이_V2에_진입한다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        String body = signupWithGuest(guest.get("responseId").asLong(),
+                guest.get("guestToken").asString(), "no-gender-v2", "선택 안 함")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(healthProfileRepository.findById(userId).orElseThrow().getGender()).isNull();
+        assertThat(recommendationModeService.mode(userId).missing()).doesNotContain("GENDER");
+
+        mockMvc.perform(post("/api/v1/users/me/sensitive-consent")
+                        .header("Authorization", bearer(userId)))
+                .andExpect(status().isOk());
+        submitOk(userId, List.of(choice(Q_CONDITIONS, CONDITION_NONE), text(Q_MEDICATIONS, "[]")));
+
+        assertThat(recommendationModeService.mode(userId).mode()).isEqualTo("V2");
+        assertThat(recommendationInputAssembler.assembleForMember(userId, null).gender()).isNull();
+    }
+
+    @Test
+    void 성별_선택_이력이_전혀_없으면_성별_문항이_필요하다() {
+        User user = TestUsers.create(userRepository, false);
+        assertThat(recommendationModeService.mode(user.getId()).missing()).contains("GENDER");
     }
 
     @Test

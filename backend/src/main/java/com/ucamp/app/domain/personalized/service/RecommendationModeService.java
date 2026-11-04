@@ -40,7 +40,7 @@ public class RecommendationModeService {
         HealthProfileSnapshot profile = healthProfileService.getSnapshot(userId);
         List<String> missing = new ArrayList<>();
         if (profile.value(HealthProfile.KEY_GENDER) == null
-                && demographicsFallback.resolveGenderCode(userId) == null) {
+                && !demographicsFallback.hasCompletedGenderSelection(userId)) {
             missing.add(GENDER);
         }
         if (profile.value(HealthProfile.KEY_BIRTH_YEAR) == null
