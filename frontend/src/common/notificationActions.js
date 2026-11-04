@@ -47,9 +47,9 @@ export async function respondFollowFromNotification(item, status) {
  * @param accept true면 수락, false면 거절
  * @returns 처리했으면 true, 이미 처리됐거나 취소된 신청이면 false
  */
-export async function respondGuardianFromNotification(userId, item, accept) {
+export async function respondGuardianFromNotification(item, accept) {
   if (item.referenceId == null) return false; // 신청 id가 없는 알림(예전 테스트 알림)은 처리하지 않음
-  const list = await getMyGuardians(userId);
+  const list = await getMyGuardians();
   const request = (list ?? []).find(
     (g) => g.guardianSettingId === item.referenceId && !g.active,
   );
