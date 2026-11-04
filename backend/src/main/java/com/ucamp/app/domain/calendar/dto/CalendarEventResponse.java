@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public record CalendarEventResponse(
         Long eventId,
         Long prescriptionId,
+        Long medicineId,
         EventType eventType,
         String title,
         LocalDateTime scheduledAt,
@@ -16,9 +17,14 @@ public record CalendarEventResponse(
         EventStatus status
 ) {
     public static CalendarEventResponse from(CalendarEvent event) {
+        return from(event, null);
+    }
+
+    public static CalendarEventResponse from(CalendarEvent event, Long medicineId) {
         return new CalendarEventResponse(
                 event.getEventId(),
                 event.getPrescriptionId(),
+                medicineId,
                 event.getEventType(),
                 event.getTitle(),
                 event.getScheduledAt(),

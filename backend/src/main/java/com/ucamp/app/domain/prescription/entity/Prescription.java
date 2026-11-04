@@ -28,11 +28,8 @@ public class Prescription {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "name", nullable = false, length = 30)
+    @Column(name = "name", nullable = false, length = 150)
     private String name;
-
-    @Column(name = "ingredient_id")
-    private Long ingredientId;
 
     @Column(name = "start_at")
     private LocalDate startAt;
@@ -48,11 +45,14 @@ public class Prescription {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "medicine_id")
+    private Long medicineId;
+
     @Builder
-    private Prescription(Long userId, String name, Long ingredientId, LocalDate startAt, LocalDate endAt) {
+    private Prescription(Long userId, String name, Long medicineId, LocalDate startAt, LocalDate endAt) {
         this.userId = userId;
         this.name = name;
-        this.ingredientId = ingredientId;
+        this.medicineId = medicineId;
         this.startAt = startAt;
         this.endAt = endAt;
         this.status = PrescriptionStatus.ACTIVE;
@@ -60,5 +60,12 @@ public class Prescription {
 
     public boolean isActiveOn(LocalDate date) {
         return status == PrescriptionStatus.ACTIVE && !date.isBefore(startAt) && (endAt == null || !date.isAfter(endAt));
+    }
+
+    public void update(String name, Long medicineId, LocalDate startAt, LocalDate endAt) {
+        this.name = name;
+        this.medicineId = medicineId;
+        this.startAt = startAt;
+        this.endAt = endAt;
     }
 }

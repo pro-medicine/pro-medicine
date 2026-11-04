@@ -1,4 +1,10 @@
--- 약쏙해줘 스키마 v3 + 예시 데이터 / MySQL 8.0
+
+-- 약쏙해줘 스키마 v3 + 예시 데이터 + 안전상비의약품 상충 확인 / MySQL 8.0
+-- ============================================================
+-- [추가분 표시] "-- [MEDICINE]" 주석이 붙은 부분이 이번에 추가·변경한 곳입니다.
+--   1) DROP 3줄  2) prescriptions.ingredient_id -> medicine_id  3) medicine_* 테이블 3개
+--   4) prescriptions FK  5) product_ingredients 예시 데이터  6) 안전상비의약품 11종 시드
+-- (들여쓰기는 읽기 쉽게 정리했고, 내용은 기존과 동일합니다)
 -- ============================================================
 -- 기존 테이블 삭제 (FK 의존 순서: 자식 -> 부모)
 -- 주의: 실행하면 기존 데이터가 모두 삭제됩니다.
@@ -37,6 +43,10 @@ DROP TABLE IF EXISTS `disposal_locations`;
 DROP TABLE IF EXISTS `auth_demographics`;
 DROP TABLE IF EXISTS `calendar_events`;
 DROP TABLE IF EXISTS `prescriptions`;
+-- [MEDICINE] prescriptions가 medicine_products를 참조하므로 prescriptions 다음에 삭제
+DROP TABLE IF EXISTS `medicine_interactions`;
+DROP TABLE IF EXISTS `medicine_ingredients`;
+DROP TABLE IF EXISTS `medicine_products`;
 DROP TABLE IF EXISTS `users`;
 
 -- ============================================================
@@ -248,41 +258,42 @@ CREATE TABLE `disposal_locations` (
 );
 
 CREATE TABLE `calendar_events` (
-                                  `event_id` BIGINT NOT NULL AUTO_INCREMENT,
-                                  `user_id` BIGINT NOT NULL,
-                                  `prescription_id` BIGINT NULL,
-                                  `event_type` VARCHAR(30) NOT NULL,
-                                  `title` VARCHAR(150) NOT NULL,
-                                  `scheduled_at` DATETIME NOT NULL,
-                                  `notes` VARCHAR(1000) NULL,
-                                  `status` VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
-                                  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                   `event_id` BIGINT NOT NULL AUTO_INCREMENT,
+                                   `user_id` BIGINT NOT NULL,
+                                   `prescription_id` BIGINT NULL,
+                                   `event_type` VARCHAR(30) NOT NULL,
+                                   `title` VARCHAR(150) NOT NULL,
+                                   `scheduled_at` DATETIME NOT NULL,
+                                   `notes` VARCHAR(1000) NULL,
+                                   `status` VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
+                                   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                                  PRIMARY KEY (`event_id`),
+                                   PRIMARY KEY (`event_id`),
 
-                                  CONSTRAINT `chk_calendar_event_type`
-                                      CHECK (`event_type` IN (
-                                                              'SUPPLEMENT',
-                                                              'INJECTION',
-                                                              'MEDICATION',
-                                                              'ONE_TIME_INTAKE',
-                                                              'APPOINTMENT',
-                                                              'OTHER'
-                                          )),
+                                   CONSTRAINT `chk_calendar_event_type`
+                                       CHECK (`event_type` IN (
+                                                               'SUPPLEMENT',
+                                                               'INJECTION',
+                                                               'MEDICATION',
+                                                               'ONE_TIME_INTAKE',
+                                                               'APPOINTMENT',
+                                                               'OTHER'
+                                           )),
 
-                                  CONSTRAINT `chk_calendar_event_status`
-                                      CHECK (`status` IN (
-                                                          'PLANNED',
-                                                          'COMPLETED',
-                                                          'CANCELED'
-                                          ))
+                                   CONSTRAINT `chk_calendar_event_status`
+                                       CHECK (`status` IN (
+                                                           'PLANNED',
+                                                           'COMPLETED',
+                                                           'CANCELED'
+                                           ))
 );
 
+-- [MEDICINE] ingredient_id -> medicine_id (안전상비의약품 선택 시 medicine_products.medicine_id, 직접 입력이면 NULL)
 CREATE TABLE `prescriptions` (
                                  `prescription_id` BIGINT NOT NULL AUTO_INCREMENT,
                                  `user_id` BIGINT NOT NULL,
                                  `name` VARCHAR(150) NOT NULL,
-                                 `ingredient_id` BIGINT NULL COMMENT '약 성분 마스터 ID. 상충 검사에 사용, 직접 입력이면 NULL',
+                                 `medicine_id` BIGINT NULL COMMENT '안전상비의약품 ID. 상충 검사에 사용, 직접 입력이면 NULL',
                                  `start_at` DATE NOT NULL,
                                  `end_at` DATE NULL COMMENT 'NULL이면 종료일 미정',
                                  `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
@@ -291,6 +302,46 @@ CREATE TABLE `prescriptions` (
                                  KEY `idx_prescriptions_user` (`user_id`, `start_at`),
                                  CONSTRAINT `chk_prescription_status`
                                      CHECK (`status` IN ('ACTIVE', 'ENDED', 'STOPPED'))
+);
+
+-- [MEDICINE] 안전상비의약품 (읽기 전용. SQL 시드로만 채움)
+CREATE TABLE `medicine_products` (
+                                     `medicine_id`     BIGINT       NOT NULL AUTO_INCREMENT,
+                                     `name_ko`         VARCHAR(150) NOT NULL COMMENT '의약품안전나라 제품명 원본',
+                                     `display_name`    VARCHAR(30)  NULL     COMMENT '화면용 짧은 이름 (prescriptions.name에 들어감)',
+                                     `kind`            VARCHAR(10)  NOT NULL COMMENT 'OTC, RX',
+                                     `item_seq`        VARCHAR(20)  NULL     COMMENT '품목기준코드',
+                                     `atc_code`        VARCHAR(10)  NULL,
+                                     `search_keywords` VARCHAR(300) NULL,
+                                     `active`          BOOLEAN      NOT NULL DEFAULT TRUE,
+                                     PRIMARY KEY (`medicine_id`),
+                                     UNIQUE KEY `uq_medicine_item_seq` (`item_seq`),
+                                     KEY `idx_medicine_products_name` (`name_ko`)
+);
+
+-- [MEDICINE] 약 하나에 주성분 여러 개 (판콜에이 = 아세트아미노펜 + 구아이페네신 + ...)
+CREATE TABLE `medicine_ingredients` (
+                                        `medicine_id`      BIGINT       NOT NULL,
+                                        `active_code`      VARCHAR(40)  NOT NULL COMMENT '앱 내부 성분 코드. 예: ACETAMINOPHEN, IBUPROFEN',
+                                        `active_name_ko`   VARCHAR(100) NOT NULL,
+                                        PRIMARY KEY (`medicine_id`, `active_code`),
+                                        CONSTRAINT `fk_medicine_ingredients_medicine` FOREIGN KEY (`medicine_id`)
+                                            REFERENCES `medicine_products` (`medicine_id`) ON DELETE CASCADE
+);
+
+-- [MEDICINE] 약 주성분 x 영양제 성분(IngredientCode) 상충 규칙
+CREATE TABLE `medicine_interactions` (
+                                         `interaction_id`             BIGINT       NOT NULL AUTO_INCREMENT,
+                                         `active_code`                VARCHAR(40)  NOT NULL,
+                                         `supplement_ingredient_code` VARCHAR(30)  NOT NULL,
+                                         `severity`                   VARCHAR(10)  NOT NULL COMMENT 'AVOID, CAUTION, TIMING, INFO',
+                                         `message_ko`                 VARCHAR(300) NOT NULL,
+                                         `source_id`                  VARCHAR(20)  NOT NULL COMMENT 'REVIEW-NEEDED/DRAFT = 약사 검수 전',
+                                         `active`                     BOOLEAN      NOT NULL DEFAULT TRUE,
+                                         PRIMARY KEY (`interaction_id`),
+                                         UNIQUE KEY `uq_medicine_interaction` (`active_code`, `supplement_ingredient_code`),
+                                         KEY `idx_medicine_interactions_supp` (`supplement_ingredient_code`),
+                                         CONSTRAINT `ck_medicine_interaction_severity` CHECK (`severity` IN ('AVOID','CAUTION','TIMING','INFO'))
 );
 
 CREATE TABLE `ai_recommendation_items` (
@@ -544,21 +595,13 @@ CREATE TABLE `user_medications` (
                                     `updated_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE `health_profiles` ADD CONSTRAINT `PK_HEALTH_PROFILES` PRIMARY KEY (
-                                                                               `user_id`
-    );
+ALTER TABLE `health_profiles` ADD CONSTRAINT `PK_HEALTH_PROFILES` PRIMARY KEY (`user_id`);
 
-ALTER TABLE `user_conditions` ADD CONSTRAINT `PK_USER_CONDITIONS` PRIMARY KEY (
-                                                                               `user_condition_id`
-    );
+ALTER TABLE `user_conditions` ADD CONSTRAINT `PK_USER_CONDITIONS` PRIMARY KEY (`user_condition_id`);
 
-ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (
-                                                                             `intake_record_id`
-    );
+ALTER TABLE `intake_records` ADD CONSTRAINT `PK_INTAKE_RECORDS` PRIMARY KEY (`intake_record_id`);
 
-ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (
-                                                           `user_id`
-    );
+ALTER TABLE `users` ADD CONSTRAINT `PK_USERS` PRIMARY KEY (`user_id`);
 
 ALTER TABLE `users`
     MODIFY COLUMN `user_id` BIGINT NOT NULL AUTO_INCREMENT;
@@ -574,6 +617,12 @@ ALTER TABLE `prescriptions`
         FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
             ON DELETE CASCADE;
 
+-- [MEDICINE] 약이 삭제돼도 처방(복용 일정)은 남기고 medicine_id만 비운다
+ALTER TABLE `prescriptions`
+    ADD CONSTRAINT `fk_prescriptions_medicine`
+        FOREIGN KEY (`medicine_id`) REFERENCES `medicine_products` (`medicine_id`)
+            ON DELETE SET NULL;
+
 ALTER TABLE `calendar_events`
     ADD CONSTRAINT `fk_calendar_event_prescription`
         FOREIGN KEY (`prescription_id`) REFERENCES `prescriptions` (`prescription_id`)
@@ -585,57 +634,31 @@ ALTER TABLE `auth_demographics`
             REFERENCES `users` (`user_id`);
 
 
-ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (
-                                                                           `user_product_id`
-    );
+ALTER TABLE `user_products` ADD CONSTRAINT `PK_USER_PRODUCTS` PRIMARY KEY (`user_product_id`);
 
-ALTER TABLE `catalog_products` ADD CONSTRAINT `PK_CATALOG_PRODUCTS` PRIMARY KEY (
-                                                                                 `catalog_product_id`
-    );
+ALTER TABLE `catalog_products` ADD CONSTRAINT `PK_CATALOG_PRODUCTS` PRIMARY KEY (`catalog_product_id`);
 
-ALTER TABLE `disposal_locations` ADD CONSTRAINT `PK_DISPOSAL_LOCATIONS` PRIMARY KEY (
-                                                                                     `disposal_location_id`
-    );
+ALTER TABLE `disposal_locations` ADD CONSTRAINT `PK_DISPOSAL_LOCATIONS` PRIMARY KEY (`disposal_location_id`);
 
-ALTER TABLE `ai_recommendation_items` ADD CONSTRAINT `PK_AI_RECOMMENDATION_ITEMS` PRIMARY KEY (
-                                                                                               `recommendation_item_id`
-    );
+ALTER TABLE `ai_recommendation_items` ADD CONSTRAINT `PK_AI_RECOMMENDATION_ITEMS` PRIMARY KEY (`recommendation_item_id`);
 
-ALTER TABLE `ai_recommendations` ADD CONSTRAINT `PK_AI_RECOMMENDATIONS` PRIMARY KEY (
-                                                                                     `recommendation_id`
-    );
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `PK_AI_RECOMMENDATIONS` PRIMARY KEY (`recommendation_id`);
 
-ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY (
-                                                                                 `schedule_id`
-    );
+ALTER TABLE `intake_schedules` ADD CONSTRAINT `PK_INTAKE_SCHEDULES` PRIMARY KEY (`schedule_id`);
 
-ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (
-                                                               `survey_id`
-    );
+ALTER TABLE `surveys` ADD CONSTRAINT `PK_SURVEYS` PRIMARY KEY (`survey_id`);
 
-ALTER TABLE `survey_questions` ADD CONSTRAINT `PK_SURVEY_QUESTIONS` PRIMARY KEY (
-                                                                                 `question_id`
-    );
+ALTER TABLE `survey_questions` ADD CONSTRAINT `PK_SURVEY_QUESTIONS` PRIMARY KEY (`question_id`);
 
-ALTER TABLE `question_options` ADD CONSTRAINT `PK_QUESTION_OPTIONS` PRIMARY KEY (
-                                                                                 `option_id`
-    );
+ALTER TABLE `question_options` ADD CONSTRAINT `PK_QUESTION_OPTIONS` PRIMARY KEY (`option_id`);
 
-ALTER TABLE `survey_responses` ADD CONSTRAINT `PK_SURVEY_RESPONSES` PRIMARY KEY (
-                                                                                 `response_id`
-    );
+ALTER TABLE `survey_responses` ADD CONSTRAINT `PK_SURVEY_RESPONSES` PRIMARY KEY (`response_id`);
 
-ALTER TABLE `survey_answers` ADD CONSTRAINT `PK_SURVEY_ANSWERS` PRIMARY KEY (
-                                                                             `answer_id`
-    );
+ALTER TABLE `survey_answers` ADD CONSTRAINT `PK_SURVEY_ANSWERS` PRIMARY KEY (`answer_id`);
 
-ALTER TABLE `drugs` ADD CONSTRAINT `PK_DRUGS` PRIMARY KEY (
-                                                           `drug_id`
-    );
+ALTER TABLE `drugs` ADD CONSTRAINT `PK_DRUGS` PRIMARY KEY (`drug_id`);
 
-ALTER TABLE `user_medications` ADD CONSTRAINT `PK_USER_MEDICATIONS` PRIMARY KEY (
-                                                                                 `user_medication_id`
-    );
+ALTER TABLE `user_medications` ADD CONSTRAINT `PK_USER_MEDICATIONS` PRIMARY KEY (`user_medication_id`);
 
 -- JPA IDENTITY 엔티티(설문·AI 추천·건강 프로필)의 PK 자동 증가. PK 추가 후, FK 추가 전에 붙인다.
 ALTER TABLE `surveys` MODIFY `survey_id` BIGINT NOT NULL AUTO_INCREMENT;
@@ -652,82 +675,38 @@ ALTER TABLE `intake_schedules` MODIFY `schedule_id` BIGINT NOT NULL AUTO_INCREME
 -- STEP 17: CatalogProduct 엔티티도 IDENTITY
 ALTER TABLE `catalog_products` MODIFY `catalog_product_id` BIGINT NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (
-                                                                                          `user_id`
-    )
-    REFERENCES `users` (
-                        `user_id`
-        );
+ALTER TABLE `health_profiles` ADD CONSTRAINT `FK_users_TO_health_profiles_1` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`);
 
-ALTER TABLE `survey_questions` ADD CONSTRAINT `FK_surveys_TO_survey_questions_1` FOREIGN KEY (
-                                                                                              `survey_id`
-    )
-    REFERENCES `surveys` (
-                          `survey_id`
-        );
+ALTER TABLE `survey_questions` ADD CONSTRAINT `FK_surveys_TO_survey_questions_1` FOREIGN KEY (`survey_id`)
+    REFERENCES `surveys` (`survey_id`);
 
-ALTER TABLE `question_options` ADD CONSTRAINT `FK_survey_questions_TO_question_options_1` FOREIGN KEY (
-                                                                                                       `question_id`
-    )
-    REFERENCES `survey_questions` (
-                                   `question_id`
-        );
+ALTER TABLE `question_options` ADD CONSTRAINT `FK_survey_questions_TO_question_options_1` FOREIGN KEY (`question_id`)
+    REFERENCES `survey_questions` (`question_id`);
 
-ALTER TABLE `survey_responses` ADD CONSTRAINT `FK_surveys_TO_survey_responses_1` FOREIGN KEY (
-                                                                                              `survey_id`
-    )
-    REFERENCES `surveys` (
-                          `survey_id`
-        );
+ALTER TABLE `survey_responses` ADD CONSTRAINT `FK_surveys_TO_survey_responses_1` FOREIGN KEY (`survey_id`)
+    REFERENCES `surveys` (`survey_id`);
 
-ALTER TABLE `survey_responses` ADD CONSTRAINT `FK_users_TO_survey_responses_1` FOREIGN KEY (
-                                                                                            `user_id`
-    )
-    REFERENCES `users` (
-                        `user_id`
-        );
+ALTER TABLE `survey_responses` ADD CONSTRAINT `FK_users_TO_survey_responses_1` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`);
 
-ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_survey_responses_TO_survey_answers_1` FOREIGN KEY (
-                                                                                                   `response_id`
-    )
-    REFERENCES `survey_responses` (
-                                   `response_id`
-        );
+ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_survey_responses_TO_survey_answers_1` FOREIGN KEY (`response_id`)
+    REFERENCES `survey_responses` (`response_id`);
 
-ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_survey_questions_TO_survey_answers_1` FOREIGN KEY (
-                                                                                                   `question_id`
-    )
-    REFERENCES `survey_questions` (
-                                   `question_id`
-        );
+ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_survey_questions_TO_survey_answers_1` FOREIGN KEY (`question_id`)
+    REFERENCES `survey_questions` (`question_id`);
 
-ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_question_options_TO_survey_answers_1` FOREIGN KEY (
-                                                                                                   `option_id`
-    )
-    REFERENCES `question_options` (
-                                   `option_id`
-        );
+ALTER TABLE `survey_answers` ADD CONSTRAINT `FK_question_options_TO_survey_answers_1` FOREIGN KEY (`option_id`)
+    REFERENCES `question_options` (`option_id`);
 
-ALTER TABLE `user_medications` ADD CONSTRAINT `FK_users_TO_user_medications_1` FOREIGN KEY (
-                                                                                            `user_id`
-    )
-    REFERENCES `users` (
-                        `user_id`
-        );
+ALTER TABLE `user_medications` ADD CONSTRAINT `FK_users_TO_user_medications_1` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`);
 
-ALTER TABLE `user_medications` ADD CONSTRAINT `FK_drugs_TO_user_medications_1` FOREIGN KEY (
-                                                                                            `drug_id`
-    )
-    REFERENCES `drugs` (
-                        `drug_id`
-        );
+ALTER TABLE `user_medications` ADD CONSTRAINT `FK_drugs_TO_user_medications_1` FOREIGN KEY (`drug_id`)
+    REFERENCES `drugs` (`drug_id`);
 
-ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recommendations_1` FOREIGN KEY (
-                                                                                                           `response_id`
-    )
-    REFERENCES `survey_responses` (
-                                   `response_id`
-        );
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `FK_survey_responses_TO_ai_recommendations_1` FOREIGN KEY (`response_id`)
+    REFERENCES `survey_responses` (`response_id`);
 
 -- STEP 14: 회원이 삭제되면 회차·질문도 삭제. 회차가 90일 뒤 삭제되면 추천 결과는 남기고 session_id만 비운다
 -- 엔티티 AiRecommendationItem.recommendation(@ManyToOne)과 같은 FK (2026-10-29 대조 때 빠진 것을 발견해 추가)
@@ -871,6 +850,19 @@ UPDATE `catalog_products` SET `category` = '비타민B', `ingredient_summary` = 
 UPDATE `catalog_products` SET `category` = '눈 건강', `ingredient_summary` = '루테인 20mg · 지아잔틴 4mg', `package_size` = '30캡슐 · 1개월분', `price` = 24000 WHERE `mfds_item_no` = 'SAMPLE-0006';
 UPDATE `catalog_products` SET `category` = '비타민D', `ingredient_summary` = '비타민D 2000IU', `package_size` = '90정 · 3개월분', `price` = 12900 WHERE `mfds_item_no` = 'SAMPLE-0007';
 UPDATE `catalog_products` SET `category` = '유산균', `ingredient_summary` = '프로바이오틱스 100억 CFU', `package_size` = '30캡슐 · 1개월분', `price` = 26000 WHERE `mfds_item_no` = 'SAMPLE-0008';
+
+-- [MEDICINE] 예시 영양제의 성분 (상충 비교용. ingredient_code는 recommendation_rules의 성분 코드와 같다)
+-- 1번 종합비타민은 일부러 비워 둠 -> 상충 확인 결과의 "성분을 몰라 비교하지 못한 영양제"로 잡힘
+INSERT INTO `product_ingredients` (`catalog_product_id`, `ingredient_code`, `ingredient_name`, `source`) VALUES
+                                                                                                             (2, 'OMEGA3',        '오메가3',  'MANUAL'),
+                                                                                                             (3, 'MAGNESIUM',     '마그네슘', 'MANUAL'),
+                                                                                                             (4, 'MILK_THISTLE',  '밀크씨슬', 'MANUAL'),
+                                                                                                             (5, 'VITAMIN_B1',    '비타민 B1',  'MANUAL'),
+                                                                                                             (5, 'VITAMIN_B6',    '비타민 B6',  'MANUAL'),
+                                                                                                             (5, 'VITAMIN_B12',   '비타민 B12', 'MANUAL'),
+                                                                                                             (6, 'LUTEIN',        '루테인',   'MANUAL'),
+                                                                                                             (7, 'VITAMIN_D',     '비타민 D', 'MANUAL'),
+                                                                                                             (8, 'PROBIOTICS',    '유산균',   'MANUAL');
 
 -- 사용자가 등록한 영양제와 약 ----------------------------------------
 -- 카탈로그에서 고르면 catalog_product_id, 직접 입력하면 manual_product_name에 저장
@@ -1059,3 +1051,104 @@ INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `user_id`,
 INSERT INTO `ai_recommendation_items` (`recommendation_item_id`, `recommendation_id`, `ingredient_name`, `reason`, `sort_order`) VALUES
                                                                                                                                      (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
                                                                                                                                      (2, 1, 'MAGNESIUM',   '신경과 근육 기능 유지에 도움을 줄 수 있어요.', 2);
+
+-- ============================================================
+-- [MEDICINE] 안전상비의약품 시드 (의약품안전나라에서 확인한 11종)
+--  * 아직 없음: 어린이용타이레놀정80밀리그람, 타이레놀정160밀리그람
+--    -> 품목기준코드/주성분 확인 후 아래 두 INSERT에 추가
+--  * item_seq = 품목기준코드. 업체명이 바뀌어도(한국얀센 -> 켄뷰코리아) 이 코드로 식별
+-- ============================================================
+INSERT INTO `medicine_products` (`name_ko`, `display_name`, `kind`, `item_seq`, `atc_code`, `search_keywords`) VALUES
+                                                                                                                   ('타이레놀정500밀리그람(아세트아미노펜)', '타이레놀 500mg',        'OTC', '202106092', 'N02BE01', '타이레놀 아세트아미노펜'),
+                                                                                                                   ('어린이타이레놀현탁액(아세트아미노펜)', '어린이 타이레놀 현탁액', 'OTC', '202200525', 'N02BE01', '어린이 타이레놀 아세트아미노펜'),
+                                                                                                                   ('어린이부루펜시럽(이부프로펜)',         '어린이 부루펜 시럽',      'OTC', '198601920', 'M01AE01', '어린이 부루펜 이부프로펜'),
+                                                                                                                   ('판콜에이내복액',                        '판콜에이 내복액',         'OTC', '196800036', 'R05X',    '판콜 감기'),
+                                                                                                                   ('판피린티정',                            '판피린티정',              'OTC', '199400202', 'R05X',    '판피린 감기'),
+                                                                                                                   ('닥터베아제정',                          '닥터베아제정',            'OTC', '200300406', 'A09A',    '베아제 소화'),
+                                                                                                                   ('베아제정',                              '베아제정',                'OTC', '198700405', 'A09A',    '베아제 소화'),
+                                                                                                                   ('훼스탈골드정',                          '훼스탈골드정',            'OTC', '199900926', 'A09A',    '훼스탈 소화'),
+                                                                                                                   ('훼스탈플러스정',                        '훼스탈플러스정',          'OTC', '199801026', 'A09A',    '훼스탈 소화'),
+                                                                                                                   ('신신파스아렉스',                        '신신파스아렉스',          'OTC', '200501321', 'M02AC',   '신신파스 파스'),
+                                                                                                                   ('제일쿨파프',                            '제일쿨파프',              'OTC', '198400250', 'M02AC',   '제일쿨파프 파스');
+
+-- 주성분 (품목기준코드로 연결). active_code는 이 앱 내부 코드.
+INSERT INTO `medicine_ingredients` (`medicine_id`, `active_code`, `active_name_ko`)
+SELECT p.medicine_id, v.code, v.name_ko
+FROM (
+         -- 타이레놀 500 / 어린이 타이레놀 현탁액
+         SELECT '202106092' item_seq, 'ACETAMINOPHEN' code, '아세트아미노펜' name_ko UNION ALL
+         SELECT '202200525', 'ACETAMINOPHEN', '아세트아미노펜' UNION ALL
+         -- 어린이 부루펜
+         SELECT '198601920', 'IBUPROFEN', '이부프로펜' UNION ALL
+         -- 판콜에이
+         SELECT '196800036', 'ACETAMINOPHEN', '아세트아미노펜' UNION ALL
+         SELECT '196800036', 'GUAIFENESIN', '구아이페네신' UNION ALL
+         SELECT '196800036', 'PENTOXYVERINE', '펜톡시베린시트르산염' UNION ALL
+         SELECT '196800036', 'PHENYLEPHRINE', '페닐레프린염산염' UNION ALL
+         SELECT '196800036', 'CHLORPHENIRAMINE', '클로르페니라민말레산염' UNION ALL
+         SELECT '196800036', 'CAFFEINE', '카페인무수물' UNION ALL
+         -- 판피린티
+         SELECT '199400202', 'ACETAMINOPHEN', '아세트아미노펜' UNION ALL
+         SELECT '199400202', 'CHLORPHENIRAMINE', '클로르페니라민말레산염' UNION ALL
+         SELECT '199400202', 'CAFFEINE', '카페인무수물' UNION ALL
+         -- 닥터베아제
+         SELECT '200300406', 'DIASTASE_PROTEASE_CELLULASE', '디아스타제·프로테아제·셀룰라제' UNION ALL
+         SELECT '200300406', 'PANCELLASE', '판셀라제' UNION ALL
+         SELECT '200300406', 'CREASE_PEG', '크리아제-PEG' UNION ALL
+         SELECT '200300406', 'DIASTASE_PROTEASE_100', '디아스타제·프로테아제100' UNION ALL
+         SELECT '200300406', 'PANPROSIN', '판프로신' UNION ALL
+         SELECT '200300406', 'LIPASE', '리파제' UNION ALL
+         SELECT '200300406', 'BROMELAIN', '브로멜라인' UNION ALL
+         SELECT '200300406', 'URSODEOXYCHOLIC_ACID', '우르소데옥시콜산' UNION ALL
+         SELECT '200300406', 'SIMETHICONE', '시메티콘' UNION ALL
+         -- 베아제
+         SELECT '198700405', 'DIASTASE_PROTEASE_CELLULASE', '디아스타제·프로테아제·셀룰라제' UNION ALL
+         SELECT '198700405', 'LIPASE', '리파제' UNION ALL
+         SELECT '198700405', 'PANPROSIN', '판프로신' UNION ALL
+         SELECT '198700405', 'PANCELLASE', '판셀라제' UNION ALL
+         SELECT '198700405', 'PANCREATIN', '판크레아틴' UNION ALL
+         SELECT '198700405', 'URSODEOXYCHOLIC_ACID', '우르소데옥시콜산' UNION ALL
+         SELECT '198700405', 'SIMETHICONE', '시메티콘' UNION ALL
+         -- 훼스탈골드
+         SELECT '199900926', 'PANCREATIN', '판크레아틴' UNION ALL
+         SELECT '199900926', 'DIASTASE_PROTEASE_CELLULASE', '디아스타제·프로테아제·셀룰라제' UNION ALL
+         SELECT '199900926', 'PROZYME_6', '프로자임6' UNION ALL
+         SELECT '199900926', 'LIPASE', '리파제' UNION ALL
+         SELECT '199900926', 'CELLULASE', '셀룰라제' UNION ALL
+         SELECT '199900926', 'URSODEOXYCHOLIC_ACID', '우르소데옥시콜산' UNION ALL
+         SELECT '199900926', 'SIMETHICONE', '시메티콘' UNION ALL
+         -- 훼스탈플러스
+         SELECT '199801026', 'PANCREATIN', '판크레아틴' UNION ALL
+         SELECT '199801026', 'CELLULASE', '셀룰라제' UNION ALL
+         SELECT '199801026', 'URSODEOXYCHOLIC_ACID', '우르소데옥시콜산' UNION ALL
+         SELECT '199801026', 'SIMETHICONE', '시메티콘' UNION ALL
+         -- 신신파스아렉스
+         SELECT '200501321', 'MENTHOL', 'L-멘톨' UNION ALL
+         SELECT '200501321', 'MENTHA_OIL', '박하유' UNION ALL
+         SELECT '200501321', 'METHYL_SALICYLATE', '살리실산메틸' UNION ALL
+         SELECT '200501321', 'CAMPHOR', 'dl-캄파' UNION ALL
+         SELECT '200501321', 'BENZYL_NICOTINATE', '니코틴산벤질' UNION ALL
+         SELECT '200501321', 'VANILLYL_NONYLAMIDE', '노닐산바닐릴아미드' UNION ALL
+         SELECT '200501321', 'ZINC_OXIDE', '산화아연' UNION ALL
+         -- 제일쿨파프
+         SELECT '198400250', 'METHYL_SALICYLATE', '살리실산메틸' UNION ALL
+         SELECT '198400250', 'MENTHOL', 'L-멘톨' UNION ALL
+         SELECT '198400250', 'CAMPHOR', 'dl-캄파' UNION ALL
+         SELECT '198400250', 'MENTHA_OIL', '박하유' UNION ALL
+         SELECT '198400250', 'THYMOL', '티몰'
+     ) v JOIN `medicine_products` p ON p.`item_seq` = v.item_seq;
+
+-- 약 x 영양제 상충. source_id가 REVIEW-NEEDED/DRAFT인 건 약사 검수 필요 (DRAFT는 꺼둔 상태: active = FALSE)
+INSERT INTO `medicine_interactions` (`active_code`, `supplement_ingredient_code`, `severity`, `message_ko`, `source_id`, `active`) VALUES
+                                                                                                                                       ('IBUPROFEN',  'POTASSIUM', 'CAUTION', '소염진통제와 칼륨 보충제를 함께 드시면 혈중 칼륨이 높아질 수 있어요. 의사·약사와 상담하세요', 'REVIEW-NEEDED', TRUE),
+                                                                                                                                       ('IBUPROFEN',  'OMEGA3',    'INFO',    '소염진통제와 고용량 오메가3를 함께 드시면 출혈 경향이 조금 늘 수 있어요',                    'DRAFT',         TRUE),
+                                                                                                                                       ('CAFFEINE',   'IRON',      'INFO',    '카페인이 든 약은 철분제와 시간 간격을 두고 드시는 게 좋아요',                              'DRAFT',         TRUE),
+                                                                                                                                       ('PANCREATIN', 'IRON',      'TIMING',  '소화제(판크레아틴)와 철분제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE),
+                                                                                                                                       ('PANCREATIN', 'ZINC',      'TIMING',  '소화제(판크레아틴)와 아연 보충제는 성분 흡수를 방해할 수 있으므로, 간격을 두고 복용하는 것이 좋습니다.', 'REVIEW-NEEDED', TRUE),
+                                                                                                                                       ('BROMELAIN',  'OMEGA3',    'INFO',    '브로멜라인과 고용량 오메가3를 함께 드시면 출혈 경향이 늘 수 있어요',                       'DRAFT',         TRUE)
+    AS new_row
+ON DUPLICATE KEY UPDATE
+                     `severity` = new_row.`severity`,
+                     `message_ko` = new_row.`message_ko`,
+                     `source_id` = new_row.`source_id`,
+                     `active` = new_row.`active`;

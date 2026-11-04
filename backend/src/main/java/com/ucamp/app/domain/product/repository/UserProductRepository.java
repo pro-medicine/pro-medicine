@@ -10,6 +10,11 @@ import java.util.List;
 
 public interface UserProductRepository extends JpaRepository<UserProduct, Long> {
 
+    interface SupplementIngredientRow {
+        String getProductName();
+        String getIngredientCode();
+    }
+
     /**
      * 마이페이지 "내가 먹는 영양제" 목록용
      * - catalogProduct 를 같이 가져와서 카드마다 추가 쿼리 나가는 것(N+1) 방지
@@ -46,6 +51,29 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
     List<UserProduct> findActiveSupplementsByUserId(
             @Param("userId") Long userId
     );
+
+    @Query("""
+        select distinct cp.productName as productName, pi.ingredientCode as ingredientCode
+        from UserProduct up
+        join up.catalogProduct cp
+        join ProductIngredient pi on pi.catalogProductId = cp.catalogProductId
+        where up.user.id = :userId
+          and up.isActive = true
+          and up.productKind = 'SUPPLEMENT'
+          and pi.ingredientCode <> 'OTHER'
+        """)
+    List<SupplementIngredientRow> findActiveSupplementIngredients(@Param("userId") Long userId);
+
+    @Query("""
+        select count(up) from UserProduct up
+        where up.user.id = :userId
+          and up.isActive = true
+          and up.productKind = 'SUPPLEMENT'
+          and not exists (select 1 from ProductIngredient pi
+                          where pi.catalogProductId = up.catalogProduct.catalogProductId
+                            and pi.ingredientCode <> 'OTHER')
+        """)
+    long countSupplementsWithoutIngredients(@Param("userId") Long userId);
 
     //이 유저가 같은 이름으로 직접 입력한 영양제를 이미 복용 중으로 등록했는지(중복 등록 확인)
     boolean existsByUserIdAndManualProductNameAndIsActiveTrue(Long userId, String manualProductName);
