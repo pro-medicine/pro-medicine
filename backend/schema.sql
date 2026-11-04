@@ -565,7 +565,8 @@ CREATE TABLE `intake_schedules` (
                                     `meal_relation`   VARCHAR(10)   NOT NULL,
                                     `remind_at`   TIME   NOT NULL,
                                     `is_enabled`   BOOLEAN   NOT NULL   DEFAULT TRUE,
-                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+    `disabled_at` DATE NULL
 );
 
 CREATE TABLE `surveys` (
@@ -1184,20 +1185,3 @@ ON DUPLICATE KEY UPDATE
                      `message_ko` = new_row.`message_ko`,
                      `source_id` = new_row.`source_id`,
                      `active` = new_row.`active`;
-
-ALTER TABLE intake_schedules
-    ADD COLUMN IF NOT EXISTS disabled_at DATE NULL;
-
-UPDATE intake_schedules s
-    JOIN user_products up
-ON up.user_product_id = s.user_product_id
-    SET s.disabled_at = COALESCE(
-        (
-        SELECT DATE_ADD(MAX(r.intake_date), INTERVAL 1 DAY)
-        FROM intake_records r
-        WHERE r.schedule_id = s.schedule_id
-        ),
-        DATE(s.created_at)
-        )
-WHERE s.disabled_at IS NULL
-  AND (s.is_enabled = 0 OR up.is_active = 0);
