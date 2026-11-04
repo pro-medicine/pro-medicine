@@ -30,11 +30,16 @@ export function getIngredients() {
 }
 
 // 설문 제출 → { responseId }
-export function submitSurvey(surveyId, answers) {
-  return api.post(
+export async function submitSurvey(surveyId, answers) {
+  const result = await api.post(
     `/api/v1/surveys/${surveyId}/responses`,
     { answers },
   );
+  if (!getAccessToken() && result.guestToken && result.responseId != null) {
+    sessionStorage.setItem("guestSurveyResponseId", String(result.responseId));
+    sessionStorage.setItem("guestToken", result.guestToken);
+  }
+  return result;
 }
 
 // 추천 생성 (sync 모드면 DONE, queue 모드면 PENDING으로 온다)
@@ -110,4 +115,19 @@ export function getRecommendedProducts(recommendationId, ingredient) {
 // 가장 최근 추천 1건 (회원 전용) → { exists, source, recommendedAt, recommendationId, chatSessionId, notice, ingredients }
 export function getRecentRecommendation() {
   return api.get("/api/v1/users/me/recommendations/recent");
+}
+
+// ---------- V7.1 마이페이지 추천 기록 ----------
+
+// 최근 추천 20건 (회원 전용) → { items: [{ source, recommendedAt, recommendationId, chatResultId, concern, ingredients }] }
+export function getRecommendationHistory() {
+  return api.get("/api/v1/users/me/recommendations/history");
+}
+
+// 기록 하나의 성분 카드 + 제품 → { source, recommendationId, chatResultId, snapshot, notice, ingredients }
+// 대화창 트랙 1 기록은 chatResultId, 그 밖에는 recommendationId로 부른다
+export function getRecommendationHistoryDetail({ recommendationId, chatResultId }) {
+  return chatResultId != null
+    ? api.get(`/api/v1/users/me/recommendations/history/chat/${chatResultId}`)
+    : api.get(`/api/v1/users/me/recommendations/history/${recommendationId}`);
 }

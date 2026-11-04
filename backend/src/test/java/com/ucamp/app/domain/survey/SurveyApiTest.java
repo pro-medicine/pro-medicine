@@ -7,17 +7,22 @@ import com.ucamp.app.domain.health.entity.UserCondition;
 import com.ucamp.app.domain.health.repository.HealthProfileRepository;
 import com.ucamp.app.domain.health.repository.UserConditionRepository;
 import com.ucamp.app.domain.health.repository.UserMedicationRepository;
+import com.ucamp.app.domain.recommendation.service.RecommendationInputAssembler;
 import com.ucamp.app.domain.survey.entity.RespondentType;
+import com.ucamp.app.domain.survey.entity.ResponseStatus;
 import com.ucamp.app.domain.survey.entity.SurveyResponse;
 import com.ucamp.app.domain.survey.repository.SurveyAnswerRepository;
 import com.ucamp.app.domain.survey.repository.SurveyResponseRepository;
 import com.ucamp.app.domain.user.entity.User;
+import com.ucamp.app.domain.user.security.RefreshTokenService;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.support.TestUsers;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,11 +41,20 @@ import static com.ucamp.app.support.SurveyAnswers.number;
 import static com.ucamp.app.support.SurveyAnswers.text;
 import static com.ucamp.app.support.SurveyFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.ucamp.app.domain.user.security.RefreshTokenService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -48,6 +62,8 @@ class SurveyApiTest {
 
     @Autowired
     MockMvc mockMvc;
+    @MockitoBean
+    RefreshTokenService refreshTokens;
     @Autowired
     ObjectMapper objectMapper;
     @Autowired
@@ -60,6 +76,8 @@ class SurveyApiTest {
     UserMedicationRepository userMedicationRepository;
     @Autowired
     SurveyResponseRepository surveyResponseRepository;
+    @Autowired
+    RecommendationInputAssembler recommendationInputAssembler;
     @Autowired
     SurveyAnswerRepository surveyAnswerRepository;
     @Autowired
@@ -75,8 +93,8 @@ class SurveyApiTest {
 
         assertThat(data.get("respondentType").asString()).isEqualTo("GUEST");
         List<String> codes = codes(data);
-        assertThat(codes).hasSize(11)
-                .doesNotContain("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS");
+        assertThat(codes).hasSize(10)
+                .doesNotContain("Q-PREGNANCY", "Q-CONDITIONS", "Q-MEDICATIONS", "Q-SUPPLEMENTS");
         for (JsonNode q : data.get("questions")) {
             assertThat(q.get("sensitive").asBoolean()).isFalse();
             assertThat(q.has("prefill")).isFalse();
@@ -147,7 +165,7 @@ class SurveyApiTest {
 
         assertThat(codes(data)).containsExactly(
                 "Q-GOAL", "Q-GENDER", "Q-BIRTH", "Q-SMOKING", "Q-DRINKING", "Q-CAFFEINE",
-                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE", "Q-SUPPLEMENTS");
+                "Q-DIET", "Q-SUN", "Q-SLEEP", "Q-FATIGUE");
         assertThat(data.get("questions").get(0).get("text").asString())
                 .isEqualTo("뭐가 불편하세요? (영양제를 먹으면서 효과를 보고 싶은 점)");
     }
@@ -220,14 +238,31 @@ class SurveyApiTest {
     }
 
     @Test
+    void 회원_최신_영양제_응답은_다른_설문_제출이_있어도_우선한다() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+        submitOk(user.getId(), List.of(text(Q_SUPPLEMENTS,
+                "[{\"ingredient\":\"MAGNESIUM\",\"amount\":30,\"unit\":\"mg\"}]")));
+        assertThat(recommendationInputAssembler.assembleForMember(user.getId(), null)
+                .currentIntake()).hasSize(1);
+        long latestSupplementId = submitOk(user.getId(), List.of(text(Q_SUPPLEMENTS, "[]")));
+        submitOk(user.getId(), List.of(choice(Q_SMOKING, SMOKING_NONE)));
+
+        List<SurveyResponse> found = surveyResponseRepository.findLatestWithAnswer(
+                user.getId(), RespondentType.MEMBER, ResponseStatus.SUBMITTED,
+                "Q-SUPPLEMENTS", PageRequest.of(0, 1));
+        assertThat(found).extracting(SurveyResponse::getResponseId).containsExactly(latestSupplementId);
+        assertThat(recommendationInputAssembler.assembleForMember(user.getId(), null)
+                .currentIntake()).isEmpty();
+    }
+
+    @Test
     void 비회원_제출_프로필_테이블_변화_없음() throws Exception {
         long profilesBefore = healthProfileRepository.count();
         long conditionsBefore = userConditionRepository.count();
 
         long responseId = submitOk(null, List.of(
                 choice(Q_GENDER, GENDER_F),
-                choice(Q_SMOKING, SMOKING_NONE),
-                text(Q_SUPPLEMENTS, "[]")));
+                choice(Q_SMOKING, SMOKING_NONE)));
         entityManager.flush();
         entityManager.clear();
 
@@ -237,6 +272,70 @@ class SurveyApiTest {
         assertThat(response.getIncludesSensitive()).isFalse();
         assertThat(healthProfileRepository.count()).isEqualTo(profilesBefore);
         assertThat(userConditionRepository.count()).isEqualTo(conditionsBefore);
+    }
+
+
+    @Test
+    void 비회원_V1_응답을_회원가입하면_프로필에_연결된다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "success")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+        assertThat(userId).isPositive();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        SurveyResponse linked = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(linked.getUser().getId()).isEqualTo(userId);
+        assertThat(linked.getGuestTokenHash()).isNull();
+        assertThat(linked.getRespondentType()).isEqualTo(RespondentType.GUEST);
+
+        HealthProfile profile = healthProfileRepository.findById(userId).orElseThrow();
+        assertThat(profile.getGender()).isEqualTo("F");
+        assertThat(profile.getSmoking()).isEqualTo("NONE");
+    }
+
+    @Test
+    void 잘못된_게스트_토큰으로_회원가입하면_연결되지_않는다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+
+        signupWithGuest(responseId, "0".repeat(64), "invalid")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("S002"));
+
+        entityManager.clear();
+        SurveyResponse response = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(response.getUser()).isNull();
+        assertThat(response.getGuestTokenHash()).isNotNull();
+    }
+
+    @Test
+    void 이미_연결된_게스트_응답은_재사용할_수_없다() throws Exception {
+        JsonNode guest = submitGuestForSignup();
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "first")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long firstUserId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+        entityManager.flush();
+        entityManager.clear();
+
+        signupWithGuest(responseId, guestToken, "second")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("S002"));
+
+        entityManager.clear();
+        SurveyResponse linked = surveyResponseRepository.findById(responseId).orElseThrow();
+        assertThat(linked.getUser().getId()).isEqualTo(firstUserId);
+        assertThat(linked.getGuestTokenHash()).isNull();
     }
 
     // ---------- 검증 실패 ----------
@@ -293,15 +392,26 @@ class SurveyApiTest {
                 .andExpect(status().isBadRequest());
     }
 
+
     @Test
     void 영양제_JSON_형식이_틀리거나_모르는_성분이면_400() throws Exception {
+        User user = TestUsers.create(userRepository, true);
+
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"UNKNOWN\",\"amount\":1,\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":\"30\",\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
         submit(null, List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":-1,\"unit\":\"mg\"}]")))
                 .andExpect(status().isBadRequest());
+
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"UNKNOWN\",\"amount\":1,\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":\"30\",\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
+        submit(user.getId(), List.of(text(Q_SUPPLEMENTS, "[{\"ingredient\":\"MAGNESIUM\",\"amount\":-1,\"unit\":\"mg\"}]")))
+                .andExpect(status().isBadRequest());
     }
+
 
     @Test
     void 같은_문항_답이_중복되면_400() throws Exception {
@@ -336,13 +446,39 @@ class SurveyApiTest {
 
     @Test
     void 비회원은_성분_목록만_볼_수_있고_약_검색은_막힌다() throws Exception {
-        // 비회원 설문 마지막 문항(Q-SUPPLEMENTS)에서 성분 목록을 쓴다
+        // 성분 목록 API의 비회원 접근 허용 정책은 유지한다
         mockMvc.perform(get("/api/v1/ingredients"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isNotEmpty());
         // 약 검색은 회원 민감 문항(Q-MEDICATIONS)용이라 계속 로그인 필요
         mockMvc.perform(get("/api/v1/drugs").param("keyword", "와파린"))
                 .andExpect(status().isUnauthorized());
+    }
+
+
+    private JsonNode submitGuestForSignup() throws Exception {
+        String body = submit(null, List.of(
+                choice(Q_GENDER, GENDER_F),
+                choice(Q_SMOKING, SMOKING_NONE)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body).get("data");
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix) throws Exception {
+        when(refreshTokens.issue(anyLong(), eq(false)))
+                .thenReturn(new RefreshTokenService.Issued("test-refresh", 604800));
+        return mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                        "email", "guest-claim-" + suffix + "@example.com",
+                        "password", "Password123!",
+                        "name", "guest-claim-" + suffix,
+                        "age", 26,
+                        "gender", "여성",
+                        "termsAgreed", true,
+                        "guestResponseId", responseId,
+                        "guestToken", guestToken))));
     }
 
     // ---------- helpers ----------
