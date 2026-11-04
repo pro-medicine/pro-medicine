@@ -144,7 +144,7 @@ export default function ProfileScreen({
     if (sharing || !user) return;
     setSharing(true);
     try {
-      const updated = await updateShareIntake(userId, !shared);
+      const updated = await updateShareIntake(!shared);
       setUser((prev) => ({
         ...prev,
         shareIntakeStatus: updated.shareIntakeStatus,

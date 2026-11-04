@@ -42,10 +42,6 @@ export async function getHome() {
     const unread = unwrapResponse(unreadRes);
     const supplements = unwrapResponse(supplementsRes);
 
-    console.log("[home] user:", user);
-    console.log("[home] unread:", unread);
-    console.log("[home] supplements:", supplements);
-
     if (!Array.isArray(supplements)) {
       throw new Error("오늘 복용 목록 응답이 배열이 아닙니다.");
     }
@@ -108,13 +104,13 @@ export async function getRecommendation(answers) {
  */
 export async function getIntakeSummary() {
   const res = await api.get(`/api/v1/notifications/intake-summary`);
-  return res.data?.data;
+  return unwrapResponse(res);
 }
 
 /** GET /api/v1/intakes/stats : 연속 복용 일수 (홈 "N일 연속 복용 중" 배지) */
 export async function getStreakDays() {
   const res = await api.get(`/api/v1/intakes/stats`);
-  return res.data?.data?.streakDays ?? 0;
+  return unwrapResponse(res)?.streakDays ?? 0;
 }
 
 /** 오늘(KST) 날짜 "yyyy-MM-dd" — 홈이 오늘을 보여주는지 확인할 때 사용 */
