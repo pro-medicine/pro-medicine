@@ -7,9 +7,16 @@ export default function WithdrawalSection({ onWithdraw, busy }) {
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
   const passwordInputRef = useRef(null);
+  const withdrawalLinkRef = useRef(null);
+  const hasOpenedRef = useRef(false);
 
   useEffect(() => {
-    if (open) passwordInputRef.current?.focus();
+    if (open) {
+      hasOpenedRef.current = true;
+      passwordInputRef.current?.focus();
+    } else if (hasOpenedRef.current) {
+      withdrawalLinkRef.current?.focus();
+    }
   }, [open]);
 
   const submit = async (event) => {
@@ -27,7 +34,7 @@ export default function WithdrawalSection({ onWithdraw, busy }) {
   return (
     <section className="withdrawal-section">
       {!open ? (
-        <button type="button" className="withdrawal-link" onClick={() => setOpen(true)}>
+        <button ref={withdrawalLinkRef} type="button" className="withdrawal-link" onClick={() => setOpen(true)}>
           회원 탈퇴
         </button>
       ) : (
