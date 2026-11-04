@@ -24,6 +24,7 @@ public class RefreshTokenService {
     private static final String FAMILY_PREFIX = "auth:refresh:family:";
     private static final String ACTIVE_PREFIX = "auth:refresh:active:";
     private static final String SPENT_PREFIX = "auth:refresh:spent:";
+    private static final String USER_FAMILIES_PREFIX = "auth:refresh:user:";
 
     // Rotating and recording spent tokens must be a single Redis operation.
     private static final DefaultRedisScript<String> ROTATE = script("""
@@ -75,6 +76,9 @@ public class RefreshTokenService {
         // No plaintext token is persisted. Expiry is absolute from login (rotation does not extend it).
         redis.opsForValue().set(FAMILY_PREFIX + family, userId.toString(), ttl);
         redis.opsForValue().set(activeKey(token), family, ttl);
+        String userFamiliesKey = USER_FAMILIES_PREFIX + userId;
+        redis.opsForSet().add(userFamiliesKey, family);
+        redis.expire(userFamiliesKey, REMEMBER_TTL);
         return new Issued(token, ttl.toSeconds());
     }
 
@@ -110,6 +114,17 @@ public class RefreshTokenService {
     public void revoke(String token) {
         if (token == null || token.isBlank()) return;
         redis.execute(REVOKE, List.of(activeKey(token), spentKey(token)), FAMILY_PREFIX);
+    }
+
+    public void revokeAllForUser(Long userId) {
+        String key = USER_FAMILIES_PREFIX + userId;
+        var families = redis.opsForSet().members(key);
+        if (families != null) {
+            for (String family : families) {
+                redis.delete(FAMILY_PREFIX + family);
+            }
+        }
+        redis.delete(key);
     }
 
     private String randomToken() {

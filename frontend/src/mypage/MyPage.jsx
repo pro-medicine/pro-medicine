@@ -22,6 +22,7 @@ import { deletePrescription } from "../api/prescriptionApi";
 import { useModalFocus } from "../common/useModalFocus";
 import ProfileEditPage from "./ProfileEditPage";
 import SupplementAddPage from "./SupplementAddPage";
+import WithdrawalSection from "./WithdrawalSection";
 import IntakeCalendar from "../calendar/IntakeCalendar";
 import { getMyCalendarProgress, getMyDayIntakes } from "../api/intakeApi";
 import MyStats from "./MyStats";
@@ -107,6 +108,7 @@ export default function ProfileScreen({
   startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
   account = null, // 로그인 계정 { email, nickname } (설정의 계정 정보)
   onLogout, // 설정의 "로그아웃"
+  onWithdraw,
   loggingOut = false,
 }) {
   const isMine = !friend;
@@ -350,6 +352,9 @@ export default function ProfileScreen({
                 {loggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>
             </section>
+          )}
+          {isMine && onWithdraw && (
+            <WithdrawalSection onWithdraw={onWithdraw} busy={loggingOut} />
           )}
         </SettingsModal>
       )}

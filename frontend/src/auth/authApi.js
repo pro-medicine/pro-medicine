@@ -177,6 +177,16 @@ export async function getCurrentUser() {
     }
 }
 
+export async function withdrawAccount(password) {
+    if (USE_MOCK_AUTH) throw new Error("실제 계정에서만 회원 탈퇴할 수 있습니다.");
+    await request("/api/v1/users/me", {
+        method: "DELETE", body: { password }, credentials: "include",
+    });
+    authGeneration += 1;
+    clearAccessToken();
+    clearPendingGuestSurvey();
+}
+
 export function logout() {
     if (USE_MOCK_AUTH) return mockAuth.logout();
     if (logoutPromise) return logoutPromise;
