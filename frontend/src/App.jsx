@@ -25,6 +25,7 @@ import SignupHealthFollowup from "./recommendation/SignupHealthFollowup";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
+import { restoreSurveyFocus } from "./recommendation/surveyFocus";
 
 const NAV_STATE_KEY = "yakssokView";
 const NAV_DEPTH_KEY = "yakssokDepth";
@@ -57,6 +58,14 @@ export default function App() {
   // 화면 상태
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const surveyTriggerRef = useRef(null);
+
+  useEffect(() => {
+    if (surveyOpen) return;
+    const trigger = surveyTriggerRef.current;
+    surveyTriggerRef.current = null;
+    return restoreSurveyFocus(trigger);
+  }, [surveyOpen]);
   const [postSignupHealth, setPostSignupHealth] = useState(false);
   const [skipConsentAfterSignup, setSkipConsentAfterSignup] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -384,6 +393,7 @@ export default function App() {
 
   const startSignupFromGuestSurvey = () => {
     if (userId != null || !surveyOpen) return;
+    surveyTriggerRef.current = null;
     setSurveyOpen(false);
     setPendingTab("home");
     setAuthNotice("");
@@ -392,7 +402,8 @@ export default function App() {
     window.scrollTo({ top: 0 });
   };
 
-  const openSurvey = () => {
+  const openSurvey = (event) => {
+    surveyTriggerRef.current = event?.currentTarget ?? null;
     setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
     recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
