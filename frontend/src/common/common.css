@@ -844,21 +844,27 @@
 
 .noti-toast-text {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
+}
+
+.noti-toast-text strong {
+  display: block;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 .noti-toast-text small {
   color: var(--faint);
   font-size: 12px;
-}
-
-.noti-toast-text strong {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-  word-break: keep-all;
 }
 
 .noti-toast-action {
@@ -1185,4 +1191,23 @@
   white-space: normal;
   word-break: normal;
   overflow-wrap: anywhere;
+}
+
+/* 긴 닉네임이 있어도 토스트 내부에서 줄바꿈 */
+.noti-toast {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.noti-toast-main {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.noti-toast-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  white-space: nowrap;
 }
