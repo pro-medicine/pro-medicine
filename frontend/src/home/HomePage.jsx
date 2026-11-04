@@ -1,5 +1,10 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { currentHomeDate, getHome, getStreakDays, getTodayNutrition, updateIntake } from "./homeApi";
+import {
+  currentHomeDate,
+  getHome,
+  getStreakDays,
+  updateIntake,
+} from "../api/homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
@@ -49,18 +54,23 @@ export default function HomePage({
   useEffect(() => {
     let ignore = false; // 다시 불러올 때 늦게 도착한 이전 응답은 버린다
     let retryTimer = null;
-    getHome(userId).then(({ data, isSample }) => {
+    getHome().then(({ data, isSample }) => {
       if (ignore) return;
       // 다시 불러오기(복용 체크 후 갱신 등)가 실패하면 getHome이 예시 데이터를 돌려준다.
       // 이미 실제 데이터를 보여주고 있으면 예시 데이터로 바꾸지 않고 그대로 둔다
       // → 예시 데이터로 바뀐 뒤 복용 체크가 저장되지 않는 문제 방지.
       if (isSample && hasRealDataRef.current) {
-        console.warn("[home] 홈 정보를 다시 불러오지 못해 기존 화면을 유지합니다");
+        console.warn(
+          "[home] 홈 정보를 다시 불러오지 못해 기존 화면을 유지합니다",
+        );
         // 단, 자정이 지나 날짜가 바뀌었다면 어제 목록으로 오늘 복용을 저장하면 안 되므로
         // 복용 체크를 막고 30초 뒤 다시 불러온다.
         if (shownDateRef.current !== currentHomeDate()) {
           setStaleDate(true);
-          setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요" });
+          setToast({
+            type: "error",
+            text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요",
+          });
           retryTimer = setTimeout(() => setRetryKey((k) => k + 1), 30000);
         }
         return;
@@ -81,7 +91,7 @@ export default function HomePage({
   useEffect(() => {
     if (isSample) return undefined;
     let ignore = false;
-    getStreakDays(userId)
+    getStreakDays()
       .then((days) => {
         if (!ignore) setStreakDays(days);
       })
@@ -107,7 +117,10 @@ export default function HomePage({
   }, [userId, refreshKey, homeDate, isSample]);
   // 지금 홈 날짜의 응답만 사용 (새 날짜 응답이 오기 전에는 카드가 잠깐 비어 있음)
   // (처음에는 nutrition·homeDate가 둘 다 없어서 날짜 비교만 하면 undefined === undefined가 되므로 homeDate도 확인)
-  const todayNutrition = nutrition && homeDate && nutrition.forDate === homeDate ? nutrition.data : null;
+  const todayNutrition =
+    nutrition && homeDate && nutrition.forDate === homeDate
+      ? nutrition.data
+      : null;
 
   // 토스트는 4초 뒤 자동으로 닫힘
   useEffect(() => {
@@ -144,7 +157,10 @@ export default function HomePage({
     if (pendingRef.current.has(id)) return; // 이 카드는 저장 중 → 클릭 무시
     if (staleDate) {
       // 날짜가 바뀌었는데 오늘 목록을 아직 못 불러옴 → 어제 날짜로 저장하지 않는다
-      setToast({ type: "error", text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요. 잠시 후 다시 시도해 주세요" });
+      setToast({
+        type: "error",
+        text: "날짜가 바뀌어 오늘 목록을 다시 불러오는 중이에요. 잠시 후 다시 시도해 주세요",
+      });
       return;
     }
 
@@ -154,7 +170,9 @@ export default function HomePage({
     // 성공 토스트: 잘못 눌렀으면 "되돌리기"로 바로 취소 (= 한 번 더 토글)
     const doneToast = {
       type: "success",
-      text: next ? `${item.name} 복용을 기록했어요` : `${item.name} 체크를 해제했어요`,
+      text: next
+        ? `${item.name} 복용을 기록했어요`
+        : `${item.name} 체크를 해제했어요`,
       actionLabel: "되돌리기",
       id,
     };
@@ -168,14 +186,19 @@ export default function HomePage({
     setPendingIds((prev) => [...prev, id]);
 
     try {
-      await updateIntake(userId, id, next, home.today); // 화면에 표시 중인 날짜로 저장
+      await updateIntake(id, next, home.today); // 화면에 표시 중인 날짜로 저장
       setIntakeSavedKey((k) => k + 1);
       setToast(doneToast);
       onIntakeChanged?.(); // 알림 쪽에 알림 (복용·놓침 알림 숨김/다시 표시)
     } catch (e) {
       console.warn("[home] 복용 체크 저장 실패", e);
       setTaken(id, !next);
-      setToast({ type: "error", text: "저장하지 못했어요. 다시 시도해 주세요", actionLabel: "재시도", id });
+      setToast({
+        type: "error",
+        text: "저장하지 못했어요. 다시 시도해 주세요",
+        actionLabel: "재시도",
+        id,
+      });
     } finally {
       // 성공이든 실패든 끝나면 다시 누를 수 있게
       pendingRef.current.delete(id);
@@ -189,7 +212,9 @@ export default function HomePage({
         <HomeHeader
           userName={home.userName}
           today={home.today}
-          hasUnread={isSample ? home.hasUnreadNotifications : hasUnreadNotifications}
+          hasUnread={
+            isSample ? home.hasUnreadNotifications : hasUnreadNotifications
+          }
           onBellClick={onOpenNotifications}
         />
 
@@ -207,12 +232,19 @@ export default function HomePage({
                 supplements={supplements}
                 done={done}
                 total={total}
-                pendingIds={staleDate ? supplements.map((s) => s.id) : pendingIds}
+                pendingIds={
+                  staleDate ? supplements.map((s) => s.id) : pendingIds
+                }
                 onToggle={handleToggle}
                 today={home.today}
               />
             )}
-            {total > 0 && <TodayNutrients nutrition={todayNutrition} supplements={supplements} />}
+            {total > 0 && (
+              <TodayNutrients
+                nutrition={todayNutrition}
+                supplements={supplements}
+              />
+            )}
             {/* TODO: 추천 설문 모달 만들면 연결 */}
             <RecommendBanner onClick={onSurvey} />
           </div>
