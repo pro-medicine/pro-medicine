@@ -50,7 +50,7 @@ class PersonalNutrientStandardTest {
         assertThat(r).containsEntry(Nutrient.IRON, 12.0)        // 여성 19~49세
                 .containsEntry(Nutrient.MAGNESIUM, 280.0)
                 .containsEntry(Nutrient.CALCIUM, 650.0)
-                .containsEntry(Nutrient.VITAMIN_B2, 1.2)
+                .containsEntry(Nutrient.VITAMIN_B2, 1.6)          // 임신·수유 (1.2 + 부가량 0.4)
                 .containsEntry(Nutrient.FOLATE, 550.0)          // 임신·수유
                 .containsEntry(Nutrient.VITAMIN_C, 110.0)
                 .containsEntry(Nutrient.OMEGA3, 300.0);

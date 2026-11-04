@@ -21,6 +21,7 @@ import { isExpired, msUntilNextExpiry } from "./common/notificationTypes";
 import DisposalMapPage from "./disposal/DisposalMapPage";
 import FriendsPage from "./friends/FriendsPage";
 import RecommendationModal from "./recommendation";
+import SignupHealthFollowup from "./recommendation/SignupHealthFollowup";
 import HomePage from "./home/HomePage";
 import MyPage from "./mypage/MyPage";
 import LandingPage from "./landing/LandingPage";
@@ -56,6 +57,13 @@ export default function App() {
   // 화면 상태
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
+  // 설문이 열려 있었는지 (뒤로 가기로 설문을 닫을 때 홈을 다시 조회하려고 popstate에서 읽음)
+  const surveyOpenRef = useRef(false);
+  useEffect(() => {
+    surveyOpenRef.current = surveyOpen;
+  }, [surveyOpen]);
+  const [postSignupHealth, setPostSignupHealth] = useState(false);
+  const [skipConsentAfterSignup, setSkipConsentAfterSignup] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsOpenRef = useRef(false); // SSE 콜백에서 패널이 열려 있는지 확인용
   const [toast, setToast] = useState(null); // 새 알림 팝업에 보여줄 알림
@@ -71,11 +79,23 @@ export default function App() {
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
 
   const userId = user?.userId;
+  const signupFollowupOwnerRef = useRef(null);
+
+  useEffect(() => {
+    signupFollowupOwnerRef.current = postSignupHealth && userId != null
+      ? { userId, authAttempt: authAttemptRef.current }
+      : null;
+    return () => {
+      signupFollowupOwnerRef.current = null;
+    };
+  }, [postSignupHealth, userId]);
 
   // 화면 상태 초기화 (로그아웃·세션 만료)
   const resetScreens = () => {
+    signupFollowupOwnerRef.current = null;
     setTab("home");
     setSurveyOpen(false);
+    setPostSignupHealth(false);
     setNotificationsOpen(false);
     notificationsOpenRef.current = false;
     setNotificationAnchor(null);
@@ -152,6 +172,7 @@ export default function App() {
       const completion = authCompletionRef.current;
       if (completion) {
         authCompletionRef.current = null;
+        signupFollowupOwnerRef.current = null;
         setUser(completion.account);
         setAuthMode(null);
         setAuthNotice("");
@@ -159,6 +180,7 @@ export default function App() {
         setHomeRefreshKey(0);
         setTab(completion.tab);
         setSurveyOpen(false);
+        setPostSignupHealth(completion.fromGuestV1);
         recordView({ kind: "member", tab: completion.tab }, { replace: true, reset: true });
         setPendingTab("home");
         window.scrollTo({ top: 0 });
@@ -166,8 +188,11 @@ export default function App() {
       }
       if (userId != null) {
         const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        const nextSurveyOpen = isMember && view.kind === "memberSurvey";
+        // 설문을 닫았으면 홈 다시 조회 (임신 여부 등 설문 답이 오늘 영양소 권장량·주의 문구에 쓰임)
+        if (surveyOpenRef.current && !nextSurveyOpen) setHomeRefreshKey((key) => key + 1);
         setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
-        setSurveyOpen(isMember && view.kind === "memberSurvey");
+        setSurveyOpen(nextSurveyOpen);
         setFriendTarget(null);
         setMyStartAdding(false);
         setNotificationsOpen(false);
@@ -271,11 +296,12 @@ export default function App() {
   }, []);
 
   // 로그인·회원가입 완료 → 소개 화면에서 고른 화면(기본 홈)으로
-  const handleAuthComplete = (account, attemptId) => {
+  const handleAuthComplete = (account, attemptId, fromGuestV1 = false) => {
     if (attemptId !== authAttemptRef.current) return;
+    signupFollowupOwnerRef.current = null;
     if (window.history.state?.[NAV_STATE_KEY]?.kind === "auth" &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
-      authCompletionRef.current = { account, tab: pendingTab };
+      authCompletionRef.current = { account, tab: pendingTab, fromGuestV1 };
       window.history.back();
       return;
     }
@@ -286,6 +312,7 @@ export default function App() {
     setHomeRefreshKey(0);
     setTab(pendingTab);
     setSurveyOpen(false);
+    setPostSignupHealth(fromGuestV1);
     recordView({ kind: "member", tab: pendingTab }, { replace: true, reset: true });
     setPendingTab("home");
     window.scrollTo({ top: 0 });
@@ -294,6 +321,8 @@ export default function App() {
   // 로그아웃 → 서비스 시작 화면
   const handleLogout = async () => {
     if (loggingOut) return;
+    const followupOwner = signupFollowupOwnerRef.current;
+    if (followupOwner) followupOwner.logoutPending = true;
     setLoggingOut(true);
     try {
       await logout();
@@ -303,6 +332,11 @@ export default function App() {
       setAuthMode(null);
       recordView({ kind: "landing" }, { replace: true, reset: true });
     } catch (err) {
+      if (followupOwner && signupFollowupOwnerRef.current === followupOwner &&
+          postSignupHealth && userId === followupOwner.userId &&
+          followupOwner.authAttempt === authAttemptRef.current) {
+        followupOwner.logoutPending = false;
+      }
       window.alert(err.message || "로그아웃에 실패했어요.");
     } finally {
       setLoggingOut(false);
@@ -345,18 +379,32 @@ export default function App() {
     }
   };
 
+  const finishSignupFollowup = (skipConsent = false) => {
+    const owner = signupFollowupOwnerRef.current;
+    if (!owner || owner.logoutPending || owner.userId !== userId ||
+        owner.authAttempt !== authAttemptRef.current || loggingOut) return;
+    signupFollowupOwnerRef.current = null;
+    setPostSignupHealth(false);
+    setSkipConsentAfterSignup(skipConsent);
+    setSurveyOpen(true);
+    recordView({ kind: "memberSurvey", tab });
+  };
+
   const openSurvey = () => {
+    setSkipConsentAfterSignup(false);
     setSurveyOpen(true);
     recordView(userId == null ? { kind: "guestSurvey" } : { kind: "memberSurvey", tab });
   };
 
   const closeSurvey = () => {
+    setSkipConsentAfterSignup(false);
     const kind = window.history.state?.[NAV_STATE_KEY]?.kind;
     if ((kind === "guestSurvey" || kind === "memberSurvey") &&
         (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
       window.history.back();
     } else {
       setSurveyOpen(false);
+      setHomeRefreshKey((key) => key + 1); // 설문 답이 오늘 영양소 권장량·주의 문구에 쓰여서 홈 다시 조회
       recordView(userId == null ? { kind: "landing" } : { kind: "member", tab }, { replace: true });
     }
   };
@@ -531,7 +579,17 @@ export default function App() {
         <BottomNav tab={tab} onChange={changeTab} />
         <ChatLauncher userId={userId} />
 
-        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} />}
+        {postSignupHealth && (
+          <SignupHealthFollowup
+            onClose={() => {
+              signupFollowupOwnerRef.current = null;
+              setPostSignupHealth(false);
+            }}
+            onReady={() => finishSignupFollowup()}
+            onSkip={() => finishSignupFollowup(true)}
+          />
+        )}
+        {surveyOpen && <RecommendationModal userId={userId} onClose={closeSurvey} skipConsent={skipConsentAfterSignup} />}
 
         {toast && (
           <NotificationToast

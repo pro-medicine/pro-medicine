@@ -106,7 +106,8 @@ export default function HomePage({
     };
   }, [userId, refreshKey, homeDate, isSample]);
   // 지금 홈 날짜의 응답만 사용 (새 날짜 응답이 오기 전에는 카드가 잠깐 비어 있음)
-  const todayNutrition = nutrition?.forDate === homeDate ? nutrition.data : null;
+  // (처음에는 nutrition·homeDate가 둘 다 없어서 날짜 비교만 하면 undefined === undefined가 되므로 homeDate도 확인)
+  const todayNutrition = nutrition && homeDate && nutrition.forDate === homeDate ? nutrition.data : null;
 
   // 토스트는 4초 뒤 자동으로 닫힘
   useEffect(() => {

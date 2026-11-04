@@ -1,4 +1,4 @@
--- 성분 기준값 테스트 시드. 운영 데이터(backend/docs/sql/AI_SETUP.sql 3) ingredient_standards)와 같은 54행 + STEP13 비타민 B2·E 20행
+-- 성분 기준값 테스트 시드. 운영 데이터(backend/docs/sql/AI_SETUP.sql 3) ingredient_standards)와 같은 54행 + STEP13 비타민 B2·E 21행
 -- KDRI-2025 성인 53행 (S-01, 임신·수유는 낮은 값) + 흡연자 비타민 C 1행 (KDRI 100 + NIH 부가량 35, S-01,S-03). 운영 값을 바꾸면 이 파일도 같이 바꾼다
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_A', 'M', 19, 49, NULL, 800, 3000, 'mcg RAE', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_A', 'M', 50, 64, NULL, 750, 3000, 'mcg RAE', 'KDRI-2025', 'S-01');
@@ -65,6 +65,7 @@ INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, con
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B2', 'F', 50, 64, NULL, 1.2, NULL, 'mg', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B2', 'F', 65, 74, NULL, 1.1, NULL, 'mg', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B2', 'F', 75, NULL, NULL, 1.0, NULL, 'mg', 'KDRI-2025', 'S-01');
+INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_B2', 'F', 19, 49, 'PREGNANT_OR_LACTATING', 1.6, NULL, 'mg', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_E', 'M', 19, 29, NULL, 12, 540, 'mg α-TE', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_E', 'M', 30, 49, NULL, 12, 540, 'mg α-TE', 'KDRI-2025', 'S-01');
 INSERT INTO ingredient_standards (ingredient_code, gender, age_min, age_max, condition_code, recommended_amount, upper_limit, unit, standard_version, source_id) VALUES ('VITAMIN_E', 'M', 50, 64, NULL, 12, 540, 'mg α-TE', 'KDRI-2025', 'S-01');
