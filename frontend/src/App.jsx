@@ -63,7 +63,8 @@ export default function App() {
   useEffect(() => {
     if (surveyOpen) return;
     const trigger = surveyTriggerRef.current;
-    surveyTriggerRef.current = null;
+    // Keep connected triggers for surveys reopened through browser history.
+    if (trigger && !trigger.isConnected) surveyTriggerRef.current = null;
     return restoreSurveyFocus(trigger);
   }, [surveyOpen]);
   const [postSignupHealth, setPostSignupHealth] = useState(false);
