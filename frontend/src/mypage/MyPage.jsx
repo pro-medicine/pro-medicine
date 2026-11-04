@@ -134,6 +134,8 @@ export default function ProfileScreen({
   const [removeTarget, setRemoveTarget] = useState(null);
   // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
   const removeOpenerRef = useRef(null);
+  // 삭제 처리 중인지 (확인 창의 Esc 처리는 처음 함수를 계속 써서 state 대신 ref로 확인)
+  const removingRef = useRef(false);
   // 브라우저 alert 대신 화면에 보여주는 실패 안내
   const [removeError, setRemoveError] = useState(null);
   const [shareError, setShareError] = useState(null);
@@ -155,6 +157,7 @@ export default function ProfileScreen({
   const toggleShare = async () => {
     if (sharing || !user) return;
     setSharing(true);
+    setShareError(null);
     try {
       const updated = await updateShareIntake(userId, !shared);
       setUser((prev) => ({
@@ -270,6 +273,7 @@ export default function ProfileScreen({
   // 확인 창의 [삭제]: 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
   const removeSupplement = async () => {
     const supplement = removeTarget;
+    removingRef.current = true;
     setRemovingId(supplement.id);
     try {
       await removeMySupplement(userId, supplement.id);
@@ -281,12 +285,14 @@ export default function ProfileScreen({
         }
         return next;
       });
+      removeOpenerRef.current = addButtonRef.current;
       setRemoveTarget(null);
       reload();
     } catch (e) {
       setRemoveTarget(null);
       setRemoveError(e.message || "삭제하지 못했어요.");
     } finally {
+      removingRef.current = false;
       setRemovingId(null);
     }
   };
@@ -430,8 +436,8 @@ export default function ProfileScreen({
           openerRef={removeOpenerRef}
           onConfirm={removeSupplement}
           onCancel={() => {
-            // 삭제 처리 중에는 바깥을 눌러도 닫지 않음
-            if (removingId === null) setRemoveTarget(null);
+            // 삭제 처리 중에는 바깥을 누르거나 Esc를 눌러도 닫지 않음
+            if (!removingRef.current) setRemoveTarget(null);
           }}
         />
       )}

@@ -188,6 +188,8 @@ function DayModal({
   const [removing, setRemoving] = useState(false);
   // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
   const removeOpenerRef = useRef(null);
+  // 삭제 처리 중인지 (확인 창의 Esc 처리는 처음 함수를 계속 써서 state 대신 ref로 확인)
+  const removingRef = useRef(false);
   const [rx, setRx] = useState(() => makeEmptyPrescription(dateKey));
 
   // prescriptionId → { status: "loading" | "done" | "error", data }
@@ -343,19 +345,23 @@ function DayModal({
 
   // 확인 창 닫기 (삭제 처리 중에는 닫지 않음)
   const closeRemove = () => {
-    if (removing) return;
+    if (removingRef.current) return;
     confirmOpenRef.current = false;
     setRemoveTarget(null);
   };
 
   // 확인 창의 [삭제]
   const confirmRemove = async () => {
+    removingRef.current = true;
     setRemoving(true);
     try {
       await onDelete(removeTarget.event, removeTarget.scope);
+      // 삭제한 일정의 버튼은 목록에서 사라지므로 날짜 창으로 포커스를 돌려줌
+      removeOpenerRef.current = dialogRef.current;
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
     } finally {
+      removingRef.current = false;
       setRemoving(false);
       confirmOpenRef.current = false;
       setRemoveTarget(null);
@@ -374,275 +380,279 @@ function DayModal({
   const showList = !mode && !viewEvent;
 
   return (
-    <div className="modal-layer" role="presentation" onMouseDown={onClose}>
-      <div
-        ref={dialogRef}
-        className="modal-card calendar-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${dateKey} 기록`}
-        tabIndex={-1}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <div>
-            <span className="section-label">{dateKey.slice(0, 4)}</span>
-            <h2>
-              {Number(dateKey.slice(5, 7))}월 {Number(dateKey.slice(8))}일
-            </h2>
-          </div>
-          <button type="button" aria-label="닫기" onClick={onClose}>
-            ×
-          </button>
-        </div>
-
-        {showIntake && (
-          <div className="calendar-modal-section">
-            <h3>복용 기록</h3>
-            {dayError && <p className="calendar-error">{dayError}</p>}
-            {!dayError && dayItems === null && (
-              <p className="calendar-summary">불러오는 중...</p>
-            )}
-            {dayItems?.length === 0 && (
-              <p className="calendar-summary">이 날 먹을 영양제가 없었어요.</p>
-            )}
-            <ul>
-              {(dayItems ?? []).map((item) => (
-                <li key={item.id} className={item.taken ? "taken" : "missed"}>
-                  <span className="day-mark">{item.taken ? "✓" : "–"}</span>
-                  <span className="day-copy">
-                    <strong>{item.name}</strong>
-                    <small>{item.timing}</small>
-                  </span>
-                  <span className="day-status">
-                    {item.taken ? "복용" : "미복용"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {canEdit && (
-          <div className="calendar-modal-section">
-            <div className="calendar-modal-row">
-              <h3>일정</h3>
-              {showList && (
-                <button
-                  type="button"
-                  className="event-add-button"
-                  onClick={openNew}
-                >
-                  <Icon name="plus" size={14} />
-                  일정 추가
-                </button>
-              )}
+    <>
+      <div className="modal-layer" role="presentation" onMouseDown={onClose}>
+        <div
+          ref={dialogRef}
+          className="modal-card calendar-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${dateKey} 기록`}
+          tabIndex={-1}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="modal-header">
+            <div>
+              <span className="section-label">{dateKey.slice(0, 4)}</span>
+              <h2>
+                {Number(dateKey.slice(5, 7))}월 {Number(dateKey.slice(8))}일
+              </h2>
             </div>
+            <button type="button" aria-label="닫기" onClick={onClose}>
+              ×
+            </button>
+          </div>
 
-            {showList && events.length === 0 && (
-              <p className="calendar-summary">등록된 일정이 없어요.</p>
-            )}
-
-            {showList && (
+          {showIntake && (
+            <div className="calendar-modal-section">
+              <h3>복용 기록</h3>
+              {dayError && <p className="calendar-error">{dayError}</p>}
+              {!dayError && dayItems === null && (
+                <p className="calendar-summary">불러오는 중...</p>
+              )}
+              {dayItems?.length === 0 && (
+                <p className="calendar-summary">
+                  이 날 먹을 영양제가 없었어요.
+                </p>
+              )}
               <ul>
-                {events.map((event) => {
-                  const severity = event.prescriptionId
-                    ? topSeverity(
-                        interactionMap[`${event.prescriptionId}:${dateKey}`]
-                          ?.data,
-                        dateKey,
-                      )
-                    : null;
-                  return (
-                    <li
-                      key={event.eventId}
-                      className={`event-item ${event.status === "COMPLETED" ? "completed" : ""}`}
-                    >
-                      {onToggle && (
-                        <button
-                          type="button"
-                          className="event-check"
-                          role="checkbox"
-                          aria-checked={event.status === "COMPLETED"}
-                          aria-label={`${event.title} 완료`}
-                          onClick={() => toggle(event)}
-                        >
-                          {event.status === "COMPLETED" ? "✓" : ""}
-                        </button>
-                      )}
-                      <span className="event-type">
-                        {typeLabel(event.eventType)}
-                      </span>
-                      {/* 제목·시각을 누르면 읽기 전용 상세로 */}
-                      <button
-                        type="button"
-                        className="day-copy event-open"
-                        aria-label={`${event.title} 상세 보기`}
-                        onClick={() => setViewEvent(event)}
-                      >
-                        <strong>{event.title}</strong>
-                        {event.scheduledAt && (
-                          <small className="event-time-badge">
-                            {event.scheduledAt.slice(11, 16)}
-                            {severity && (
-                              <span
-                                className={`interaction-badge ${severity.toLowerCase()}`}
-                              >
-                                {SEVERITY_LABEL[severity]}
-                              </span>
-                            )}
-                          </small>
-                        )}
-                      </button>
-                      <span className="event-actions">
-                        <button type="button" onClick={() => openEdit(event)}>
-                          수정
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(event, "one")}
-                        >
-                          {event.prescriptionId ? "삭제" : "전체 삭제"}
-                        </button>
-                        {event.prescriptionId && (
-                          <button
-                            type="button"
-                            className="danger"
-                            onClick={() => remove(event, "all")}
-                          >
-                            전체 삭제
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
+                {(dayItems ?? []).map((item) => (
+                  <li key={item.id} className={item.taken ? "taken" : "missed"}>
+                    <span className="day-mark">{item.taken ? "✓" : "–"}</span>
+                    <span className="day-copy">
+                      <strong>{item.name}</strong>
+                      <small>{item.timing}</small>
+                    </span>
+                    <span className="day-status">
+                      {item.taken ? "복용" : "미복용"}
+                    </span>
+                  </li>
+                ))}
               </ul>
-            )}
+            </div>
+          )}
 
-            {viewEvent && !mode && (
-              <EventDetail
-                event={viewEvent}
-                interaction={interactionOf(viewEvent)}
-                onBack={() => setViewEvent(null)}
-                onEdit={() => openEdit(viewEvent)}
-              />
-            )}
-
-            {mode && (
-              <form className="event-form" onSubmit={submit}>
-                <label>
-                  종류
-                  <select
-                    value={form.eventType}
-                    disabled={mode !== "new" && Boolean(mode.prescriptionId)}
-                    onChange={(e) =>
-                      setForm({ ...form, eventType: e.target.value })
-                    }
-                  >
-                    {EVENT_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {isNewPrescription ? (
-                  <PrescriptionFields value={rx} onChange={setRx} />
-                ) : isPrescriptionEdit ? (
-                  <>
-                    <label>
-                      복용 시각
-                      <input
-                        type="time"
-                        value={form.time}
-                        onChange={(e) =>
-                          setForm({ ...form, time: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      메모
-                      <textarea
-                        maxLength={1000}
-                        rows={2}
-                        value={form.notes}
-                        onChange={(e) =>
-                          setForm({ ...form, notes: e.target.value })
-                        }
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <>
-                    <label>
-                      이름
-                      <input
-                        autoFocus
-                        maxLength={30}
-                        placeholder="예: 독감 예방접종"
-                        value={form.title}
-                        onChange={(e) =>
-                          setForm({ ...form, title: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      시각
-                      <input
-                        type="time"
-                        value={form.time}
-                        onChange={(e) =>
-                          setForm({ ...form, time: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      메모
-                      <textarea
-                        maxLength={1000}
-                        rows={2}
-                        value={form.notes}
-                        onChange={(e) =>
-                          setForm({ ...form, notes: e.target.value })
-                        }
-                      />
-                    </label>
-                  </>
-                )}
-                <div className="event-form-actions">
+          {canEdit && (
+            <div className="calendar-modal-section">
+              <div className="calendar-modal-row">
+                <h3>일정</h3>
+                {showList && (
                   <button
                     type="button"
-                    onClick={() => setMode(null)}
-                    disabled={saving}
+                    className="event-add-button"
+                    onClick={openNew}
                   >
-                    취소
+                    <Icon name="plus" size={14} />
+                    일정 추가
                   </button>
-                  <button type="submit" className="primary" disabled={saving}>
-                    {saving ? "저장 중..." : "저장"}
-                  </button>
-                </div>
-              </form>
-            )}
+                )}
+              </div>
 
-            {error && <p className="calendar-error">{error}</p>}
-          </div>
-        )}
-        {/* 일정 삭제 확인 창 (브라우저 confirm 대신 화면 디자인에 맞춘 모달) */}
-        {removeTarget && (
-          <ConfirmDialog
-            title="일정 삭제"
-            message={removeMessage(removeTarget.event, removeTarget.scope)}
-            confirmLabel="삭제"
-            danger
-            busy={removing}
-            openerRef={removeOpenerRef}
-            onConfirm={confirmRemove}
-            onCancel={closeRemove}
-          />
-        )}
+              {showList && events.length === 0 && (
+                <p className="calendar-summary">등록된 일정이 없어요.</p>
+              )}
+
+              {showList && (
+                <ul>
+                  {events.map((event) => {
+                    const severity = event.prescriptionId
+                      ? topSeverity(
+                          interactionMap[`${event.prescriptionId}:${dateKey}`]
+                            ?.data,
+                          dateKey,
+                        )
+                      : null;
+                    return (
+                      <li
+                        key={event.eventId}
+                        className={`event-item ${event.status === "COMPLETED" ? "completed" : ""}`}
+                      >
+                        {onToggle && (
+                          <button
+                            type="button"
+                            className="event-check"
+                            role="checkbox"
+                            aria-checked={event.status === "COMPLETED"}
+                            aria-label={`${event.title} 완료`}
+                            onClick={() => toggle(event)}
+                          >
+                            {event.status === "COMPLETED" ? "✓" : ""}
+                          </button>
+                        )}
+                        <span className="event-type">
+                          {typeLabel(event.eventType)}
+                        </span>
+                        {/* 제목·시각을 누르면 읽기 전용 상세로 */}
+                        <button
+                          type="button"
+                          className="day-copy event-open"
+                          aria-label={`${event.title} 상세 보기`}
+                          onClick={() => setViewEvent(event)}
+                        >
+                          <strong>{event.title}</strong>
+                          {event.scheduledAt && (
+                            <small className="event-time-badge">
+                              {event.scheduledAt.slice(11, 16)}
+                              {severity && (
+                                <span
+                                  className={`interaction-badge ${severity.toLowerCase()}`}
+                                >
+                                  {SEVERITY_LABEL[severity]}
+                                </span>
+                              )}
+                            </small>
+                          )}
+                        </button>
+                        <span className="event-actions">
+                          <button type="button" onClick={() => openEdit(event)}>
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(event, "one")}
+                          >
+                            {event.prescriptionId ? "삭제" : "전체 삭제"}
+                          </button>
+                          {event.prescriptionId && (
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => remove(event, "all")}
+                            >
+                              전체 삭제
+                            </button>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {viewEvent && !mode && (
+                <EventDetail
+                  event={viewEvent}
+                  interaction={interactionOf(viewEvent)}
+                  onBack={() => setViewEvent(null)}
+                  onEdit={() => openEdit(viewEvent)}
+                />
+              )}
+
+              {mode && (
+                <form className="event-form" onSubmit={submit}>
+                  <label>
+                    종류
+                    <select
+                      value={form.eventType}
+                      disabled={mode !== "new" && Boolean(mode.prescriptionId)}
+                      onChange={(e) =>
+                        setForm({ ...form, eventType: e.target.value })
+                      }
+                    >
+                      {EVENT_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {isNewPrescription ? (
+                    <PrescriptionFields value={rx} onChange={setRx} />
+                  ) : isPrescriptionEdit ? (
+                    <>
+                      <label>
+                        복용 시각
+                        <input
+                          type="time"
+                          value={form.time}
+                          onChange={(e) =>
+                            setForm({ ...form, time: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        메모
+                        <textarea
+                          maxLength={1000}
+                          rows={2}
+                          value={form.notes}
+                          onChange={(e) =>
+                            setForm({ ...form, notes: e.target.value })
+                          }
+                        />
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        이름
+                        <input
+                          autoFocus
+                          maxLength={30}
+                          placeholder="예: 독감 예방접종"
+                          value={form.title}
+                          onChange={(e) =>
+                            setForm({ ...form, title: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        시각
+                        <input
+                          type="time"
+                          value={form.time}
+                          onChange={(e) =>
+                            setForm({ ...form, time: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        메모
+                        <textarea
+                          maxLength={1000}
+                          rows={2}
+                          value={form.notes}
+                          onChange={(e) =>
+                            setForm({ ...form, notes: e.target.value })
+                          }
+                        />
+                      </label>
+                    </>
+                  )}
+                  <div className="event-form-actions">
+                    <button
+                      type="button"
+                      onClick={() => setMode(null)}
+                      disabled={saving}
+                    >
+                      취소
+                    </button>
+                    <button type="submit" className="primary" disabled={saving}>
+                      {saving ? "저장 중..." : "저장"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {error && <p className="calendar-error">{error}</p>}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      {/* 일정 삭제 확인 창 (브라우저 confirm 대신 화면 디자인에 맞춘 모달) */}
+      {removeTarget && (
+        <ConfirmDialog
+          title="일정 삭제"
+          message={removeMessage(removeTarget.event, removeTarget.scope)}
+          confirmLabel="삭제"
+          danger
+          busy={removing}
+          openerRef={removeOpenerRef}
+          onConfirm={confirmRemove}
+          onCancel={closeRemove}
+        />
+      )}
+    </>
   );
 }
 
