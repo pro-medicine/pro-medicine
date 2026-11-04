@@ -25,3 +25,37 @@ export function deleteCalendarEvent(eventId) {
 export function createPrescription(payload) {
   return api.post("/api/v1/prescriptions", payload);
 }
+
+const unwrap = (res) => res?.data?.data ?? res?.data ?? res;
+
+export function fetchInteractions(prescriptionId, dateKey) {
+  return api
+    .get(`/api/v1/prescriptions/${prescriptionId}/interactions`, {
+      params: {
+        startAt: dateKey,
+        endAt: dateKey,
+      },
+    })
+    .then(unwrap);
+}
+
+export function searchMedicines(q) {
+  return api.get(`/api/v1/medicines/search`, { params: { q } }).then(unwrap);
+}
+
+export function previewInteractions(
+  medicineId,
+  startAt,
+  endAt,
+  excludePrescriptionId,
+) {
+  return api
+    .get(`/api/v1/medicines/${medicineId}/interactions`, {
+      params: { startAt, endAt, excludePrescriptionId },
+    })
+    .then(unwrap);
+}
+
+export async function updatePrescription(prescriptionId, payload) {
+  return api.put(`/api/v1/prescriptions/${prescriptionId}`, payload);
+}

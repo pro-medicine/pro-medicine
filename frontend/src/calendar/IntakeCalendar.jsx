@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/ui";
-import { useModalFocus } from "./useModalFocus";
+import { useModalFocus } from "../common/useModalFocus";
 import "./calendar.css";
 import PrescriptionFields, {
   makeEmptyPrescription,
   validatePrescription,
   toPrescriptionPayload,
-} from "../prescription/PrescriptionFields";
+} from "./PrescriptionFields";
+import InteractionWarningList from "./InteractionWarningList";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const pad = (n) => String(n).padStart(2, "0");
 
-// 날짜 칸 진행 링 (#67 마이페이지 시안 ③: 그날 챙긴 비율만큼 초록 링이 채워짐)
 const RING = 34;
 const RING_R = 15;
 const RING_C = 2 * Math.PI * RING_R;
@@ -48,7 +48,7 @@ function DayRing({ ratio }) {
 
 const EVENT_TYPES = [
   { value: "INJECTION", label: "주사" },
-  { value: "MEDICATION", label: "약" },
+  { value: "MEDICATION", label: "상비약" },
   { value: "APPOINTMENT", label: "병원 방문" },
   { value: "OTHER", label: "기타" },
 ];
@@ -61,6 +61,97 @@ const EMPTY_FORM = {
   time: "09:00",
   notes: "",
 };
+
+// 상충 단계 (InteractionWarningList와 같은 이름·순서)
+const SEVERITY_ORDER = ["AVOID", "CAUTION", "TIMING", "INFO"];
+const SEVERITY_LABEL = {
+  AVOID: "피하세요",
+  CAUTION: "주의",
+  TIMING: "간격 두기",
+  INFO: "참고",
+};
+
+// 처방 하나의 경고 중 가장 심각한 단계. 경고가 없으면 null (배지를 안 띄움)
+const topSeverity = (data, dateKey) => {
+  const generalWarnings = data?.warnings ?? [];
+
+  const datedWarnings = (data?.datedWarnings ?? [])
+    .filter((item) => item.date === dateKey)
+    .map((item) => item.warning);
+
+  const found = new Set(
+    [...generalWarnings, ...datedWarnings].map((w) => w.severity),
+  );
+
+  return SEVERITY_ORDER.find((s) => found.has(s)) ?? null;
+};
+
+// ───────── 일정 상세 (읽기 전용) ─────────
+// interaction: null(상충 기능 없음) | { status: "loading" | "done" | "error", data }
+function EventDetail({ event, interaction, onBack, onEdit }) {
+  const date = event.scheduledAt?.slice(0, 10);
+  const time = event.scheduledAt?.slice(11, 16);
+
+  return (
+    <div className="event-detail">
+      <button type="button" className="event-detail-back" onClick={onBack}>
+        ← 목록으로
+      </button>
+
+      <div className="event-detail-head">
+        <span className="event-type">{typeLabel(event.eventType)}</span>
+        <strong>{event.title}</strong>
+      </div>
+
+      <dl className="event-detail-meta">
+        {date && (
+          <div>
+            <dt>날짜</dt>
+            <dd>
+              {Number(date.slice(5, 7))}월 {Number(date.slice(8))}일
+            </dd>
+          </div>
+        )}
+        {time && (
+          <div>
+            <dt>시각</dt>
+            <dd>{time}</dd>
+          </div>
+        )}
+        {event.notes && (
+          <div>
+            <dt>메모</dt>
+            <dd>{event.notes}</dd>
+          </div>
+        )}
+      </dl>
+
+      {event.prescriptionId && interaction && (
+        <div className="event-detail-section">
+          {interaction.status === "error" ? (
+            <p className="interaction-empty">상충 정보를 불러오지 못했어요.</p>
+          ) : interaction.status === "done" ? (
+            <InteractionWarningList
+              data={interaction.data}
+              dateKey={event.scheduledAt?.slice(0, 10)}
+            />
+          ) : (
+            <p className="interaction-empty">상충 정보를 확인하고 있어요...</p>
+          )}
+        </div>
+      )}
+
+      <div className="event-form-actions">
+        <button type="button" onClick={onBack}>
+          닫기
+        </button>
+        <button type="button" className="primary" onClick={onEdit}>
+          수정
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ───────── 날짜 모달 ─────────
 function DayModal({
@@ -76,40 +167,108 @@ function DayModal({
   onSavePrescription,
   onDelete,
   onToggle,
+  fetchInteractions,
+  interactionRefreshKey,
 }) {
   const dialogRef = useModalFocus(onClose, openerRef);
-  const [mode, setMode] = useState(null); // null | "new" | 이벤트 객체(수정)
+  const [mode, setMode] = useState(null); // null | "new" | event 객체(수정)
+  const [viewEvent, setViewEvent] = useState(null); // 상세로 보고 있는 일정
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [rx, setRx] = useState(() => makeEmptyPrescription(dateKey));
 
+  // prescriptionId → { status: "loading" | "done" | "error", data }
+  const [interactionMap, setInteractionMap] = useState({});
+
+  // 이 날 일정에 걸린 처방들의 상충 정보를 한 번씩만 조회 (목록 배지 + 상세에서 같이 사용)
+  const prescriptionIds = [
+    ...new Set(events.map((e) => e.prescriptionId).filter(Boolean)),
+  ];
+  const idsKey = prescriptionIds.join(",");
+
+  useEffect(() => {
+    if (!fetchInteractions || prescriptionIds.length === 0) return;
+
+    let ignore = false;
+
+    prescriptionIds.forEach((id) => {
+      const key = `${id}:${dateKey}`;
+
+      setInteractionMap((prev) => ({
+        ...prev,
+        [key]: { status: "loading" },
+      }));
+
+      fetchInteractions(id, dateKey)
+        .then((data) => {
+          if (!ignore) {
+            setInteractionMap((prev) => ({
+              ...prev,
+              [key]: { status: "done", data },
+            }));
+          }
+        })
+        .catch(() => {
+          if (!ignore) {
+            setInteractionMap((prev) => ({
+              ...prev,
+              [key]: { status: "error" },
+            }));
+          }
+        });
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [idsKey, dateKey, fetchInteractions, interactionRefreshKey]);
+
+  const interactionOf = (event) => {
+    const key = `${event.prescriptionId}:${dateKey}`;
+
+    return fetchInteractions && event.prescriptionId
+      ? (interactionMap[key] ?? { status: "loading" })
+      : null;
+  };
+
   const openNew = () => {
     setForm(EMPTY_FORM);
     setError("");
+    setViewEvent(null);
     setMode("new");
     setRx(makeEmptyPrescription(dateKey));
   };
 
   const openEdit = (event) => {
+    const scheduledTime = event.scheduledAt?.slice(11, 16) || "09:00";
     setForm({
       eventType: event.eventType,
       title: event.title,
-      time: event.scheduledAt?.slice(11, 16) || "09:00",
+      time: scheduledTime,
       notes: event.notes ?? "",
     });
+
     setError("");
+    setViewEvent(null);
     setMode(event);
   };
 
-  const isRx =
+  const isNewPrescription =
     mode === "new" &&
     form.eventType === "MEDICATION" &&
     Boolean(onSavePrescription);
 
+  const isPrescriptionEdit =
+    mode !== null && mode !== "new" && Boolean(mode.prescriptionId);
+
   const submit = async (e) => {
     e.preventDefault();
-    if (isRx) {
+    if (
+      mode === "new" &&
+      form.eventType === "MEDICATION" &&
+      Boolean(onSavePrescription)
+    ) {
       const message = validatePrescription(rx);
       if (message) {
         setError(message);
@@ -127,10 +286,13 @@ function DayModal({
       }
       return;
     }
+
+    // 2. 단건 일정/약 수정 (선택한 개별 eventId의 시간 및 메모 업데이트)
     if (!form.title.trim()) {
       setError("일정 이름을 입력해 주세요.");
       return;
     }
+
     setSaving(true);
     setError("");
     try {
@@ -141,7 +303,7 @@ function DayModal({
           scheduledAt: `${dateKey}T${form.time}:00`,
           notes: form.notes.trim() || null,
         },
-        mode !== "new" ? mode.eventId : null,
+        mode !== "new" ? mode.eventId : null, // 선택한 개별 eventId 전달
       );
       setMode(null);
     } catch (err) {
@@ -174,6 +336,8 @@ function DayModal({
       setError(err.message || "상태를 바꾸지 못했어요.");
     }
   };
+
+  const showList = !mode && !viewEvent;
 
   return (
     <div className="modal-layer" role="presentation" onMouseDown={onClose}>
@@ -229,7 +393,7 @@ function DayModal({
           <div className="calendar-modal-section">
             <div className="calendar-modal-row">
               <h3>일정</h3>
-              {!mode && (
+              {showList && (
                 <button
                   type="button"
                   className="event-add-button"
@@ -241,61 +405,94 @@ function DayModal({
               )}
             </div>
 
-            {!mode && events.length === 0 && (
+            {showList && events.length === 0 && (
               <p className="calendar-summary">등록된 일정이 없어요.</p>
             )}
 
-            {!mode && (
+            {showList && (
               <ul>
-                {events.map((event) => (
-                  <li
-                    key={event.eventId}
-                    className={`event-item ${event.status === "COMPLETED" ? "completed" : ""}`}
-                  >
-                    {onToggle && (
-                      <button
-                        type="button"
-                        className="event-check"
-                        role="checkbox"
-                        aria-checked={event.status === "COMPLETED"}
-                        aria-label={`${event.title} 완료`}
-                        onClick={() => toggle(event)}
-                      >
-                        {event.status === "COMPLETED" ? "✓" : ""}
-                      </button>
-                    )}
-                    <span className="event-type">
-                      {typeLabel(event.eventType)}
-                    </span>
-                    <span className="day-copy">
-                      <strong>{event.title}</strong>
-                      {event.scheduledAt && (
-                        <small>{event.scheduledAt.slice(11, 16)}</small>
-                      )}
-                    </span>
-                    <span className="event-actions">
-                      <button type="button" onClick={() => openEdit(event)}>
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => remove(event, "one")}
-                      >
-                        {event.prescriptionId ? "삭제" : "전체 삭제"}
-                      </button>
-                      {event.prescriptionId && (
+                {events.map((event) => {
+                  const severity = event.prescriptionId
+                    ? topSeverity(
+                        interactionMap[`${event.prescriptionId}:${dateKey}`]
+                          ?.data,
+                        dateKey,
+                      )
+                    : null;
+                  return (
+                    <li
+                      key={event.eventId}
+                      className={`event-item ${event.status === "COMPLETED" ? "completed" : ""}`}
+                    >
+                      {onToggle && (
                         <button
                           type="button"
-                          className="danger"
-                          onClick={() => remove(event, "all")}
+                          className="event-check"
+                          role="checkbox"
+                          aria-checked={event.status === "COMPLETED"}
+                          aria-label={`${event.title} 완료`}
+                          onClick={() => toggle(event)}
                         >
-                          전체 삭제
+                          {event.status === "COMPLETED" ? "✓" : ""}
                         </button>
                       )}
-                    </span>
-                  </li>
-                ))}
+                      <span className="event-type">
+                        {typeLabel(event.eventType)}
+                      </span>
+                      {/* 제목·시각을 누르면 읽기 전용 상세로 */}
+                      <button
+                        type="button"
+                        className="day-copy event-open"
+                        aria-label={`${event.title} 상세 보기`}
+                        onClick={() => setViewEvent(event)}
+                      >
+                        <strong>{event.title}</strong>
+                        {event.scheduledAt && (
+                          <small className="event-time-badge">
+                            {event.scheduledAt.slice(11, 16)}
+                            {severity && (
+                              <span
+                                className={`interaction-badge ${severity.toLowerCase()}`}
+                              >
+                                {SEVERITY_LABEL[severity]}
+                              </span>
+                            )}
+                          </small>
+                        )}
+                      </button>
+                      <span className="event-actions">
+                        <button type="button" onClick={() => openEdit(event)}>
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(event, "one")}
+                        >
+                          {event.prescriptionId ? "삭제" : "전체 삭제"}
+                        </button>
+                        {event.prescriptionId && (
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => remove(event, "all")}
+                          >
+                            전체 삭제
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
+            )}
+
+            {viewEvent && !mode && (
+              <EventDetail
+                event={viewEvent}
+                interaction={interactionOf(viewEvent)}
+                onBack={() => setViewEvent(null)}
+                onEdit={() => openEdit(viewEvent)}
+              />
             )}
 
             {mode && (
@@ -304,6 +501,7 @@ function DayModal({
                   종류
                   <select
                     value={form.eventType}
+                    disabled={mode !== "new" && Boolean(mode.prescriptionId)}
                     onChange={(e) =>
                       setForm({ ...form, eventType: e.target.value })
                     }
@@ -315,8 +513,32 @@ function DayModal({
                     ))}
                   </select>
                 </label>
-                {isRx ? (
+                {isNewPrescription ? (
                   <PrescriptionFields value={rx} onChange={setRx} />
+                ) : isPrescriptionEdit ? (
+                  <>
+                    <label>
+                      복용 시각
+                      <input
+                        type="time"
+                        value={form.time}
+                        onChange={(e) =>
+                          setForm({ ...form, time: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      메모
+                      <textarea
+                        maxLength={1000}
+                        rows={2}
+                        value={form.notes}
+                        onChange={(e) =>
+                          setForm({ ...form, notes: e.target.value })
+                        }
+                      />
+                    </label>
+                  </>
                 ) : (
                   <>
                     <label>
@@ -377,8 +599,6 @@ function DayModal({
   );
 }
 
-// fetchProgress가 있으면 날짜별 { date, expected, taken } 으로 일부 복용까지 링으로 보여주고,
-// 없으면 fetchDates(모두 복용한 날짜 목록)로 완료한 날만 꽉 찬 링으로 보여준다 (친구 달력)
 export default function IntakeCalendar({
   fetchDates,
   fetchProgress,
@@ -388,8 +608,10 @@ export default function IntakeCalendar({
   updateEvent,
   updateEventStatus,
   deleteEvent,
-  deletePrescription,
   createPrescription,
+  updatePrescription,
+  deletePrescription,
+  fetchInteractions,
   title = "복용 달력",
 }) {
   const now = new Date();
@@ -403,6 +625,7 @@ export default function IntakeCalendar({
   const [dayItems, setDayItems] = useState(null);
   const [dayError, setDayError] = useState("");
   const [events, setEvents] = useState([]);
+  const [interactionRefreshKey, setInteractionRefreshKey] = useState(0);
   const openerRef = useRef(null);
 
   const monthKey = `${ym.year}-${pad(ym.month)}`;
@@ -424,7 +647,6 @@ export default function IntakeCalendar({
     }
   };
 
-  // 완료한 날
   useEffect(() => {
     let ignore = false;
     setError("");
@@ -442,11 +664,8 @@ export default function IntakeCalendar({
     return () => {
       ignore = true;
     };
-    // fetchDates·fetchProgress는 매 렌더마다 새 함수라 의존성에서 제외 (친구가 바뀌면 부모가 key로 새로 마운트)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
 
-  // 일정 (점 표시용, 내 달력만)
   useEffect(() => {
     if (!fetchEvents) return;
     let ignore = false;
@@ -455,15 +674,13 @@ export default function IntakeCalendar({
         if (!ignore) setEvents(list ?? []);
       })
       .catch(() => {
-        if (!ignore) setEvents([]); // 점이 안 보일 뿐 달력은 유지
+        if (!ignore) setEvents([]);
       });
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
 
-  // 선택한 날의 복용 기록 (오늘까지만: 미래 날짜는 기록이 아니라 계획이라 조회 안 함)
   useEffect(() => {
     if (!selected || !fetchDay || selected > todayKey) return;
     let ignore = false;
@@ -479,7 +696,6 @@ export default function IntakeCalendar({
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   const eventsForDay = (key) =>
@@ -511,6 +727,7 @@ export default function IntakeCalendar({
       await deleteEvent(event.eventId);
     }
     await reloadEvents();
+    setInteractionRefreshKey((prev) => prev + 1);
   };
 
   const handleToggle = async (event) => {
@@ -519,7 +736,6 @@ export default function IntakeCalendar({
     await reloadEvents();
   };
 
-  // { "YYYY-MM-DD" → { expected, taken } } (날짜 문자열만 오면 모두 복용한 날)
   const progress = new Map(
     dates.map((item) =>
       typeof item === "string"
@@ -532,7 +748,7 @@ export default function IntakeCalendar({
       .filter(([, p]) => p.expected > 0 && p.taken >= p.expected)
       .map(([date]) => date),
   );
-  const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7; // 월요일 시작
+  const offset = (new Date(ym.year, ym.month - 1, 1).getDay() + 6) % 7;
   const cells = [
     ...Array(offset).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -573,11 +789,9 @@ export default function IntakeCalendar({
           const key = `${monthKey}-${pad(day)}`;
           const dayEvents = eventsForDay(key);
           const isFuture = key > todayKey;
-          // 일정 기능이 있으면 미래도 열고, 없으면(친구 달력) 과거 기록만 연다
           const disabled = canEdit ? false : !fetchDay || isFuture;
           const p = progress.get(key);
           const ratio = p && p.expected > 0 ? p.taken / p.expected : 0;
-          // 링: 진행도 모드면 먹을 일정이 있던 날만, 완료 날짜 모드(친구)면 지난 날 모두
           const showRing =
             !isFuture && (fetchProgress ? p?.expected > 0 : true);
           const cls = [
@@ -654,6 +868,7 @@ export default function IntakeCalendar({
 
       {selected && (
         <DayModal
+          key={selected}
           dateKey={selected}
           showIntake={Boolean(fetchDay) && selected <= todayKey}
           dayItems={dayItems}
@@ -666,8 +881,14 @@ export default function IntakeCalendar({
           onSavePrescription={
             createPrescription ? handleSavePrescription : null
           }
+          updatePrescription={async (rxId, payload) => {
+            await updatePrescription(rxId, payload);
+            await reloadEvents();
+          }}
           onDelete={handleDelete}
           onToggle={updateEventStatus ? handleToggle : null}
+          fetchInteractions={fetchInteractions}
+          interactionRefreshKey={interactionRefreshKey}
         />
       )}
     </section>

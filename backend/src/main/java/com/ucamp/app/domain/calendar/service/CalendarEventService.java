@@ -5,6 +5,8 @@ import com.ucamp.app.domain.calendar.dto.CalendarEventResponse;
 import com.ucamp.app.domain.calendar.entity.CalendarEvent;
 import com.ucamp.app.domain.calendar.enums.EventStatus;
 import com.ucamp.app.domain.calendar.repository.CalendarEventRepository;
+import com.ucamp.app.domain.prescription.entity.Prescription;
+import com.ucamp.app.domain.prescription.repository.PrescriptionRepository;
 import com.ucamp.app.domain.user.repository.UserRepository;
 import com.ucamp.app.global.exception.BusinessException;
 import com.ucamp.app.global.exception.ErrorCode;
@@ -16,7 +18,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,17 +31,16 @@ public class CalendarEventService {
 
     private final CalendarEventRepository calendarEventRepository;
     private final UserRepository userRepository;
+    private final PrescriptionRepository prescriptionRepository;
 
     public List<CalendarEventResponse> getEvents(Long userId, LocalDate start, LocalDate end) {
         validateRange(start, end);
         requireUser(userId);
         LocalDateTime from = start.atStartOfDay();
         LocalDateTime to = end.plusDays(1).atStartOfDay();
-        return calendarEventRepository
-                .findByUserIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanOrderByScheduledAtAsc(userId, from, to)
-                .stream()
-                .map(CalendarEventResponse::from)
-                .toList();
+        List<CalendarEvent> events = calendarEventRepository
+                .findByUserIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanOrderByScheduledAtAsc(userId, from, to);
+        return toResponses(events);
     }
 
     @Transactional
@@ -104,5 +106,23 @@ public class CalendarEventService {
                             : ErrorCode.USER_NOT_FOUND
             );
         }
+    }
+
+    private List<CalendarEventResponse> toResponses(List<CalendarEvent> events) {
+        Set<Long> prescriptionIds = events.stream()
+                .map(CalendarEvent::getPrescriptionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, Long> medicineByPrescription = prescriptionIds.isEmpty()
+                ? new HashMap<>()
+                : prescriptionRepository.findAllById(prescriptionIds).stream()
+                .filter(p -> p.getMedicineId() != null)
+                .collect(Collectors.toMap(Prescription::getPrescriptionId, Prescription::getMedicineId));
+
+        return events.stream()
+                .map(e -> CalendarEventResponse.from(e,
+                        e.getPrescriptionId() == null ? null : medicineByPrescription.get(e.getPrescriptionId())))
+                .toList();
     }
 }
