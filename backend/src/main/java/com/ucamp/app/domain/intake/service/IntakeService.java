@@ -40,8 +40,6 @@ public class IntakeService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-
-
     public IntakeStatsResponse getStats(Long userId) {
         return getStats(userId, LocalDate.now(KST));
     }
@@ -51,9 +49,8 @@ public class IntakeService {
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-
-        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
         LocalDate from = today.minusDays(MAX_STREAK_DAYS);
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findScheduleHistory(userId, from);
         Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
         for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, from, today)) { //intakeRecordRepository로 수정
             takenByDate.computeIfAbsent(taken.intakeDate(), date -> new HashSet<>()).add(taken.scheduleId());
@@ -93,7 +90,7 @@ public class IntakeService {
         int expected = 0;
         int taken = 0;
         for (IntakeSchedule schedule : schedules) {
-            if (isScheduledOn(schedule, day)) {
+            if (isScheduledOn(schedule, day, takenIds)) {
                 expected++;
                 if (takenIds.contains(schedule.getScheduleId())) {
                     taken++;
@@ -180,7 +177,7 @@ public class IntakeService {
         for (LocalDate day = today.withDayOfMonth(1); !day.isAfter(lastDay); day = day.plusDays(1)) {
             Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
             for (IntakeSchedule schedule : schedules) {
-                if (isScheduledOn(schedule, day)) {
+                if (isScheduledOn(schedule, day, takenIds)) {
                     expected++;
                     if (takenIds.contains(schedule.getScheduleId())) {
                         taken++;
@@ -196,7 +193,7 @@ public class IntakeService {
         Set<Long> takenIds = takenByDate.getOrDefault(day, Set.of());
         boolean hasSchedule = false;
         for (IntakeSchedule schedule : schedules) {
-            if (isScheduledOn(schedule, day)) {
+            if (isScheduledOn(schedule, day, takenIds)) {
                 hasSchedule = true;
                 if (!takenIds.contains(schedule.getScheduleId())) {
                     return false;
@@ -207,13 +204,17 @@ public class IntakeService {
     }
 
     // 일정이 만들어진 날과 복용 시작일 중 늦은 날부터 매일 먹어야 하는 것으로 본다
-    private boolean isScheduledOn(IntakeSchedule schedule, LocalDate day) {
+    private boolean isScheduledOn(IntakeSchedule schedule, LocalDate day, Set<Long> takenIds) {
         LocalDate begin = schedule.getCreatedAt().toLocalDate();
         LocalDate startDate = schedule.getUserProduct().getStartDate();
         if (startDate != null && startDate.isAfter(begin)) {
             begin = startDate;
         }
-        return !day.isBefore(begin);
+        if (day.isBefore(begin)) return false;
+        LocalDate disabledAt = schedule.getDisabledAt();
+        if (disabledAt == null || day.isBefore(disabledAt)) return true;
+        // 꺼진 당일: 이미 먹었다면 그날 분량으로 인정
+        return day.equals(disabledAt) && takenIds.contains(schedule.getScheduleId());
     }
 
     @Transactional
@@ -295,7 +296,7 @@ public class IntakeService {
         }
 
         // 2. 먹어야 할 일정 가져오기
-        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findScheduleHistory(userId, start);
 
         // 3. 기간 안의 먹은 기록(TAKEN)을 날짜별로 묶기: { 날짜 → 그날 먹은 scheduleId 모음 }
         Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
@@ -326,7 +327,7 @@ public class IntakeService {
         if (start.isAfter(today)) return List.of();
         LocalDate until = end.isAfter(today) ? today : end;
 
-        List<IntakeSchedule> schedules = intakeScheduleRepository.findActiveSchedules(userId);
+        List<IntakeSchedule> schedules = intakeScheduleRepository.findScheduleHistory(userId, start);
         Map<LocalDate, Set<Long>> takenByDate = new HashMap<>();
         for (TakenIntake taken : intakeRecordRepository.findTakenIntakes(userId, start, until)) {
             takenByDate.computeIfAbsent(taken.intakeDate(), d -> new HashSet<>()).add(taken.scheduleId());

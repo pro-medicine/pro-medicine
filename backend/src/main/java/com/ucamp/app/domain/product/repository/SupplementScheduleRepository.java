@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 // 마이페이지 "내가 먹는 영양제"에서 쓰는 복용 일정 조회·변경
@@ -33,4 +34,25 @@ public interface SupplementScheduleRepository extends JpaRepository<IntakeSchedu
               AND s.isEnabled = true
             """)
     void disableAllByUserProductId(@Param("userProductId") Long userProductId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE IntakeSchedule s
+        SET s.isEnabled = false, s.disabledAt = :today
+        WHERE s.userProduct.userProductId = :userProductId
+          AND s.isEnabled = true
+        """)
+    void disableAllByUserProductId(@Param("userProductId") Long userProductId,
+                                   @Param("today") LocalDate today);
+
+    // 영양제 삭제 시: 일정의 끝 날짜만 기록 (켜짐 여부는 제품의 is_active가 결정)
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE IntakeSchedule s
+        SET s.disabledAt = :today
+        WHERE s.userProduct.userProductId = :userProductId
+          AND s.disabledAt IS NULL
+        """)
+    void markDisabledByUserProductId(@Param("userProductId") Long userProductId,
+                                     @Param("today") LocalDate today);
 }
