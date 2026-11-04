@@ -137,6 +137,8 @@ export default function SurveyStep({
           <input
             type="number"
             inputMode="numeric"
+            min={question.code === "Q-BIRTH" ? 1900 : undefined}
+            max={question.code === "Q-BIRTH" ? THIS_YEAR : undefined}
             aria-label={question.text}
             placeholder={placeholder}
             value={answer?.valueNumber ?? ""}

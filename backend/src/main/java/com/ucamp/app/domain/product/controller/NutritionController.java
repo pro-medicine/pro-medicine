@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users/{userId}/nutrition")
+@RequestMapping("/api/v1/users/nutrition")
 public class NutritionController {
 
     private final NutritionService nutritionService;
@@ -21,17 +21,8 @@ public class NutritionController {
     // 로그인한 사용자의 영양정보만 조회
     @GetMapping
     public ResponseEntity<ApiResponse<NutritionResponse>> getNutrition(
-            @PathVariable Long userId,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
-        if (!userId.equals(currentUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-
         return ResponseEntity.ok(
                 ApiResponse.success(nutritionService.getNutrition(userId))
         );

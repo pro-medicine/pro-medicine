@@ -21,7 +21,7 @@ import java.time.ZoneId;
 /** 홈 "오늘 먹은 영양소": GET /api/v1/users/{userId}/nutrition/today?date=2026-11-03 (date 없으면 오늘, 한국 시간) */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users/{userId}/nutrition/today")
+@RequestMapping("/api/v1/users/nutrition/today")
 public class TodayNutritionController {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
@@ -31,16 +31,9 @@ public class TodayNutritionController {
     // 로그인한 사용자 본인 것만 (마이페이지 영양관리 API와 같은 규칙)
     @GetMapping
     public ResponseEntity<ApiResponse<TodayNutritionResponse>> getTodayNutrition(
-            @PathVariable Long userId,
-            @CurrentUserId Long currentUserId,
+            @CurrentUserId Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        if (!userId.equals(currentUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
         LocalDate target = date != null ? date : LocalDate.now(KST);
         return ResponseEntity.ok(ApiResponse.success(todayNutritionService.getTodayNutrition(userId, target)));
     }

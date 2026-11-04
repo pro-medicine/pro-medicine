@@ -27,7 +27,8 @@ function bubblePosition() {
   const rect = bell?.getBoundingClientRect();
   if (!rect || rect.width === 0) return null;
   const right = Math.max(16, window.innerWidth - rect.right - 8);
-  const tailRight = window.innerWidth - (rect.left + rect.width / 2) - right - 7;
+  const tailRight =
+    window.innerWidth - (rect.left + rect.width / 2) - right - 7;
   return { top: rect.bottom + 12, right, tailRight };
 }
 
@@ -40,8 +41,10 @@ function actionsOf(item, userId) {
       {
         label: "복용 완료",
         run: async () => {
-          const count = await completeIntakeFromNotification(userId, item);
-          return count > 0 ? `${count}개 복용 완료했어요` : "이미 모두 챙겼어요";
+          const count = await completeIntakeFromNotification(item);
+          return count > 0
+            ? `${count}개 복용 완료했어요`
+            : "이미 모두 챙겼어요";
         },
       },
     ];
@@ -52,41 +55,67 @@ function actionsOf(item, userId) {
       {
         label: "수락",
         run: async () =>
-          (await respondGuardianFromNotification(userId, item, true)) ? "안부지킴이를 수락했어요" : "이미 처리된 신청이에요",
+          (await respondGuardianFromNotification(item, true))
+            ? "안부지킴이를 수락했어요"
+            : "이미 처리된 신청이에요",
       },
       {
         label: "거절",
         ghost: true,
         run: async () =>
-          (await respondGuardianFromNotification(userId, item, false)) ? "안부지킴이 신청을 거절했어요" : "이미 처리된 신청이에요",
+          (await respondGuardianFromNotification(item, false))
+            ? "안부지킴이 신청을 거절했어요"
+            : "이미 처리된 신청이에요",
       },
     ];
   }
   // 친구가 챙겨줬어요 → 홈에서 바로 복용 체크
-  if (item.type === "FRIEND_NUDGE") return [{ label: "복용 체크", target: { tab: "home" } }];
+  if (item.type === "FRIEND_NUDGE")
+    return [{ label: "복용 체크", target: { tab: "home" } }];
   if (canRespondFollow(item)) {
     return [
       {
         label: "수락",
         run: async () =>
-          (await respondFollowFromNotification(userId, item, "ACCEPTED")) ? "친구 신청을 수락했어요" : "이미 처리된 신청이에요",
+          (await respondFollowFromNotification(item, "ACCEPTED"))
+            ? "친구 신청을 수락했어요"
+            : "이미 처리된 신청이에요",
       },
       {
         label: "거절",
         ghost: true,
         run: async () =>
-          (await respondFollowFromNotification(userId, item, "REJECTED")) ? "친구 신청을 거절했어요" : "이미 처리된 신청이에요",
+          (await respondFollowFromNotification(item, "REJECTED"))
+            ? "친구 신청을 거절했어요"
+            : "이미 처리된 신청이에요",
       },
     ];
   }
-  if ((item.type === "GUARDIAN" || item.type === "GUARDIAN_ACCEPTED") && item.actorUserId) {
-    return [{ label: "보기", target: { tab: "friends", friendUserId: item.actorUserId } }];
+  if (
+    (item.type === "GUARDIAN" || item.type === "GUARDIAN_ACCEPTED") &&
+    item.actorUserId
+  ) {
+    return [
+      {
+        label: "보기",
+        target: { tab: "friends", friendUserId: item.actorUserId },
+      },
+    ];
   }
   return [];
 }
 
-export default function NotificationToast({ item, userId, onOpen, onNavigate, onChanged, onClose }) {
-  const [mobile] = useState(() => window.matchMedia?.(MOBILE_QUERY).matches ?? false);
+export default function NotificationToast({
+  item,
+  userId,
+  onOpen,
+  onNavigate,
+  onChanged,
+  onClose,
+}) {
+  const [mobile] = useState(
+    () => window.matchMedia?.(MOBILE_QUERY).matches ?? false,
+  );
   const [position] = useState(() => (mobile ? null : bubblePosition()));
   const [leaving, setLeaving] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -98,14 +127,18 @@ export default function NotificationToast({ item, userId, onOpen, onNavigate, on
   // 일정 시간 뒤 사라짐 (마우스를 올리거나 처리 중이면 멈춤) → 사라지는 애니메이션 후 닫기
   useEffect(() => {
     if (paused || leaving || busy) return;
-    const wait = result ? RESULT_SHOW_MS : actions.length > 0 ? ACTION_SHOW_MS : SHOW_MS;
+    const wait = result
+      ? RESULT_SHOW_MS
+      : actions.length > 0
+        ? ACTION_SHOW_MS
+        : SHOW_MS;
     const timer = setTimeout(() => setLeaving(true), wait);
     return () => clearTimeout(timer);
   }, [paused, leaving, busy, result, actions.length]);
 
   const runAction = async (action) => {
     if (action.target) {
-      markNotificationRead(userId, item.notificationId).catch(() => {});
+      markNotificationRead(item.notificationId).catch(() => {});
       onNavigate(action.target);
       return;
     }
@@ -113,7 +146,7 @@ export default function NotificationToast({ item, userId, onOpen, onNavigate, on
     try {
       const text = await action.run();
       setResult({ text, ok: true });
-      await markNotificationRead(userId, item.notificationId).catch(() => {});
+      await markNotificationRead(item.notificationId).catch(() => {});
       onChanged();
     } catch (err) {
       console.error(err);
@@ -136,7 +169,10 @@ export default function NotificationToast({ item, userId, onOpen, onNavigate, on
     touchStartY.current = e.touches[0].clientY;
   };
   const onTouchMove = (e) => {
-    if (touchStartY.current !== null && e.touches[0].clientY - touchStartY.current < -30) {
+    if (
+      touchStartY.current !== null &&
+      e.touches[0].clientY - touchStartY.current < -30
+    ) {
       touchStartY.current = null;
       setLeaving(true);
     }
@@ -157,7 +193,11 @@ export default function NotificationToast({ item, userId, onOpen, onNavigate, on
       aria-live="polite"
       style={
         position
-          ? { top: position.top, right: position.right, "--tail-right": `${position.tailRight}px` }
+          ? {
+              top: position.top,
+              right: position.right,
+              "--tail-right": `${position.tailRight}px`,
+            }
           : undefined
       }
       onMouseEnter={() => setPaused(true)}
@@ -165,13 +205,21 @@ export default function NotificationToast({ item, userId, onOpen, onNavigate, on
       onTouchStart={mobile ? onTouchStart : undefined}
       onTouchMove={mobile ? onTouchMove : undefined}
     >
-      <button type="button" className="noti-toast-main" onClick={onOpen} aria-label={`새 알림: ${item.title}. 알림 목록 열기`}>
+      <button
+        type="button"
+        className="noti-toast-main"
+        onClick={onOpen}
+        aria-label={`새 알림: ${item.title}. 알림 목록 열기`}
+      >
         <TypeIcon item={item} size={38} />
         <span className="noti-toast-text">
           <small>{view.label} · 방금</small>
           <strong>{item.title}</strong>
           {result && (
-            <em className={`noti-toast-result${result.ok ? "" : " is-error"}`} role="status">
+            <em
+              className={`noti-toast-result${result.ok ? "" : " is-error"}`}
+              role="status"
+            >
               {result.ok && "✓ "}
               {result.text}
             </em>

@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users/{userId}/products")
+@RequestMapping("/api/v1/users/products")
 public class MySupplementController {
 
     private final MySupplementService mySupplementService;
@@ -25,11 +25,8 @@ public class MySupplementController {
     // 본인 영양제 목록 조회
     @GetMapping
     public ResponseEntity<ApiResponse<List<MySupplementResponse>>> getMySupplements(
-            @PathVariable Long userId,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         mySupplementService.getMySupplements(userId)
@@ -40,12 +37,9 @@ public class MySupplementController {
     // 본인 영양제 등록
     @PostMapping
     public ResponseEntity<ApiResponse<MySupplementResponse>> addMySupplement(
-            @PathVariable Long userId,
             @RequestBody MySupplementAddRequest request,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         mySupplementService.addMySupplement(userId, request)
@@ -56,13 +50,10 @@ public class MySupplementController {
     // 본인 영양제 복용 일정 수정
     @PutMapping("/{userProductId}/schedules")
     public ResponseEntity<ApiResponse<MySupplementResponse>> updateSchedules(
-            @PathVariable Long userId,
             @PathVariable Long userProductId,
             @RequestBody MySupplementScheduleUpdateRequest request,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         mySupplementService.updateSchedules(
@@ -77,25 +68,10 @@ public class MySupplementController {
     // 본인 영양제 삭제
     @DeleteMapping("/{userProductId}")
     public ResponseEntity<Void> removeMySupplement(
-            @PathVariable Long userId,
             @PathVariable Long userProductId,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         mySupplementService.removeMySupplement(userId, userProductId);
-
         return ResponseEntity.noContent().build();
-    }
-
-    // 요청 사용자와 JWT 인증 사용자 일치 여부 확인
-    private void requireSelf(Long userId, Long currentUserId) {
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
-        if (!userId.equals(currentUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
     }
 }

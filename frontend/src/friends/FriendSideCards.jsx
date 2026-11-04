@@ -6,7 +6,7 @@ import { respondFollow } from "../api/followApi";
 const MAX_REQUESTS = 3; // 카드에 바로 보여줄 받은 신청 수 (나머지는 "모두 보기")
 
 // 받은 친구 신청: 카드에서 바로 수락 / 거절
-export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
+export function RequestCard({ requests, onChanged, onOpenModal }) {
   const [pendingId, setPendingId] = useState(null);
   const [error, setError] = useState("");
 
@@ -15,7 +15,7 @@ export function RequestCard({ userId, requests, onChanged, onOpenModal }) {
     setPendingId(followId);
     setError("");
     try {
-      await respondFollow(userId, followId, status);
+      await respondFollow(followId, status);
       onChanged(status === "ACCEPTED");
     } catch (err) {
       setError(err.message || "요청을 처리하지 못했어요.");
