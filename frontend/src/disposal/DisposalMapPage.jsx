@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, TopBar } from "../shared/ui";
 import KakaoMap from "./KaKaoMap";
 
@@ -11,6 +11,44 @@ function isValidCoordinate(latitude, longitude) {
       latitude >= -90 && latitude <= 90 &&
       longitude >= -180 && longitude <= 180
   );
+}
+
+function parsePharmacyHistory(value) {
+  if (typeof value !== "string" || !value.startsWith("pharmacy:")) return null;
+  if (!value.startsWith("pharmacy:v2:")) {
+    return { id: value.slice("pharmacy:".length), raw: value };
+  }
+  try {
+    const saved = JSON.parse(decodeURIComponent(value.slice("pharmacy:v2:".length)));
+    if (typeof saved?.id !== "string" || !["area", "nearby"].includes(saved.mode) ||
+        !RADII.includes(saved.radius) ||
+        !isValidCoordinate(saved.center?.latitude, saved.center?.longitude)) {
+      return null;
+    }
+    return { ...saved, query: typeof saved.query === "string" ? saved.query : "", raw: value };
+  } catch {
+    return null;
+  }
+}
+
+function pharmacyHistoryId(pharmacy, mode, radius, center, query) {
+  if (!center || !isValidCoordinate(center.latitude, center.longitude)) {
+    return `pharmacy:${pharmacy.id}`;
+  }
+  const snapshot = {
+    id: String(pharmacy.id),
+    mode,
+    radius,
+    center: {
+      id: center.id ?? null,
+      name: center.name ?? null,
+      address: center.address ?? null,
+      latitude: center.latitude,
+      longitude: center.longitude,
+    },
+    query,
+  };
+  return `pharmacy:v2:${encodeURIComponent(JSON.stringify(snapshot))}`;
 }
 
 function toLocationCandidate(place) {
@@ -79,16 +117,23 @@ function getLocationErrorMessage(error) {
 }
 
 export default function DisposalMapScreen({ onNotifications, onRegisterBack, restoreChild = null }) {
-  const [searchInput, setSearchInput] = useState("");
-  const [query, setQuery] = useState("");
+  const restoreSnapshot = useMemo(() => parsePharmacyHistory(restoreChild), [restoreChild]);
+  const restorePendingRef = useRef(restoreSnapshot);
+  const restoreEffectReadyRef = useRef(false);
+  const initialRestoreRef = useRef(Boolean(restoreSnapshot?.mode));
+  const [searchInput, setSearchInput] = useState(restoreSnapshot?.query ?? "");
+  const [query, setQuery] = useState(restoreSnapshot?.query ?? "");
   const [searchCount, setSearchCount] = useState(0);
   // keyword: 검색어로 장소 찾기 → area: 대표 장소 주변 약국 표시 → nearby: GPS 검색
-  const [mode, setMode] = useState("nearby");
-  const [radius, setRadius] = useState(1000);
+  const [mode, setMode] = useState(restoreSnapshot?.mode ?? "nearby");
+  const [radius, setRadius] = useState(restoreSnapshot?.radius ?? 1000);
   const [locationCandidates, setLocationCandidates] = useState([]);
-  const [searchCenter, setSearchCenter] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [lastValidMap, setLastValidMap] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(
+    restoreSnapshot?.mode === "area" ? restoreSnapshot.center : null);
+  const [userLocation, setUserLocation] = useState(
+    restoreSnapshot?.mode === "nearby" ? restoreSnapshot.center : null);
+  const [lastValidMap, setLastValidMap] = useState(
+    restoreSnapshot?.mode ? { mode: restoreSnapshot.mode, center: restoreSnapshot.center } : null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [pharmacies, setPharmacies] = useState([]);
@@ -122,28 +167,49 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
   }, []);
 
   useEffect(() => {
-    if (!restoreChild?.startsWith("pharmacy:")) return;
-    const id = restoreChild.slice("pharmacy:".length);
-    const pharmacy = pharmacies.find((item) => String(item.id) === id);
-    if (pharmacy) {
-      setSelected((current) => current?.id === pharmacy.id ? current : pharmacy);
-      setFocusPharmacy({ latitude: pharmacy.latitude, longitude: pharmacy.longitude });
+    if (!restoreEffectReadyRef.current) {
+      restoreEffectReadyRef.current = true;
+      return;
     }
-  }, [restoreChild, pharmacies]);
+    restorePendingRef.current = restoreSnapshot;
+    if (!restoreSnapshot) return;
+    if (restoreSnapshot.mode) {
+      locationRequestId.current += 1;
+      setLocating(false);
+      setLocationError("");
+      setQuery(restoreSnapshot.query);
+      setSearchInput(restoreSnapshot.query);
+      setMode(restoreSnapshot.mode);
+      setRadius(restoreSnapshot.radius);
+      setSearchCenter(restoreSnapshot.mode === "area" ? restoreSnapshot.center : null);
+      setUserLocation(restoreSnapshot.mode === "nearby" ? restoreSnapshot.center : null);
+      setLastValidMap({ mode: restoreSnapshot.mode, center: restoreSnapshot.center });
+      setLocationCandidates([]);
+      setSelected(null);
+      setFocusPharmacy(null);
+    }
+    setSearchCount((count) => count + 1);
+  }, [restoreSnapshot]);
 
   useEffect(() => {
     if (!onRegisterBack) return undefined;
-    const close = selected || isNavigating || walkingRoute
+    const pending = restorePendingRef.current;
+    const close = selected || pending?.id || isNavigating || walkingRoute
       ? () => {
+          restorePendingRef.current = null;
           cancelWalkingRoute();
           setSelected(null);
           setFocusPharmacy(null);
         }
       : null;
-    const childId = selected ? `pharmacy:${selected.id}` : null;
+    const center = mode === "area" ? searchCenter : userLocation;
+    const childId = selected && ["area", "nearby"].includes(mode)
+      ? pharmacyHistoryId(selected, mode, radius, center, query)
+      : pending?.raw ?? null;
     onRegisterBack("disposal", close, childId);
     return () => onRegisterBack("disposal", null);
-  }, [selected, isNavigating, walkingRoute, cancelWalkingRoute, onRegisterBack]);
+  }, [selected, isNavigating, walkingRoute, cancelWalkingRoute, onRegisterBack,
+      mode, radius, searchCenter, userLocation, query, restoreChild]);
 
   useEffect(() => () => {
     locationRequestId.current += 1;
@@ -152,6 +218,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
   }, []);
 
   useEffect(() => {
+    if (initialRestoreRef.current) return;
     if (!navigator.geolocation || !window.isSecureContext) {
       setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행하거나 지역명으로 검색해주세요.");
       return;
@@ -263,7 +330,18 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
               isValidCoordinate(place.latitude, place.longitude)
           );
           setPharmacies(places);
-          setSelected(places[0] || null);
+          const pending = restorePendingRef.current;
+          const restored = pending?.id
+            ? places.find((place) => String(place.id) === pending.id) ?? null
+            : null;
+          const nextSelected = pending?.id ? restored : places[0] || null;
+          setSelected(nextSelected);
+          if (restored) {
+            setFocusPharmacy({ latitude: restored.latitude, longitude: restored.longitude });
+            restorePendingRef.current = null;
+          } else if (pending?.id) {
+            setError("이전에 선택한 약국이 현재 검색 결과에 없습니다. 다른 약국을 선택해 주세요.");
+          }
           setTruncated(Boolean(result.data?.meta?.truncated));
         }
       } catch (err) {
@@ -286,6 +364,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
     const value = searchInput.trim();
     if (!value) return;
     cancelWalkingRoute();
+    restorePendingRef.current = null;
     locationRequestId.current += 1;
     setLocating(false);
     setLocationError("");
@@ -297,6 +376,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
   }
 
   function handleCandidateSelect(place) {
+    restorePendingRef.current = null;
     cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
@@ -311,6 +391,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
 
   const handleSearchThisArea = useCallback((center) => {
     if (!isValidCoordinate(center.latitude, center.longitude)) return;
+    restorePendingRef.current = null;
     cancelWalkingRoute();
     locationRequestId.current += 1;
     setLocating(false);
@@ -330,6 +411,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
 
    function handleNearbySearch() {
     if (locating) return;
+    restorePendingRef.current = null;
     if (!navigator.geolocation || !window.isSecureContext) {
       setLocationError("위치 기능을 사용할 수 없습니다. HTTPS 또는 localhost 환경에서 실행해주세요.");
       return;
@@ -545,6 +627,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
   }
 
   const handlePharmacySelect = useCallback((pharmacy) => {
+    restorePendingRef.current = null;
     cancelWalkingRoute();
     setSelected(pharmacy);
     setFocusPharmacy({ latitude: pharmacy.latitude, longitude: pharmacy.longitude });
@@ -603,6 +686,7 @@ export default function DisposalMapScreen({ onNotifications, onRegisterBack, res
                 onChange={(event) => {
                   const nextRadius = Number(event.target.value);
                   if (!RADII.includes(nextRadius)) return;
+                  restorePendingRef.current = null;
                   if (mode === "keyword" && lastValidMap && !loading) {
                     if (lastValidMap.mode === "area") {
                       setSearchCenter(lastValidMap.center);
