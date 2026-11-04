@@ -111,7 +111,7 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
                        CASE s.meal_relation WHEN 'BEFORE' THEN '식전' WHEN 'AFTER' THEN '식후'
                                             ELSE s.meal_relation END
                    ) AS timing,
-                   COALESCE(cp.product_name, up.manual_product_name) AS name,
+                   COALESCE(sp.product_name, cp.product_name, up.manual_product_name) AS name,
                    COALESCE(cp.main_function, '') AS `desc`,
                    IFNULL(ir.status = 'TAKEN', 0) AS taken,
                    s.meal_slot AS mealSlot,
@@ -120,6 +120,7 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
             FROM intake_schedules s
             JOIN user_products up ON up.user_product_id = s.user_product_id
             LEFT JOIN catalog_products cp ON cp.catalog_product_id = up.catalog_product_id
+            LEFT JOIN supplements sp ON sp.supplement_id = up.supplement_id
             LEFT JOIN intake_records ir ON ir.schedule_id = s.schedule_id
                                        AND ir.intake_date = :date
             WHERE up.user_id = :userId

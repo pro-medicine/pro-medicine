@@ -17,3 +17,25 @@ export const SAMPLE_RECOMMEND = [
     { category: "에너지", name: "활성 비타민B 컴플렉스", desc: "비타민B군 8종", price: 38900, color: "#d6b44c" },
     { category: "미네랄", name: "킬레이트 마그네슘", desc: "마그네슘 200mg", price: 32800, color: "#a68fb8" },
 ];
+// 오늘 먹은 영양소 예시 (SAMPLE_HOME 영양제 id 1~3의 함량, 권장량은 성인 남성 기준)
+const nutrient = (code, name, unit, recommended) => ({ code, name, unit, recommended });
+export const SAMPLE_NUTRITION = {
+    date: "2026-10-25",
+    nutrients: [
+        nutrient("VITAMIN_B12", "비타민 B12", "㎍", 2.4),
+        nutrient("VITAMIN_C", "비타민 C", "mg", 100),
+        nutrient("VITAMIN_D", "비타민 D", "㎍", 10),
+        nutrient("CALCIUM", "칼슘", "mg", 800),
+        nutrient("MAGNESIUM", "마그네슘", "mg", 370),
+        nutrient("ZINC", "아연", "mg", 10),
+        nutrient("IRON", "철", "mg", 10),
+        nutrient("OMEGA3", "오메가3", "mg", 400),
+    ],
+    schedules: [
+        { scheduleId: 1, amounts: { VITAMIN_B12: 2.4, VITAMIN_C: 100, VITAMIN_D: 10, CALCIUM: 200, MAGNESIUM: 80, ZINC: 8.5 } },
+        { scheduleId: 2, amounts: { OMEGA3: 600 } },
+        { scheduleId: 3, amounts: { MAGNESIUM: 200 } },
+    ],
+    unsupportedCount: 0,
+    sample: true,
+};

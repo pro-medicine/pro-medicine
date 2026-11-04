@@ -33,6 +33,8 @@ DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `intake_records`;
 DROP TABLE IF EXISTS `intake_schedules`;
 DROP TABLE IF EXISTS `user_products`;
+DROP TABLE IF EXISTS `supplement_nutrients`;
+DROP TABLE IF EXISTS `supplements`;
 DROP TABLE IF EXISTS `review_product_scores`;
 DROP TABLE IF EXISTS `review_mentions`;
 DROP TABLE IF EXISTS `product_ingredients`;
@@ -113,6 +115,7 @@ CREATE TABLE `user_products` (
                                  `user_product_id`   BIGINT   NOT NULL,
                                  `user_id`   BIGINT   NOT NULL,
                                  `catalog_product_id`   BIGINT   NULL,
+                                 `supplement_id`   BIGINT   NULL,
                                  `product_kind`   VARCHAR(15)   NOT NULL,
                                  `manual_product_name`   VARCHAR(255)   NULL,
                                  `registered_via`   VARCHAR(15)   NOT NULL   DEFAULT 'SEARCH',
@@ -120,6 +123,35 @@ CREATE TABLE `user_products` (
                                  `is_active`   BOOLEAN   NOT NULL   DEFAULT TRUE,
                                  `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 엑셀 영양제 (데이터는 docs/sql/STEP12_supplements.sql)
+CREATE TABLE `supplements` (
+  `supplement_id`    BIGINT       NOT NULL AUTO_INCREMENT,
+  `food_code`        VARCHAR(30)  NOT NULL COMMENT '식약처 식품코드',
+  `report_no`        VARCHAR(30)  NULL     COMMENT '품목제조보고번호',
+  `product_name`     VARCHAR(255) NOT NULL,
+  `manufacturer`     VARCHAR(100) NULL,
+  `category_group`   VARCHAR(30)  NULL     COMMENT '대분류 (영양성분, 기능성 원료, 복합 등)',
+  `category`         VARCHAR(50)  NULL     COMMENT '중분류 (비타민 D, 엠에스엠 등)',
+  `serving_size`     VARCHAR(30)  NULL     COMMENT '1회 분량 (예: 500mg)',
+  `servings_per_day` INT          NOT NULL DEFAULT 1 COMMENT '1일 섭취횟수',
+  `nutrient_summary` VARCHAR(500) NULL     COMMENT '하루 함량 요약 (예: 비타민 D 10㎍ · 아연 8.5mg)',
+  PRIMARY KEY (`supplement_id`),
+  UNIQUE KEY `uq_supplements_food_code` (`food_code`),
+  KEY `idx_supplements_name` (`product_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `supplement_nutrients` (
+  `supplement_nutrient_id` BIGINT        NOT NULL AUTO_INCREMENT,
+  `supplement_id`          BIGINT        NOT NULL,
+  `nutrient_code`          VARCHAR(30)   NOT NULL COMMENT 'Nutrient enum 이름 (VITAMIN_D, OMEGA3 등)',
+  `amount_per_serving`     DECIMAL(14,4) NOT NULL COMMENT '1회 함량',
+  `amount_per_day`         DECIMAL(14,4) NOT NULL COMMENT '하루 함량 = 1회 함량 × 1일 섭취횟수',
+  `unit`                   VARCHAR(10)   NOT NULL COMMENT 'mg 또는 ug(=㎍)',
+  PRIMARY KEY (`supplement_nutrient_id`),
+  UNIQUE KEY `uq_supplement_nutrient` (`supplement_id`, `nutrient_code`),
+  CONSTRAINT `fk_supplement_nutrients_supplement` FOREIGN KEY (`supplement_id`) REFERENCES `supplements` (`supplement_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `catalog_products` (
                                     `catalog_product_id`   BIGINT   NOT NULL,

@@ -6,8 +6,10 @@ import com.ucamp.app.domain.product.dto.MySupplementResponse;
 import com.ucamp.app.domain.product.dto.MySupplementScheduleUpdateRequest;
 import com.ucamp.app.domain.product.dto.ScheduleRequest;
 import com.ucamp.app.domain.product.entity.CatalogProduct;
+import com.ucamp.app.domain.product.entity.Supplement;
 import com.ucamp.app.domain.product.entity.UserProduct;
 import com.ucamp.app.domain.product.repository.CatalogProductRepository;
+import com.ucamp.app.domain.product.repository.SupplementRepository;
 import com.ucamp.app.domain.product.repository.SupplementScheduleRepository;
 import com.ucamp.app.domain.product.repository.UserProductRepository;
 import com.ucamp.app.domain.user.entity.User;
@@ -41,6 +43,7 @@ public class MySupplementService {
     private final SupplementScheduleRepository supplementScheduleRepository;
     private final UserRepository userRepository;
     private final CatalogProductRepository catalogProductRepository;
+    private final SupplementRepository supplementRepository;
 
     public List<MySupplementResponse> getMySupplements(Long userId) {
         // 0. 없는 유저면 404 (U001)
@@ -112,14 +115,16 @@ public class MySupplementService {
     // 등록 흐름: 값 검사 → 유저 확인 → (검색 제품 / 직접 입력) 중복 확인 → 영양제 저장 → 복용 일정 저장
     @Transactional
     public MySupplementResponse addMySupplement(Long userId, MySupplementAddRequest request) {
-        // 1. 값 검사: 제품 id와 직접 입력 이름 중 하나만 있어야 함 (둘 다 있거나 둘 다 없으면 400)
+        // 1. 값 검사: 엑셀 영양제 id · 제품 id · 직접 입력 이름 중 정확히 하나만 있어야 함 (아니면 400)
         if (request == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
         String manualName = request.manualProductName() == null ? null : request.manualProductName().trim();
+        boolean hasSupplement = request.supplementId() != null;
         boolean hasCatalog = request.catalogProductId() != null;
         boolean hasManual = manualName != null && !manualName.isEmpty();
-        if (hasCatalog == hasManual) {
+        int chosen = (hasSupplement ? 1 : 0) + (hasCatalog ? 1 : 0) + (hasManual ? 1 : 0);
+        if (chosen != 1) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
         // 직접 입력 이름이 너무 길면 400
@@ -136,6 +141,11 @@ public class MySupplementService {
         // 3. 직접 입력이면 따로 저장
         if (hasManual) {
             return addManualSupplement(user, manualName, scheduleRequests);
+        }
+
+        // 3-1. 엑셀 영양제를 검색해서 고른 경우
+        if (hasSupplement) {
+            return addExcelSupplement(user, request.supplementId(), scheduleRequests);
         }
 
         // 4. 검색해서 고른 제품: 제품이 없으면 404 (P001)
@@ -158,6 +168,26 @@ public class MySupplementService {
                 .build();
         UserProduct saved = userProductRepository.save(userProduct);
         // 7. 복용 일정 저장
+        List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(saved, scheduleRequests);
+        return MySupplementResponse.of(saved, schedules);
+    }
+
+    // 엑셀 영양제(supplements) 등록: 없는 영양제면 404, 이미 복용 중이면 409 → 저장 → 일정 저장
+    private MySupplementResponse addExcelSupplement(User user, Long supplementId,
+                                                    List<ScheduleRequest> scheduleRequests) {
+        Supplement supplement = supplementRepository.findById(supplementId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        if (userProductRepository.existsByUserIdAndSupplementSupplementIdAndIsActiveTrue(user.getId(), supplementId)) {
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_ADDED);
+        }
+        UserProduct saved = userProductRepository.save(UserProduct.builder()
+                .user(user)
+                .supplement(supplement)
+                .productKind("SUPPLEMENT")
+                .registeredVia("SEARCH")
+                .startDate(LocalDate.now(ZoneId.of("Asia/Seoul")))
+                .isActive(true)
+                .build());
         List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(saved, scheduleRequests);
         return MySupplementResponse.of(saved, schedules);
     }

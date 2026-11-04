@@ -52,7 +52,8 @@ function scheduleText(schedules) {
 // API 응답 1개 → SupplementCard 가 받는 모양으로 변환
 // 직접 입력한 제품은 제품 정보가 없어서 이름만 보여줌
 function toSupplementCard(item, index) {
-  const isManual = item.catalogProductId === null;
+  // 직접 입력: 검색 제품(catalogProductId)도 엑셀 영양제(supplementId)도 아닌 것
+  const isManual = item.catalogProductId == null && item.supplementId == null;
   return {
     id: item.userProductId,
     name: item.productName,
@@ -573,8 +574,9 @@ function NutritionManagement({ userId }) {
         <div>
           <h2>나의 영양관리</h2>
           <p>
-            복용 중인 영양제를 기준으로 성별별 하루 권장량과 비교했어요. 성별
-            정보가 없으면 남성 기준을 사용해요.
+            등록한 영양제를 하루 권장 섭취량대로 먹었을 때의 양을, 설문 정보로
+            정한 나의 하루 권장량(2025 한국인 영양소 섭취기준)과 비교했어요.
+            설문 정보가 없으면 19~29세 남성 기준을 사용해요.
           </p>
         </div>
         <span className="nutrition-date">

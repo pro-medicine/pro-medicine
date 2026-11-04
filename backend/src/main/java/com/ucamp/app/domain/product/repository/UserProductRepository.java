@@ -24,6 +24,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
             select up
             from UserProduct up
             left join fetch up.catalogProduct
+            left join fetch up.supplement
             where up.user.id = :userId
               and up.isActive = true
             order by up.createdAt asc, up.userProductId asc
@@ -32,6 +33,9 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
 
     // 이 유저가 이 제품을 이미 복용 중으로 등록했는지 (중복 등록 확인)
     boolean existsByUserIdAndCatalogProductCatalogProductIdAndIsActiveTrue(Long userId, Long catalogProductId);
+
+    // 이 유저가 이 엑셀 영양제를 이미 복용 중으로 등록했는지 (중복 등록 확인)
+    boolean existsByUserIdAndSupplementSupplementIdAndIsActiveTrue(Long userId, Long supplementId);
 
     // 복용 중단 (삭제 대신 is_active를 false로, 복용 기록·통계가 이 제품을 가리키고 있어서)
     // @Modifying: 조회가 아니라 값을 바꾸는 쿼리라는 표시
@@ -43,6 +47,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
         select up
         from UserProduct up
         left join fetch up.catalogProduct
+        left join fetch up.supplement
         where up.user.id = :userId
           and up.isActive = true
           and up.productKind = 'SUPPLEMENT'

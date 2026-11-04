@@ -43,7 +43,8 @@ export function fetchMySupplements(userId) {
   return api.get(`/api/v1/users/${userId}/products`);
 }
 
-// 영양제 등록: { catalogProductId, schedules: [{ mealSlot, mealRelation, remindAt }] }
+// 영양제 등록: { supplementId, schedules: [{ mealSlot, mealRelation, remindAt }] }
+// (supplementId 대신 catalogProductId 또는 manualProductName도 가능)
 export function addMySupplement(userId, body) {
   return api.post(`/api/v1/users/${userId}/products`, body);
 }
@@ -64,6 +65,12 @@ export function updateSupplementSchedules(userId, userProductId, schedules) {
 // 등록 폼 제품 검색: 제품명이나 제조사에 검색어가 들어간 제품 최대 20개
 export function searchCatalogProducts(keyword) {
   return api.get("/api/v1/catalog-products", { params: { keyword } });
+}
+
+// 등록 폼 영양제 검색 (엑셀 영양제): 제품명이나 제조사에 검색어가 들어간 영양제 최대 20개
+// → [{ supplementId, productName, manufacturer, category, intakeMethod, nutrientSummary }]
+export function searchSupplements(keyword) {
+  return api.get("/api/v1/supplements", { params: { keyword } });
 }
 
 export function updateShareIntake(userId, shared) {

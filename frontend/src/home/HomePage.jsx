@@ -1,8 +1,10 @@
 // 홈 화면 (담당: 채원) — 데이터 불러오기 + 복용 체크 + 화면 조립
-import { currentHomeDate, getHome, getStreakDays, updateIntake } from "./homeApi";
+import { currentHomeDate, getHome, getStreakDays, getTodayNutrition, updateIntake } from "./homeApi";
 import HomeHeader from "./HomeHeader";
 import PromiseCard from "./PromiseCard";
 import TodaySupplements from "./TodaySupplements";
+import TodayNutrients from "./TodayNutrients";
+import "./todayNutrients.css";
 import RecommendBanner from "./RecommendBanner";
 import IntakeAlarmCard from "./IntakeAlarmCard";
 import { EmptySupplements, HomeSkeleton, HomeToast } from "./HomeStates";
@@ -40,6 +42,8 @@ export default function HomePage({
   const [staleDate, setStaleDate] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [intakeSavedKey, setIntakeSavedKey] = useState(0); // 복용 체크 저장 성공 → 복용 알림 카드 다시 불러오기
+  // 오늘 먹은 영양소 (일정별 함량 + 권장량). 어느 날짜 응답인지 같이 저장해서, 날짜가 바뀌면 이전 날짜 응답을 쓰지 않게 함
+  const [nutrition, setNutrition] = useState(null); // { forDate, data }
 
   // 1) 화면이 처음 열릴 때 GET /home 호출 (알림 패널을 닫을 때도 다시 호출)
   useEffect(() => {
@@ -88,6 +92,22 @@ export default function HomePage({
       ignore = true;
     };
   }, [userId, refreshKey, intakeSavedKey, isSample]);
+
+  // 오늘 먹은 영양소: 홈 날짜·영양제 목록이 바뀔 때만 다시 조회 (복용 체크는 화면에서 바로 계산)
+  const homeDate = home?.today;
+  useEffect(() => {
+    if (!homeDate) return undefined;
+    let ignore = false;
+    getTodayNutrition(userId, homeDate, isSample).then((data) => {
+      if (!ignore) setNutrition({ forDate: homeDate, data });
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [userId, refreshKey, homeDate, isSample]);
+  // 지금 홈 날짜의 응답만 사용 (새 날짜 응답이 오기 전에는 카드가 잠깐 비어 있음)
+  // (처음에는 nutrition·homeDate가 둘 다 없어서 날짜 비교만 하면 undefined === undefined가 되므로 homeDate도 확인)
+  const todayNutrition = nutrition && homeDate && nutrition.forDate === homeDate ? nutrition.data : null;
 
   // 토스트는 4초 뒤 자동으로 닫힘
   useEffect(() => {
@@ -192,6 +212,7 @@ export default function HomePage({
                 today={home.today}
               />
             )}
+            {total > 0 && <TodayNutrients nutrition={todayNutrition} supplements={supplements} />}
             {/* TODO: 추천 설문 모달 만들면 연결 */}
             <RecommendBanner onClick={onSurvey} />
           </div>

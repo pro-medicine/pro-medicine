@@ -1,6 +1,7 @@
 package com.ucamp.app.domain.product.dto;
 
 import com.ucamp.app.domain.product.entity.CatalogProduct;
+import com.ucamp.app.domain.product.entity.Supplement;
 import com.ucamp.app.domain.product.entity.UserProduct;
 import com.ucamp.app.domain.intake.entity.IntakeSchedule;
 
@@ -28,12 +29,26 @@ public record MySupplementResponse(
         String productKind,
         String registeredVia,
         LocalDate startDate,
-        List<ScheduleResponse> schedules
+        List<ScheduleResponse> schedules,
+        Long supplementId           // 엑셀 영양제로 등록했으면 그 id (아니면 null)
 ) {
 
     // 내가 등록한 제품(up) + 그 제품의 일정 목록 → 카드 응답 1개
     // cp는 제품 정보 (검색해서 등록한 제품만 있음)
     public static MySupplementResponse of(UserProduct up, List<ScheduleResponse> schedules) {
+        // 엑셀 영양제로 등록한 제품: 제품명·제조사·분류(중분류)·하루 성분 요약·섭취 방법
+        Supplement sp = up.getSupplement();
+        if (sp != null) {
+            return new MySupplementResponse(
+                    up.getUserProductId(), null, sp.getProductName(),
+                    sp.getManufacturer(), sp.getCategory(), sp.getNutrientSummary(),
+                    // 용량·가격·이미지·주요 기능은 엑셀에 없음
+                    null, null, null, null,
+                    sp.intakeText(),
+                    up.getProductKind(), up.getRegisteredVia(), up.getStartDate(), schedules,
+                    sp.getSupplementId()
+            );
+        }
         CatalogProduct cp = up.getCatalogProduct();
 
         // 직접 입력한 제품(처방약 등)은 이름만 있고 제품 정보는 없음
@@ -42,7 +57,8 @@ public record MySupplementResponse(
                     up.getUserProductId(), null, up.getManualProductName(),
                     // 제조사·카테고리·성분 요약·용량·가격·이미지·주요 기능·섭취 방법 (8개 모두 없음)
                     null, null, null, null, null, null, null, null,
-                    up.getProductKind(), up.getRegisteredVia(), up.getStartDate(), schedules
+                    up.getProductKind(), up.getRegisteredVia(), up.getStartDate(), schedules,
+                    null   // 엑셀 영양제 아님
             );
         }
 
@@ -61,7 +77,8 @@ public record MySupplementResponse(
                 up.getProductKind(),
                 up.getRegisteredVia(),
                 up.getStartDate(),
-                schedules
+                schedules,
+                null
         );
     }
 

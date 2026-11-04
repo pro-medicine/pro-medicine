@@ -58,9 +58,12 @@ export default function App() {
   // 화면 상태
   const [tab, setTab] = useState("home");
   const [surveyOpen, setSurveyOpen] = useState(false);
+  // 설문이 열려 있었는지 (뒤로 가기로 설문을 닫을 때 홈을 다시 조회하려고 popstate에서 읽음)
+  const surveyOpenRef = useRef(false);
   const surveyTriggerRef = useRef(null);
 
   useEffect(() => {
+    surveyOpenRef.current = surveyOpen;
     if (surveyOpen) return;
     const trigger = surveyTriggerRef.current;
     // Keep connected triggers for surveys reopened through browser history.
@@ -193,8 +196,11 @@ export default function App() {
       }
       if (userId != null) {
         const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        const nextSurveyOpen = isMember && view.kind === "memberSurvey";
+        // 설문을 닫았으면 홈 다시 조회 (임신 여부 등 설문 답이 오늘 영양소 권장량·주의 문구에 쓰임)
+        if (surveyOpenRef.current && !nextSurveyOpen) setHomeRefreshKey((key) => key + 1);
         setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
-        setSurveyOpen(isMember && view.kind === "memberSurvey");
+        setSurveyOpen(nextSurveyOpen);
         setFriendTarget(null);
         setMyStartAdding(false);
         setNotificationsOpen(false);
@@ -418,6 +424,7 @@ export default function App() {
       window.history.back();
     } else {
       setSurveyOpen(false);
+      setHomeRefreshKey((key) => key + 1); // 설문 답이 오늘 영양소 권장량·주의 문구에 쓰여서 홈 다시 조회
       recordView(userId == null ? { kind: "landing" } : { kind: "member", tab }, { replace: true });
     }
   };
