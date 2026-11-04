@@ -1,0 +1,11 @@
+.withdrawal-section { padding: 12px 0; border-top: 1px solid var(--line, #e5e7eb); }
+.withdrawal-link { background: none; border: 0; padding: 8px 0; cursor: pointer; color: #b91c1c; font: inherit; }
+.withdrawal-form { display: grid; gap: 11px; max-width: 100%; }
+.withdrawal-form p { margin: 0; color: var(--muted, #6b7280); font-size: 13px; line-height: 1.55; }
+.withdrawal-form label { font-size: 13px; }
+.withdrawal-form input[type=password] { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--line, #d1d5db); border-radius: 7px; }
+.withdrawal-check { display: flex; align-items: center; gap: 7px; }
+.withdrawal-form .withdrawal-error { color: #b91c1c; }
+.withdrawal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+.withdrawal-danger { border: 0; color: white; background: #b91c1c; border-radius: 7px; cursor: pointer; padding: 8px 14px; }
+.withdrawal-danger:disabled { opacity: .55; cursor: not-allowed; }
