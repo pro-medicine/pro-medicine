@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -366,6 +367,37 @@ class SurveyApiTest {
     }
 
     @Test
+    void 회원가입에서_수정한_나이가_V2에_우선_반영되고_원본_V1_출생연도는_보존된다() throws Exception {
+        int originalBirthYear = Year.now().getValue() - 31;
+        int signupAge = 28;
+        String guestBody = submit(null, List.of(
+                choice(Q_GENDER, GENDER_F),
+                number(Q_BIRTH, originalBirthYear),
+                choice(Q_SMOKING, SMOKING_NONE)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode guest = objectMapper.readTree(guestBody).get("data");
+        long responseId = guest.get("responseId").asLong();
+        String guestToken = guest.get("guestToken").asString();
+
+        String body = signupWithGuest(responseId, guestToken, "override-age", "여성", signupAge)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long userId = objectMapper.readTree(body).get("data").get("user").get("userId").asLong();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(healthProfileRepository.findById(userId).orElseThrow().getBirthYear())
+                .isEqualTo(Year.now().getValue() - signupAge);
+        assertThat(recommendationInputAssembler.assembleForMember(userId, null).age()).isEqualTo(signupAge);
+        assertThat(surveyAnswerRepository.findDetailByResponseId(responseId).stream()
+                .filter(answer -> "Q-BIRTH".equals(answer.getQuestion().getCode()))
+                .findFirst().orElseThrow().getValueNumber().intValue())
+                .isEqualTo(originalBirthYear);
+    }
+
+    @Test
     void 잘못된_게스트_토큰으로_회원가입하면_연결되지_않는다() throws Exception {
         JsonNode guest = submitGuestForSignup();
         long responseId = guest.get("responseId").asLong();
@@ -535,6 +567,11 @@ class SurveyApiTest {
     }
 
     private ResultActions signupWithGuest(long responseId, String guestToken, String suffix, String gender) throws Exception {
+        return signupWithGuest(responseId, guestToken, suffix, gender, 26);
+    }
+
+    private ResultActions signupWithGuest(long responseId, String guestToken, String suffix,
+                                          String gender, int age) throws Exception {
         when(refreshTokens.issue(anyLong(), eq(false)))
                 .thenReturn(new RefreshTokenService.Issued("test-refresh", 604800));
         return mockMvc.perform(post("/api/v1/auth/signup")
@@ -543,7 +580,7 @@ class SurveyApiTest {
                         "email", "guest-claim-" + suffix + "@example.com",
                         "password", "Password123!",
                         "name", "guest-claim-" + suffix,
-                        "age", 26,
+                        "age", age,
                         "gender", gender,
                         "termsAgreed", true,
                         "guestResponseId", responseId,

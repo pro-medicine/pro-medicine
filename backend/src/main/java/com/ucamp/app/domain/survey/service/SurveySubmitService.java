@@ -105,11 +105,17 @@ public class SurveySubmitService {
 
     @Transactional
     public void claimGuestResponse(Long responseId, String guestToken, User newMember) {
-        claimGuestResponse(responseId, guestToken, newMember, null);
+        claimGuestResponse(responseId, guestToken, newMember, null, null);
     }
 
     @Transactional
     public void claimGuestResponse(Long responseId, String guestToken, User newMember, String signupGender) {
+        claimGuestResponse(responseId, guestToken, newMember, signupGender, null);
+    }
+
+    @Transactional
+    public void claimGuestResponse(Long responseId, String guestToken, User newMember,
+                                   String signupGender, Integer signupAge) {
         SurveyResponse response = surveyResponseRepository.findForGuestClaim(responseId)
                 .orElseThrow(SurveySubmitService::invalid);
         String storedHash = response.getGuestTokenHash();
@@ -137,14 +143,21 @@ public class SurveySubmitService {
                     first.getValueNumber(), first.getValueText()));
         }
         applyToProfile(newMember, restored);
+        Map<String, ProfileValue> signupValues = new HashMap<>();
+        if (signupAge != null) {
+            signupValues.put(HealthProfile.KEY_BIRTH_YEAR,
+                    new ProfileValue(null, BigDecimal.valueOf(Year.now().getValue() - signupAge)));
+        }
         if (signupGender != null) {
             String finalGenderCode = switch (signupGender) {
                 case "남성" -> "M";
                 case "여성" -> "F";
                 default -> null;
             };
-            healthProfileService.applySurvey(newMember, Map.of(
-                    HealthProfile.KEY_GENDER, new ProfileValue(finalGenderCode, null)), null, null);
+            signupValues.put(HealthProfile.KEY_GENDER, new ProfileValue(finalGenderCode, null));
+        }
+        if (!signupValues.isEmpty()) {
+            healthProfileService.applySurvey(newMember, signupValues, null, null);
         }
         response.claimForNewMember(newMember);
     }
