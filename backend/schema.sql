@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS `recommendation_rules`;
 DROP TABLE IF EXISTS `survey_answers`;
 DROP TABLE IF EXISTS `question_options`;
 DROP TABLE IF EXISTS `survey_questions`;
+DROP TABLE IF EXISTS `ai_recommendation_products`;
 DROP TABLE IF EXISTS `ai_recommendation_items`;
 DROP TABLE IF EXISTS `ai_recommendations`;
 DROP TABLE IF EXISTS `ai_chat_results`;
@@ -308,18 +309,33 @@ CREATE TABLE `ai_recommendation_items` (
                                            `warnings`   TEXT   NULL   COMMENT 'JSON 배열'
 );
 
+-- V7.1: 추천 성분 카드별 제품 순위 스냅샷 (회원 추천 DONE 때 저장). 같이 든 성분·경고는 추천 당시 값
+CREATE TABLE `ai_recommendation_products` (
+                                              `recommendation_product_id`   BIGINT   NOT NULL AUTO_INCREMENT,
+                                              `recommendation_item_id`   BIGINT   NOT NULL   COMMENT '어느 추천의 어느 성분 카드인지',
+                                              `catalog_product_id`   BIGINT   NOT NULL,
+                                              `product_rank`   INT   NOT NULL   COMMENT '성분 카드 안 순위 1~3',
+                                              `also_contains`   JSON   NULL   COMMENT '같은 추천의 다른 성분 중 이 제품에 든 것 (추천 시점)',
+                                              `warnings`   JSON   NULL   COMMENT '안전 경고 (추천 시점)',
+                                              `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+                                              PRIMARY KEY (`recommendation_product_id`),
+                                              UNIQUE KEY `uq_ai_rec_product_rank` (`recommendation_item_id`, `product_rank`)
+);
+
 CREATE TABLE `ai_recommendations` (
                                       `recommendation_id`   BIGINT   NOT NULL,
                                       `response_id`   BIGINT   NULL   COMMENT 'V1 설문 응답. V2 정밀 추천은 NULL (STEP 14)',
                                       `session_id`   BIGINT   NULL   COMMENT 'V2 맞춤 질문 회차 (STEP 14, 90일 삭제 후 NULL)',
                                       `chat_session_id`   BIGINT   NULL   COMMENT 'V4 대화창 트랙 2 (90일 삭제 후 NULL)',
+                                      `user_id`   BIGINT   NULL   COMMENT '회원 추천의 회원 (비회원 NULL, V7.1)',
                                       `summary`   TEXT   NULL,
                                       `model_name`   VARCHAR(60)   NULL,
                                       `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                                       `status`   VARCHAR(10)   NOT NULL   DEFAULT 'DONE'   COMMENT 'PENDING, PROCESSING, DONE, FAILED',
                                       `started_at`   DATETIME   NULL,
                                       `finished_at`   DATETIME   NULL,
-                                      `error_code`   VARCHAR(30)   NULL
+                                      `error_code`   VARCHAR(30)   NULL,
+                                      KEY `idx_ai_recommendations_user` (`user_id`, `finished_at`)
 );
 
 -- AI 추천: LLM 호출 기록 (STEP 03). 프롬프트·응답 본문은 저장하지 않는다 (민감정보).
@@ -443,7 +459,8 @@ CREATE TABLE `ai_chat_turns` (
 
 CREATE TABLE `ai_chat_results` (
                                    `chat_result_id`   BIGINT   NOT NULL AUTO_INCREMENT,
-                                   `chat_session_id`   BIGINT   NOT NULL,
+                                   `chat_session_id`   BIGINT   NULL   COMMENT '90일 삭제 후 NULL (V7.1부터 결과 행은 남음)',
+                                   `user_id`   BIGINT   NULL   COMMENT '대화한 회원 (세션 삭제 후에도 유지, V7.1)',
                                    `track`   VARCHAR(20)   NOT NULL   COMMENT 'REVIEW (트랙 1), RULE_BASED (트랙 2)',
                                    `recommendation_id`   BIGINT   NULL   COMMENT '트랙 2 ai_recommendations id (FK 없음)',
                                    `cards`   JSON   NULL   COMMENT '트랙 1 카드·제품 스냅샷',
@@ -454,7 +471,8 @@ CREATE TABLE `ai_chat_results` (
                                    `latency_ms`   INT   NULL,
                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
                                    PRIMARY KEY (`chat_result_id`),
-                                   UNIQUE KEY `uq_chat_results_session` (`chat_session_id`)
+                                   UNIQUE KEY `uq_chat_results_session` (`chat_session_id`),
+                                   KEY `idx_chat_results_user` (`user_id`, `created_at`)
 );
 
 CREATE TABLE `intake_schedules` (
@@ -725,7 +743,7 @@ ALTER TABLE `ai_question_turns` ADD CONSTRAINT `fk_pq_turns_session` FOREIGN KEY
 ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_session` FOREIGN KEY (`session_id`)
     REFERENCES `ai_question_sessions` (`session_id`) ON DELETE SET NULL;
 
--- V4 대화창: 세션 삭제(90일) 시 턴·결과는 삭제, 트랙 2 추천은 남기고 chat_session_id만 비운다
+-- V4 대화창: 세션 삭제(90일) 시 턴(원문)은 삭제, 결과(V7.1부터)·트랙 2 추천은 남기고 chat_session_id만 비운다
 ALTER TABLE `ai_chat_sessions` ADD CONSTRAINT `fk_chat_sessions_user` FOREIGN KEY (`user_id`)
     REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
@@ -733,7 +751,21 @@ ALTER TABLE `ai_chat_turns` ADD CONSTRAINT `fk_chat_turns_session` FOREIGN KEY (
     REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
 
 ALTER TABLE `ai_chat_results` ADD CONSTRAINT `fk_chat_results_session` FOREIGN KEY (`chat_session_id`)
-    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE CASCADE;
+    REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL;
+
+-- V7.1 추천 기록: 회원 연결 (탈퇴 처리는 후속 결정이라 SET NULL)
+ALTER TABLE `ai_chat_results` ADD CONSTRAINT `fk_chat_results_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+-- V7.1 제품 순위: 추천 성분 카드나 제품이 지워지면 함께 삭제
+ALTER TABLE `ai_recommendation_products` ADD CONSTRAINT `fk_ai_rec_products_item` FOREIGN KEY (`recommendation_item_id`)
+    REFERENCES `ai_recommendation_items` (`recommendation_item_id`) ON DELETE CASCADE;
+
+ALTER TABLE `ai_recommendation_products` ADD CONSTRAINT `fk_ai_rec_products_product` FOREIGN KEY (`catalog_product_id`)
+    REFERENCES `catalog_products` (`catalog_product_id`) ON DELETE CASCADE;
 
 ALTER TABLE `ai_recommendations` ADD CONSTRAINT `fk_ai_recommendations_chat_session` FOREIGN KEY (`chat_session_id`)
     REFERENCES `ai_chat_sessions` (`chat_session_id`) ON DELETE SET NULL;
@@ -1021,8 +1053,8 @@ INSERT INTO `survey_answers` (`answer_id`, `response_id`, `question_id`, `option
                                                                                                                         (9, 2, 10, 24,   NULL,    NULL);
 
 -- AI 추천 결과 (김민지의 설문 응답 기준). ingredient_name은 성분 코드(IngredientCode), 용량·규칙 컬럼은 기본값 ----
-INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `summary`, `model_name`, `created_at`) VALUES
-    (1, 1, '자주 피곤하다고 답해주신 내용을 중심으로 비타민 B12와 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
+INSERT INTO `ai_recommendations` (`recommendation_id`, `response_id`, `user_id`, `summary`, `model_name`, `created_at`) VALUES
+    (1, 1, 1, '자주 피곤하다고 답해주신 내용을 중심으로 비타민 B12와 마그네슘을 추천해요.', 'sample-model', '2026-10-21 10:00:05');
 
 INSERT INTO `ai_recommendation_items` (`recommendation_item_id`, `recommendation_id`, `ingredient_name`, `reason`, `sort_order`) VALUES
                                                                                                                                      (1, 1, 'VITAMIN_B12', '에너지 대사에 필요한 영양소예요.', 1),
