@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // 인증 (#52)
 import AuthPage from "./auth/AuthPage";
@@ -85,6 +85,17 @@ export default function App() {
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
+  const childBackRef = useRef(null);
+  const [childBackTab, setChildBackTab] = useState(null);
+  const registerChildBack = useCallback((ownerTab, close) => {
+    if (close) {
+      childBackRef.current = { tab: ownerTab, close };
+      setChildBackTab(ownerTab);
+    } else if (childBackRef.current?.tab === ownerTab) {
+      childBackRef.current = null;
+      setChildBackTab(null);
+    }
+  }, []);
 
   const userId = user?.userId;
   const signupFollowupOwnerRef = useRef(null);
@@ -110,6 +121,8 @@ export default function App() {
     setToast(null);
     setFriendTarget(null);
     setMyStartAdding(false);
+    childBackRef.current = null;
+    setChildBackTab(null);
     setHasUnreadNotifications(false);
     setHomeRefreshKey(0);
   };
@@ -195,6 +208,15 @@ export default function App() {
         return;
       }
       if (userId != null) {
+        const childBack = childBackRef.current;
+        if (!surveyOpenRef.current && ((tab === "friends" && friendTarget != null)
+            || childBack?.tab === tab)) {
+          if (tab === "friends" && friendTarget != null) setFriendTarget(null);
+          else childBack.close();
+          recordView({ kind: "member", tab });
+          window.scrollTo({ top: 0 });
+          return;
+        }
         const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
         const nextSurveyOpen = isMember && view.kind === "memberSurvey";
         // 설문을 닫았으면 홈 다시 조회 (임신 여부 등 설문 답이 오늘 영양소 권장량·주의 문구에 쓰임)
@@ -216,7 +238,7 @@ export default function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [userId]);
+  }, [userId, tab, friendTarget]);
 
   // 안 읽은 알림이 있는지: 처음 열릴 때와 알림 패널을 닫을 때(homeRefreshKey 변경) 다시 확인
   // + 1분마다, 다른 탭에 있다가 돌아왔을 때도 확인한다.
@@ -380,10 +402,14 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
-      window.history.back();
-    } else if (tab !== "home") {
-      changeTab("home", { replace: true });
+    if (surveyOpen) {
+      closeSurvey();
+    } else if (tab === "friends" && friendTarget != null) {
+      setFriendTarget(null);
+      window.scrollTo({ top: 0 });
+    } else if (childBackRef.current?.tab === tab) {
+      childBackRef.current.close();
+      window.scrollTo({ top: 0 });
     }
   };
 
@@ -458,6 +484,16 @@ export default function App() {
             key={friendsKey}
             userId={userId}
             openFriendUserId={friendTarget}
+            onSelectFriend={(friend) => {
+              if (friend?.userId == null) return;
+              setFriendTarget(friend.userId);
+              window.scrollTo({ top: 0 });
+            }}
+            onCloseFriend={() => {
+              setFriendTarget(null);
+              window.scrollTo({ top: 0 });
+            }}
+            onRegisterBack={registerChildBack}
             onNotifications={openNotifications}
           />
         );
@@ -468,6 +504,7 @@ export default function App() {
             userId={userId}
             account={user}
             startAdding={myStartAdding}
+            onRegisterBack={registerChildBack}
             onUserUpdated={(updatedUser) =>
               setUser((prev) => (prev?.userId === userId ? { ...prev, ...updatedUser } : prev))
             }
@@ -477,7 +514,7 @@ export default function App() {
           />
         );
       case "disposal":
-        return <DisposalMapPage onNotifications={openNotifications} />;
+        return <DisposalMapPage onNotifications={openNotifications} onRegisterBack={registerChildBack} />;
       default:
         return (
           <HomePage
@@ -485,7 +522,7 @@ export default function App() {
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
             onIntakeChanged={refreshNotifications}
-            onSurvey={() => setSurveyOpen(true)}
+            onSurvey={openSurvey}
             onAddSupplement={() => {
               changeTab("my");
               setMyStartAdding(true);
@@ -582,12 +619,12 @@ export default function App() {
           ringing={toast !== null}
           onNotifications={openNotifications}
           onBack={handleBack}
-          canGoBack={tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0}
+          canGoBack={surveyOpen || (tab === "friends" && friendTarget != null) || childBackTab === tab}
           onLogout={handleLogout}
           loggingOut={loggingOut}
         />
         <div className="mobile-session-bar">
-          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={tab === "home" && (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0}>
+          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={!surveyOpen && !(tab === "friends" && friendTarget != null) && childBackTab !== tab}>
             <span aria-hidden="true">←</span> 이전
           </button>
           <button type="button" onClick={handleLogout} disabled={loggingOut}>

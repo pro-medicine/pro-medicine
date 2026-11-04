@@ -38,6 +38,9 @@ export default function FriendsPage({
   userId,
   onNotifications,
   openFriendUserId = null,
+  onSelectFriend,
+  onCloseFriend,
+  onRegisterBack,
 }) {
   const [friends, setFriends] = useState([]);
   const [followers, setFollowers] = useState([]); // 나를 팔로우하는 사람 (맞팔로우 대상)
@@ -46,9 +49,7 @@ export default function FriendsPage({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedFriend, setSelectedFriend] = useState(
-    openFriendUserId ? { userId: openFriendUserId } : null,
-  );
+  const selectedFriend = openFriendUserId ? { userId: openFriendUserId } : null;
   const [addOpen, setAddOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -59,6 +60,18 @@ export default function FriendsPage({
   const [tab, setTab] = useState("all"); // 전체 / 친구 / 팔로잉 / 팔로워
   const [requestTab, setRequestTab] = useState("received");
   const openerRef = useRef(null);
+
+  useEffect(() => {
+    if (!onRegisterBack) return undefined;
+    const close = requestsOpen
+      ? () => {
+          setRequestsOpen(false);
+          setReloadKey((k) => k + 1);
+        }
+      : addOpen ? () => setAddOpen(false) : null;
+    onRegisterBack("friends", close);
+    return () => onRegisterBack("friends", null);
+  }, [requestsOpen, addOpen, onRegisterBack]);
 
   const openModal = (setter) => (e) => {
     openerRef.current = e.currentTarget;
@@ -171,11 +184,11 @@ export default function FriendsPage({
         // 알림에서 바로 들어오면 { userId }만 있어서, 목록을 불러온 뒤에는 목록 정보(서로 친구 여부 등)를 사용
         fallback={friendsById.get(selectedFriend.userId) ?? selectedFriend}
         onBack={() => {
-          setSelectedFriend(null);
+          onCloseFriend();
           setReloadKey((k) => k + 1);
         }}
         onDeleted={() => {
-          setSelectedFriend(null);
+          onCloseFriend();
           setReloadKey((k) => k + 1);
         }}
         onNotifications={onNotifications}
@@ -227,7 +240,7 @@ export default function FriendsPage({
           onTabChange={setTab}
           loading={loading}
           error={error}
-          onSelect={setSelectedFriend}
+          onSelect={onSelectFriend}
         />
         <aside className="fr-side">
           <RequestCard
@@ -239,7 +252,7 @@ export default function FriendsPage({
           <GuardianCard
             watching={watching}
             friendsById={friendsById}
-            onSelect={setSelectedFriend}
+            onSelect={onSelectFriend}
           />
           <FriendTipCard />
         </aside>

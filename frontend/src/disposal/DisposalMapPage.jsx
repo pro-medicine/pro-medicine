@@ -78,7 +78,7 @@ function getLocationErrorMessage(error) {
   return "현재 위치를 가져오지 못했습니다. 지역명으로 약국을 검색할 수 있어요.";
 }
 
-export default function DisposalMapScreen({ onNotifications }) {
+export default function DisposalMapScreen({ onNotifications, onRegisterBack }) {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [searchCount, setSearchCount] = useState(0);
@@ -120,6 +120,19 @@ export default function DisposalMapScreen({ onNotifications }) {
     setLiveLocation(null);
     setTrackingError("");
   }, []);
+
+  useEffect(() => {
+    if (!onRegisterBack) return undefined;
+    const close = selected || isNavigating || walkingRoute
+      ? () => {
+          cancelWalkingRoute();
+          setSelected(null);
+          setFocusPharmacy(null);
+        }
+      : null;
+    onRegisterBack("disposal", close);
+    return () => onRegisterBack("disposal", null);
+  }, [selected, isNavigating, walkingRoute, cancelWalkingRoute, onRegisterBack]);
 
   useEffect(() => () => {
     locationRequestId.current += 1;

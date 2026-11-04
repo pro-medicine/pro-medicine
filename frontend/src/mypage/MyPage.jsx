@@ -105,6 +105,7 @@ export default function ProfileScreen({
   onNotifications,
   topBarActions,
   startAdding = false, // true면 영양제 등록 화면으로 바로 시작 (홈의 "영양제 등록하기")
+  onRegisterBack,
   account = null, // 로그인 계정 { email, nickname } (설정의 계정 정보)
   onLogout, // 설정의 "로그아웃"
   loggingOut = false,
@@ -134,6 +135,16 @@ export default function ProfileScreen({
   const supplementOpenerRef = useRef(null);
   // 마이페이지의 "영양제 등록" 버튼 (홈에서 바로 연 모달을 닫으면 여기로 포커스 복원)
   const addButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!isMine || !onRegisterBack) return undefined;
+    const close = editing ? () => setEditing(false)
+      : adding ? () => setAdding(false)
+      : scheduleTarget ? () => setScheduleTarget(null)
+      : showSettings ? () => setShowSettings(false) : null;
+    onRegisterBack("my", close);
+    return () => onRegisterBack("my", null);
+  }, [isMine, editing, adding, scheduleTarget, showSettings, onRegisterBack]);
 
   const openSettings = () => {
     settingsOpenerRef.current = document.activeElement;
