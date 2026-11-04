@@ -27,6 +27,8 @@ DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `intake_records`;
 DROP TABLE IF EXISTS `intake_schedules`;
 DROP TABLE IF EXISTS `user_products`;
+DROP TABLE IF EXISTS `supplement_nutrients`;
+DROP TABLE IF EXISTS `supplements`;
 DROP TABLE IF EXISTS `review_product_scores`;
 DROP TABLE IF EXISTS `review_mentions`;
 DROP TABLE IF EXISTS `product_ingredients`;
