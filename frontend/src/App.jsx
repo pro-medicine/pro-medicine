@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // 인증 (#52)
 import AuthPage from "./auth/AuthPage";
@@ -90,6 +90,41 @@ export default function App() {
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const [friendsKey, setFriendsKey] = useState(0);
   const [myStartAdding, setMyStartAdding] = useState(false); // 홈 "영양제 등록하기" → 마이페이지 등록 화면 바로 열기
+  const childBackRef = useRef(null);
+  const [childBackTab, setChildBackTab] = useState(null);
+  const [historyChild, setHistoryChild] = useState(null);
+  const registerChildBack = useCallback((ownerTab, close, childId, instanceId = null) => {
+    if (close && childId) {
+      childBackRef.current = { tab: ownerTab, close, id: childId, instanceId };
+      setChildBackTab(ownerTab);
+      const view = window.history.state?.[NAV_STATE_KEY];
+      if (view?.kind === "member" && view.tab === ownerTab &&
+          (view.child?.type !== "panel" || view.child.id !== childId)) {
+        recordView({ kind: "member", tab: ownerTab, child: { type: "panel", id: childId } },
+          { replace: view.child?.type === "panel" });
+      }
+    } else if (childBackRef.current?.tab === ownerTab) {
+      childBackRef.current = null;
+      setChildBackTab(null);
+    }
+  }, []);
+
+  const dismissPanel = useCallback((ownerTab, expectedChildId = null, expectedInstanceId = null) => {
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (expectedChildId != null) {
+      const active = childBackRef.current;
+      if (active?.tab !== ownerTab || active.id !== expectedChildId ||
+          active.instanceId !== expectedInstanceId || view?.child?.id !== expectedChildId) {
+        return false;
+      }
+    }
+    if (view?.kind === "member" && view.tab === ownerTab && view.child?.type === "panel") {
+      recordView({ kind: "member", tab: ownerTab }, { replace: true });
+      setHistoryChild(null);
+      if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) window.history.back();
+    }
+    return true;
+  }, []);
 
   const userId = user?.userId;
   const signupFollowupOwnerRef = useRef(null);
@@ -116,6 +151,9 @@ export default function App() {
     setToast(null);
     setFriendTarget(null);
     setMyStartAdding(false);
+    childBackRef.current = null;
+    setChildBackTab(null);
+    setHistoryChild(null);
     setHasUnreadNotifications(false);
     setHomeRefreshKey(0);
   };
@@ -163,7 +201,11 @@ export default function App() {
     const view = window.history.state?.[NAV_STATE_KEY];
     if (user) {
       if (view?.kind === "member" || view?.kind === "memberSurvey") {
-        setTab(VALID_TABS.has(view.tab) ? view.tab : "home");
+        const nextTab = VALID_TABS.has(view.tab) ? view.tab : "home";
+        const nextChild = view.kind === "member" ? view.child ?? null : null;
+        setTab(nextTab);
+        setHistoryChild(nextChild);
+        setFriendTarget(nextTab === "friends" && nextChild?.type === "friend" ? nextChild.id : null);
         setSurveyOpen(view.kind === "memberSurvey");
       } else {
         recordView(
@@ -214,15 +256,21 @@ export default function App() {
         return;
       }
       if (userId != null) {
-        const isMember =
-          view?.kind === "member" || view?.kind === "memberSurvey";
+        const isMember = view?.kind === "member" || view?.kind === "memberSurvey";
+        const nextTab = isMember && VALID_TABS.has(view.tab) ? view.tab : "home";
+        const nextChild = isMember && view.kind === "member" ? view.child ?? null : null;
         const nextSurveyOpen = isMember && view.kind === "memberSurvey";
-        // 설문을 닫았으면 홈 다시 조회 (임신 여부 등 설문 답이 오늘 영양소 권장량·주의 문구에 쓰임)
-        if (surveyOpenRef.current && !nextSurveyOpen)
-          setHomeRefreshKey((key) => key + 1);
-        setTab(isMember && VALID_TABS.has(view.tab) ? view.tab : "home");
+        const childBack = childBackRef.current;
+        if (childBack && (childBack.tab !== nextTab || nextChild?.type !== "panel" ||
+            nextChild.id !== childBack.id)) {
+          childBack.close();
+        }
+        // popstate는 기존 기록의 목적 화면만 복원한다. 앞으로 가기에서 새 기록을 추가하지 않는다.
+        if (surveyOpenRef.current && !nextSurveyOpen) setHomeRefreshKey((key) => key + 1);
+        setTab(nextTab);
+        setHistoryChild(nextChild);
         setSurveyOpen(nextSurveyOpen);
-        setFriendTarget(null);
+        setFriendTarget(nextTab === "friends" && nextChild?.type === "friend" ? nextChild.id : null);
         setMyStartAdding(false);
         setNotificationsOpen(false);
         notificationsOpenRef.current = false;
@@ -418,8 +466,12 @@ export default function App() {
   const changeTab = (nextTab, { replace = false } = {}) => {
     if (!VALID_TABS.has(nextTab)) return;
     if (nextTab === tab && nextTab === "friends") setFriendsKey((k) => k + 1);
-    if (nextTab !== tab)
-      recordView({ kind: "member", tab: nextTab }, { replace });
+    if (nextTab !== tab) recordView({ kind: "member", tab: nextTab }, { replace });
+    else if (window.history.state?.[NAV_STATE_KEY]?.child) {
+      recordView({ kind: "member", tab: nextTab }, { replace: true });
+    }
+    if (childBackRef.current?.tab === tab) childBackRef.current.close();
+    setHistoryChild(null);
     setFriendTarget(null);
     setMyStartAdding(false);
     setTab(nextTab);
@@ -427,10 +479,20 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if ((window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
+    if (surveyOpen) {
+      closeSurvey();
+      return;
+    }
+    const view = window.history.state?.[NAV_STATE_KEY];
+    if (view?.kind === "member" && view.tab === tab && view.child &&
+        (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0) {
       window.history.back();
-    } else if (tab !== "home") {
-      changeTab("home", { replace: true });
+    } else if (tab === "friends" && friendTarget != null) {
+      setFriendTarget(null);
+      recordView({ kind: "member", tab }, { replace: true });
+    } else if (childBackRef.current?.tab === tab) {
+      childBackRef.current.close();
+      recordView({ kind: "member", tab }, { replace: true });
     }
   };
 
@@ -507,7 +569,8 @@ export default function App() {
     notificationsOpenRef.current = false;
     setToast(null);
     changeTab(nextTab);
-    if (friendUserId) {
+    if (nextTab === "friends" && friendUserId != null) {
+      recordView({ kind: "member", tab: "friends", child: { type: "friend", id: friendUserId } });
       setFriendTarget(friendUserId);
       setFriendsKey((k) => k + 1); // 친구 화면을 새로 열어서 바로 상세로
     }
@@ -521,6 +584,16 @@ export default function App() {
             key={friendsKey}
             userId={userId}
             openFriendUserId={friendTarget}
+            onSelectFriend={(friend) => {
+              if (friend?.userId == null) return;
+              recordView({ kind: "member", tab: "friends", child: { type: "friend", id: friend.userId } });
+              setFriendTarget(friend.userId);
+              window.scrollTo({ top: 0 });
+            }}
+            onCloseFriend={handleBack}
+            restoreChild={tab === "friends" && historyChild?.type === "panel" ? historyChild.id : null}
+            onRegisterBack={registerChildBack}
+            onDismissPanel={dismissPanel}
             onNotifications={openNotifications}
           />
         );
@@ -531,6 +604,9 @@ export default function App() {
             userId={userId}
             account={user}
             startAdding={myStartAdding}
+            restoreChild={tab === "my" && historyChild?.type === "panel" ? historyChild.id : null}
+            onRegisterBack={registerChildBack}
+            onDismissPanel={dismissPanel}
             onUserUpdated={(updatedUser) =>
               setUser((prev) =>
                 prev?.userId === userId ? { ...prev, ...updatedUser } : prev,
@@ -542,7 +618,9 @@ export default function App() {
           />
         );
       case "disposal":
-        return <DisposalMapPage onNotifications={openNotifications} />;
+        return <DisposalMapPage onNotifications={openNotifications}
+          restoreChild={historyChild?.type === "panel" ? historyChild.id : null}
+          onRegisterBack={registerChildBack} onDismissPanel={dismissPanel} />;
       default:
         return (
           <HomePage
@@ -550,7 +628,7 @@ export default function App() {
             refreshKey={homeRefreshKey}
             onOpenNotifications={openNotifications}
             onIntakeChanged={refreshNotifications}
-            onSurvey={() => setSurveyOpen(true)}
+            onSurvey={openSurvey}
             onAddSupplement={() => {
               changeTab("my");
               setMyStartAdding(true);
@@ -656,22 +734,12 @@ export default function App() {
           ringing={toast !== null}
           onNotifications={openNotifications}
           onBack={handleBack}
-          canGoBack={
-            tab !== "home" || (window.history.state?.[NAV_DEPTH_KEY] ?? 0) > 0
-          }
+          canGoBack={surveyOpen || (tab === "friends" && friendTarget != null) || childBackTab === tab}
           onLogout={handleLogout}
           loggingOut={loggingOut}
         />
         <div className="mobile-session-bar">
-          <button
-            type="button"
-            className="mobile-session-back"
-            onClick={handleBack}
-            disabled={
-              tab === "home" &&
-              (window.history.state?.[NAV_DEPTH_KEY] ?? 0) === 0
-            }
-          >
+          <button type="button" className="mobile-session-back" onClick={handleBack} disabled={!surveyOpen && !(tab === "friends" && friendTarget != null) && childBackTab !== tab}>
             <span aria-hidden="true">←</span> 이전
           </button>
           <button type="button" onClick={handleLogout} disabled={loggingOut}>

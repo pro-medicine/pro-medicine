@@ -17,6 +17,7 @@ export default function FollowRequestModal({
   onAccepted,
   openerRef,
   initialTab = "received", // "sent"로 열면 보낸 신청 탭부터 보여줌
+  onTabChange,
 }) {
   const [tab, setTab] = useState(initialTab);
   const [items, setItems] = useState([]);
@@ -117,7 +118,10 @@ export default function FollowRequestModal({
               role="tab"
               aria-selected={tab === t.id}
               className={tab === t.id ? "active" : ""}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setTab(t.id);
+                onTabChange?.(t.id);
+              }}
             >
               {t.label}
             </button>
