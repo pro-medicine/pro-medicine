@@ -683,6 +683,7 @@
 
 .noti-pin p {
   color: var(--ink);
+  overflow-wrap: anywhere;
   word-break: keep-all;
   font-size: 14px;
   line-height: 1.45;
@@ -697,6 +698,10 @@
 .noti-pin-body {
   display: flex;
   gap: 12px;
+}
+
+.noti-pin-body > div {
+  min-width: 0;
 }
 
 .noti-pin-label {
