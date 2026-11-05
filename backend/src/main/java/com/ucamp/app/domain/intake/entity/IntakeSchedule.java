@@ -18,7 +18,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -55,9 +54,6 @@ public class IntakeSchedule {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "disabled_at")
-    private LocalDate disabledAt;
 
     @Builder
     public IntakeSchedule(UserProduct userProduct, String mealSlot, String mealRelation, LocalTime remindAt,
