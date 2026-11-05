@@ -2,7 +2,12 @@
 // - 넓은 화면: 왼쪽 서비스 소개 패널 + 오른쪽 입력 카드 / 좁은 화면: 입력 카드만
 // - 로그인·회원가입 요청과 입력 검사는 #52와 같음 (authApi.js)
 import { useEffect, useRef, useState } from "react";
-import { getPendingGuestDemographics, getPendingGuestSurvey, login, signup } from "./authApi";
+import {
+  getPendingGuestDemographics,
+  getPendingGuestSurvey,
+  login,
+  signup,
+} from "./authApi";
 import "./auth.css";
 
 const GENDERS = ["여성", "남성", "선택 안 함"];
@@ -160,6 +165,7 @@ export default function AuthPage({
   const [agreed, setAgreed] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const mountedRef = useRef(true);
@@ -175,7 +181,8 @@ export default function AuthPage({
   useEffect(() => {
     if (!isSignup) return;
     const prefill = getPendingGuestDemographics();
-    if (!prefill || appliedGuestResponseRef.current === prefill.responseId) return;
+    if (!prefill || appliedGuestResponseRef.current === prefill.responseId)
+      return;
     appliedGuestResponseRef.current = prefill.responseId;
     setGuestPrefill(prefill);
     if (prefill.birthYear != null) {
@@ -192,6 +199,7 @@ export default function AuthPage({
     if (busy) return;
     setError("");
     setShowPassword(false);
+    setShowConfirmPassword(false);
     onModeChange(nextMode);
   };
 
@@ -421,8 +429,8 @@ export default function AuthPage({
                     placeholder="비밀번호를 한 번 더 입력해주세요"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
-                    show={showPassword}
-                    onToggle={() => setShowPassword((v) => !v)}
+                    show={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((v) => !v)}
                     aria-invalid={confirmMismatch || undefined}
                   />
                   {confirmMismatch && (
@@ -434,10 +442,13 @@ export default function AuthPage({
 
                 {guestPrefill && (
                   <p className="auth-prefill-intro" role="status">
-                    기본 설문에서 입력한 정보를 미리 채웠어요. 확인 후 변경할 수 있어요.
+                    기본 설문에서 입력한 정보를 미리 채웠어요. 확인 후 변경할 수
+                    있어요.
                   </p>
                 )}
-                <div className={`auth-profile-fields${guestPrefill ? " has-prefill" : ""}`}>
+                <div
+                  className={`auth-profile-fields${guestPrefill ? " has-prefill" : ""}`}
+                >
                   <label className="auth-field">
                     <span>만 나이</span>
                     <input
@@ -480,12 +491,16 @@ export default function AuthPage({
                       ))}
                     </div>
                     {guestPrefill?.gender && (
-                      <small className="auth-hint auth-prefill-hint">기본 설문에서 선택한 성별이에요. 변경할 수 있어요.</small>
+                      <small className="auth-hint auth-prefill-hint">
+                        기본 설문에서 선택한 성별이에요. 변경할 수 있어요.
+                      </small>
                     )}
                   </fieldset>
                 </div>
                 {guestPrefill && (
-                  <p className="auth-prefill-footer">입력한 나이와 성별은 이후 맞춤 추천에 활용돼요.</p>
+                  <p className="auth-prefill-footer">
+                    입력한 나이와 성별은 이후 맞춤 추천에 활용돼요.
+                  </p>
                 )}
 
                 <label className="auth-check">
