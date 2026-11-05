@@ -39,6 +39,18 @@ const cardColors = ["sun", "ocean", "lilac"];
 const mealSlotLabels = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
 const mealRelationLabels = { BEFORE: "식전", AFTER: "식후", ANY: "" };
 
+// 삭제 요청이 너무 오래 걸리면(토큰 재발급 대기 포함) 실패로 보고 확인 창을 닫음
+const REMOVE_TIMEOUT_MS = 15000;
+
+// promise가 ms 안에 끝나지 않으면 message로 실패 처리
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // 복용 일정 목록 → "아침 식후 · 저녁 식전"
 function scheduleText(schedules) {
   if (schedules.length === 0) return "복용 일정 없음";
@@ -276,7 +288,11 @@ export default function ProfileScreen({
     removingRef.current = true;
     setRemovingId(supplement.id);
     try {
-      await removeMySupplement(userId, supplement.id);
+      await withTimeout(
+        removeMySupplement(userId, supplement.id),
+        REMOVE_TIMEOUT_MS,
+        "응답이 늦어 삭제를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      );
       // 재조회가 실패해도 삭제한 카드가 남지 않도록 목록에서 먼저 뺀다
       setMySupplementList((prev) => {
         const next = [];
