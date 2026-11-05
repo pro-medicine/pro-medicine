@@ -192,12 +192,15 @@ function DayModal({
 
   // prescriptionId → { status: "loading" | "done" | "error", data }
   const [interactionMap, setInteractionMap] = useState({});
-
+  const dialogRef = useModalFocus(closeDay, openerRef, {
+    active: !removeTarget,
+  });
   // 이 날 일정에 걸린 처방들의 상충 정보를 한 번씩만 조회 (목록 배지 + 상세에서 같이 사용)
   const prescriptionIds = [
     ...new Set(events.map((e) => e.prescriptionId).filter(Boolean)),
   ];
   const idsKey = prescriptionIds.join(",");
+  const addEventButtonRef = useRef(null);
 
   useEffect(() => {
     if (!fetchInteractions || prescriptionIds.length === 0) return;
@@ -353,6 +356,7 @@ function DayModal({
     setRemoving(true);
     try {
       await onDelete(removeTarget.event, removeTarget.scope);
+      removeOpenerRef.current = addEventButtonRef.current;
     } catch (err) {
       setError(err.message || "일정을 삭제하지 못했어요.");
     } finally {
@@ -391,7 +395,7 @@ function DayModal({
               {Number(dateKey.slice(5, 7))}월 {Number(dateKey.slice(8))}일
             </h2>
           </div>
-          <button type="button" aria-label="닫기" onClick={onClose}>
+          <button type="button" aria-label="닫기" onClick={closeDay}>
             ×
           </button>
         </div>
@@ -433,7 +437,7 @@ function DayModal({
                   className="event-add-button"
                   onClick={openNew}
                 >
-                  <Icon name="plus" size={14} />
+                  <Icon name="plus" size={14} ref={addEventButtonRef} />
                   일정 추가
                 </button>
               )}

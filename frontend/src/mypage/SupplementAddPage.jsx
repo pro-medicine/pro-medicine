@@ -214,7 +214,7 @@ export default function SupplementAddPage({
       let savedName = trimmedName;
       if (isEdit) savedName = target.productName;
       else if (!manualMode) savedName = selected.productName;
-      onSaved(savedName);
+      onSaved(panelInstanceId, savedName);
     } catch (e) {
       setMessage(e.message || "등록하지 못했어요.");
       setSaving(false);

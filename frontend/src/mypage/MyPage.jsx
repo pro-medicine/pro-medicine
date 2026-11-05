@@ -393,9 +393,10 @@ export default function ProfileScreen({
     const supplement = removeTarget;
     removingRef.current = true;
     setRemovingId(supplement.id);
+    const request = removeMySupplement(supplement.id);
     try {
       await withTimeout(
-        removeMySupplement(supplement.id),
+        request,
         REMOVE_TIMEOUT_MS,
         "응답이 늦어 삭제를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
@@ -413,6 +414,13 @@ export default function ProfileScreen({
     } catch (e) {
       setRemoveTarget(null);
       setRemoveError(e.message || "삭제하지 못했어요.");
+      request.then(
+        () => {
+          setRemoveError(null);
+          reload();
+        },
+        () => {},
+      );
     } finally {
       removingRef.current = false;
       setRemovingId(null);
