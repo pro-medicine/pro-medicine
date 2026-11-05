@@ -41,6 +41,18 @@ let nextSupplementPanelInstanceId = 0;
 const mealSlotLabels = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
 const mealRelationLabels = { BEFORE: "식전", AFTER: "식후", ANY: "" };
 
+// 삭제 요청이 너무 오래 걸리면(토큰 재발급 대기 포함) 실패로 보고 확인 창을 닫음
+const REMOVE_TIMEOUT_MS = 15000;
+
+// promise가 ms 안에 끝나지 않으면 message로 실패 처리
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // 복용 일정 목록 → "아침 식후 · 저녁 식전"
 function scheduleText(schedules) {
   if (schedules.length === 0) return "복용 일정 없음";
@@ -104,7 +116,6 @@ function SettingsModal({ onClose, openerRef, children }) {
 export default function ProfileScreen({
   userId,
   friend,
-  viewerId,
   onUserUpdated,
   onBack,
   onNotifications,
@@ -145,10 +156,16 @@ export default function ProfileScreen({
   // 삭제 중인 카드 id (중복 클릭 방지)
   const [removingId, setRemovingId] = useState(null);
   const [sharing, setSharing] = useState(false);
+  // 공개 설정 요청 중인지 (설정 창의 Esc 처리는 처음 함수를 계속 써서 state 대신 ref로 확인)
+  const sharingRef = useRef(false);
+  const withdrawConfirmOpenRef = useRef(false);
+  // 회원 탈퇴 최종 확인 창이 열려 있는지 (열려 있으면 설정 창을 닫지 않음)
   // 삭제 확인 창을 띄운 영양제 카드, null 이면 창 닫힘
   const [removeTarget, setRemoveTarget] = useState(null);
   // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
   const removeOpenerRef = useRef(null);
+  // 삭제 처리 중인지 (확인 창의 Esc 처리는 처음 함수를 계속 써서 state 대신 ref로 확인)
+  const removingRef = useRef(false);
   // 브라우저 alert 대신 화면에 보여주는 실패 안내
   const [removeError, setRemoveError] = useState(null);
   const [shareError, setShareError] = useState(null);
@@ -254,7 +271,9 @@ export default function ProfileScreen({
 
   const toggleShare = async () => {
     if (sharing || !user) return;
+    sharingRef.current = true;
     setSharing(true);
+    setShareError(null);
     try {
       const updated = await updateShareIntake(!shared);
       setUser((prev) => ({
@@ -264,6 +283,7 @@ export default function ProfileScreen({
     } catch (e) {
       setShareError(e.message || "공개 설정을 바꾸지 못했어요.");
     } finally {
+      sharingRef.current = false;
       setSharing(false);
     }
   };
@@ -371,9 +391,14 @@ export default function ProfileScreen({
   // 확인 창의 [삭제]: 서버에서 복용 중단 처리 → 화면에서 바로 빼기 → 나머지(통계·영양관리) 다시 불러오기
   const removeSupplement = async () => {
     const supplement = removeTarget;
+    removingRef.current = true;
     setRemovingId(supplement.id);
     try {
-      await removeMySupplement(supplement.id);
+      await withTimeout(
+        removeMySupplement(supplement.id),
+        REMOVE_TIMEOUT_MS,
+        "응답이 늦어 삭제를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      );
       // 재조회가 실패해도 삭제한 카드가 남지 않도록 목록에서 먼저 뺀다
       setMySupplementList((prev) => {
         const next = [];
@@ -382,12 +407,14 @@ export default function ProfileScreen({
         }
         return next;
       });
+      removeOpenerRef.current = addButtonRef.current;
       setRemoveTarget(null);
       reload();
     } catch (e) {
       setRemoveTarget(null);
       setRemoveError(e.message || "삭제하지 못했어요.");
     } finally {
+      removingRef.current = false;
       setRemovingId(null);
     }
   };
@@ -437,7 +464,10 @@ export default function ProfileScreen({
 
       {showSettings && (
         <SettingsModal
-          onClose={() => dismissPanel(() => setShowSettings(false))}
+          onClose={() => {
+            if (!sharing && !withdrawConfirmOpenRef.current)
+              setShowSettings(false);
+          }}
           openerRef={settingsOpenerRef}
         >
           <section className="share-setting">
@@ -485,7 +515,13 @@ export default function ProfileScreen({
             </section>
           )}
           {isMine && onWithdraw && (
-            <WithdrawalSection onWithdraw={onWithdraw} busy={loggingOut} />
+            <WithdrawalSection
+              onWithdraw={onWithdraw}
+              busy={loggingOut}
+              onConfirmOpenChange={(open) => {
+                withdrawConfirmOpenRef.current = open;
+              }}
+            />
           )}
         </SettingsModal>
       )}
@@ -494,9 +530,12 @@ export default function ProfileScreen({
         <SupplementAddPage
           userId={userId}
           openerRef={supplementOpenerRef}
-          onBack={() => setAdding(false)}
-          onSaved={(name) => {
-            setAdding(false);
+          panelInstanceId={supplementPanelInstanceId}
+          onBack={(instanceId) =>
+            dismissPanel(() => setAdding(false), "supplement-add", instanceId)
+          }
+          onSaved={(instanceId, name) => {
+            dismissPanel(() => setAdding(false), "supplement-add", instanceId);
             setToast({
               type: "success",
               text: `${name}을(를) 내 영양제에 등록했어요`,
@@ -511,9 +550,20 @@ export default function ProfileScreen({
           userId={userId}
           target={scheduleTarget}
           openerRef={supplementOpenerRef}
-          onBack={() => setScheduleTarget(null)}
-          onSaved={(name) => {
-            setScheduleTarget(null);
+          panelInstanceId={supplementPanelInstanceId}
+          onBack={(instanceId) =>
+            dismissPanel(
+              () => setScheduleTarget(null),
+              `schedule:${scheduleTarget.userProductId}`,
+              instanceId,
+            )
+          }
+          onSaved={(instanceId, name) => {
+            dismissPanel(
+              () => setScheduleTarget(null),
+              `schedule:${scheduleTarget.userProductId}`,
+              instanceId,
+            );
             setToast({
               type: "success",
               text: `${name} 복용 일정을 수정했어요`,
@@ -534,8 +584,8 @@ export default function ProfileScreen({
           openerRef={removeOpenerRef}
           onConfirm={removeSupplement}
           onCancel={() => {
-            // 삭제 처리 중에는 바깥을 눌러도 닫지 않음
-            if (removingId === null) setRemoveTarget(null);
+            // 삭제 처리 중에는 바깥을 누르거나 Esc를 눌러도 닫지 않음
+            if (!removingRef.current) setRemoveTarget(null);
           }}
         />
       )}
