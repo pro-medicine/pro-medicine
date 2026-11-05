@@ -38,7 +38,6 @@ public class MySupplementService {
     // 복용 일정에 쓸 수 있는 값 (intake_schedules.meal_slot, meal_relation)
     private static final List<String> MEAL_SLOTS = List.of("BREAKFAST", "LUNCH", "DINNER");
     private static final List<String> MEAL_RELATIONS = List.of("BEFORE", "AFTER", "ANY");
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final UserProductRepository userProductRepository;
     private final SupplementScheduleRepository supplementScheduleRepository;
@@ -205,7 +204,7 @@ public class MySupplementService {
         validateSchedules(request.schedules());
 
         // 2. 기존 일정은 지우지 않고 끈다 (복용 기록이 기존 일정을 가리키고 있어서)
-        supplementScheduleRepository.disableAllByUserProductId(userProductId, LocalDate.now(KST));
+        supplementScheduleRepository.disableAllByUserProductId(userProductId);
         // 3. 새 일정 저장
         List<MySupplementResponse.ScheduleResponse> schedules = saveSchedules(userProduct, request.schedules());
         return MySupplementResponse.of(userProduct, schedules);
@@ -215,7 +214,6 @@ public class MySupplementService {
     @Transactional
     public void removeMySupplement(Long userId, Long userProductId) {
         findMyActiveProduct(userId, userProductId);
-        supplementScheduleRepository.markDisabledByUserProductId(userProductId, LocalDate.now(KST));
         userProductRepository.deactivate(userProductId);
     }
 
