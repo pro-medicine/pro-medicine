@@ -82,6 +82,7 @@ async function request(path, { method = "GET", body, credentials = "omit", useAu
     if (!response.ok || !payload?.success) {
         const error = new Error(payload?.message || `요청에 실패했습니다. (${response.status})`);
         error.status = response.status;
+        error.code = payload?.code;
         throw error;
     }
     return payload.data;
@@ -175,6 +176,27 @@ export async function getCurrentUser() {
             throw lastError;
         }
     }
+}
+
+export async function withdrawAccount(password) {
+    if (USE_MOCK_AUTH) throw new Error("실제 계정에서만 회원 탈퇴할 수 있습니다.");
+    const options = {
+        method: "DELETE", body: { password }, credentials: "include",
+    };
+    const attemptedToken = getAccessToken();
+    try {
+        await request("/api/v1/users/me", options);
+    } catch (error) {
+        if (error.status !== 401 || error.code === "U004" || !attemptedToken) throw error;
+        const currentToken = getAccessToken();
+        const token = currentToken && currentToken !== attemptedToken
+            ? currentToken : await refreshAccessToken();
+        if (!token) throw error;
+        await request("/api/v1/users/me", options);
+    }
+    authGeneration += 1;
+    clearAccessToken();
+    clearPendingGuestSurvey();
 }
 
 export function logout() {

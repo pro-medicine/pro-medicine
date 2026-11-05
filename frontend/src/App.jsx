@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // 인증 (#52)
 import AuthPage from "./auth/AuthPage";
-import { getCurrentUser, logout, SESSION_EXPIRED_EVENT } from "./auth/authApi";
+import { getCurrentUser, logout, withdrawAccount, SESSION_EXPIRED_EVENT } from "./auth/authApi";
 
 // 알림
 import {
@@ -442,6 +442,22 @@ export default function App() {
     }
   };
 
+  const handleWithdrawal = async (password) => {
+    if (loggingOut) throw new Error("다른 계정 작업이 진행 중입니다.");
+    setLoggingOut(true);
+    try {
+      await withdrawAccount(password);
+      authAttemptRef.current += 1;
+      setUser(null);
+      resetScreens();
+      setAuthNotice("");
+      setAuthMode(null);
+      recordView({ kind: "landing" }, { replace: true, reset: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   // 종 버튼 클릭 → 버튼 위치를 기억해서 패널을 바로 아래에 띄운다.
   const openNotifications = (event) => {
     const rect = event?.currentTarget?.getBoundingClientRect?.();
@@ -613,6 +629,7 @@ export default function App() {
               )
             }
             onLogout={handleLogout}
+            onWithdraw={handleWithdrawal}
             loggingOut={loggingOut}
             onNotifications={openNotifications}
           />
