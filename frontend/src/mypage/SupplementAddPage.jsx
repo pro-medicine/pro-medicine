@@ -118,7 +118,7 @@ export default function SupplementAddPage({
     : selected?.supplementId;
 
   useEffect(() => {
-    if (isEdit && target?.catalogProductId) loadTips(target.supplementId);
+    if (isEdit && target?.supplementId) loadTips(target.supplementId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
