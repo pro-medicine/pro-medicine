@@ -144,17 +144,47 @@
   justify-content: center;
 }
 
-.noti-icon.is-mint { background: #e3f6ee; color: #0b7f58; }
-.noti-icon.is-green { background: #e3f6ee; color: var(--primary); }
-.noti-icon.is-blue { background: #e6f0ff; color: #2f5fd0; }
-.noti-icon.is-purple { background: #f1eeff; color: #6741d9; }
-.noti-icon.is-red { background: #ffecec; color: #d63b3f; }
-.noti-icon.is-orange { background: #fff3e0; color: #c25e00; }
-.noti-icon.is-pink { background: #ffeef5; color: #c2307a; }
-.noti-icon.is-solid.is-orange { background: #e07a12; color: var(--white); }
+.noti-icon.is-mint {
+  background: #e3f6ee;
+  color: #0b7f58;
+}
+.noti-icon.is-green {
+  background: #e3f6ee;
+  color: var(--primary);
+}
+.noti-icon.is-blue {
+  background: #e6f0ff;
+  color: #2f5fd0;
+}
+.noti-icon.is-purple {
+  background: #f1eeff;
+  color: #6741d9;
+}
+.noti-icon.is-red {
+  background: #ffecec;
+  color: #d63b3f;
+}
+.noti-icon.is-orange {
+  background: #fff3e0;
+  color: #c25e00;
+}
+.noti-icon.is-pink {
+  background: #ffeef5;
+  color: #c2307a;
+}
+.noti-icon.is-solid.is-orange {
+  background: #e07a12;
+  color: var(--white);
+}
 .noti-icon.is-solid.is-mint,
-.noti-icon.is-solid.is-green { background: var(--primary); color: var(--white); }
-.noti-icon.is-solid.is-red { background: #d63b3f; color: var(--white); }
+.noti-icon.is-solid.is-green {
+  background: var(--primary);
+  color: var(--white);
+}
+.noti-icon.is-solid.is-red {
+  background: #d63b3f;
+  color: var(--white);
+}
 
 .notification-item:not(.unread) .noti-icon {
   opacity: 0.75;
@@ -191,7 +221,6 @@
   margin-top: 7px;
   width: 7px;
 }
-
 
 /* 웹 상단 메뉴 (#67): 높이 72 · 가운데 메뉴 · 지금 화면은 초록 밑줄 */
 .top-nav {
@@ -268,7 +297,9 @@
   opacity: 0;
   position: absolute;
   transform: translateX(-50%) scaleX(0.4);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   width: 28px;
 }
 
@@ -399,7 +430,10 @@
   height: 42px;
   justify-content: center;
   padding: 0 20px;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
   white-space: nowrap;
 }
 
@@ -649,6 +683,7 @@
 
 .noti-pin p {
   color: var(--ink);
+  overflow-wrap: anywhere;
   word-break: keep-all;
   font-size: 14px;
   line-height: 1.45;
@@ -663,6 +698,10 @@
 .noti-pin-body {
   display: flex;
   gap: 12px;
+}
+
+.noti-pin-body > div {
+  min-width: 0;
 }
 
 .noti-pin-label {
@@ -810,21 +849,27 @@
 
 .noti-toast-text {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
+}
+
+.noti-toast-text strong {
+  display: block;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 .noti-toast-text small {
   color: var(--faint);
   font-size: 12px;
-}
-
-.noti-toast-text strong {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-  word-break: keep-all;
 }
 
 .noti-toast-action {
@@ -859,29 +904,58 @@
 }
 
 @keyframes noti-bubble-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes noti-bubble-out {
-  to { opacity: 0; transform: translateY(-4px) scale(0.9); }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.9);
+  }
 }
 
 @keyframes noti-banner-in {
-  from { opacity: 0; transform: translateY(-110%); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes noti-banner-out {
-  to { opacity: 0; transform: translateY(-110%); }
+  to {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
 }
 
 @keyframes noti-bell-shake {
-  0%, 100% { transform: rotate(0); }
-  20% { transform: rotate(-12deg); }
-  40% { transform: rotate(10deg); }
-  60% { transform: rotate(-6deg); }
-  80% { transform: rotate(4deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-12deg);
+  }
+  40% {
+    transform: rotate(10deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  80% {
+    transform: rotate(4deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1091,4 +1165,54 @@
     padding: 0;
     font-size: 0;
   }
+}
+
+/* 알림 패널 가로 스크롤 방지 */
+.notification-panel {
+  overflow-x: hidden;
+}
+
+/* 알림 항목 너비 제한 */
+.notification-item {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.notification-item-main {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 아이콘 옆 텍스트 영역 */
+.notification-item-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 긴 닉네임과 알림 제목 자동 줄바꿈 */
+.notification-item-title,
+.notification-item h3 {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 긴 닉네임이 있어도 토스트 내부에서 줄바꿈 */
+.noti-toast {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.noti-toast-main {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.noti-toast-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  white-space: nowrap;
 }
