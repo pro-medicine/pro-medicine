@@ -30,7 +30,7 @@ export default function FollowRequestModal({
     setLoading(true);
     setError("");
     setItems([]);
-    getFollowRequests(userId, tab)
+    getFollowRequests(tab)
       .then((data) => {
         if (!ignore) setItems(data ?? []);
       })
@@ -54,7 +54,7 @@ export default function FollowRequestModal({
     setPendingId(followId);
     setError("");
     try {
-      await respondFollow(userId, followId, status);
+      await respondFollow(followId, status);
       removeItem(followId);
       if (status === "ACCEPTED") onAccepted?.();
     } catch (err) {
@@ -70,7 +70,7 @@ export default function FollowRequestModal({
     setPendingId(followId);
     setError("");
     try {
-      await cancelFollow(userId, followId);
+      await cancelFollow(followId);
       removeItem(followId);
     } catch (err) {
       console.error(err);

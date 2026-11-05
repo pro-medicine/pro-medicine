@@ -14,21 +14,16 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users/{userId}/conditions")
+@RequestMapping("/api/v1/users/conditions")
 public class UserConditionController {
 
     private final UserConditionService userConditionService;
 
-    // TODO: PathVariable 제거
-
     // 본인 질환정보 조회
     @GetMapping
     public ResponseEntity<ApiResponse<UserConditionsResponse>> getConditions(
-            @PathVariable Long userId,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(userConditionService.getConditions(userId))
         );
@@ -37,26 +32,13 @@ public class UserConditionController {
     // 본인 질환정보 수정
     @PutMapping
     public ResponseEntity<ApiResponse<UserConditionsResponse>> replaceConditions(
-            @PathVariable Long userId,
             @RequestBody UserConditionsRequest request,
-            @CurrentUserId Long currentUserId
+            @CurrentUserId Long userId
     ) {
-        requireSelf(userId, currentUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         userConditionService.replaceConditions(userId, request)
                 )
         );
-    }
-
-    // 로그인 사용자와 요청 대상 사용자 비교
-    private void requireSelf(Long requestedUserId, Long currentUserId) {
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        if (!requestedUserId.equals(currentUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
     }
 }

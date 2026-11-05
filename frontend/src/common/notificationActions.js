@@ -2,21 +2,25 @@
 // 알림 패널과 새 알림 팝업에서 같이 사용
 import { api } from "../api/client";
 import { getFollowRequests, respondFollow } from "../api/followApi";
-import { acceptGuardian, getMyGuardians, removeGuardian } from "../api/guardianApi";
-import { updateIntake } from "../home/homeApi";
+import {
+  acceptGuardian,
+  getMyGuardians,
+  removeGuardian,
+} from "../api/guardianApi";
+import { updateIntake } from "../api/homeApi";
 
 /**
  * 복용 알림의 "복용 완료": 알림 시각(scheduledAt)과 같은 시각의 아직 안 먹은 일정을 모두 체크한다.
  * (복용 알림은 같은 시각의 일정을 한 알림으로 묶어서 보냄)
  * @returns 체크한 일정 수 (0이면 이미 모두 먹음)
  */
-export async function completeIntakeFromNotification(userId, item) {
+export async function completeIntakeFromNotification(item) {
   const date = item.scheduledAt.slice(0, 10); // "2026-10-30"
   const time = item.scheduledAt.slice(11, 16); // "12:30"
   const list = await api.get("/api/v1/intakes/today", { params: { date } });
   const targets = (list ?? []).filter((s) => s.remindAt === time && !s.taken);
   for (const target of targets) {
-    await updateIntake(userId, target.id, true, date);
+    await updateIntake(target.id, true, date);
   }
   return targets.length;
 }
@@ -26,11 +30,13 @@ export async function completeIntakeFromNotification(userId, item) {
  * @param status "ACCEPTED" | "REJECTED"
  * @returns 처리했으면 true, 이미 처리된 신청이면 false
  */
-export async function respondFollowFromNotification(userId, item, status) {
-  const requests = await getFollowRequests(userId, "received");
-  const request = (requests ?? []).find((r) => r.followerId === item.actorUserId);
+export async function respondFollowFromNotification(item, status) {
+  const requests = await getFollowRequests("received");
+  const request = (requests ?? []).find(
+    (r) => r.followerId === item.actorUserId,
+  );
   if (!request) return false;
-  await respondFollow(userId, request.followId, status);
+  await respondFollow(request.followId, status);
   return true;
 }
 
@@ -41,15 +47,17 @@ export async function respondFollowFromNotification(userId, item, status) {
  * @param accept true면 수락, false면 거절
  * @returns 처리했으면 true, 이미 처리됐거나 취소된 신청이면 false
  */
-export async function respondGuardianFromNotification(userId, item, accept) {
+export async function respondGuardianFromNotification(item, accept) {
   if (item.referenceId == null) return false; // 신청 id가 없는 알림(예전 테스트 알림)은 처리하지 않음
-  const list = await getMyGuardians(userId);
-  const request = (list ?? []).find((g) => g.guardianSettingId === item.referenceId && !g.active);
+  const list = await getMyGuardians();
+  const request = (list ?? []).find(
+    (g) => g.guardianSettingId === item.referenceId && !g.active,
+  );
   if (!request) return false;
   if (accept) {
-    await acceptGuardian(userId, request.guardianSettingId);
+    await acceptGuardian(request.guardianSettingId);
   } else {
-    await removeGuardian(userId, request.guardianSettingId);
+    await removeGuardian(request.guardianSettingId);
   }
   return true;
 }
