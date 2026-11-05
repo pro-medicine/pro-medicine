@@ -67,18 +67,28 @@ public class InteractionCheckService {
                 .map(MedicineIngredient::getActiveCode)
                 .collect(Collectors.toSet());
         Map<String, List<String>> productsByCode = new LinkedHashMap<>();
-        userProductRepository.findActiveSupplementIngredients(userId)
-                .forEach(r -> productsByCode.computeIfAbsent(r.getIngredientCode(), k -> new ArrayList<>()).add(r.getProductName()));
+        userProductRepository.findActiveSupplementNutrientIngredients(userId)
+                .forEach(r -> productsByCode
+                        .computeIfAbsent(r.getIngredientCode(), k -> new ArrayList<>())
+                        .add(r.getProductName()));
+
         Set<String> supplementCodes = productsByCode.keySet();
+
         Map<String, InteractionWarning> merged = new LinkedHashMap<>();
 
         // 1) 약 x 영양제
         if (!activeCodes.isEmpty() && !supplementCodes.isEmpty()) {
             medicineInteractionRepository.findActiveMatches(activeCodes, supplementCodes)
-                    .forEach(i -> merged.putIfAbsent(i.getSupplementIngredientCode() + "|" + i.getMessageKo(),
-                            new InteractionWarning(i.getSeverity(), i.getSupplementIngredientCode(),
+                    .forEach(i -> merged.putIfAbsent(
+                            i.getSupplementIngredientCode() + "|" + i.getMessageKo(),
+                            new InteractionWarning(
+                                    i.getSeverity(),
+                                    i.getSupplementIngredientCode(),
                                     productsByCode.get(i.getSupplementIngredientCode()),
-                                    i.getMessageKo(), i.getSourceId())));
+                                    i.getMessageKo(),
+                                    i.getSourceId()
+                            )
+                    ));
         }
 
         // 2) 기간이 겹치는 다른 약과 같은 주성분 (supplementProducts 자리에 '겹치는 약 이름'을 담는다)
