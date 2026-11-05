@@ -39,7 +39,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
 
     // 복용 중단 (삭제 대신 is_active를 false로, 복용 기록·통계가 이 제품을 가리키고 있어서)
     // @Modifying: 조회가 아니라 값을 바꾸는 쿼리라는 표시
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE UserProduct up SET up.isActive = false WHERE up.userProductId = :userProductId")
     void deactivate(@Param("userProductId") Long userProductId);
 

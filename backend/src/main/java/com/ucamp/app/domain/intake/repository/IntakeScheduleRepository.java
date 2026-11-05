@@ -190,4 +190,26 @@ public interface IntakeScheduleRepository extends JpaRepository<IntakeSchedule, 
                         @Param("from") LocalTime from,
                         @Param("to") LocalTime to);
 
+    // 통계용: 지금 켜져 있는 일정 + from 이후에 꺼진 일정
+    @Query("""
+        SELECT s FROM IntakeSchedule s
+        JOIN FETCH s.userProduct up
+        WHERE up.user.id = :userId
+          AND ((up.isActive = true AND s.isEnabled = true AND s.disabledAt IS NULL)
+               OR s.disabledAt >= :from)
+        """)
+    List<IntakeSchedule> findScheduleHistory(@Param("userId") Long userId,
+                                             @Param("from") LocalDate from);
+
+    @Query("""
+        SELECT s FROM IntakeSchedule s
+        JOIN FETCH s.userProduct up
+        JOIN FETCH up.user u
+        WHERE u.id IN :userIds
+          AND ((up.isActive = true AND s.isEnabled = true AND s.disabledAt IS NULL)
+               OR s.disabledAt >= :from)
+        """)
+    List<IntakeSchedule> findScheduleHistoryByUserIds(@Param("userIds") Collection<Long> userIds,
+                                                      @Param("from") LocalDate from);
+
 }   // 끝

@@ -565,7 +565,8 @@ CREATE TABLE `intake_schedules` (
                                     `meal_relation`   VARCHAR(10)   NOT NULL,
                                     `remind_at`   TIME   NOT NULL,
                                     `is_enabled`   BOOLEAN   NOT NULL   DEFAULT TRUE,
-                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP
+                                    `created_at`   DATETIME   NOT NULL   DEFAULT CURRENT_TIMESTAMP,
+    `disabled_at` DATE NULL
 );
 
 CREATE TABLE `surveys` (
