@@ -121,14 +121,6 @@ export default function SupplementAddPage({
 
   useEffect(() => {
     if (isEdit && target?.supplementId) loadTips(target.supplementId);
-    const seq = ++tipSeq.current;
-    fetchIntakeTips(target.catalogProductId)
-      .then((list) => {
-        if (seq === tipSeq.current) setTips(Array.isArray(list) ? list : []);
-      })
-      .catch(() => {
-        if (seq === tipSeq.current) setTipError(true);
-      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

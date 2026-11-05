@@ -177,7 +177,6 @@ function DayModal({
     if (confirmOpenRef.current) return;
     onClose();
   };
-  const dialogRef = useModalFocus(closeDay, openerRef);
   const [mode, setMode] = useState(null); // null | "new" | event 객체(수정)
   const [viewEvent, setViewEvent] = useState(null); // 상세로 보고 있는 일정
   const [form, setForm] = useState(EMPTY_FORM);
