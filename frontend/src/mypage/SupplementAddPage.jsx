@@ -6,6 +6,7 @@ import {
   fetchIntakeTips,
 } from "../api/mypageApi";
 import { useModalFocus } from "../common/useModalFocus";
+import "../home/home.css";
 
 // 끼니별 기본 알림 시각
 const mealSlotOptions = [
@@ -200,7 +201,11 @@ export default function SupplementAddPage({
               },
         );
       }
-      onSaved(panelInstanceId);
+      // 저장한 영양제 이름 (마이페이지 토스트 문구용)
+      let savedName = trimmedName;
+      if (isEdit) savedName = target.productName;
+      else if (!manualMode) savedName = selected.productName;
+      onSaved(panelInstanceId, savedName);
     } catch (e) {
       setMessage(e.message || "등록하지 못했어요.");
       setSaving(false);
