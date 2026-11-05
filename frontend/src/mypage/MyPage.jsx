@@ -86,8 +86,8 @@ function toSupplementCard(item, index) {
   };
 }
 
-function SettingsModal({ onClose, openerRef, children }) {
-  const panelRef = useModalFocus(onClose, openerRef);
+function SettingsModal({ onClose, openerRef, active = true, children }) {
+  const panelRef = useModalFocus(onClose, openerRef, {active});
 
   return (
     <div className="settings-overlay" role="presentation" onMouseDown={onClose}>
@@ -158,8 +158,7 @@ export default function ProfileScreen({
   const [sharing, setSharing] = useState(false);
   // 공개 설정 요청 중인지 (설정 창의 Esc 처리는 처음 함수를 계속 써서 state 대신 ref로 확인)
   const sharingRef = useRef(false);
-  const withdrawConfirmOpenRef = useRef(false);
-  // 회원 탈퇴 최종 확인 창이 열려 있는지 (열려 있으면 설정 창을 닫지 않음)
++  const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);  // 회원 탈퇴 최종 확인 창이 열려 있는지 (열려 있으면 설정 창을 닫지 않음)
   // 삭제 확인 창을 띄운 영양제 카드, null 이면 창 닫힘
   const [removeTarget, setRemoveTarget] = useState(null);
   // 삭제 확인 창을 연 버튼 (닫으면 포커스 복원)
@@ -473,10 +472,11 @@ export default function ProfileScreen({
       {showSettings && (
         <SettingsModal
           onClose={() => {
-            if (!sharing && !withdrawConfirmOpenRef.current)
+            if (!sharing)
               setShowSettings(false);
           }}
           openerRef={settingsOpenerRef}
+          active={!withdrawConfirmOpen}
         >
           <section className="share-setting">
             <div>
@@ -526,9 +526,7 @@ export default function ProfileScreen({
             <WithdrawalSection
               onWithdraw={onWithdraw}
               busy={loggingOut}
-              onConfirmOpenChange={(open) => {
-                withdrawConfirmOpenRef.current = open;
-              }}
+              onConfirmOpenChange={setWithdrawConfirmOpen}
             />
           )}
         </SettingsModal>

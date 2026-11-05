@@ -432,11 +432,12 @@ function DayModal({
               <h3>일정</h3>
               {showList && (
                 <button
+                  ref={addEventButtonRef}
                   type="button"
                   className="event-add-button"
                   onClick={openNew}
                 >
-                  <Icon name="plus" size={14} ref={addEventButtonRef} />
+                  <Icon name="plus" size={14} />
                   일정 추가
                 </button>
               )}
