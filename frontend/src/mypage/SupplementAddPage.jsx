@@ -90,13 +90,13 @@ export default function SupplementAddPage({
   const [tipError, setTipError] = useState(false);
   const tipSeq = useRef(0);
 
-  const loadTips = async (catalogProductId) => {
+  const loadTips = async (supplementId) => {
     const seq = ++tipSeq.current;
     setTips([]);
     setTipError(false);
-    if (!catalogProductId) return;
+    if (!supplementId) return;
     try {
-      const list = await fetchIntakeTips(catalogProductId);
+      const list = await fetchIntakeTips(supplementId);
       if (seq === tipSeq.current) {
         setTips(Array.isArray(list) ? list : []);
       }
@@ -114,12 +114,12 @@ export default function SupplementAddPage({
     setTipError(false);
   };
 
-  const activeCatalogProductId = isEdit
-    ? target?.catalogProductId
-    : selected?.catalogProductId;
+  const activeSupplementId = isEdit
+    ? target?.supplementId
+    : selected?.supplementId;
 
   useEffect(() => {
-    if (isEdit && target?.catalogProductId) loadTips(target.catalogProductId);
+    if (isEdit && target?.supplementId) loadTips(target.supplementId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -282,7 +282,7 @@ export default function SupplementAddPage({
                       onClick={() => {
                         setSelected(product);
                         setManualMode(false);
-                        loadTips(product.catalogProductId);
+                        loadTips(product.supplementId);
                         setMessage(null);
                       }}
                     >
@@ -347,7 +347,7 @@ export default function SupplementAddPage({
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
-                onClick={() => loadTips(activeCatalogProductId)}
+                onClick={() => loadTips(activeSupplementId)}
               >
                 다시 시도
               </button>

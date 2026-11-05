@@ -70,6 +70,23 @@ public interface UserProductRepository extends JpaRepository<UserProduct, Long> 
     List<SupplementIngredientRow> findActiveSupplementIngredients(@Param("userId") Long userId);
 
     @Query("""
+    select distinct
+        s.productName as productName,
+        sn.nutrientCode as ingredientCode
+    from UserProduct up
+    join up.supplement s
+    join SupplementNutrient sn
+        on sn.supplement.supplementId = s.supplementId
+    where up.user.id = :userId
+      and up.isActive = true
+      and up.productKind = 'SUPPLEMENT'
+    """)
+    List<SupplementIngredientRow> findActiveSupplementNutrientIngredients(
+            @Param("userId") Long userId
+    );
+
+
+    @Query("""
         select count(up) from UserProduct up
         where up.user.id = :userId
           and up.isActive = true

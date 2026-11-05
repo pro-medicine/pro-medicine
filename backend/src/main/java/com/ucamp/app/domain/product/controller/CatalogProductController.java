@@ -30,4 +30,10 @@ public class CatalogProductController {
             @PathVariable Long catalogProductId) {
         return ResponseEntity.ok(ApiResponse.success(intakeTipService.getTips(catalogProductId)));
     }
+
+    @GetMapping("/supplements/{supplementId}/intake-tips")
+    public ResponseEntity<ApiResponse<List<IntakeTipResponse>>> supplementIntakeTips(
+            @PathVariable Long supplementId) {
+        return ResponseEntity.ok(ApiResponse.success(intakeTipService.getSupplementTips(supplementId)));
+    }
 }

@@ -74,6 +74,8 @@ export function updateShareIntake(shared) {
 }
 
 // 제품을 골랐을 때 보여줄 복용 시점 안내: [{ ingredient, message }]
-export function fetchIntakeTips(catalogProductId) {
-  return api.get(`/api/v1/catalog-products/${catalogProductId}/intake-tips`);
+export function fetchIntakeTips(supplementId) {
+  return api.get(
+    `/api/v1/catalog-products/supplements/${supplementId}/intake-tips`,
+  );
 }
